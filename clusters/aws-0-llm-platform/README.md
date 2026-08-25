@@ -1,9 +1,9 @@
 # LLM Platform — opt-in Flux umbrella
 
 The 8 child Flux Kustomizations in this directory are aggregated by the
-umbrella at `../mycluster-0/llm-platform.yaml`. This directory is a
-**sibling** of `clusters/mycluster-0/` — not a sub-path — so that
-`flux-system` (which recursively syncs `clusters/mycluster-0/`) does
+umbrella at `../aws-0/llm-platform.yaml`. This directory is a
+**sibling** of `clusters/aws-0/` — not a sub-path — so that
+`flux-system` (which recursively syncs `clusters/aws-0/`) does
 not auto-discover the children and bypass the umbrella's
 `spec.suspend: true` gate. The umbrella defaults to
 `spec.suspend: true`, so none of these children — and therefore none of

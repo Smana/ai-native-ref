@@ -18,6 +18,6 @@ spec:
   postBuild:
     substituteFrom:
       - kind: ConfigMap
-        name: eks-mycluster-0-vars
+        name: eks-aws-0-vars
   dependsOn:
     - name: karpenter-nodepools

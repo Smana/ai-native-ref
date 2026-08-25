@@ -20,7 +20,7 @@ spec:
   postBuild:
     substituteFrom:
       - kind: ConfigMap
-        name: eks-mycluster-0-vars
+        name: eks-aws-0-vars
   # Envoy Gateway installs with `crds: Skip` and relies on the always-on
   # `crds` Kustomization having pre-applied `crds/base/envoy-gateway/`.
   # Make the dependency explicit so a cold-start race doesn't surface as

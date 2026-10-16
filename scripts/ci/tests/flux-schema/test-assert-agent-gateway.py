@@ -219,7 +219,7 @@ got = gate.run(compliant(REAL))
 check("compliant agent-gateway/agent-router passes", got == [], f"got {got}")
 got = gate.run(compliant(REAL) + compliant(POC))
 check("the PoC beside the real Gateway passes", got == [], f"got {got}")
-check("thirteen checks", len(gate.CHECKS) == 13, f"got {len(gate.CHECKS)}")
+check("fourteen checks", len(gate.CHECKS) == 14, f"got {len(gate.CHECKS)}")
 
 print("AG1 gateway")
 expect("no Gateway fails", lambda o: o.remove(find(o, "Gateway", "agent-router")), "AG1")
@@ -518,13 +518,13 @@ def edit_meter(edit):
     return mutate
 
 
-expect("a pinned model without a price fails", edit_meter(lambda m: m["prices"].pop("claude-haiku-5-5")),
-       "AG10", "claude-haiku-5-5")
+expect("a pinned model without a price fails", edit_meter(lambda m: m["prices"].pop("claude-opus-5-5")),
+       "AG10", "claude-opus-5-5")
 expect("a price without its cache-read rate fails", edit_meter(lambda m: m["prices"]["glm-5.3"].pop("cacheRead")),
        "AG10", "cacheRead")
 expect("an Anthropic price without its cache-write rate fails",
        edit_meter(lambda m: m["prices"]["claude-opus-5-5"].pop("cacheWrite")), "AG10", "cacheWrite")
-expect("a zero output price fails", edit_meter(lambda m: m["prices"]["glm-5.3-flash"].update({"output": 0})),
+expect("a zero output price fails", edit_meter(lambda m: m["prices"]["glm-5.3"].update({"output": 0})),
        "AG10", "output")
 expect("a query not grouped by the served model fails",
        edit_meter(lambda m: m.update({"query": "sum by (ar_agent, gen_ai_token_type) (x)"})), "AG10",
@@ -569,7 +569,7 @@ with tempfile.TemporaryDirectory() as d:
         pathlib.Path(d, name).write_text(yaml.safe_dump_all(compliant()))
     code, out = run_main(d)
     check("main exits 0 on per-cluster duplicates", code == 0, out)
-    check("main prints 13 checks", "assert-agent-gateway: 13 checks, 0 violations" in out, out)
+    check("main prints 14 checks", "assert-agent-gateway: 14 checks, 0 violations" in out, out)
     pathlib.Path(d, "overlay-infrastructure-gcp-0-agent-gateway.yaml").write_text(
         yaml.safe_dump_all([o for o in compliant() if o["kind"] != "Gateway"]))
     code, out = run_main(d)

@@ -82,9 +82,16 @@ then `clusters/gcp-0/llm-platform.yaml`, which depends on it (both
 `spec.suspend: true`). Weights are served from a GCS bucket over the Cloud
 Storage FUSE CSI driver instead of an S3 Files POSIX mount — see
 [ADR-0021]({{< relref "/docs/decisions/0021-gcs-fuse-for-model-weights-on-gcp.md" >}})
-for why, including what it gives up. Why the umbrella is still suspended, and
-what the first resume proved, is on the
-[status page]({{< relref "/docs/platform/ai-platform/status.md#serving" >}}).
+for why, including what it gives up.
+
+**On `gcp-0` the umbrella stays suspended on cost and an open GPU quota, not
+on missing identity**: each claim's per-claim GCP read identity *is* rendered
+as of `crossplane-configuration` v0.4.6. The first resume (2026-08-28) proved
+as much on a live cluster — the per-claim `GCPWorkloadIdentity` reached Ready
+and the preload Job wrote the weights to GCS — and stalled only once it reached
+the GPU itself: `GPUS_ALL_REGIONS` is `0` on the project, a Google quota this
+repository cannot route around. See `clusters/gcp-0-llm-platform/README.md` for
+the full failure-order watch list before the next resume.
 
 ## Security posture
 
@@ -102,8 +109,23 @@ what the first resume proved, is on the
 - **Private ingress only.** Reachable exclusively from the tailnet — see
   [Private Access](https://cnref.ogenki.io/docs/platform/networking/private-access/).
 
-Known gaps live on the
-[status page]({{< relref "/docs/platform/ai-platform/status.md#known-gaps" >}}).
+## Known gaps
+
+- **`xplane-llamaguard3-1b` holds a GPU and serves no automatic traffic** —
+  it runs at `min=1` but appears in no Semantic Router decision rule.
+- **Gateway routing is half-migrated** — only `xplane-qwen-coder` is
+  composition-owned; the other three claims still route through the
+  hand-written `apps/base/ai/llm/ai-gateway-routes/route.yaml`, so adding a
+  model means adding its route by hand unless the claim opts in
+  (`spec.gateway.enabled: true`).
+- **The Gateway API Inference Extension's endpoint picker is implemented but
+  enabled on zero claims.** It is mutually exclusive with LoRA canaries, and
+  the only gateway-enabled claim uses a canary.
+- **No distributed tracing.** OTLP export from the AI Gateway extproc is
+  written but not enabled, pending verification against VictoriaTraces.
+
+What comes next for serving is on the
+[roadmap]({{< relref "/docs/platform/ai-platform/status.md#serving-roadmap" >}}).
 
 {{< cards >}}
   {{< card link="/docs/platform/ai-platform/serving/inference-service/" title="The InferenceService claim" icon="document-text" subtitle="One model, one YAML file — a complete claim with its reasoning intact, what it renders, and every field it accepts." >}}

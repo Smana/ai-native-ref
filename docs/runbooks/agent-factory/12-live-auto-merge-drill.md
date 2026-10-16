@@ -38,6 +38,7 @@ flowchart LR
 | P3 | The factory is idle on `Smana/cloud-native-ref` | `kubectl get tasks -n agent-system` shows no task outside a final phase (`Done`, `Rejected`, `NoOp`, `Reverted`, `Closed`, `Stopped`) |
 | P4 | `main` is green | `gh run list -R Smana/cloud-native-ref --branch main --limit 3` |
 | P5 | No auto-merge today | `gh pr list -R Smana/cloud-native-ref --state merged --label 'factory/auto-merged:docs-links'` is empty (the drill's cap is 1 a day, labelled merges count) |
+| P6 | The `agent-merge` ruleset exists, and the live `agent-branches` ruleset (24063626) no longer covers `main`. On 2026-10-16 `agent-merge` was never applied, and `agent-branches` excluded only `refs/heads/agent/**` with a bypass list (human roles, Renovate) that omits the merger App, so every live merge and revert would be refused | Owner, from a cloud-native-ref checkout, in this order (the second refuses until `agent-merge` exists): `MERGER_APP_ID=<merger App ID> task ops:github:agent-merge-ruleset -- Smana/cloud-native-ref`, then `task ops:github:agent-branch-ruleset -- Smana/cloud-native-ref`. Check: `gh api repos/Smana/cloud-native-ref/rulesets/24063626 --jq .conditions.ref_name.exclude` lists `refs/heads/main`, `refs/heads/revert-*` and `refs/heads/revert-*/**`. The App ID is on github.com/settings/apps/ogenki-agent-merger |
 
 Once a class is live, the factory asks the merger's tokens for `issues: write` (and `actions: write`,
 since `checkReruns: 1`). GitHub refuses the whole mint if the installation lacks one, so a missing

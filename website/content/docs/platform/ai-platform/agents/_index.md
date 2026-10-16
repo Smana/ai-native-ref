@@ -14,7 +14,7 @@ stopped by the kill switch; people follow and approve in rooms, from the browser
 coding agent. Three factory pull requests have merged end to end. v1 covers one public repository,
 one active cloud and `public` work, with the merge gate in shadow. It is not production-ready: the
 hardening list, then each v2 expansion and the gate it must pass, are on the
-[status page]({{< relref "/docs/platform/ai-platform/status.md#agent-factory" >}}).
+[status page]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}).
 {{< /callout >}}
 
 ## What it is
@@ -107,4 +107,4 @@ Runs are per repository: a task never spans two.
 - [Programme design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md): the contracts between the sub-projects, and the owner decisions.
 - [Runtime and identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md) · [Rooms](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md) · [Factory](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md) · [Model routing and budgets](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md) · [Observability](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-27-agent-observability-design.md)
 - [User guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md" >}}): what a developer does with it.
-- [Status]({{< relref "/docs/platform/ai-platform/status.md#agent-factory" >}}): what v1 proves live, the hardening before it is dependable, and the v2 roadmap.
+- [Status]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}): what has landed, what is in progress, and the roadmap.

@@ -459,6 +459,21 @@ at zero replicas, fail-open) are scripted but the session may not mutate aws-0 t
 runs them; P5 (a proxy pod deleted under a live run); the tester, triager and `internal` runs, which
 need `task agent:run` (owner's `roomctl login`).
 
+### Live evidence, `internal` run, 2026-10-16
+
+On agent-platform v0.15.0 (cloud-native-ref#2462, with ai-native-ref v0.1.6 and
+crossplane-configuration v0.9.13): the `internal` model route through agentgateway to the Anthropic
+API, the read-only GitHub route that clones (P6, ai-native-ref#11), prompt caching in the harness
+(agent-platform#132) and a meter that settles before reporting (agent-platform#131).
+
+| Run | Result |
+|---|---|
+| `wfeiraim` (triager, Opus 5.5) | 258,965 of 303,477 input tokens were cache reads (85%). The meter priced it at **$0.477275**, which reproduces exactly from the gateway counters |
+| `nh5tztlh` (earlier, no cache, a different task) | $2.13; indicative only |
+
+Caveat: the meter assumes the gateway's `input` includes cache tokens, which holds only on the
+non-streaming Chat Completions path. The guard is agent-platform#133, open.
+
 ## Phase J — cache-aware accounting
 
 ### Task J0: The meter prices cache reads (done)

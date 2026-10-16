@@ -92,7 +92,7 @@ matches that header and forwards through an `AIServiceBackend` → `Backend` →
 the model's Service on port 8000.
 
 Not every claim routes this way yet: three of the four still use a hand-written route, listed
-under [known gaps]({{< relref "/docs/platform/ai-platform/status.md#known-gaps" >}}).
+under [known gaps]({{< relref "/docs/platform/ai-platform/serving/_index.md#known-gaps" >}}).
 
 ### Semantic routing — `model: MoM`
 
@@ -114,7 +114,7 @@ appear in **no** rule above. They hold serving capacity and are reachable only
 by naming them directly. The router's own in-pod `prompt_guard` classifier
 blocks jailbreak attempts, but that is a filter, not a routing decision —
 there is no automatic guardrail dispatch (see
-[known gaps]({{< relref "/docs/platform/ai-platform/status.md#known-gaps" >}})).
+[known gaps]({{< relref "/docs/platform/ai-platform/serving/_index.md#known-gaps" >}})).
 {{< /callout >}}
 
 ### LoRA canaries
@@ -198,7 +198,7 @@ flowchart LR
 | Listener | Port | Audiences | Routes |
 |---|---|---|---|
 | `public` | 8080 | `agent-router.<role>.public` | `/v1` and `/anthropic` to Z.ai; `/v1/models` answers a 404 body, not a model list; `/mcp` with documentation and room tools |
-| `internal` | 8081 | `agent-router.<role>.internal` | `/mcp` with cluster, metric and log reads per role. No model route yet: `internal` runs will reach Claude through the Anthropic API (Bedrock or Vertex optional per cloud; ADR-0054), with the tier routes |
+| `internal` | 8081 | `agent-router.<role>.internal` | `/mcp` with cluster, metric and log reads per role; the model route to Claude through the Anthropic API (Bedrock or Vertex optional per cloud; ADR-0054) and a read-only GitHub route for clones ([ai-native-ref#11](https://github.com/Smana/ai-native-ref/pull/11)) |
 | `sts` | 8082 | `octo-sts/Smana/cloud-native-ref/<role>` | `/sts/exchange` to octo-sts, with the bearer forwarded (`preserveToken`) |
 
 ### Identity

@@ -274,3 +274,28 @@ Findings, each filed where it is fixed:
 | The closing comment under-reports tokens (553 k against 667,878) | agent-platform [#42](https://github.com/Smana/agent-platform/issues/42), still open on v0.8.0 |
 | The spec calls the factory multi-repo; it takes issues from one repository | [#2268](https://github.com/Smana/cloud-native-ref/issues/2268) |
 | The unlinked hint says to link GitHub from the login page, which sends a Google-only user to a password reset | [#2269](https://github.com/Smana/cloud-native-ref/issues/2269) |
+
+## Live findings
+
+Found by the live gates on `gcp-0` and `aws-0`.
+
+| # | Finding | State |
+|---|---|---|
+| F1 | The OpenBao snapshot job could not read the object it uploads (missing `storage.objects.get`) | **Fixed** ([#2144](https://github.com/Smana/cloud-native-ref/pull/2144)) |
+| F2 | Run pods landed on a fresh gVisor node before Cilium and ran up to ~2 minutes without their network policy | **Fixed and verified live**: Cilium's startup taint on every pool ([#2145](https://github.com/Smana/cloud-native-ref/pull/2145)) |
+| F3 | The `CPUS_ALL_REGIONS` quota (26 of 32) blocks `e2-standard-8` nodes on `gcp-0` | **Waiting** on a quota increase |
+| F4 | Runbook 08's observability steps existed only in the plan | **Fixed** |
+| F5 | Crossplane never upgrades the core Configuration dependency | **Open**: patched by hand on each upgrade ([#2275](https://github.com/Smana/cloud-native-ref/issues/2275)) |
+| F6 | GKE refuses `kubernetes.io` taint keys on ComputeClasses, which wedged `infrastructure` | **Fixed** ([#2145](https://github.com/Smana/cloud-native-ref/pull/2145)) |
+| F7 | The room broker's certificate had no CN, and the PKI role signed only the private domain | **Fixed** in [#2150](https://github.com/Smana/cloud-native-ref/pull/2150) on `gcp-0`; the same PKI change on `aws-0` is unverified |
+| F8 | The rooms SSO client was missing on `gcp-0` | **Fixed** by re-running the client sync |
+| F9 | `cilium-agent` was OOM-killed twice on new nodes | **Fixed** ([#2145](https://github.com/Smana/cloud-native-ref/pull/2145)) |
+| F10 | The bridge-to-broker event stream reset every 10 s | **Fixed and verified** on `aws-0`, 2026-10-15: three cohort bridges re-dialled twice each in 23 min, cleanly, not every 10 s ([#2282](https://github.com/Smana/cloud-native-ref/issues/2282)) |
+| F11 | Short conversations lost their whole transcript during the gVisor cold start | **Fixed and verified** on `aws-0`, 2026-10-07 |
+| F12 | A deleted or evicted run pod was re-created by its Sandbox and the task restarted from scratch | **Fixed and verified** on `aws-0`, 2026-10-15: a run pod deleted mid-task read `Failed PodLost` in 6 s, its Sandbox suspended, and the task did not restart ([#2282](https://github.com/Smana/cloud-native-ref/issues/2282)) |
+| F13 | The live-gate step grepped for `room_busy`, but the broker logs "room busy" | **Fixed** ([#2155](https://github.com/Smana/cloud-native-ref/pull/2155)) |
+| F14 | `cnpg-promote-seed.sh --cloud gcp` nested the seed one level too deep | **Fixed** ([#2154](https://github.com/Smana/cloud-native-ref/pull/2154)) |
+| F15 | A run refused the room lease still executed its task, unrecorded, on the shared branch | **Fixed and verified** on `aws-0`, 2026-10-15: of two runs requested 110 ms apart in one room, the factory refused the second `409 room_busy`, so it never existed. The pod's `room-gate` refusal was not exercised ([#2282](https://github.com/Smana/cloud-native-ref/issues/2282)) |
+| F16 | MCP calls are not joined to the run's trace | **Open** ([#2283](https://github.com/Smana/cloud-native-ref/issues/2283)) |
+| F17 | Runbook 08's GCP commands had bugs | **Fixed** |
+| F18 | A successful run's page showed no outcome or PR | **Fixed and verified** on `aws-0`, 2026-10-08: `agentrun_pull_request_info` names the PR; `agentrun_outcome_info` is emitted for failures only, by design |

@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-26
 **Status:** approved, not yet implemented
-**Workstream:** 14 of the [GCP support programme](2026-08-18-gcp-support-design.md) — the last one
+**Workstream:** 14 of the [GCP support programme](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-08-18-gcp-support-design.md) — the last one
 **ADR:** [ADR-0021](../../../website/content/docs/decisions/0021-gcs-fuse-for-model-weights-on-gcp.md)
 
 ## Problem

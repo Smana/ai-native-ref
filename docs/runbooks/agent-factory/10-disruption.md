@@ -146,7 +146,7 @@ Cleanup: label the issue `factory/stop`, close the PR the runs opened, delete th
 
 On aws-0, with a factory implementer `Running` (Step 2's issue, on aws-0). The FIS role and the
 experiment template come with the cluster, from
-[`opentofu/aws/eks/init/fis.tf`](../../../opentofu/aws/eks/init/fis.tf). The template interrupts
+[`opentofu/aws/eks/init/fis.tf`](https://github.com/Smana/cloud-native-ref/blob/main/opentofu/aws/eks/init/fis.tf). The template interrupts
 only a running Spot instance tagged `agents.ogenki.io/fis-target=true`, so tag the run's node
 first:
 

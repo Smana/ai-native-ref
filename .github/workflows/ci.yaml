@@ -24,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          fetch-depth: 0 # the site's enableGitInfo needs history
           persist-credentials: false
       - id: host
         run: echo "ref=$(cat HOST_REF)" >> "$GITHUB_OUTPUT"
@@ -43,6 +44,11 @@ jobs:
           path: ~/.cache/helm
           key: helm-${{ hashFiles('HOST_REF', '**/*helmrelease*.yaml', 'flux/sources/**') }}
           restore-keys: helm-
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/hugo_cache
+          key: hugo-mod-${{ hashFiles('website/go.sum') }}
+          restore-keys: hugo-mod-
       - run: task check
 
   lint:

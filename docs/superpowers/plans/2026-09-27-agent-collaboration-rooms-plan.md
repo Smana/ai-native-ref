@@ -20389,7 +20389,7 @@ SP3's share (G2, G3, G5, G6, G8, and M1 for its keys) is in the SP3 plan.
 
 ## GCP parity cross-plan edits (2026-09-29)
 
-Applied from the GCP parity plan's [Cross-plan edits](2026-09-29-gcp-parity-plan.md#cross-plan-edits) (SP2 share).
+Applied from the GCP parity plan's [Cross-plan edits](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/plans/2026-09-29-gcp-parity-plan.md#cross-plan-edits) (SP2 share).
 
 | ID | Where | What | Conflict |
 |---|---|---|---|

@@ -94,13 +94,13 @@ what the first resume proved, is on the
   the serving pod cannot reach HuggingFace even in principle.
 - **No credentials in Git.** API keys and the HuggingFace token come from AWS
   Secrets Manager through External Secrets — see
-  [PKI & Secrets]({{< relref "/docs/platform/security/pki-and-secrets.md" >}}).
+  [PKI & Secrets](https://cnref.ogenki.io/docs/platform/security/pki-and-secrets/).
 - **Read-only IAM on the serving pod.** Each claim's serving
   ServiceAccount carries a per-claim EKS Pod Identity scoped to *read* its
   own weights prefix, rendered by the composition; only the shared preload
   Job's identity can write to the bucket.
 - **Private ingress only.** Reachable exclusively from the tailnet — see
-  [Private Access]({{< relref "/docs/platform/networking/private-access.md" >}}).
+  [Private Access](https://cnref.ogenki.io/docs/platform/networking/private-access/).
 
 Known gaps live on the
 [status page]({{< relref "/docs/platform/ai-platform/status.md#known-gaps" >}}).

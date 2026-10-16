@@ -71,7 +71,7 @@ one picture.
 `platform-tailscale-general` and are forwarded to the Envoy AI Gateway data
 plane Service. In-cluster clients — OpenWebUI, the nightly Promptfoo eval —
 address that Service directly. Nothing is reachable from the public internet;
-see [Private access]({{< relref "/docs/platform/networking/private-access.md" >}}).
+see [Private access](https://cnref.ogenki.io/docs/platform/networking/private-access/).
 
 **Authentication.** A `SecurityPolicy` (`apiKeyAuth`) targets the Gateway, so
 every route inherits it rather than each declaring its own. Keys come from AWS

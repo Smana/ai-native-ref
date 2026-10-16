@@ -183,7 +183,7 @@ for the cost floor that implies.
 Copy the closest existing claim, change `model.repository` and `revision`, set
 `gpu.minVRAM` for the parameter count and quantization, pick a `routing.tier`
 and `specialty`, and open a PR — the same review and merge gates as any other
-manifest, described in [Validation]({{< relref "/docs/platform/gitops/validation.md" >}}).
+manifest, described in [Validation](https://cnref.ogenki.io/docs/platform/gitops/validation/).
 
 Two things to check before merging: the fleet fits within the four-GPU cap
 with the new model at `minReplicas`, and — if the model should be reachable

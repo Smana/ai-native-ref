@@ -30,14 +30,20 @@ names its listeners, audiences, caller namespace and route namespace:
        own class: Allow expressions are OR-ed at runtime (PoC N7).
   AG7  Every listener with an LLM route answers an Exact /v1/models with a
        404 direct response (PoC N3).
-  AG8  Every rateLimit.global fails open, charges Tokens at the reference-token
-       cost (design D11), names no route or backend, and its domain resolves to
-       a rate-limit ConfigMap whose matching descriptors are in shadow mode,
-       mounted only by servers that set SHADOW_MODE. Every descriptor entry and
-       local-limit key reads only claims the JWT policy requires on each
-       listener it covers: a descriptor whose CEL fails is dropped, unlimited
-       (#3523). `aud` counts as required where every covered listener checks
-       audiences. A local limit names a key.
+  AG8  Every rateLimit.global fails open, charges Tokens at the run meter's
+       price in reference tokens (design D11, J-AC2: the cost string is
+       regenerated from meter.prices and must match), names no route or
+       backend, and its domain resolves to a rate-limit ConfigMap. Every server
+       mounting it sets SHADOW_MODE to "true" or "false", all alike, and no
+       descriptor sets shadow_mode: SHADOW_MODE is the one switch (runbook 04,
+       Part D), which a descriptor's own shadow_mode would override. The per-run
+       bucket is at least every tier's run cap (runUSD in reference tokens, and
+       runTokens), the fleet bucket at least budgets.factoryDaily plus
+       caps.concurrentRuns runs at that cap: the gateway never refuses before
+       the factory would. Every descriptor entry and local-limit key reads only
+       claims the JWT policy requires on each listener it covers: a descriptor
+       whose CEL fails is dropped, unlimited (#3523). `aud` counts as required
+       where every covered listener checks audiences. A local limit names a key.
   AG9  The Gateway's AgentgatewayParameters keeps the constitution's pod shape
        (seccomp, liveness, memory limit), ClusterIP, 2 replicas, a PDB, a
        digest-pinned image, and shutdown {min: 10, max: 660} (PoC N1).
@@ -93,12 +99,31 @@ UNTYPED_ROUTES = {"Detect", "Passthrough"}
 ROUTE_KINDS = ("HTTPRoute", "GRPCRoute")
 # ADR-0054: the listeners each provider may serve.
 PROVIDER_LISTENERS = {"Z.ai": {"public"}, "Anthropic": {"internal"}}
-# Design D11, OD-6: USD is the policy unit, and a rate-limit descriptor needs an
-# integer, so a request costs its gateway price in reference tokens (REF USD per
-# token), or its total tokens when unpriced. A cost that fails to evaluate drops
-# the descriptor silently, so the string is pinned.
-REF = "0.0000017"
-BILLABLE_COST = f"has(llm.cost) ? uint(llm.cost.total / {REF}) : uint(llm.totalTokens)"
+# Design D11, OD-6, J-AC2: USD is the policy unit, and a rate-limit descriptor
+# needs an integer, so a request costs its price in reference tokens ($1.70 per
+# M), priced by the meter's own table, or its total tokens when the model has no
+# row. A cost that fails to evaluate drops the descriptor silently, so the string
+# is generated here and pinned.
+REF_USD_PER_M = 1.7
+# The rate-limit descriptors B1 (one bucket per verified sub, i.e. per run) and B2.
+RUN_BUCKET, FLEET_BUCKET = "agent", "fleet"
+
+
+def billable_cost(prices):
+    """The cost CEL for meter.prices: the meter's formula, row [input, cacheRead, cacheWrite, output].
+
+    A malformed row is left out, so the policy's cost cannot match; AG10 names the row."""
+    def num(v):
+        return isinstance(v, (int, float)) and not isinstance(v, bool)
+    rows = ", ".join(f'"{m}": [{float(p["input"])}, {float(p["cacheRead"])}, '
+                     f'{float(p.get("cacheWrite", p["input"]))}, {float(p["output"])}]'
+                     for m, p in sorted(prices.items())
+                     if isinstance(p, dict) and all(num(p.get(f)) for f in PRICE_FIELDS)
+                     and num(p.get("cacheWrite", 0)))
+    cached, written = "double(default(llm.cachedInputTokens, 0))", "double(default(llm.cacheCreationInputTokens, 0))"
+    return ("{" + rows + "}.with(p, llm.requestModel in p ? p[llm.requestModel].with(r, uint(("
+            f"(double(default(llm.inputTokens, 0)) - {cached} - {written}) * r[0] + {cached} * r[1] + {written} * r[2]"
+            f" + double(default(llm.outputTokens, 0)) * r[3]) / {REF_USD_PER_M})) : uint(llm.totalTokens))")
 # Design D8, plan I.1: the agent names, on every agent-router listener.
 AGENT_MODELS = ("agent-default", "tier-light", "tier-standard", "tier-frontier")
 MODEL_ALLOWLIST = f"llmRequest.model in {json.dumps(list(AGENT_MODELS))} ? llmRequest.model : null"
@@ -488,10 +513,27 @@ def mounting_servers(objs, cm):
                     for v in ((spec_of(d).get("template") or {}).get("spec") or {}).get("volumes") or [])]
 
 
-def server_shadowed(server):
+def server_modes(server):
+    """Each container's SHADOW_MODE, None where it is unset (the server then enforces)."""
     containers = ((spec_of(server).get("template") or {}).get("spec") or {}).get("containers") or []
-    return bool(containers) and all({"name": "SHADOW_MODE", "value": "true"} in (c.get("env") or [])
-                                    for c in containers)
+    return [next((e.get("value") for e in c.get("env") or [] if e.get("name") == "SHADOW_MODE"), None)
+            for c in containers]
+
+
+def factory_values(objs):
+    cm = next((c for c in kind(objs, "ConfigMap")
+               if meta(c).get("namespace") == FACTORY_NS and meta(c).get("name") == FACTORY_VALUES), None)
+    if cm is None:
+        return None
+    return (yaml.load((cm.get("data") or {}).get("values.yaml") or "", Loader=YAML_LOADER) or {}).get("config") or {}
+
+
+def factory_floors(cfg):
+    """The smallest B1 and B2 that never refuse before the factory: (run, fleet) in reference tokens."""
+    tiers = [t for t in (cfg.get("tiers") or {}).values() if isinstance(t, dict)]
+    run = max((max(round(t.get("runUSD", 0) * 1e6 / REF_USD_PER_M), t.get("runTokens", 0)) for t in tiers), default=0)
+    fleet = (cfg.get("budgets") or {}).get("factoryDaily", 0) + (cfg.get("caps") or {}).get("concurrentRuns", 0) * run
+    return run, fleet
 
 
 def check_budgets(objs):
@@ -517,15 +559,32 @@ def check_budgets(objs):
             continue
         cm, cfg = configs[domain]
         servers = mounting_servers(objs, cm)
-        if not servers or not all(map(server_shadowed, servers)):
-            out.append(f"AG8: every rate-limit server mounting {ref(cm)} must set SHADOW_MODE \"true\" until "
-                       f"enforcement, whatever a descriptor says ({len(servers)} found)")
+        if not servers:
+            out.append(f"AG8: no rate-limit server mounts {ref(cm)}")
+        modes = {m for s in servers for m in server_modes(s)}
+        if len(modes) > 1 or modes - {"true", "false"}:
+            out.append(f"AG8: every server mounting {ref(cm)} must set SHADOW_MODE, all \"true\" or all \"false\": "
+                       f"got {sorted(map(str, modes))}")
+        for d in cfg["descriptors"]:
+            if "shadow_mode" in d:
+                out.append(f"AG8: {ref(cm)} descriptor {d.get('key')} sets shadow_mode: SHADOW_MODE is the one switch")
+        factory = factory_values(objs)
+        if factory is None:
+            out.append(f"AG8: no {FACTORY_NS}/{FACTORY_VALUES}: the budgets have no price table or caps to follow")
+            continue
+        cost = billable_cost((factory.get("meter") or {}).get("prices") or {})
+        floors = dict(zip((RUN_BUCKET, FLEET_BUCKET), factory_floors(factory)))
+        for d in cfg["descriptors"]:
+            limit = (d.get("rate_limit") or {}).get("requests_per_unit", 0)
+            if d.get("key") in floors and limit < floors[d["key"]]:
+                out.append(f"AG8: {ref(cm)} bucket {d['key']} is {limit} reference tokens, below the factory's "
+                           f"{floors[d['key']]}: the gateway would refuse first")
         rules = {d.get("key"): d for d in cfg["descriptors"]}
         for d in glob.get("descriptors") or []:
             if d.get("unit") != "Tokens":
                 out.append(f"AG8: {ref(p)} descriptor must charge unit Tokens")
-            elif d.get("cost") != BILLABLE_COST:
-                out.append(f"AG8: {ref(p)} Tokens descriptor must charge reference tokens: cost: {BILLABLE_COST}")
+            elif d.get("cost") != cost:
+                out.append(f"AG8: {ref(p)} Tokens descriptor must charge reference tokens at meter.prices: cost: {cost}")
             for entry in d.get("entries") or []:
                 expr = entry.get("expression", "")
                 if re.search(r"route|backend|request\.path", f"{entry.get('name', '')} {expr}"):
@@ -534,12 +593,8 @@ def check_budgets(objs):
                 if extra := unrequired_reads(expr, required):
                     out.append(f"AG8: {ref(p)} descriptor entry {entry.get('name')} reads {extra}, which the JWT "
                                "policy does not require: a descriptor whose CEL fails is dropped, unlimited (#3523)")
-                rule = rules.get(entry.get("name"))
-                if rule is None:
+                if entry.get("name") not in rules:
                     out.append(f"AG8: {ref(p)} entry {entry.get('name')} has no descriptor in {ref(cm)}")
-                elif rule.get("shadow_mode") is not True:
-                    out.append(f"AG8: {ref(cm)} descriptor {entry.get('name')} must set shadow_mode: true "
-                               "until enforcement")
     return out
 
 
@@ -695,28 +750,25 @@ def check_meter_prices(objs):
     pins = [(b, m) for b in kind(objs, "AgentgatewayBackend") for m in pinned_models(b)]
     if not pins:
         return []
-    cms = [c for c in kind(objs, "ConfigMap")
-           if meta(c).get("namespace") == FACTORY_NS and meta(c).get("name") == FACTORY_VALUES]
-    if not cms:
+    factory = factory_values(objs)
+    if factory is None:
         return [f"AG10: no ConfigMap {FACTORY_NS}/{FACTORY_VALUES} beside the LLM backends: no run would be priced"]
     out = []
-    for cm in cms:
-        values = yaml.load((cm.get("data") or {}).get("values.yaml") or "", Loader=YAML_LOADER) or {}
-        meter = (values.get("config") or {}).get("meter") or {}
-        if "gen_ai_request_model" not in str(meter.get("query", "")):
-            out.append("AG10: meter.query does not group by gen_ai_request_model: a run would be priced by "
-                       "its agent name, whatever model served it")
-        prices = meter.get("prices") or {}
-        for b, model in pins:
-            row = prices.get(model)
-            if not isinstance(row, dict):
-                out.append(f"AG10: {ref(b)} pins {model}, which has no meter.prices row")
-                continue
-            fields = PRICE_FIELDS + (("cacheWrite",) if is_anthropic(b) else ())
-            for f in fields:
-                v = row.get(f)
-                if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
-                    out.append(f"AG10: meter.prices.{model} ({ref(b)}) needs a positive {f}")
+    meter = factory.get("meter") or {}
+    if "gen_ai_request_model" not in str(meter.get("query", "")):
+        out.append("AG10: meter.query does not group by gen_ai_request_model: a run would be priced by "
+                   "its agent name, whatever model served it")
+    prices = meter.get("prices") or {}
+    for b, model in pins:
+        row = prices.get(model)
+        if not isinstance(row, dict):
+            out.append(f"AG10: {ref(b)} pins {model}, which has no meter.prices row")
+            continue
+        fields = PRICE_FIELDS + (("cacheWrite",) if is_anthropic(b) else ())
+        for f in fields:
+            v = row.get(f)
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
+                out.append(f"AG10: meter.prices.{model} ({ref(b)}) needs a positive {f}")
     return out
 
 

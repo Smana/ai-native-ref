@@ -198,6 +198,7 @@ listed · **moved**: same work, another repo or path · **done**: already true o
 | C.5 | done (AGW-3), live 2026-10-15 | cnref | On aws-0: `agentgateway-poc-live-check.sh --gateway real` (L1–L8) |
 | D.1 | done (AGW-4) | cnref | `KVStore` comes from crossplane-configuration v0.9.7. 1.6's rate-limit call timeout defaults to 10 s. The server also sets `SHADOW_MODE=true`, so no descriptor can enforce before SP4 PR 7. The child gains `agent-secrets` and `crossplane-configuration` in `dependsOn` |
 | D.2 | done (AGW-4) | cnref | Plus OD-8's per-key local token limit, per replica, from the PoC's policy, at 30 M tokens per hour per sub: more than the frontier run cap can buy. No budget-refusal marker (OD-7). J.2's reference-token `cost` lands here (OD-6); AG8 pins it and fails an entry or key that reads a claim the JWT policy does not require (#3523) |
+| D.4 | new, done offline 2026-10-16 | ai-native-ref | Enforcement (SP4 PR 7 for the agents' budgets) behind one flag, default shadow: [below](#budget-enforcement-d4-new) |
 | D.3 | done (AGW-4), live 2026-10-15 except fail-open | cnref | Shadow counters rose (`total_hits` 417 = the check's 190 input + 227 output tokens), no `over_limit` series, Valkey reachable under default-deny. A server restart failing open is still to prove (G.4) |
 | E.1 | done (AGW-5), live check after merge | cnref | Also #2283's acceptance (OD-4): each MCP call is a child span of the run's trace, with tool name and duration, no content. Telemetry joins the existing `frontend` policy, not a second `policy-telemetry.yaml`. Step 4's facts were read from the PoC's access logs; see Phase E below. **#2283 closes on live proof** |
 | E.2 | done (AGW-5), live check after merge | cnref | Adds the proxy `VMPodScrape`. The relabel maps `input_cache_read` → `cached_input` and `input_cache_write` → `cache_creation_input`, which the meter reads. 1.6's `error_type` is `_OTHER` for every failure: an error ratio, not a per-status split. Only the token and request-duration families are renamed. Alerts land in a new `agent-gateway` group |
@@ -473,6 +474,32 @@ API, the read-only GitHub route that clones (P6, ai-native-ref#11), prompt cachi
 
 Caveat: the meter assumes the gateway's `input` includes cache tokens, which holds only on the
 non-streaming Chat Completions path. The guard is agent-platform#133, open.
+
+## Budget enforcement (D.4, new)
+
+D.1–D.3 left B1, B2 and B6 counting in shadow with no path to enforcement: every descriptor and the
+server set shadow, and the cost was agentgateway's catalog price, which has no GLM-5.3 row, so
+public runs were charged raw tokens with cache reads at the full rate. Their gateway bucket could
+fill before the meter's USD cap. Read against agentgateway v1.6.0 (`http/remoteratelimit.rs`,
+`proxy/mod.rs`, `store/binds.rs`, `http/transformation_cel.rs`) and envoyproxy/ratelimit at its
+pinned digest (`service/ratelimit.go`, `limiter/base_limiter.go`).
+
+| # | Decision | Rejected | Why |
+|---|---|---|---|
+| E1 | The flag is the server's `SHADOW_MODE`, `"true"` in the source; no descriptor sets `shadow_mode` (AG8) | A Flux `${var:=default}`; a kustomize component per cluster | The host's render substitutes no `:=` default, so the gate would judge an unrendered string. An unreferenced component directory is rendered as a root and fails. One line in one file is what the owner flips |
+| E2 | The cost is a CEL table generated from `meter.prices`, keyed on `llm.requestModel` (the alias-resolved model the meter's `gen_ai_request_model` carries), raw tokens for a model with no row | The built-in catalog (`llm.cost`) with an `AgentgatewayParameters.modelCatalog` overlay | The catalog looks a model up by provider and the provider's response model, not by the meter's key, and it would be a second price table in another schema. AG8 regenerates the string from `meter.prices`, so the gateway and the meter cannot drift (J-AC2) |
+| E3 | B1 ≥ the dearest tier's run cap, and B2 ≥ `factoryDaily` + `concurrentRuns` × that cap, in reference tokens; AG8 checks both against the factory's values. B2 moves from 40M to 41M | Keeping 40M | 25M + 4 × 4M = 41M: at 40M the gateway could refuse the fleet's last in-flight run before the factory |
+| E4 | A budget 429 carries `{"error": {"code": "agent_budget_exhausted", …}}`, set by a response `body` on the `public` and `internal` listener policies when a 429 has no `content-type` | Leaving the body empty, as envoyproxy/ratelimit sends no `raw_body` | The harness logs only the error's detail. Listener policies, since per field a listener's transformation replaces the Gateway's. The expression never reads `response.body`, so streams stay unbuffered |
+| E5 | Refusal metric per mode: `agent_router:budget_shadow_overrun_tokens:increase10m{key1}` (`over_limit`, kept while `global_shadow_mode` rises) and `agent_router:budget_refusals:increase10m{ar_agent}` (`reason="RateLimit"`). `AgentBudgetShadowOverrun` is info, `AgentBudgetRefused` warning | One alert whose severity reads the flag | Each signal exists only in its mode, so the severity follows the flag with no rule naming it |
+| E6 | No ADR | — | The mechanism is ADR-0050's and ADR-0053's. agentgateway 1.6's own budgets (`http/budget`, Audit or Block) key on standalone API keys and are not in the CRDs, so nothing credible competed |
+
+**D-AC1–D-AC3** (offline, done 2026-10-16, [runbook 04's results](../../runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d-offline--agentgateway-v160-2026-10-16)),
+on agentgateway v1.6.0 and envoyproxy/ratelimit at their pinned digests, with this repository's
+files: (1) in shadow an over-budget call is a `200` and is counted; (2) enforcing, it is a `429`
+with `retry-after` and the body; (3) a run within budget is unaffected. **D-AC4** (live, after the
+rebuild): runbook 04 Part D Step 4 refuses the probe, the meter's throttle query names it within
+2 minutes (SC-19), and `AgentBudgetRefused` fires. Then a shadow week on real runs (Part D
+Step 2) and the owner's flip.
 
 ## Phase J — cache-aware accounting
 

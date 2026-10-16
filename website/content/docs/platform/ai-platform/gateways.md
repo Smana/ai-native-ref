@@ -233,17 +233,21 @@ answers `Unknown tool`. A target that fails is dropped from the list rather than
 ADR-0050's agent budgets, on a rate-limit server of their own so they never share a bucket with the
 human ones (`policy-budgets.yaml`, `ratelimit.yaml`, `kvstore.yaml`):
 
-| Budget | Bucket | Limit per day |
-|---|---|---|
-| B1 | per run (the verified `sub`) | 5M reference tokens |
-| B2 | the whole fleet | 40M reference tokens |
+| Budget | Bucket | Limit per day | Above the factory's |
+|---|---|---|---|
+| B1 | per run (the verified `sub`) | 5M reference tokens ($8.50) | dearest run cap, $6.80 |
+| B2 | the whole fleet | 41M reference tokens ($69.70) | daily budget plus four runs in flight |
+| B6 | Anthropic, on `internal` | 10M reference tokens ($17) | nothing: a provider cap |
 
-Both run in **shadow mode**: every descriptor sets `shadow_mode` and the server runs with
-`SHADOW_MODE=true`, so nothing answers 429 yet. The server is `envoyproxy/ratelimit`
-(`agent-ratelimit`) on the Valkey `KVStore` `xplane-agent-ratelimit`; if it is down the router fails
-open and `AgentRateLimitDown` fires. Only a per-replica backstop of 30M raw tokens per hour per `sub`
-enforces, sized so that only a runaway the run meter failed to revoke reaches it. The run's exact
-cap is still the factory's run meter.
+They are a backstop: the factory's run meter stays the exact cap, and the gateway never refuses a
+call the factory would admit. Each call is charged at the meter's own prices, so a cache read
+costs its cache rate; gate AG8 holds the gateway's price expression and limits to the factory's
+values. They run in **shadow mode** until the owner flips one flag, `SHADOW_MODE` on the server:
+then a call over budget gets a `429` whose body, `agent_budget_exhausted`, the harness logs
+([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)). The server is `envoyproxy/ratelimit` (`agent-ratelimit`) on the Valkey
+`KVStore` `xplane-agent-ratelimit`; if it is down the router fails open and `AgentRateLimitDown`
+fires. A per-replica backstop of 30M raw tokens per hour per `sub` always enforces, sized so that
+only a runaway the run meter failed to revoke reaches it.
 
 The token-exchange listener names each repository's audiences, at most eight per listener; adding
 a repository is described on the [agents overview]({{< relref "/docs/platform/ai-platform/agents/_index.md#one-repository-at-first" >}}).

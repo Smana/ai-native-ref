@@ -115,3 +115,5 @@ Alerts in `observability/base/agent-platform/vmrule.yaml`, read on the **Agent g
 | `AgentGatewayModelErrorRatioHigh` | Over 10% of model calls fail for 10 minutes |
 | `AgentGatewayUnauthorizedBurst` | More than 20 refusals with reason `JwtAuth` or `Authorization` in 5 minutes |
 | `AgentRateLimitDown` | `agent-ratelimit` is down: budgets B1–B2 count nothing while the router fails open |
+| `AgentBudgetShadowOverrun` (info) | In shadow, a budget admitted calls over its limit: what enforcing would refuse |
+| `AgentBudgetRefused` | Enforcing, a budget refused a run's calls with 429 |

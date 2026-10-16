@@ -27,6 +27,11 @@ FAILURES = []
 REAL = ("agent-gateway", "agent-router")
 POC = ("agw-poc", "agent-router-agw")
 B6 = 'jwt.aud.exists(a, a.endsWith(".internal")) ? "anthropic" : "none"'
+PRICES = {"glm-5.3": {"input": 1.40, "cacheRead": 0.26, "output": 4.40},
+          "glm-5.3-flash": {"input": 0.15, "cacheRead": 0.03, "output": 0.50},
+          "claude-opus-5-5": {"input": 4, "cacheRead": 0.20, "cacheWrite": 5, "output": 20},
+          "claude-haiku-5-5": {"input": 0.50, "cacheRead": 0.05, "cacheWrite": 0.625, "output": 2.50}}
+COST = gate.billable_cost(PRICES)
 
 
 def check(name, condition, detail=""):
@@ -156,27 +161,24 @@ def compliant(key=REAL):
                     "backendRef": {"name": "agent-ratelimit", "port": 8081}, "domain": "agent-router",
                     "failureMode": "FailOpen", "descriptors": [
                         {"entries": [{"name": "agent", "expression": "jwt.sub"}], "unit": "Tokens",
-                         "cost": gate.BILLABLE_COST},
+                         "cost": COST},
                         {"entries": [{"name": "fleet", "expression": '"agents"'}], "unit": "Tokens",
-                         "cost": gate.BILLABLE_COST},
+                         "cost": COST},
                         {"entries": [{"name": "provider", "expression": B6}], "unit": "Tokens",
-                         "cost": gate.BILLABLE_COST}]},
+                         "cost": COST}]},
                 "local": [{"tokens": 30000000, "unit": "Hours", "key": "jwt.sub"}]}}}),
         {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"namespace": gw_ns, "name": "agent-ratelimit-config"},
          "data": {"config.yaml": yaml.safe_dump({"domain": "agent-router", "descriptors": [
-             {"key": "agent", "rate_limit": {"unit": "day", "requests_per_unit": 5000000}, "shadow_mode": True},
-             {"key": "fleet", "value": "agents", "rate_limit": {"unit": "day", "requests_per_unit": 40000000},
-              "shadow_mode": True},
-             {"key": "provider", "value": "anthropic", "rate_limit": {"unit": "day", "requests_per_unit": 10000000},
-              "shadow_mode": True}]})}},
+             {"key": "agent", "rate_limit": {"unit": "day", "requests_per_unit": 5000000}},
+             {"key": "fleet", "value": "agents", "rate_limit": {"unit": "day", "requests_per_unit": 41000000}},
+             {"key": "provider", "value": "anthropic", "rate_limit": {"unit": "day", "requests_per_unit": 10000000}}]})}},
         {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"namespace": "agent-system", "name": gate.FACTORY_VALUES},
          "data": {"values.yaml": yaml.safe_dump({"config": {"meter": {
              "query": "sum by (ar_agent, gen_ai_request_model, gen_ai_token_type) (gen_ai_client_token_usage_sum)",
-             "prices": {"glm-5.3": {"input": 1.40, "cacheRead": 0.26, "output": 4.40},
-                        "glm-5.3-flash": {"input": 0.15, "cacheRead": 0.03, "output": 0.50},
-                        "claude-opus-5-5": {"input": 4, "cacheRead": 0.20, "cacheWrite": 5, "output": 20},
-                        "claude-haiku-5-5": {"input": 0.50, "cacheRead": 0.05, "cacheWrite": 0.625,
-                                             "output": 2.50}}}}})}},
+             "prices": PRICES},
+             "tiers": {"light": {"runTokens": 300000, "runUSD": 0.51},
+                       "frontier": {"runTokens": 4000000, "runUSD": 6.80}},
+             "budgets": {"factoryDaily": 25000000}, "caps": {"concurrentRuns": 4}}})}},
         {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"namespace": gw_ns, "name": "agent-ratelimit"},
          "spec": {"template": {"spec": {
              "containers": [{"name": "ratelimit", "env": [{"name": "SHADOW_MODE", "value": "true"}]}],
@@ -309,11 +311,15 @@ def glob(o):
     return spec_at(o, "AgentgatewayPolicy", "token-budgets", "traffic", "rateLimit", "global")
 
 
-def unshadow(o):
-    cm = find(o, "ConfigMap", "agent-ratelimit-config")
-    cfg = yaml.safe_load(cm["data"]["config.yaml"])
-    cfg["descriptors"][0]["shadow_mode"] = False
-    cm["data"]["config.yaml"] = yaml.safe_dump(cfg)
+def edit_rl(edit):
+    def mutate(o):
+        cm = find(o, "ConfigMap", "agent-ratelimit-config")
+        cfg = yaml.safe_load(cm["data"]["config.yaml"])
+        edit(cfg["descriptors"])
+        cm["data"]["config.yaml"] = yaml.safe_dump(cfg)
+    return mutate
+
+
 
 
 expect("FailClosed fails", lambda o: glob(o).update({"failureMode": "FailClosed"}), "AG8")
@@ -321,7 +327,8 @@ expect("no explicit failureMode fails", lambda o: glob(o).pop("failureMode"), "A
 expect("a request-unit descriptor fails", lambda o: glob(o)["descriptors"][0].update({"unit": "Requests"}), "AG8")
 expect("a route-keyed entry fails", lambda o: glob(o)["descriptors"][0]["entries"].append(
     {"name": "route", "expression": "request.path"}), "AG8")
-expect("an enforcing descriptor fails", unshadow, "AG8")
+expect("a descriptor with its own shadow_mode fails", edit_rl(lambda ds: ds[0].update({"shadow_mode": True})),
+       "AG8", "one switch")
 expect("a missing ConfigMap fails", lambda o: o.remove(find(o, "ConfigMap", "agent-ratelimit-config")), "AG8")
 
 
@@ -333,17 +340,41 @@ def local(o):
     return spec_at(o, "AgentgatewayPolicy", "token-budgets", "traffic", "rateLimit", "local")
 
 
-print("AG8 shadow on the server (no budget 429 while any descriptor could enforce)")
+print("AG8 SHADOW_MODE is the one switch (runbook 04, Part D)")
 expect("a server without SHADOW_MODE fails", lambda o: server_env(o).clear(), "AG8", "SHADOW_MODE")
-expect("SHADOW_MODE false fails", lambda o: server_env(o)[0].update({"value": "false"}), "AG8", "SHADOW_MODE")
-expect("no server reading the ConfigMap fails", lambda o: o.remove(find(o, "Deployment", "agent-ratelimit")),
+expect("a SHADOW_MODE that is not a boolean fails", lambda o: server_env(o)[0].update({"value": "${shadow}"}),
        "AG8", "SHADOW_MODE")
+
+
+def second_server(mode):
+    def mutate(o):
+        twin = copy.deepcopy(find(o, "Deployment", "agent-ratelimit"))
+        twin["metadata"]["name"] = "agent-ratelimit-2"
+        twin["spec"]["template"]["spec"]["containers"][0]["env"][0]["value"] = mode
+        o.append(twin)
+    return mutate
+
+
+expect("two servers that disagree fail", second_server("false"), "AG8", "all")
+expect("no server reading the ConfigMap fails", lambda o: o.remove(find(o, "Deployment", "agent-ratelimit")),
+       "AG8", "mounts")
+got = copy.deepcopy(compliant())
+server_env(got)[0].update({"value": "false"})
+check("an enforcing server passes", gate.run(got) == [], f"got {gate.run(got)}")
+
+print("AG8 buckets at or above the factory's caps (the gateway never refuses first)")
+expect("B1 below the frontier run cap fails",
+       edit_rl(lambda ds: ds[0]["rate_limit"].update({"requests_per_unit": 3999999})), "AG8", "refuse first")
+expect("B2 below factoryDaily plus the in-flight runs fails",
+       edit_rl(lambda ds: ds[1]["rate_limit"].update({"requests_per_unit": 40999999})), "AG8", "fleet")
 
 print("AG8 reference tokens (design D11, OD-6)")
 expect("a Tokens descriptor without cost fails", lambda o: glob(o)["descriptors"][0].pop("cost"), "AG8",
        "reference tokens")
 expect("a raw-token cost fails", lambda o: glob(o)["descriptors"][1].update({"cost": "llm.totalTokens"}), "AG8",
        "reference tokens")
+expect("the catalog's price fails", lambda o: glob(o)["descriptors"][0].update(
+    {"cost": "has(llm.cost) ? uint(llm.cost.total / 0.0000017) : uint(llm.totalTokens)"}), "AG8", "meter.prices")
 
 print("AG8 required claims (#3523: a descriptor whose CEL fails is dropped, unlimited)")
 expect("a descriptor reading an unrequired claim fails",
@@ -362,7 +393,7 @@ got = gate.run([o if o["kind"] != "AgentgatewayPolicy" or o["metadata"]["name"] 
                 {**o, "spec": {**o["spec"], "traffic": {"rateLimit": {**o["spec"]["traffic"]["rateLimit"], "global": {
                     **o["spec"]["traffic"]["rateLimit"]["global"], "descriptors": [
                         {"entries": [{"name": "agent", "expression": 'jwt["sub"].lowerAscii()'}], "unit": "Tokens",
-                         "cost": gate.BILLABLE_COST}]}}}}}
+                         "cost": COST}]}}}}}
                 for o in compliant()])
 check("a required claim read with a method call passes", got == [], f"got {got}")
 
@@ -509,14 +540,27 @@ def meter_cfg(o):
     return yaml.safe_load(find(o, "ConfigMap", gate.FACTORY_VALUES)["data"]["values.yaml"])["config"]["meter"]
 
 
-def edit_meter(edit):
+def edit_config(edit):
     def mutate(o):
         cm = find(o, "ConfigMap", gate.FACTORY_VALUES)
         values = yaml.safe_load(cm["data"]["values.yaml"])
-        edit(values["config"]["meter"])
+        edit(values["config"])
         cm["data"]["values.yaml"] = yaml.safe_dump(values)
     return mutate
 
+
+def edit_meter(edit):
+    return edit_config(lambda c: edit(c["meter"]))
+
+
+print("AG8 the gateway follows the factory's values (J-AC2, never refusing first)")
+expect("a meter price change the gateway's cost misses fails",
+       edit_meter(lambda m: m["prices"]["glm-5.3"].update({"input": 1.50})), "AG8", "meter.prices")
+expect("a raised factoryDaily without B2 fails",
+       edit_config(lambda c: c["budgets"].update({"factoryDaily": 26000000})), "AG8", "fleet")
+expect("a dearer frontier tier without B1 fails",
+       edit_config(lambda c: c["tiers"]["frontier"].update({"runUSD": 9})), "AG8", "agent")
+print("AG10 every pinned model has its price in the meter's overlay (continued)")
 
 expect("a pinned model without a price fails", edit_meter(lambda m: m["prices"].pop("claude-opus-5-5")),
        "AG10", "claude-opus-5-5")

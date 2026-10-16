@@ -10,8 +10,8 @@ provides; anything not in it is not yours to rely on.
   `origin/main` before every push.
 - **`task check` is the evidence.** It clones the host at `HOST_REF` into `.host/`, builds
   `.composite/` (the host with its AI paths replaced by this tree) and runs the host's own
-  `validate-manifests.sh`, this repository's suites, the link check and the source check. Never
-  claim done without its output.
+  `validate-manifests.sh`, this repository's gates on the bundle it renders, its suites, the
+  link check and the source check. Never claim done without its output.
 - **Host scripts are used from the host profile, never vendored.** Only the AI-owned gates and suites
   live here (`scripts/ci/flux-schema/assert-*-gateway.py`, `scripts/ci/tests/`); they overwrite the
   host's copies in the composite.

@@ -10,6 +10,7 @@ tasks:
     cmds:
       - task: host-profile
       - task: validate
+      - task: gates
       - task: vmrules
       - task: test
       - task: links
@@ -27,6 +28,15 @@ tasks:
       - |
         f="${XRD_CRDS_FILE:-$(./.composite/scripts/ci/fetch-xrd-crds.sh)}"
         XRD_CRDS_FILE="$f" ./.composite/scripts/ci/validate-manifests.sh
+
+  gates:
+    desc: This repository's cross-object gates, on the bundle validate rendered
+    # The host's validate-manifests.sh stopped calling them when the AI paths left it
+    # (cloud-native-ref#2436); without this they ran only as unit tests.
+    dir: .composite
+    cmds:
+      - python3 scripts/ci/flux-schema/assert-agent-gateway.py .bundle
+      - python3 scripts/ci/flux-schema/assert-ai-gateway.py .bundle
 
   vmrules:
     desc: promtool over every VMRule in the composite, this repository's included

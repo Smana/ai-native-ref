@@ -26,6 +26,7 @@ spec.loader.exec_module(gate)
 FAILURES = []
 REAL = ("agent-gateway", "agent-router")
 POC = ("agw-poc", "agent-router-agw")
+B6 = 'jwt.aud.exists(a, a.endsWith(".internal")) ? "anthropic" : "none"'
 
 
 def check(name, condition, detail=""):
@@ -91,11 +92,25 @@ def compliant(key=REAL):
                         "transformation": {"request": {"remove": list(gate.IDENTITY_HEADERS)}}}}),
         *[listener_policy(s) for s in prof.listeners],
         obj("AgentgatewayBackend", "agent-system", "zai", {
-            "ai": {"provider": {"custom": {"model": "glm-5.3", "formats": [
+            "ai": {"provider": {"custom": {"formats": [
                 {"type": "Completions", "path": "/api/paas/v4/chat/completions"}]},
                 "host": "api.z.ai", "port": 443}},
             "policies": {"auth": {"secretRef": {"name": "zai-api-key", "key": "apiKey"}},
-                         "ai": {"routes": {"/v1/chat/completions": "Completions", "/v1/messages": "Messages"}}}}),
+                         "ai": {"routes": {"/v1/chat/completions": "Completions", "/v1/messages": "Messages"},
+                                "modelAliases": {"tier-light": "glm-5.3-flash", "*": "glm-5.3"}}}}),
+        obj("AgentgatewayBackend", "agent-system", "anthropic", {
+            "ai": {"provider": {"anthropic": {}}},
+            "policies": {"auth": {"secretRef": {"name": "anthropic-api-key", "key": "apiKey"}},
+                         "ai": {"modelAliases": {"tier-light": "claude-haiku-5-5", "*": "claude-opus-5-5"}}}}),
+        route("agent-models-internal", "internal", [
+            {"name": "models", "matches": [{"path": {"type": "Exact", "value": "/v1/models"}}],
+             "backendRefs": backend_ref("anthropic")},
+            {"name": "openai", "matches": [{"path": {"type": "PathPrefix", "value": "/v1"}}],
+             "backendRefs": backend_ref("anthropic")}]),
+        obj("AgentgatewayPolicy", rns, "agent-models-list-internal", {
+            "targetRefs": [{"group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "name": "agent-models-internal",
+                            "sectionName": "models"}],
+            "traffic": {"directResponse": {"status": 404, "body": '{"error":"model listing is not served"}'}}}),
         route("agent-models", "public", [
             {"name": "models", "matches": [{"path": {"type": "Exact", "value": "/v1/models"}}],
              "backendRefs": backend_ref("zai")},
@@ -128,12 +143,16 @@ def compliant(key=REAL):
                         {"entries": [{"name": "agent", "expression": "jwt.sub"}], "unit": "Tokens",
                          "cost": gate.BILLABLE_COST},
                         {"entries": [{"name": "fleet", "expression": '"agents"'}], "unit": "Tokens",
+                         "cost": gate.BILLABLE_COST},
+                        {"entries": [{"name": "provider", "expression": B6}], "unit": "Tokens",
                          "cost": gate.BILLABLE_COST}]},
                 "local": [{"tokens": 30000000, "unit": "Hours", "key": "jwt.sub"}]}}}),
         {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"namespace": gw_ns, "name": "agent-ratelimit-config"},
          "data": {"config.yaml": yaml.safe_dump({"domain": "agent-router", "descriptors": [
              {"key": "agent", "rate_limit": {"unit": "day", "requests_per_unit": 5000000}, "shadow_mode": True},
              {"key": "fleet", "value": "agents", "rate_limit": {"unit": "day", "requests_per_unit": 40000000},
+              "shadow_mode": True},
+             {"key": "provider", "value": "anthropic", "rate_limit": {"unit": "day", "requests_per_unit": 10000000},
               "shadow_mode": True}]})}},
         {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"namespace": gw_ns, "name": "agent-ratelimit"},
          "spec": {"template": {"spec": {
@@ -177,7 +196,7 @@ got = gate.run(compliant(REAL))
 check("compliant agent-gateway/agent-router passes", got == [], f"got {got}")
 got = gate.run(compliant(REAL) + compliant(POC))
 check("the PoC beside the real Gateway passes", got == [], f"got {got}")
-check("eleven checks", len(gate.CHECKS) == 11, f"got {len(gate.CHECKS)}")
+check("twelve checks", len(gate.CHECKS) == 12, f"got {len(gate.CHECKS)}")
 
 print("AG1 gateway")
 expect("no Gateway fails", lambda o: o.remove(find(o, "Gateway", "agent-router")), "AG1")
@@ -343,6 +362,65 @@ expect("a Z.ai Passthrough route fails", lambda o: zai(o)["policies"]["ai"]["rou
 expect("a Z.ai backend without typed routes fails", lambda o: zai(o)["policies"].pop("ai"), "AG11")
 
 
+print("AG5 each provider on its own listener (ADR-0054), each rule on one backend")
+expect("anthropic on public fails", lambda o: spec_at(o, "HTTPRoute", "agent-models-internal", "parentRefs")[0]
+       .update({"sectionName": "public"}), "AG5", "Anthropic")
+
+
+def anthropic_by_host(o):
+    b = find(o, "AgentgatewayBackend", "anthropic")
+    b["metadata"]["name"] = "claude"
+    b["spec"]["ai"]["provider"] = {"custom": {"formats": [{"type": "Messages", "path": "/v1/messages"}]},
+                                   "host": "api.anthropic.com", "port": 443}
+    for rule in spec_at(o, "HTTPRoute", "agent-models-internal", "rules"):
+        rule["backendRefs"][0]["name"] = "claude"
+    spec_at(o, "HTTPRoute", "agent-models-internal", "parentRefs")[0].update({"sectionName": "public"})
+
+
+expect("an Anthropic backend found by host, not provider, is judged", anthropic_by_host, "AG5", "Anthropic")
+expect("a rule split across two backends fails", lambda o: spec_at(o, "HTTPRoute", "agent-models", "rules")[1]
+       ["backendRefs"].append({"group": "agentgateway.dev", "kind": "AgentgatewayBackend", "name": "zai-b",
+                               "weight": 10}), "AG5", "one backend")
+
+print("AG7 /v1/models on internal")
+expect("no /v1/models answer on internal fails",
+       lambda o: o.remove(find(o, "AgentgatewayPolicy", "agent-models-list-internal")), "AG7", "internal")
+
+print("AG12 model pinning (design D8)")
+
+
+def anthropic_spec(o):
+    return find(o, "AgentgatewayBackend", "anthropic")["spec"]
+
+
+expect("a provider model beside aliases fails", lambda o: anthropic_spec(o)["ai"]["provider"]["anthropic"]
+       .update({"model": "claude-opus-5-5"}), "AG12", "pre-empts")
+expect("aliases without a catch-all fails", lambda o: zai(o)["policies"]["ai"]["modelAliases"].pop("*"),
+       "AG12", "catch-all")
+expect("neither a fixed model nor aliases fails", lambda o: anthropic_spec(o)["policies"].pop("ai"), "AG12",
+       "catch-all")
+expect("provider groups fail", lambda o: anthropic_spec(o)["ai"].update(
+    {"groups": [{"providers": [{"anthropic": {}}, {"anthropic": {}}]}]}), "AG12", "one provider")
+got = gate.run([o if o["kind"] != "AgentgatewayBackend" or o["metadata"]["name"] != "anthropic" else
+                {**o, "spec": {"ai": {"provider": {"anthropic": {"model": "claude-opus-5-5"}}},
+                               "policies": {"auth": o["spec"]["policies"]["auth"]}}} for o in compliant()])
+check("a fixed model without aliases passes", got == [], f"got {got}")
+
+print("AG8 B6 reads the verified audience")
+
+
+def drop_b6_rule(o):
+    cm = find(o, "ConfigMap", "agent-ratelimit-config")
+    cfg = yaml.safe_load(cm["data"]["config.yaml"])
+    cfg["descriptors"] = [d for d in cfg["descriptors"] if d["key"] != "provider"]
+    cm["data"]["config.yaml"] = yaml.safe_dump(cfg)
+
+
+expect("B6 without its descriptor in the ConfigMap fails", drop_b6_rule, "AG8", "provider")
+expect("aud read where a covered listener checks no audience fails",
+       lambda o: jwt_of(o, "sts")["providers"][0].pop("audiences"), "AG8", "aud")
+
+
 def run_main(d):
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
@@ -358,7 +436,7 @@ with tempfile.TemporaryDirectory() as d:
         pathlib.Path(d, name).write_text(yaml.safe_dump_all(compliant()))
     code, out = run_main(d)
     check("main exits 0 on per-cluster duplicates", code == 0, out)
-    check("main prints 11 checks", "assert-agent-gateway: 11 checks, 0 violations" in out, out)
+    check("main prints 12 checks", "assert-agent-gateway: 12 checks, 0 violations" in out, out)
     pathlib.Path(d, "overlay-infrastructure-gcp-0-agent-gateway.yaml").write_text(
         yaml.safe_dump_all([o for o in compliant() if o["kind"] != "Gateway"]))
     code, out = run_main(d)

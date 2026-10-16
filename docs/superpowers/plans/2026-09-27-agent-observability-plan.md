@@ -42,7 +42,7 @@ join those series with VictoriaLogs, the gateway's `gen_ai_*` metrics and Victor
 - **GCP parity cross-plan edit (2026-09-29).** Every child O-1 adds to
   `clusters/aws-0-agent-platform/` (the collector and the rest) gets its twin in
   `clusters/gcp-0-agent-platform/`, with `gke-gcp-0-vars` and a `*/gcp-0/*` overlay when it
-  substitutes, under the same rule as SP2's [Cross-plan edits](2026-09-29-gcp-parity-plan.md#cross-plan-edits).
+  substitutes, under the same rule as SP2's [Cross-plan edits](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/plans/2026-09-29-gcp-parity-plan.md#cross-plan-edits).
 - **Owner decisions, 2026-09-27.** Traces carry metadata only: timing, model, token counts, tool
   names, status and errors. No prompts, completions or tool output. Build now, on SP1, before SP2.
 - **Metadata only is enforced outside the sandbox.** The collector is the control, and SO-3 is
@@ -3221,7 +3221,7 @@ The owner accepted three additions from a further external review. SP3's share i
 
 ## GCP parity cross-plan edits (2026-09-29)
 
-Applied from the GCP parity plan's [Cross-plan edits](2026-09-29-gcp-parity-plan.md#cross-plan-edits) (Observability share).
+Applied from the GCP parity plan's [Cross-plan edits](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/plans/2026-09-29-gcp-parity-plan.md#cross-plan-edits) (Observability share).
 
 | ID | Where | What |
 |---|---|---|

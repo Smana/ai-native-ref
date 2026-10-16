@@ -53,12 +53,12 @@ spec:
       # bytes). A digest would need a postRenderers kustomize images override,
       # a third value to keep in step.
       repository: registry.k8s.io/agent-sandbox/agent-sandbox-controller
-      tag: v1.0.5
+      tag: v1.0.6
     controller:
-      # Bare Sandboxes only (S1): the controller runs no SandboxTemplate,
-      # SandboxClaim or warm-pool reconciler. The chart still installs their
-      # three CRDs (helm/crds/) and an unbound extensions ClusterRole.
-      extensions: false
+      # Warm-sandboxes design step 0: the SandboxTemplate, SandboxClaim and
+      # warm-pool reconcilers run, with nothing to reconcile until step 4 adds a
+      # pool. Binds the chart's extensions ClusterRole (pods patch, networkpolicies).
+      extensions: true
     resources:
       requests:
         cpu: 20m

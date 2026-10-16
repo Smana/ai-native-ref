@@ -33,7 +33,7 @@ flowchart LR
 
 | # | Check | How |
 |---|---|---|
-| P1 | aws-0 runs agent-platform `v0.14.0` or later | cloud-native-ref pins ai-native-ref `v0.1.5` or later (#2453), and the pod runs that tag: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/agent-factory:v0.15.0@sha256:c098…` today |
+| P1 | aws-0 runs agent-platform `v0.14.0` or later | cloud-native-ref pins ai-native-ref `v0.1.5` or later (#2453), and the pod runs that tag: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/agent-factory:v0.15.1@sha256:f334…` today |
 | P2 | The merger App `ogenki-agent-merger` holds `issues: write`, **accepted on the installation** | Owner: Settings → Developer settings → GitHub Apps → `ogenki-agent-merger` → Permissions → Issues: Read and write; then accept the change on the installation page. Then the mint test below |
 | P3 | The factory is idle on `Smana/cloud-native-ref` | `kubectl get tasks -n agent-system` shows no task outside a final phase (`Done`, `Rejected`, `NoOp`, `Reverted`, `Closed`, `Stopped`) |
 | P4 | `main` is green | `gh run list -R Smana/cloud-native-ref --branch main --limit 3` |

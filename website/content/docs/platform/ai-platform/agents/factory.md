@@ -8,7 +8,7 @@ lastVerified: 2026-10-01
 The factory is the controller that turns a labelled issue into runs, narrates progress on the issue,
 meters each run's tokens and owns the kill switch. It is the only component that creates runs, so
 every run has a task and a budget. This page describes the design; what runs today is on the
-[status page]({{< relref "/docs/platform/ai-platform/status.md#v1-what-shipped" >}}).
+[status page]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}).
 
 ![The factory, from issue to merge. A maintainer labels a GitHub issue factory/ready; intake snapshots it, and triage picks the task's class, team and budget. The Task controller runs the team as sequential agent runs in one room: an implementer, then a reviewer, and a tester in the larger teams. Kueue admits each sandbox. The implementer opens a PR; a maintainer's "Request changes" review becomes a new run on the same branch. The merge gate, policy-bot and a separate merger App, merges only low-risk classes with green CI; every other PR waits for a human. The run meter revokes a run at its token cap, and the kill switch, a stop ConfigMap or a label on a pinned control issue, pauses intake and stops every task](/images/diagrams/ai-platform-5.svg)
 

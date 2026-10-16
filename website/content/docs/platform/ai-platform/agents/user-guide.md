@@ -12,7 +12,7 @@ aliases:
 agents work, you review and merge. The merge gate runs in shadow: it says what it would merge, and
 merges nothing. The task below ran on 2026-10-07, before v1's release. What v1 proves, and what
 comes next, is on the
-[status page]({{< relref "/docs/platform/ai-platform/status.md#agent-factory" >}}).
+[status page]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}).
 {{< /callout >}}
 
 New to the vocabulary (run, role, sandbox, room)? Read
@@ -277,12 +277,12 @@ Every model call is metered per run at the gateway, so the dashboard shows what 
 
 A run's page is `/d/agent-run/agent-run?var-run=<id>`. A successful run shows its pull request; the
 outcome reason appears only when a run fails. One known issue: MCP tool calls are not yet joined to
-the run's trace ([F16]({{< relref "/docs/platform/ai-platform/status.md#live-findings" >}})).
+the run's trace ([F16](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#live-findings)).
 
 The full transcript (prompts and outputs) lives in the room, visible to the people with access to
 that room. It holds a run to its end: before the harness stops, even when its node is reclaimed, it
 asks the room-bridge to read its log to the last event
-([F11]({{< relref "/docs/platform/ai-platform/status.md#live-findings" >}}), fixed and verified on `aws-0` on 2026-10-07).
+([F11](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#live-findings), fixed and verified on `aws-0` on 2026-10-07).
 
 ## Frequently asked questions
 

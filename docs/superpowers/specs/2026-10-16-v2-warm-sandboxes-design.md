@@ -224,6 +224,16 @@ The run dashboard gains a "start" row (p50/p90 by launch) and a "pool" row.
 | S3 | Approve | new pod, same SA; the conversation continues from its last event (no re-clone); the tool call runs once; the run ends `Succeeded` |
 | S4 | Leave an approval to auto-deny (30 min) | resumes, the agent sees the denial, the run ends without the write |
 
+## Results
+
+Step 1 (headroom) is live on aws-0 since ai-native-ref#5. Stopped for the 2026-10-16 pause; the
+remaining runs resume after the rebuild ([resume order](../../../website/content/docs/platform/ai-platform/status.md#after-the-2026-10-16-pause)).
+
+| # | State | Evidence |
+|---|---|---|
+| A1 | **Partial, 4 of 10 runs** | created → Ready of 11, 11, 12 and 11 s, all on the warm gVisor node, against the 30 s target (p90 154 s before headroom). The headroom pod was never preempted, because each run fitted beside it, so the preemption path is unexercised. Left: 6 runs, one of them forcing preemption |
+| A2 | Not run | — |
+
 ## Decisions
 
 | # | Decision | Recommended | Rejected, and why |

@@ -1,0 +1,21 @@
+---
+# No egress at all: the images are pulled by the kubelet, not the pod. Ingress
+# only from the kubelet's probes.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: agents-headroom
+  namespace: agent-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: agents-headroom
+  ingress:
+    - fromEntities:
+        - host
+      toPorts:
+        - ports:
+            - port: "8085"
+              protocol: TCP
+  egress:
+    - {}

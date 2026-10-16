@@ -8,6 +8,7 @@ resources:
   - infrastructure-kueue.yaml
   - infrastructure-agents-nodepool.yaml
   - infrastructure-runtimeclass-gvisor.yaml
+  - infrastructure-agents-headroom.yaml
   - infrastructure-agent-runtime.yaml
   - security-agent-policies.yaml
   - security-agent-secrets.yaml

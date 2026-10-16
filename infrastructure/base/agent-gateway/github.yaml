@@ -40,7 +40,7 @@ spec:
         - method: GET
           path:
             type: RegularExpression
-            value: ^/Smana/cloud-native-ref\.git/info/refs$
+            value: ^/Smana/(cloud-native-ref|ai-native-ref)\.git/info/refs$
           queryParams:
             - type: Exact
               name: service
@@ -63,7 +63,7 @@ spec:
         - method: POST
           path:
             type: RegularExpression
-            value: ^/Smana/cloud-native-ref\.git/git-upload-pack$
+            value: ^/Smana/(cloud-native-ref|ai-native-ref)\.git/git-upload-pack$
       filters:
         - type: RequestHeaderModifier
           requestHeaderModifier:

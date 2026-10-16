@@ -140,9 +140,11 @@ spec:
       request: 600s
 ---
 # octo-sts's trust policies match the EKS issuer by pattern (it changes every
-# rebuild); this pins THIS cluster's issuer and the four audiences first. These
-# audiences ARE the per-repository opt-in (ADR-0043): another repository fails
-# closed here. The only listener that forwards the bearer.
+# rebuild); this pins THIS cluster's issuer and the audiences first, four per
+# repository. These audiences ARE the per-repository opt-in (ADR-0043): another
+# repository fails closed here. Two repositories fill the provider's 8: a third
+# needs a second listener (second-repository design). The only listener that
+# forwards the bearer.
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
@@ -165,6 +167,10 @@ spec:
             - octo-sts/Smana/cloud-native-ref/reviewer
             - octo-sts/Smana/cloud-native-ref/tester
             - octo-sts/Smana/cloud-native-ref/triager
+            - octo-sts/Smana/ai-native-ref/implementer
+            - octo-sts/Smana/ai-native-ref/reviewer
+            - octo-sts/Smana/ai-native-ref/tester
+            - octo-sts/Smana/ai-native-ref/triager
           jwks:
             remote:
               url: ${oidc_jwks_uri}

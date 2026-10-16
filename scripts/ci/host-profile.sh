@@ -33,6 +33,10 @@ for d in clusters infrastructure security tooling observability apps flux script
   [ -d "$d" ] && rsync -a "$d/" "$OUT/$d/"
 done
 
-# validate-vmrules.sh enumerates with `git ls-files`: the index must describe the composite.
+# validate-vmrules.sh and the boundary checks enumerate with `git ls-files`: the index must
+# describe the composite. Since S3 the host .gitignores the AI paths, so `add -A` alone would
+# leave this tree's files out of the index, and out of every one of those gates.
 git -C "$OUT" add -A
+git ls-files -z -- clusters infrastructure security tooling observability apps flux scripts/ci |
+  (cd "$OUT" && xargs -0 -r git add -f --)
 echo "composite: host $(git -C "$HOST" rev-parse --short HEAD) + $(git rev-parse --short HEAD) in $OUT/"

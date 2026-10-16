@@ -173,9 +173,26 @@ flowchart LR
   hard --> caps["Per-person caps"]
 ```
 
+### How v2 is judged
+
+A gate is a go/no-go on evidence. Beside the gates, each v2 decision is weighed against what v1
+delivers, counted the same way for every task, failures included. The last column is as of
+2026-10-12:
+
+| Measure | Definition | Collected today |
+|---|---|---|
+| Accepted outcomes | Factory PRs merged under the same checks and approvals as a human's; approved but unmerged counted apart | Merged, closed and reverted are counted (`agent_factory_pr_outcomes_total`); approved-but-unmerged is not |
+| Cost per accepted outcome | Tokens, then money, of every run of the cohort, failed ones included, divided by its accepted outcomes | Tokens per task, under-reported in the closing comment; money per run on the run dashboard, not per task |
+| Human time | Minutes of review, operation and repair per accepted outcome | Interventions are counted by kind; minutes are not |
+| Elapsed time | Label to PR, label to merge, and "needs you" to the human's action | Label to PR; label to merge is derivable; "needs you" to action is not recorded |
+| Rework | Review rounds, CI-fix runs and reverts | Rounds and fix runs on the Task; reverts in the outcomes |
+
+The same tasks run through a simpler hosted agent, under the same checks, give the comparison that
+says whether the factory's governance pays for operating it.
+
 ### 3.2 The cohort, and the minimum measurement
 
-The five measures the status page lists are mostly not collected, and a dashboard is not needed to
+The five measures [above](#how-v2-is-judged) are mostly not collected, and a dashboard is not needed to
 decide: one row per task from counters that exist plus `gh` is enough (the cohort row on the
 status page lists the fields). Human minutes are logged by hand because timestamps measure latency,
 not effort.

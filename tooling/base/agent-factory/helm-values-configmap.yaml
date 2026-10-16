@@ -138,12 +138,26 @@ data:
       # SP4 PR 2's agent_router:run_tokens:total expression over the raw series (R12).
       meter:
         url: http://vmsingle-victoria-metrics-k8s-stack.observability.svc:8428
-        query: 'sum by (ar_agent, gen_ai_token_type) (gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type=~"input|cached_input|cache_creation_input|output"})'
-        # GLM-5.3 list (Z.ai), $ per M tokens: right for public runs only. On internal,
-        # agent-default is claude-opus-5-5 ($4/$20), so phase J's gateway price must replace
-        # this before an internal run reaches the model (plan, Task J0).
+        # Grouped by gen_ai_request_model, the model the backend's alias resolved to: the meter
+        # prices each run by the model that served it (plan, phase J), since agent-default is
+        # GLM-5.3 on public and Claude Opus 5.5 on internal.
+        query: 'sum by (ar_agent, gen_ai_request_model, gen_ai_token_type) (gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type=~"input|cached_input|cache_creation_input|output"})'
+        # The price overlay (plan J.1): one row per model a backend in
+        # infrastructure/base/agent-gateway pins, so no agentgateway release moves a price
+        # without a commit here. AG10 fails a pinned model without its row. A model with no
+        # row is never free: its runs fall back to their token caps and AgentModelUnpriced
+        # fires. List prices, $ per M tokens, read 2026-10-16:
+        # Z.ai https://docs.z.ai/guides/overview/pricing (cache writes not billed, so no
+        # cacheWrite) and https://platform.claude.com/docs/en/about-claude/pricing (5-minute
+        # cache writes). Haiku 5.5 is at its over-100K-prompt rate, which an agent's context
+        # soon reaches: over-counting is the safe direction for a cap.
         prices:
-          agent-default: {input: 1.40, cacheRead: 0.26, output: 4.40}
+          glm-5.3: {input: 1.40, cacheRead: 0.26, output: 4.40}
+          glm-5.3-flashx: {input: 0.37, cacheRead: 0.075, output: 1.25}
+          glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}
+          claude-opus-5-5: {input: 4.00, cacheRead: 0.20, cacheWrite: 5.00, output: 20.00}
+          claude-sonnet-5-5: {input: 2.00, cacheRead: 0.10, cacheWrite: 2.50, output: 10.00}
+          claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50}
         # The 429 lookup (R13): throttle hits per agent over the gateway's access logs.
         # agentgateway's agent router (ADR-0053, plan F.4): a rate-limit refusal logs http.status 429, reason RateLimit.
         logsURL: http://victoria-logs-victoria-logs-single-server.observability.svc:9428

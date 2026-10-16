@@ -169,6 +169,14 @@ def compliant(key=REAL):
               "shadow_mode": True},
              {"key": "provider", "value": "anthropic", "rate_limit": {"unit": "day", "requests_per_unit": 10000000},
               "shadow_mode": True}]})}},
+        {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"namespace": "agent-system", "name": gate.FACTORY_VALUES},
+         "data": {"values.yaml": yaml.safe_dump({"config": {"meter": {
+             "query": "sum by (ar_agent, gen_ai_request_model, gen_ai_token_type) (gen_ai_client_token_usage_sum)",
+             "prices": {"glm-5.3": {"input": 1.40, "cacheRead": 0.26, "output": 4.40},
+                        "glm-5.3-flash": {"input": 0.15, "cacheRead": 0.03, "output": 0.50},
+                        "claude-opus-5-5": {"input": 4, "cacheRead": 0.20, "cacheWrite": 5, "output": 20},
+                        "claude-haiku-5-5": {"input": 0.50, "cacheRead": 0.05, "cacheWrite": 0.625,
+                                             "output": 2.50}}}}})}},
         {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"namespace": gw_ns, "name": "agent-ratelimit"},
          "spec": {"template": {"spec": {
              "containers": [{"name": "ratelimit", "env": [{"name": "SHADOW_MODE", "value": "true"}]}],
@@ -493,6 +501,43 @@ check("no regex takes another repository or a traversal",
       not any(gate.re.fullmatch(r, p) for r in (refs, pack) for p in (
           "/Smana/other.git/info/refs", "/Smana/cloud-native-ref.git/../x/git-upload-pack",
           "/Smana/cloud-native-refXgit/info/refs", "/attacker/cloud-native-ref.git/git-upload-pack")))
+
+print("AG10 every pinned model has its price in the meter's overlay (plan J.1, J-AC4)")
+
+
+def meter_cfg(o):
+    return yaml.safe_load(find(o, "ConfigMap", gate.FACTORY_VALUES)["data"]["values.yaml"])["config"]["meter"]
+
+
+def edit_meter(edit):
+    def mutate(o):
+        cm = find(o, "ConfigMap", gate.FACTORY_VALUES)
+        values = yaml.safe_load(cm["data"]["values.yaml"])
+        edit(values["config"]["meter"])
+        cm["data"]["values.yaml"] = yaml.safe_dump(values)
+    return mutate
+
+
+expect("a pinned model without a price fails", edit_meter(lambda m: m["prices"].pop("claude-haiku-5-5")),
+       "AG10", "claude-haiku-5-5")
+expect("a price without its cache-read rate fails", edit_meter(lambda m: m["prices"]["glm-5.3"].pop("cacheRead")),
+       "AG10", "cacheRead")
+expect("an Anthropic price without its cache-write rate fails",
+       edit_meter(lambda m: m["prices"]["claude-opus-5-5"].pop("cacheWrite")), "AG10", "cacheWrite")
+expect("a zero output price fails", edit_meter(lambda m: m["prices"]["glm-5.3-flash"].update({"output": 0})),
+       "AG10", "output")
+expect("a query not grouped by the served model fails",
+       edit_meter(lambda m: m.update({"query": "sum by (ar_agent, gen_ai_token_type) (x)"})), "AG10",
+       "gen_ai_request_model")
+expect("a fixed provider model without a price fails", lambda o: (
+    anthropic_spec(o)["policies"]["ai"].pop("modelAliases"),
+    anthropic_spec(o)["ai"]["provider"]["anthropic"].update({"model": "claude-sonnet-5-5"})), "AG10", "claude-sonnet-5-5")
+expect("no factory values beside the backends fails",
+       lambda o: o.remove(find(o, "ConfigMap", gate.FACTORY_VALUES)), "AG10", gate.FACTORY_VALUES)
+got = gate.run([o for o in compliant() if o["kind"] not in ("AgentgatewayBackend", "ConfigMap")
+                or o["metadata"]["name"] != gate.FACTORY_VALUES and o["kind"] == "ConfigMap"])
+check("no LLM backend, no factory values: AG10 has nothing to judge", not any(v.startswith("AG10") for v in got),
+      f"got {got}")
 
 print("AG8 B6 reads the verified audience")
 

@@ -41,6 +41,13 @@ names its listeners, audiences, caller namespace and route namespace:
   AG9  The Gateway's AgentgatewayParameters keeps the constitution's pod shape
        (seccomp, liveness, memory limit), ClusterIP, 2 replicas, a PDB, a
        digest-pinned image, and shutdown {min: 10, max: 660} (PoC N1).
+  AG10 Every model a backend pins (each alias target, or its fixed model) has
+       a row in the run meter's price overlay (meter.prices in the factory's
+       values, plan J.1): input, cacheRead and output, and cacheWrite where the
+       provider bills cache writes (Anthropic). meter.query groups by
+       gen_ai_request_model, so each run is priced by the model that served it,
+       not by its claim's agent name. An unpriced model is never free (J-AC4),
+       but its runs would escape the USD caps.
   AG11 A provider with a host override names its path (1.6 sends `/` when the
        base has none), and a Z.ai backend routes typed formats only: Detect
        and Passthrough join the path wrongly (#3853).
@@ -109,6 +116,9 @@ GITHUB_READ_MATCHES = (
 GITHUB_STRIPPED = ("authorization", "cookie")
 GITHUB_LISTENERS = {"internal"}
 CLUSTER = re.compile(r"-((?:aws|gcp)-\d+)-")
+# The factory's Helm values, which carry the run meter's query and price overlay (AG10).
+FACTORY_NS, FACTORY_VALUES = "agent-system", "agent-factory-helm-values"
+PRICE_FIELDS = ("input", "cacheRead", "output")
 
 
 class Profile(NamedTuple):
@@ -674,9 +684,45 @@ def check_github_route(objs):
     return out
 
 
+def pinned_models(backend):
+    """The provider models a backend can send to: its alias targets and any fixed model."""
+    aliases = ((spec_of(backend).get("policies") or {}).get("ai") or {}).get("modelAliases") or {}
+    fixed = {v["model"] for p in providers(backend) for v in p.values() if isinstance(v, dict) and v.get("model")}
+    return sorted({str(m) for m in aliases.values()} | fixed)
+
+
+def check_meter_prices(objs):
+    pins = [(b, m) for b in kind(objs, "AgentgatewayBackend") for m in pinned_models(b)]
+    if not pins:
+        return []
+    cms = [c for c in kind(objs, "ConfigMap")
+           if meta(c).get("namespace") == FACTORY_NS and meta(c).get("name") == FACTORY_VALUES]
+    if not cms:
+        return [f"AG10: no ConfigMap {FACTORY_NS}/{FACTORY_VALUES} beside the LLM backends: no run would be priced"]
+    out = []
+    for cm in cms:
+        values = yaml.load((cm.get("data") or {}).get("values.yaml") or "", Loader=YAML_LOADER) or {}
+        meter = (values.get("config") or {}).get("meter") or {}
+        if "gen_ai_request_model" not in str(meter.get("query", "")):
+            out.append("AG10: meter.query does not group by gen_ai_request_model: a run would be priced by "
+                       "its agent name, whatever model served it")
+        prices = meter.get("prices") or {}
+        for b, model in pins:
+            row = prices.get(model)
+            if not isinstance(row, dict):
+                out.append(f"AG10: {ref(b)} pins {model}, which has no meter.prices row")
+                continue
+            fields = PRICE_FIELDS + (("cacheWrite",) if is_anthropic(b) else ())
+            for f in fields:
+                v = row.get(f)
+                if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
+                    out.append(f"AG10: meter.prices.{model} ({ref(b)}) needs a positive {f}")
+    return out
+
+
 CHECKS = (check_gateway, check_listener_identity, check_strip, check_token_isolation, check_routes,
           check_zai_provider, check_mcp_authz, check_models_list, check_budgets, check_parameters,
-          check_provider_paths, check_model_pinning, check_github_route)
+          check_meter_prices, check_provider_paths, check_model_pinning, check_github_route)
 
 
 def run(objs):

@@ -16,7 +16,7 @@ lastVerified: 2026-10-16
 ## Context
 
 A `pair` or `trio` task ends with a reviewer whose verdict gates the merge. The factory picks the
-reviewer's tier as the other tier than the implementer's (agent-platform `docs/factory.md`, Triage).
+reviewer's tier as the other tier than the implementer's ([agent-platform factory design, Triage](https://github.com/Smana/agent-platform/blob/main/docs/factory.md)).
 On `public` the tiers are Z.ai GLM: `tier-light` → `glm-5.3-flash`, `tier-standard` →
 `glm-5.3-flashx`, `tier-frontier` and `agent-default` → `glm-5.3`.
 

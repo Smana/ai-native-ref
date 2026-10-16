@@ -40,6 +40,18 @@ spec:
             description: "Past the cap, runs are refused (429) or revoked with budget-principal once enforcement is on. Resets at 00:00 UTC."
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#62-caps-and-budgets"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentPersonCapShadowRefusal
+          # Per-person caps' shadow week (D8): one alert per would-be refusal, by the key over, so the
+          # owner judges it while the task is fresh. system:factory stays in: enforcePrincipal also
+          # enforces the fleet's day. The counter has no series until its first increment.
+          expr: sum by (principal) (increase(agent_factory_run_revocations_total{reason="budget-principal-shadow"}[15m])) > 0
+          labels:
+            severity: info
+          annotations:
+            summary: "{{ $labels.principal }}'s day is spent: a run was admitted that enforcePrincipal would refuse"
+            description: "Shadow only: nothing was refused. It is a false refusal if the run should have been admitted (wrong person charged, or a day filled by reservations the meter later released). Read the day's ledger: kubectl get cm -n agent-system agent-factory-ledger-<YYYYMMDD> -o yaml"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryTaskStuck
           # Waiting phases (Queued, AwaitingHuman, Escalated) are excluded: they wait by design.
           expr: max by (task, phase) (agent_factory_task_phase_seconds{phase=~"Received|Triaged|Implementing|Reviewing|AwaitingCI|AutoMerging|Verifying"}) > 7200

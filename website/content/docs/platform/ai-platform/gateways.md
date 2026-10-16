@@ -199,8 +199,8 @@ flowchart LR
 | Listener | Port | Audiences | Routes |
 |---|---|---|---|
 | `public` | 8080 | `agent-router.<role>.public` | `/v1` and `/anthropic` to Z.ai; `/v1/models` answers a 404 body, not a model list; `/mcp` with documentation and room tools |
-| `internal` | 8081 | `agent-router.<role>.internal` | `/mcp` with cluster, metric and log reads per role; the model route to Claude through the Anthropic API (Bedrock or Vertex optional per cloud; ADR-0054) and a read-only GitHub route for clones ([ai-native-ref#11](https://github.com/Smana/ai-native-ref/pull/11)) |
-| `sts` | 8082 | `octo-sts/Smana/cloud-native-ref/<role>` | `/sts/exchange` to octo-sts, with the bearer forwarded (`preserveToken`) |
+| `internal` | 8081 | `agent-router.<role>.internal` | `/mcp` with cluster, metric and log reads per role; the model route to Claude through the Anthropic API (Bedrock or Vertex optional per cloud; ADR-0054) and a read-only GitHub route for clones of either repository ([ai-native-ref#11](https://github.com/Smana/ai-native-ref/pull/11)) |
+| `sts` | 8082 | `octo-sts/Smana/{cloud-native-ref,ai-native-ref}/<role>` | `/sts/exchange` to octo-sts, with the bearer forwarded (`preserveToken`) |
 
 ### Identity
 

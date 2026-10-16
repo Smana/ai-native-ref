@@ -524,14 +524,15 @@ expect("a GitHub backend without TLS fails", lambda o: find(o, "AgentgatewayBack
        "AG13", "TLS")
 refs, pack = (m["path"]["value"] for m in gate.GITHUB_READ_MATCHES)
 check("the refs regex takes the repository's advertisement path",
-      gate.re.fullmatch(refs, "/Smana/cloud-native-ref.git/info/refs") is not None)
+      all(gate.re.fullmatch(refs, f"/{r}.git/info/refs") for r in gate.REPOSITORIES))
 check("the pack regex takes upload-pack only",
       gate.re.fullmatch(pack, "/Smana/cloud-native-ref.git/git-upload-pack") is not None
       and gate.re.fullmatch(pack, "/Smana/cloud-native-ref.git/git-receive-pack") is None)
 check("no regex takes another repository or a traversal",
       not any(gate.re.fullmatch(r, p) for r in (refs, pack) for p in (
           "/Smana/other.git/info/refs", "/Smana/cloud-native-ref.git/../x/git-upload-pack",
-          "/Smana/cloud-native-refXgit/info/refs", "/attacker/cloud-native-ref.git/git-upload-pack")))
+          "/Smana/cloud-native-refXgit/info/refs", "/attacker/cloud-native-ref.git/git-upload-pack",
+          "/Smana/xai-native-ref.git/info/refs", "/Smana/ai-native-ref.git/git-receive-pack")))
 
 print("AG10 every pinned model has its price in the meter's overlay (plan J.1, J-AC4)")
 

@@ -111,7 +111,8 @@ data:
             docs/superpowers/, docs/specs/ and website/content/docs/decisions/. Fix those with an
             obvious replacement, changing fewer than 21 lines in total and adding or deleting no
             file. If none is broken, change nothing and open no pull request.
-      # Every tier routes to agent-default until SP4 PR 2 serves tier-* on agent-router (R11).
+      # Every tier asks for agent-default (R11). The router serves tier-* on both listeners since
+      # AGW-8; a tier moves to its name with that model's meter price below.
       tiers:
         # USD caps price cache reads at their own rate (agent-platform#100, v2 cohort, OD-6 on #2369):
         # runTokens/taskTokens apply only to a run or task the meter cannot price.
@@ -138,7 +139,9 @@ data:
       meter:
         url: http://vmsingle-victoria-metrics-k8s-stack.observability.svc:8428
         query: 'sum by (ar_agent, gen_ai_token_type) (gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type=~"input|cached_input|cache_creation_input|output"})'
-        # GLM-5.3 list (Z.ai), $ per M tokens: valid while every tier routes to agent-default.
+        # GLM-5.3 list (Z.ai), $ per M tokens: right for public runs only. On internal,
+        # agent-default is claude-opus-5-5 ($4/$20), so phase J's gateway price must replace
+        # this before an internal run reaches the model (plan, Task J0).
         prices:
           agent-default: {input: 1.40, cacheRead: 0.26, output: 4.40}
         # The 429 lookup (R13): throttle hits per agent over the gateway's access logs.

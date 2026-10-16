@@ -39,6 +39,17 @@ spec:
                 expression: '"agents"'
             unit: Tokens
             cost: 'has(llm.cost) ? uint(llm.cost.total / 0.0000017) : uint(llm.totalTokens)'
+          # B6 (ADR-0054): Anthropic's fleet bucket. Here rather than a policy on
+          # the internal listener, which could replace this one's rateLimit there
+          # and stop B1-B2 counting internal calls. Gate AG5 pins Anthropic to
+          # internal, so an internal audience means Anthropic. `aud` is always
+          # present: every listener checks audiences (gate AG8). Other calls get
+          # "none", for which agent-ratelimit has no rule.
+          - entries:
+              - name: provider
+                expression: 'jwt.aud.exists(a, a.endsWith(".internal")) ? "anthropic" : "none"'
+            unit: Tokens
+            cost: 'has(llm.cost) ? uint(llm.cost.total / 0.0000017) : uint(llm.totalTokens)'
       # OD-8's backstop, per proxy replica and verified sub, in raw tokens. Not a
       # budget, and sized so that no run the meter allows can reach it: the
       # frontier tier's $6.80 run cap buys at most 26M tokens, all cache reads

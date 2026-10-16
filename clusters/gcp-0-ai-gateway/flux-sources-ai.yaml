@@ -10,6 +10,8 @@ metadata:
   namespace: flux-system
 spec:
   prune: true
+  # Removing ai-sources (e.g. a rollback) must not delete the 10 sources the host also defines.
+  deletionPolicy: Orphan
   interval: 5m0s
   path: ./clusters/gcp-0-ai-gateway/sources
   sourceRef:

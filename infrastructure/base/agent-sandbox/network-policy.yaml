@@ -1,6 +1,6 @@
 ---
-# agent-sandbox controller: talks to the API server only. The chart ships no
-# webhook, with or without extensions. The chart's probes are on healthz :8081, metrics on :8080.
+# agent-sandbox controller: talks to the API server only. No webhook with
+# extensions off. The chart's probes are on healthz :8081, metrics on :8080.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

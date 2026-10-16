@@ -55,10 +55,12 @@ spec:
       repository: registry.k8s.io/agent-sandbox/agent-sandbox-controller
       tag: v1.0.6
     controller:
-      # Warm-sandboxes design step 0: the SandboxTemplate, SandboxClaim and
-      # warm-pool reconcilers run, with nothing to reconcile until step 4 adds a
-      # pool. Binds the chart's extensions ClusterRole (pods patch, networkpolicies).
-      extensions: true
+      # Bare Sandboxes only (S1): the controller runs no SandboxTemplate,
+      # SandboxClaim or warm-pool reconciler. The chart still installs their
+      # three CRDs (helm/crds/) and an unbound extensions ClusterRole.
+      # Extensions come with the warm pool (warm-sandboxes design §7): they bind
+      # cluster-wide pods patch and networkpolicies rights nothing uses before it.
+      extensions: false
     resources:
       requests:
         cpu: 20m

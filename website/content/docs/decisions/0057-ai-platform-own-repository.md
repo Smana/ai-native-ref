@@ -67,7 +67,7 @@ The AI manifests, docs and their CI move to a new repository. The host defines o
 
 **Pros**:
 - `cloud-native-ref` shrinks to the platform; AI has its own ADRs, CI and docs site
-  (`ainref.ogenki.io`, built like `cnref.ogenki.io` in its own colour, the two linked both ways)
+  (`airef.ogenki.io`, built like `cnref.ogenki.io` in its own colour, the two linked both ways)
 - The same consumption pattern as `crossplane-configuration` and the factory chart: digest pin,
   signature, Renovate
 - The factory's config leaves the repository agents work on: its gate paths become the pin, beside

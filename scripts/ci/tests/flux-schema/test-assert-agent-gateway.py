@@ -140,6 +140,15 @@ def compliant(key=REAL):
             "backend": {"mcp": {"authorization": {"action": "Allow", "policy": {"matchExpressions": [
                 allow + ' && mcp.tool.name in ["room_read", "room_post"]',
                 allow + ' && mcp.tool.name == "room_read"']}}}}}),
+        obj("AgentgatewayBackend", rns, "github", {
+            "static": {"host": "github.com", "port": 443}, "policies": {"tls": {"sni": "github.com"}}}),
+        route("github-internal", "internal", [
+            {"name": name, "matches": [copy.deepcopy(m)],
+             "filters": [{"type": "RequestHeaderModifier",
+                          "requestHeaderModifier": {"remove": list(gate.GITHUB_STRIPPED)}},
+                         {"type": "URLRewrite", "urlRewrite": {"hostname": "github.com"}}],
+             "backendRefs": [{"group": "agentgateway.dev", "kind": "AgentgatewayBackend", "name": "github"}]}
+            for name, m in zip(("refs", "upload-pack"), gate.GITHUB_READ_MATCHES)]),
         obj("AgentgatewayPolicy", gw_ns, "token-budgets", {
             "targetRefs": [gw_ref],
             "traffic": {"rateLimit": {
@@ -202,7 +211,7 @@ got = gate.run(compliant(REAL))
 check("compliant agent-gateway/agent-router passes", got == [], f"got {got}")
 got = gate.run(compliant(REAL) + compliant(POC))
 check("the PoC beside the real Gateway passes", got == [], f"got {got}")
-check("twelve checks", len(gate.CHECKS) == 12, f"got {len(gate.CHECKS)}")
+check("thirteen checks", len(gate.CHECKS) == 13, f"got {len(gate.CHECKS)}")
 
 print("AG1 gateway")
 expect("no Gateway fails", lambda o: o.remove(find(o, "Gateway", "agent-router")), "AG1")
@@ -438,6 +447,53 @@ got = gate.check_model_pinning([o for o in poc if not (o["kind"] == "Agentgatewa
 check("off the agent router, aliases without a catch-all still fail", any("catch-all" in v for v in got),
       f"got {got}")
 
+print("AG13 the read-only GitHub route (identity design T4)")
+
+
+def github_rules(o):
+    return spec_at(o, "HTTPRoute", "github-internal", "rules")
+
+
+def github_parents(o):
+    return spec_at(o, "HTTPRoute", "github-internal", "parentRefs")
+
+
+expect("the GitHub route on public fails", lambda o: github_parents(o)[0].update({"sectionName": "public"}),
+       "AG13", "internal")
+expect("a second parent on sts fails", lambda o: github_parents(o).append(dict(github_parents(o)[0], sectionName="sts")),
+       "AG13", "internal")
+expect("a receive-pack POST fails", lambda o: github_rules(o)[1]["matches"][0]["path"].update(
+    {"value": r"^/Smana/cloud-native-ref\.git/git-receive-pack$"}), "AG13", "read-only")
+expect("a PathPrefix match fails", lambda o: github_rules(o)[0]["matches"].append(
+    {"path": {"type": "PathPrefix", "value": "/Smana"}}), "AG13", "read-only")
+expect("a match without a method fails", lambda o: github_rules(o)[1]["matches"][0].pop("method"), "AG13", "read-only")
+expect("a receive-pack advertisement fails", lambda o: github_rules(o)[0]["matches"][0]["queryParams"][0].update(
+    {"value": "git-receive-pack"}), "AG13", "read-only")
+expect("another repository fails", lambda o: github_rules(o)[0]["matches"][0]["path"].update(
+    {"value": r"^/Smana/[^/]+\.git/info/refs$"}), "AG13", "read-only")
+expect("a rule that keeps Authorization fails", lambda o: github_rules(o)[0]["filters"].pop(0), "AG13", "Authorization")
+expect("a credential on the GitHub backend fails", lambda o: spec_at(o, "AgentgatewayBackend", "github", "policies")
+       .update({"auth": {"secretRef": {"name": "gh", "key": "token"}}}), "AG13", "credential")
+expect("a policy on the GitHub route fails", lambda o: o.append(obj("AgentgatewayPolicy", "agent-system", "gh", {
+    "targetRefs": [{"group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "name": "github-internal"}],
+    "traffic": {"headerModifiers": {"request": {"set": [{"name": "Authorization", "value": "token x"}]}}}})),
+    "AG13", "policy")
+expect("a policy on the GitHub backend fails", lambda o: o.append(obj("AgentgatewayPolicy", "agent-system", "gh", {
+    "targetRefs": [{"group": "agentgateway.dev", "kind": "AgentgatewayBackend", "name": "github"}],
+    "backend": {"auth": {"secretRef": {"name": "gh", "key": "token"}}}})), "AG13", "policy")
+expect("a GitHub backend without TLS fails", lambda o: find(o, "AgentgatewayBackend", "github")["spec"].pop("policies"),
+       "AG13", "TLS")
+refs, pack = (m["path"]["value"] for m in gate.GITHUB_READ_MATCHES)
+check("the refs regex takes the repository's advertisement path",
+      gate.re.fullmatch(refs, "/Smana/cloud-native-ref.git/info/refs") is not None)
+check("the pack regex takes upload-pack only",
+      gate.re.fullmatch(pack, "/Smana/cloud-native-ref.git/git-upload-pack") is not None
+      and gate.re.fullmatch(pack, "/Smana/cloud-native-ref.git/git-receive-pack") is None)
+check("no regex takes another repository or a traversal",
+      not any(gate.re.fullmatch(r, p) for r in (refs, pack) for p in (
+          "/Smana/other.git/info/refs", "/Smana/cloud-native-ref.git/../x/git-upload-pack",
+          "/Smana/cloud-native-refXgit/info/refs", "/attacker/cloud-native-ref.git/git-upload-pack")))
+
 print("AG8 B6 reads the verified audience")
 
 
@@ -468,7 +524,7 @@ with tempfile.TemporaryDirectory() as d:
         pathlib.Path(d, name).write_text(yaml.safe_dump_all(compliant()))
     code, out = run_main(d)
     check("main exits 0 on per-cluster duplicates", code == 0, out)
-    check("main prints 12 checks", "assert-agent-gateway: 12 checks, 0 violations" in out, out)
+    check("main prints 13 checks", "assert-agent-gateway: 13 checks, 0 violations" in out, out)
     pathlib.Path(d, "overlay-infrastructure-gcp-0-agent-gateway.yaml").write_text(
         yaml.safe_dump_all([o for o in compliant() if o["kind"] != "Gateway"]))
     code, out = run_main(d)

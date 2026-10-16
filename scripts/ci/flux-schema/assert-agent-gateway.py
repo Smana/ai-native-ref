@@ -53,6 +53,11 @@ names its listeners, audiences, caller namespace and route namespace:
        maps every name to one. No policy carries aliases or a model mutation:
        names live on the backend. Any other backend (the PoC) keeps a fixed
        model or a `*` catch-all, so it serves only models we list.
+  AG13 A backend that dials GitHub is the read-only route of identity design T4:
+       TLS, no credential, no policy aimed at it or its routes, reached from
+       `internal` only, and every match one of GITHUB_READ_MATCHES (a fetch
+       of the opted-in repositories) on a rule that strips GITHUB_STRIPPED.
+       Anything else, git-receive-pack included, matches no route: 404.
 
 1.6 CRDs store no defaults, so every check reads explicit fields: an absent
 field fails rather than being assumed. The bundle holds base and per-cluster
@@ -91,6 +96,18 @@ BILLABLE_COST = f"has(llm.cost) ? uint(llm.cost.total / {REF}) : uint(llm.totalT
 AGENT_MODELS = ("agent-default", "tier-light", "tier-standard", "tier-frontier")
 MODEL_ALLOWLIST = f"llmRequest.model in {json.dumps(list(AGENT_MODELS))} ? llmRequest.model : null"
 MODEL_MUTATIONS = ("overrides", "defaults")
+# Identity design T4: the internal listener's GitHub route reads, never writes. Git's
+# smart-HTTP fetch is these two requests; a push is GET ?service=git-receive-pack then
+# POST /git-receive-pack, and the REST API is not routed at all. The repositories are
+# the octo-sts opt-in (audiences() below): the same list, kept by hand on both.
+GITHUB_READ_MATCHES = (
+    {"method": "GET", "path": {"type": "RegularExpression", "value": r"^/Smana/cloud-native-ref\.git/info/refs$"},
+     "queryParams": [{"type": "Exact", "name": "service", "value": "git-upload-pack"}]},
+    {"method": "POST", "path": {"type": "RegularExpression", "value": r"^/Smana/cloud-native-ref\.git/git-upload-pack$"}},
+)
+# The run's JWT is already gone (preserveToken off, AG4); these go too, so GitHub sees an anonymous fetch.
+GITHUB_STRIPPED = ("authorization", "cookie")
+GITHUB_LISTENERS = {"internal"}
 CLUSTER = re.compile(r"-((?:aws|gcp)-\d+)-")
 
 
@@ -618,9 +635,48 @@ def check_model_pinning(objs):
     return out
 
 
+def is_github(backend):
+    host = str((spec_of(backend).get("static") or {}).get("host", "")).lower()
+    return host == "github.com" or host.endswith((".github.com", ".githubusercontent.com"))
+
+
+def check_github_route(objs):
+    out = []
+    github = {key(b): b for b in kind(objs, "AgentgatewayBackend") if is_github(b)}
+    for b in github.values():
+        pol = spec_of(b).get("policies") or {}
+        if "tls" not in pol:
+            out.append(f"AG13: {ref(b)} dials GitHub without TLS")
+        if set(pol) - {"tls"}:
+            out.append(f"AG13: {ref(b)} carries {sorted(set(pol) - {'tls'})}: the GitHub route forwards no credential")
+    routes = [r for r in objs if r.get("kind") in ROUTE_KINDS and backend_refs(r) & set(github)]
+    targeted = {(meta(r).get("namespace"), r.get("kind"), meta(r).get("name")) for r in routes} | \
+               {(ns, "AgentgatewayBackend", name) for ns, name in github}
+    for p in policies(objs):
+        for t in spec_of(p).get("targetRefs") or []:
+            if (meta(p).get("namespace"), t.get("kind"), t.get("name")) in targeted:
+                out.append(f"AG13: {ref(p)} is a policy on the GitHub route or backend; it could add a credential "
+                           "or a write")
+    for r in routes:
+        sections = {p.get("sectionName") for p in spec_of(r).get("parentRefs") or []}
+        if not sections or not sections <= GITHUB_LISTENERS:
+            out.append(f"AG13: {ref(r)} reaches GitHub from {sorted(map(str, sections))}; it is internal-only")
+        for rule in spec_of(r).get("rules") or []:
+            for m in rule.get("matches") or [{}]:
+                if m not in GITHUB_READ_MATCHES:
+                    out.append(f"AG13: {ref(r)} rule {rule.get('name')} match {m} is not a read-only fetch "
+                               "of an opted-in repository")
+            removed = {h.lower() for f in rule.get("filters") or [] if f.get("type") == "RequestHeaderModifier"
+                       for h in (f.get("requestHeaderModifier") or {}).get("remove") or []}
+            if not set(GITHUB_STRIPPED) <= removed:
+                out.append(f"AG13: {ref(r)} rule {rule.get('name')} must remove {', '.join(GITHUB_STRIPPED)} "
+                           "(Authorization reaches GitHub otherwise)")
+    return out
+
+
 CHECKS = (check_gateway, check_listener_identity, check_strip, check_token_isolation, check_routes,
           check_zai_provider, check_mcp_authz, check_models_list, check_budgets, check_parameters,
-          check_provider_paths, check_model_pinning)
+          check_provider_paths, check_model_pinning, check_github_route)
 
 
 def run(objs):

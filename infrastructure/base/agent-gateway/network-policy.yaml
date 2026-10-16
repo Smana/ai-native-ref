@@ -90,6 +90,13 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # The internal listener's read-only GitHub route (github.yaml): smart-HTTP git only.
+    - toFQDNs:
+        - matchName: github.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
     # octo-sts behind the sts listener (sts.yaml).
     - toEndpoints:
         - matchLabels:

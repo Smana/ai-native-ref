@@ -7,9 +7,18 @@
 # agents/zai), read by reference and never copied; phase H moves that
 # ExternalSecret here before it deletes the Envoy files.
 #
-# Both backends pin glm-5.3 (design D8): whatever name a run asks for, it gets
-# that model, so no request can pick another, paid, Z.ai model. Envoy answers an
-# unknown name 404; model-name routing comes with phase I.
+# Agent names (phase I, SP4 C5) are modelAliases on each backend, with a `*`
+# catch-all to the agent-default model, so no request can pick another, paid,
+# model (design D8; gate AG12). An unknown name gets agent-default, as before
+# phase I, not a 404. No provider `model`: it replaces the requested name before
+# aliases resolve, and would pre-empt every alias. The map is the same on both
+# Z.ai backends and mirrors the internal one (anthropic.yaml):
+#
+#   name            public (Z.ai)    internal (Anthropic)
+#   tier-light      glm-5.3-flash    claude-haiku-5-5
+#   tier-standard   glm-5.3-flashx   claude-sonnet-5-5
+#   tier-frontier   glm-5.3          claude-opus-5-5
+#   agent-default   glm-5.3          claude-opus-5-5
 #
 # 1.6: "use the OpenAI provider only for the OpenAI API". A custom provider that
 # advertises Chat Completions with its full path (a base without a path now
@@ -25,7 +34,6 @@ spec:
   ai:
     provider:
       custom:
-        model: glm-5.3
         formats:
           - type: Completions
             path: /api/paas/v4/chat/completions
@@ -42,6 +50,12 @@ spec:
       routes:
         /v1/chat/completions: Completions
         /v1/messages: Messages
+      modelAliases:
+        tier-light: glm-5.3-flash
+        tier-standard: glm-5.3-flashx
+        tier-frontier: glm-5.3
+        agent-default: glm-5.3
+        "*": glm-5.3
 ---
 # /anthropic goes to Z.ai's own Anthropic-compatible endpoint, Messages in and
 # out, with no conversion: the Messages -> Completions path hits #3835 and #3700.
@@ -55,7 +69,6 @@ spec:
   ai:
     provider:
       custom:
-        model: glm-5.3
         formats:
           - type: Messages
             path: /api/anthropic/v1/messages
@@ -71,6 +84,12 @@ spec:
     ai:
       routes:
         /v1/messages: Messages
+      modelAliases:
+        tier-light: glm-5.3-flash
+        tier-standard: glm-5.3-flashx
+        tier-frontier: glm-5.3
+        agent-default: glm-5.3
+        "*": glm-5.3
 ---
 # `public` only: Z.ai is a SaaS model, and internal data never reaches it
 # (ADR-0042, ADR-0054; gate AG5).

@@ -30,6 +30,13 @@ data:
           unit: day
           requests_per_unit: 40000000
         shadow_mode: true
+      # B6: Anthropic's share of B2, in reference tokens: 10M = $17/day.
+      - key: provider
+        value: anthropic
+        rate_limit:
+          unit: day
+          requests_per_unit: 10000000
+        shadow_mode: true
 ---
 apiVersion: v1
 kind: ServiceAccount

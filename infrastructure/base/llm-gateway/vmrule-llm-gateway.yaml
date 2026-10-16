@@ -37,6 +37,58 @@ spec:
           labels:
             gen_ai_request_model: "glm-5.3"
             gen_ai_token_type: output
+        # The agent tiers (agent-gateway llm.yaml, anthropic.yaml), list prices on
+        # 2026-10-16. Haiku 5.5's is for prompts up to 100K tokens ($0.50/$2.50 above).
+        - record: llm_gateway:price_usd_per_mtoken
+          expr: vector(0.15)
+          labels:
+            gen_ai_request_model: "glm-5.3-flash"
+            gen_ai_token_type: input
+        - record: llm_gateway:price_usd_per_mtoken
+          expr: vector(0.50)
+          labels:
+            gen_ai_request_model: "glm-5.3-flash"
+            gen_ai_token_type: output
+        - record: llm_gateway:price_usd_per_mtoken
+          expr: vector(0.37)
+          labels:
+            gen_ai_request_model: "glm-5.3-flashx"
+            gen_ai_token_type: input
+        - record: llm_gateway:price_usd_per_mtoken
+          expr: vector(1.25)
+          labels:
+            gen_ai_request_model: "glm-5.3-flashx"
+            gen_ai_token_type: output
+        - record: llm_gateway:price_usd_per_mtoken
+          expr: vector(0.10)
+          labels:
+            gen_ai_request_model: "claude-haiku-5-5"
+            gen_ai_token_type: input
+        - record: llm_gateway:price_usd_per_mtoken
+          expr: vector(0.50)
+          labels:
+            gen_ai_request_model: "claude-haiku-5-5"
+            gen_ai_token_type: output
+        - record: llm_gateway:price_usd_per_mtoken
+          expr: vector(2.00)
+          labels:
+            gen_ai_request_model: "claude-sonnet-5-5"
+            gen_ai_token_type: input
+        - record: llm_gateway:price_usd_per_mtoken
+          expr: vector(10.00)
+          labels:
+            gen_ai_request_model: "claude-sonnet-5-5"
+            gen_ai_token_type: output
+        - record: llm_gateway:price_usd_per_mtoken
+          expr: vector(4.00)
+          labels:
+            gen_ai_request_model: "claude-opus-5-5"
+            gen_ai_token_type: input
+        - record: llm_gateway:price_usd_per_mtoken
+          expr: vector(20.00)
+          labels:
+            gen_ai_request_model: "claude-opus-5-5"
+            gen_ai_token_type: output
     - name: llm-gateway-budgets
       rules:
         - alert: FrontierSpendGuardTripped

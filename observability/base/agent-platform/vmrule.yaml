@@ -107,6 +107,18 @@ spec:
             description: "Invalid tokens, wrong audience or a sub outside namespace agents. T8: replayed or foreign tokens; R2: identity-proxy rotation broken."
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/02-identity-tokens.md"
             dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        # B6's mirror in USD (ratelimit.yaml: 10M reference tokens = $17/day). Fires in
+        # shadow, where agent-ratelimit refuses nothing.
+        - alert: AnthropicFleetNearCap
+          expr: sum(sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_request_model=~"claude-.*", gen_ai_token_type=~"input|output"}[24h])) * on (gen_ai_request_model, gen_ai_token_type) group_left() llm_gateway:price_usd_per_mtoken) / 1e6 > 13.6
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "internal runs spent {{ $value | humanize }} USD on Anthropic in 24h, over 80 % of B6 ($17)"
+            description: "B6 is in shadow until SP4 PR 7: nothing is refused. Find the noisiest internal run on the agent-gateway dashboard and revoke it if needed: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
         - alert: AgentRateLimitDown
           expr: absent(up{namespace="agent-gateway", pod=~"agent-ratelimit-.*"} == 1)
           for: 5m

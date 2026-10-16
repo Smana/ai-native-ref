@@ -80,9 +80,12 @@ spec:
         - ports:
             - port: "9978"
               protocol: TCP
-    # The agents' provider (llm.yaml). Only it: the controller fetches the JWKS.
+    # The agents' providers: Z.ai for public (llm.yaml), Anthropic for internal
+    # (anthropic.yaml). Only they: the controller fetches the JWKS. Resolved
+    # through the kube-dns rule above, whose DNS inspection toFQDNs needs.
     - toFQDNs:
         - matchName: api.z.ai
+        - matchName: api.anthropic.com
       toPorts:
         - ports:
             - port: "443"

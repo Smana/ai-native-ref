@@ -20,9 +20,11 @@ names its listeners, audiences, caller namespace and route namespace:
   AG4  preserveToken is true on the sts listener and nowhere else, and no MCP
        target credential or transformation writes Authorization.
   AG5  Every route on the Gateway sets sectionName and lives in the route
-       namespace; a Z.ai backend is reachable from `public` only; no policy
-       other than the listener ones carries jwtAuthentication. A Z.ai backend
-       uses the custom provider: 1.6 keeps `openai` for the OpenAI API.
+       namespace; a Z.ai backend is reachable from `public` only and an
+       Anthropic one from `internal` only (ADR-0054); a rule sends to one
+       backend; no policy other than the listener ones carries
+       jwtAuthentication. A Z.ai backend uses the custom provider: 1.6 keeps
+       `openai` for the OpenAI API.
   AG6  Every MCP authorization is an Allow list whose expressions are each one
        complete alternative (role AND target AND tool names), for the route's
        own class: Allow expressions are OR-ed at runtime (PoC N7).
@@ -34,13 +36,20 @@ names its listeners, audiences, caller namespace and route namespace:
        mounted only by servers that set SHADOW_MODE. Every descriptor entry and
        local-limit key reads only claims the JWT policy requires on each
        listener it covers: a descriptor whose CEL fails is dropped, unlimited
-       (#3523). A local limit names a key.
+       (#3523). `aud` counts as required where every covered listener checks
+       audiences. A local limit names a key.
   AG9  The Gateway's AgentgatewayParameters keeps the constitution's pod shape
        (seccomp, liveness, memory limit), ClusterIP, 2 replicas, a PDB, a
        digest-pinned image, and shutdown {min: 10, max: 660} (PoC N1).
   AG11 A provider with a host override names its path (1.6 sends `/` when the
        base has none), and a Z.ai backend routes typed formats only: Detect
        and Passthrough join the path wrongly (#3853).
+  AG12 An LLM backend has one provider and serves only models we list: either
+       a fixed provider model, or modelAliases with a `*` catch-all and no
+       fixed model (a fixed model replaces the requested name before aliases
+       resolve, so it would pre-empt every alias). An agent name therefore
+       maps 100 % to one model, and no request names a model of its own
+       choosing (design D8).
 
 1.6 CRDs store no defaults, so every check reads explicit fields: an absent
 field fails rather than being assumed. The bundle holds base and per-cluster
@@ -66,6 +75,8 @@ REQUIRED_CLAIMS = {"exp", "sub"}
 SHUTDOWN = {"min": 10, "max": 660}
 UNTYPED_ROUTES = {"Detect", "Passthrough"}
 ROUTE_KINDS = ("HTTPRoute", "GRPCRoute")
+# ADR-0054: the listeners each provider may serve.
+PROVIDER_LISTENERS = {"Z.ai": {"public"}, "Anthropic": {"internal"}}
 # Design D11, OD-6: USD is the policy unit, and a rate-limit descriptor needs an
 # integer, so a request costs its gateway price in reference tokens (REF USD per
 # token), or its total tokens when unpriced. A cost that fails to evaluate drops
@@ -194,6 +205,14 @@ def is_zai(backend):
                                          or "zai" in str(meta(backend).get("name", "")))
 
 
+def is_anthropic(backend):
+    return any("anthropic" in p or str(p.get("host", "")).endswith("anthropic.com") for p in providers(backend))
+
+
+def provider_name(backend):
+    return "Z.ai" if is_zai(backend) else "Anthropic" if is_anthropic(backend) else None
+
+
 def check_gateway(objs):
     gws = gateways(objs)
     if not gws:
@@ -307,15 +326,22 @@ def check_token_isolation(objs):
 
 def check_routes(objs):
     out = []
-    zai = {key(b) for b in kind(objs, "AgentgatewayBackend") if is_zai(b)}
+    named = {key(b): provider_name(b) for b in kind(objs, "AgentgatewayBackend") if provider_name(b)}
     for g, prof in profiled(objs):
         for r in routes_on(objs, g):
             if meta(r).get("namespace") != prof.routes_ns:
                 out.append(f"AG5: {ref(r)} attaches to {ref(g)} from outside {prof.routes_ns}")
             if any(not p.get("sectionName") for p in parents(r, g)):
                 out.append(f"AG5: {ref(r)} attaches to {ref(g)} without sectionName (it would bind every listener)")
-            if backend_refs(r) & zai and listeners_of(r, g) != {"public"}:
-                out.append(f"AG5: {ref(r)} reaches Z.ai from {sorted(listeners_of(r, g))}; Z.ai is public-only")
+            for name in sorted({named[b] for b in backend_refs(r) if b in named}):
+                allowed = PROVIDER_LISTENERS[name]
+                if not listeners_of(r, g) <= allowed:
+                    out.append(f"AG5: {ref(r)} reaches {name} from {sorted(listeners_of(r, g))}; "
+                               f"{name} is {'/'.join(sorted(allowed))}-only")
+            for rule in spec_of(r).get("rules") or []:
+                refs = rule.get("backendRefs") or []
+                if len(refs) > 1 and any(b.get("kind") == "AgentgatewayBackend" for b in refs):
+                    out.append(f"AG5: {ref(r)} rule {rule.get('name')} splits traffic; a rule sends to one backend")
     return out
 
 
@@ -405,6 +431,7 @@ def required_claims(objs, policy):
             if jwt is None or not listeners & set(gateway_targets(p, g)):
                 continue
             sets += [set((prov.get("validation") or {}).get("requiredClaims") or [])
+                     | ({"aud"} if prov.get("audiences") else set())
                      for prov in jwt.get("providers") or []]
     return set.intersection(*sets) if sets else set()
 
@@ -415,7 +442,8 @@ def unrequired_reads(expr, required):
     rest = re.sub(r'\bjwt\s*\[\s*"[^"]*"\s*\]|\bjwt\.\w+', "", expr)
     rest = re.sub(r'"(?:[^"\\]|\\.)*"' + r"|'(?:[^'\\]|\\.)*'", "", rest)
     roots = {m.group(1) for m in re.finditer(r"(?<![\w.])([A-Za-z_]\w*)\b(?!\s*\()", rest)}
-    return sorted(claims - required) + sorted(roots - {"true", "false", "null"})
+    bound = set(re.findall(r"\.(?:all|exists|exists_one|map|filter)\(\s*(\w+)\s*,", rest))
+    return sorted(claims - required) + sorted(roots - bound - {"true", "false", "null"})
 
 
 def mounting_servers(objs, cm):
@@ -532,9 +560,27 @@ def check_provider_paths(objs):
     return out
 
 
+def check_model_pinning(objs):
+    out = []
+    for b in kind(objs, "AgentgatewayBackend"):
+        provs = providers(b)
+        if not provs:
+            continue
+        if len(provs) > 1:
+            out.append(f"AG12: {ref(b)} has {len(provs)} providers; an agent name maps to one provider model")
+        aliases = ((spec_of(b).get("policies") or {}).get("ai") or {}).get("modelAliases") or {}
+        fixed = any(isinstance(v, dict) and v.get("model") for p in provs for v in p.values())
+        if fixed and aliases:
+            out.append(f"AG12: {ref(b)} fixes a provider model, which pre-empts every alias")
+        elif not fixed and "*" not in aliases:
+            out.append(f"AG12: {ref(b)} needs a fixed model or a `*` catch-all alias: a request could name "
+                       "any model the key can buy")
+    return out
+
+
 CHECKS = (check_gateway, check_listener_identity, check_strip, check_token_isolation, check_routes,
           check_zai_provider, check_mcp_authz, check_models_list, check_budgets, check_parameters,
-          check_provider_paths)
+          check_provider_paths, check_model_pinning)
 
 
 def run(objs):

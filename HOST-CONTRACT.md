@@ -1,7 +1,7 @@
 # Host contract
 
 **Contract version 1**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
-at the commit in [`HOST_REF`](HOST_REF).
+at the commit in [`HOST_REF`](HOST_REF). Copied from the design on 2026-10-16.
 
 What `cloud-native-ref` guarantees, and `ai-native-ref` may rely on. Copied from the AI platform
 split design, §2 (ADR-0057). Changing an item is a breaking change for both repositories: it lands

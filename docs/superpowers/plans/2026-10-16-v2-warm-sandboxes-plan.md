@@ -51,8 +51,8 @@ The design's open points that are not the owner's, decided on its recommended si
 | P3 | The deadline a resumed pod gets comes from the annotation `agents.ogenki.io/remaining-seconds`. The composition caps it at `maxMinutes × 60` and ignores anything under 60 | KCL has no clock, and the factory does. The cap means a factory bug can at most repeat the run's own budget per resume, never exceed it | Wall clock (design D6). Computing it in KCL from timestamps: no `now()` in a deterministic render |
 | P4 | **Phase `Suspended` latches until the resumed pod is Ready.** The F12 pod-lost gate is dropped while the run is suspending and re-added at the resumed pod's binding | Upstream drops `PodScheduled` with the pod (`sandbox_controller.go:470-488`), so the gate's "already scheduled" memory must restart. While a run waits for a node, `previous == Running` would read as lost | Phase `Running` during the resume: an Unschedulable pod would be read `PodLost` |
 | P5 | **No broker change for the room lease.** Design §6's "`suspended` lease" row is dropped | The lease is keyed on the run id (`store/bridges.go:30-55`). A run that is not terminal is `live` (`bridgeapi/server.go:298-302`), so a Suspended run keeps its room, and its resumed bridge re-takes the lease as the same holder | A new lease state: adds a migration for a guarantee that already holds |
-| P6 | A pending approval must survive the suspend. S4 ships a store test that fails today: the SIGTERM path's `/interrupt` gives the call a result, and `SupersedeAnswered` then closes the approval. S4 makes that test pass | It is the one place the design's state table is wrong today (`store/approvals.go:43-46`) | Leaving it to the live proof: S3 would fail late and on cluster time |
-| P7 | The run PVC uses the StorageClass `agent-workspace`, one per cloud from ai-native-ref: gp3 or pd-balanced, `WaitForFirstConsumer`, `reclaimPolicy: Delete` | The composition stays cloud-neutral and the class stays inert until a suspendable run exists | The cluster default class: different per cloud and not ours to rely on (HOST-CONTRACT) |
+| P6 | **Nothing but the room-bridge continues a resumed run**, by answering the pending confirmation from the room's decision. agent-run reattaches the conversation and sends it nothing | The 1.49.6 SDK breaks the design's "agent re-issues the call": a new user message *rejects* a call awaiting confirmation (`local_conversation.py:2292-2306`), which then closes the approval as superseded (`store/approvals.go` `answeredSQL`), and a bare `/run` *executes* it as an implicit confirmation. The SIGTERM path's `/interrupt` falls back to `pause()` when nothing runs (`local_conversation.py:2736-2768`), and appends no `tool_result`, so the approval stays pending through the suspend | A "resumed" message from agent-run, or a `/run`: each bypasses the human |
+| P7 | The run PVC names no StorageClass: it gets the cluster's default, the host's `storage_class` (HOST-CONTRACT H3). On aws-0 that is gp3, encrypted, `WaitForFirstConsumer`, `Delete` (cloud-native-ref `opentofu/aws/eks/configure/kubernetes.tf`) | The host already provides persistent volumes. The App and SQLInstance compositions omit the class the same way | A new `agent-workspace` class from ai-native-ref: a second class per cloud for the same disks |
 | P8 | A suspendable pod's harness gets `AGENT_SUSPENDABLE=true`. agent-run then keeps its `OH_SECRET_KEY` in `/workspace/.oh-key` (0600) and resumes the persisted conversation | agent-server 1.49.6 stores conversations in `workspace/conversations/<uuid.hex>` relative to cwd `/` (`config.py:253`). A `POST /api/conversations` with an existing id reattaches the stored one (`conversation_service.py:1483-1560`) | A Secret per run: a credential the platform would have to create and garbage-collect |
 | P9 | `SandboxTemplate.spec.networkPolicyManagement: Unmanaged`, and both injection policies `Disallowed` | v1.0.6's default `Managed` creates a NetworkPolicy that blocks cluster DNS and allows all public egress (`sandboxtemplate_controller.go:192-256`), beside our CNPs. `Disallowed` makes a claim carrying `env` or volumes fail loudly instead of starting cold | `Managed`: a second, wider policy source |
 | P10 | The pool's pod label `agents.ogenki.io/pool: <size>` selects the pool CNP. `agent-sandbox-config` (namespace `agent-system`, key `allowed-label-domains`) gets `agents.ogenki.io` | Only allow-listed label domains propagate from a claim (`sandboxclaim_controller.go:1618-1665`). The controller runs in `agent-system` (`values.namespace.name`) | `agents.x-k8s.io/warm-pool-sandbox`: removed at adoption, so it cannot be the pool's identity |
@@ -67,7 +67,7 @@ flowchart LR
     S2[S2 ap: harness resumes a persisted conversation]
     S3[S3 ap: factory suspend trigger, off] --> S5
     S4[S4 ap: approval survives the suspend]
-    S5[S5 anr: StorageClass, VAP keys, factory values]
+    S5[S5 anr: VAP keys, factory values]
   end
   subgraph warm[Warm-pool track]
     W1[W1 ap: run-binder + client] --> W2[W2 ap: agent-run / bridge read the bind file]
@@ -85,7 +85,7 @@ flowchart LR
 | **S2** | agent-platform | agent-run keeps a per-run key and resumes a persisted conversation | `AGENT_SUSPENDABLE` unset | Unit tests in `test_agent_run.py` (`harness-test`) | S1 (spike W-2 under gVisor) |
 | **S3** | agent-platform | Factory config `sandbox.{launch,suspend}`; `Suspended` treated as live; the trigger | `suspend.enabled: false` | Go unit tests, `task check` | S2 |
 | **S4** | agent-platform | An approval stays pending across a suspend; the resumed bridge answers the reloaded confirmation from the decision | none (behaviour only reachable from S3) | Store test (testcontainers), bridge unit tests | S3, S4 |
-| **S5** | ai-native-ref | StorageClass `agent-workspace` (both clouds); VAP allows the factory the two new annotations; factory values carry `sandbox:` explicitly off | values off | `task check` + a test asserting the values stay off | — |
+| **S5** | ai-native-ref | The VAP allows the factory the two new annotations; the factory values carry `sandbox:` explicitly off | values off | `task check` + a test asserting the values stay off | — |
 | **W1** | agent-platform | `run-binder` service and `run-binder-client` sidecar (design §4–§5) | not deployed | Go unit tests over fake TokenReview / TokenRequest / claim reads | W2, W3 |
 | **W2** | agent-platform | agent-run and room-bridge read `/run/agent/bind/run.json` when present | file absent | Unit tests | W3 |
 | **W3** | crossplane-configuration | `AgentWarmPool` XR: SandboxTemplate, SandboxWarmPool, SA `agent-warm`, pool CNP | `replicas: 0` | KCL tests, golden, `task check`; kind: no NetworkPolicy created, label propagation, `env` claim refused | W2 |
@@ -117,7 +117,6 @@ agent-platform image pins in ai-native-ref move with each release, as today.
   - `status.phase: Suspended`, which is not terminal.
 - Produces, for S2: harness env `AGENT_SUSPENDABLE=true`, and `/workspace` on the PVC
   `workspace-xplane-run-<id>`.
-- Produces, for S5: `storageClassName: agent-workspace`.
 
 Phase rules, in order; the first match wins:
 
@@ -139,8 +138,8 @@ would end the run.
 - [ ] **Step 1: Write the failing KCL tests** in `main_test.k`, using the file's `_run`/`_xr` helpers:
   - `test_suspendable_absent_renders_today` — no `volumeClaimTemplates`, `workspace` is an
     emptyDir, no `AGENT_SUSPENDABLE`, and the annotation `operating-mode: Suspended` is ignored.
-  - `test_suspendable_workspace_is_a_pvc` — a VCT `workspace` with class `agent-workspace` and
-    the size's scratch, no `workspace` emptyDir, `AGENT_SUSPENDABLE=true`.
+  - `test_suspendable_workspace_is_a_pvc` — a VCT `workspace` with no class (the cluster
+    default) and the size's scratch, no `workspace` emptyDir, `AGENT_SUSPENDABLE=true`.
   - `test_suspend_asked_while_running` — previous Running plus the annotation gives phase
     `Suspended`, `operatingMode: Suspended`, no pod-lost gate, the SA kept, no finished-phase
     annotation.
@@ -183,8 +182,7 @@ would end the run.
 - [ ] **Step 6:** `task check`. Expect exit 0 and the render to print `N/N match`.
 - [ ] **Step 7: Kind proof**, one node, deleted afterwards.
   - Set-up: the pinned v1.0.6 chart, `controller.extensions=false`. Apply the golden Sandbox with
-    runtimeClass `gvisor` mapped to handler `runc`, busybox images, and the class
-    `agent-workspace` mapped to kind's `standard` provisioner.
+    runtimeClass `gvisor` mapped to handler `runc`, busybox images, and kind's default class.
   - Patch `operatingMode` Running → Suspended → Running.
   - Expected:
     - the pod is gone while Suspended;
@@ -196,14 +194,14 @@ would end the run.
 ### Task S2: agent-run resumes a persisted conversation (agent-platform)
 
 **Files:**
-- Modify: `images/agent-harness/agent_run.py` (`server_env`, `main`, new `persisted`,
-  `resume_conversation`).
+- Modify: `images/agent-harness/agent_run.py` (`server_env`, `main`, new `suspendable`,
+  `run_key`, `persisted`).
 - Test: `images/agent-harness/tests/test_agent_run.py`.
 
 **Interfaces:**
 - Consumes: S1's `AGENT_SUSPENDABLE=true` and `CONVERSATION_ID` (the XR uid).
-- Produces, for S4: a resumed conversation receives one user message, `RESUME_MESSAGE`, with
-  `run: true`. The bridge's confirmation loop sees the same conversation id.
+- Produces, for S4: a resumed conversation is reattached under the same id and sent nothing (P6).
+  It still waits on its call's confirmation, which the bridge answers.
 
 - [ ] **Step 1: Failing tests**:
   - `ServerEnvTest.test_suspendable_key_is_kept_in_the_workspace`: the first call creates the
@@ -212,9 +210,9 @@ would end the run.
   - `PersistedTest.test_found_by_uuid_hex`: `<dir>/<uuid.hex>/base_state.json` exists → True.
   - `test_not_suspendable_is_never_resumed`.
   - `test_malformed_conversation_id_is_not_resumed`.
-  - `MainResumeTest.test_resume_skips_clone_and_sends_one_message`: a fake agent-server records
-    `POST /api/conversations` followed by one `POST /api/conversations/<id>/events`
-    `{"role": "user", "run": true}`; `clone` is not called.
+  - `MainResumeTest.test_a_resumed_run_skips_the_clone_and_sends_nothing_but_the_start`: `clone`
+    is not called, and the only agent-server call is `POST /api/conversations`.
+  - `MainResumeTest.test_a_first_start_clones`.
 - [ ] **Step 2:** run them in the harness test image: `task harness:test`, or
   `docker build --target test images/agent-harness` under
   `systemd-run --user --scope -p MemoryMax=6G`. Expect FAIL.
@@ -223,7 +221,6 @@ would end the run.
 ```python
 KEY_FILE = "/workspace/.oh-key"
 CONVERSATIONS_DIR = "/workspace/conversations"
-RESUME_MESSAGE = "The run was suspended while it waited for a human and has now resumed. Continue the task from where you stopped."
 
 
 def suspendable(env: dict) -> bool:
@@ -257,9 +254,8 @@ def persisted(env: dict, root: str = CONVERSATIONS_DIR) -> bool:
 
 In `server_env`, `out.setdefault("OH_SECRET_KEY", run_key() if suspendable(env) else
 secrets.token_urlsafe(32))`. In `main`:
-- When `persisted(env)`, skip `clone`, set `resumed = True`, POST the same request (agent-server
-  reattaches it), then `http("POST", "/api/conversations/%s/events" % cid, {"role": "user",
-  "content": [{"type": "text", "text": RESUME_MESSAGE}], "run": True})`.
+- `resumed = persisted(env) or clone(env)`. Then POST the same request: agent-server reattaches a
+  stored conversation. Nothing else is sent (P6).
 - Otherwise, today's path.
 - [ ] **Step 4:** the tests PASS, and the whole suite passes.
 - [ ] **Step 5:** Commit `feat(harness): resume a suspendable run's persisted conversation`.
@@ -312,46 +308,42 @@ Steps:
 - Commit `feat(factory): suspend a waiting run behind sandbox.suspend.enabled`.
 
 Note: today every factory room is `unattended` (`internal/factory/rooms/rooms.go:41`), so even
-with the flag on nothing suspends until attended rooms exist. That is design decision 3's trigger.
+with the flag on, nothing suspends until attended rooms exist (design decision 3's trigger).
+Whether those rooms will be factory-driven or human-driven decides whether this trigger belongs
+in the factory at all, so S3 waits for the owner's answer (below).
 
-### Task S4: a pending approval survives a suspend (agent-platform)
+### Task S4: the resumed bridge answers the pending confirmation (agent-platform)
 
-**Files:** `internal/store/approvals.go`, `internal/store/approvals_test.go` (testcontainers),
-`internal/bridge/` (the confirmation loop), its tests.
+**Files:** `internal/bridge/confirm.go` and its tests, plus `internal/store/approvals_test.go`
+(testcontainers) as a regression guard.
 
-- First, a failing store test: an approval pending for call C, then the run's `/interrupt` result
-  for C as the SIGTERM path appends it, then `SupersedeAnswered`. Expected: the approval is still
-  `pending`.
-  - Fix in `SupersedeAnswered`'s query: an interrupted call's result (the event agent-server
-    emits for a paused confirmation) does not count as an answer.
-  - The event type that marks it is fixed from spike W-2's captured events.
-- A bridge test: a resumed conversation whose state is `waiting_for_confirmation` on call C, with
-  the approval for C already decided. The bridge sends one `respond_to_confirmation` with that
-  decision and asks the broker for no new approval.
-- `task check`. Commit `fix(rooms): keep an approval pending across a suspend`.
+- Bridge tests:
+  - A resumed conversation that is paused or `waiting_for_confirmation` on call C, with the
+    room's approval for C already decided. The bridge sends one `respond_to_confirmation` with
+    that decision, which runs the conversation. It asks the broker for no new approval.
+  - Still pending: the bridge waits. It sends neither a run nor a message (P6).
+  - Expired: it rejects with `textTimeout`, as today.
+- Store guard: an approval pending for call C, then the SIGTERM path's events for a paused
+  conversation (no `tool_result`), then `SupersedeAnswered`. The approval stays `pending`.
+- `task check`. Commit `feat(bridge): answer a resumed run's pending confirmation from the room`.
 
-Blocked on spike W-2 for the exact event type. Until then the store test is written against the
-interrupt event agent-server 1.49.6 emits, read from `openhands/sdk` at that tag.
+Spike W-2 confirms live that the reloaded state is paused or `waiting_for_confirmation` with
+the action still pending.
 
 ### Task S5: inert manifests for suspend (ai-native-ref)
 
+Ships with S3's release, not before: until then, nothing writes the two annotations.
+
 **Files:**
-- Create:
-  - `infrastructure/aws-0/agent-workspace/storageclass.yaml` (`ebs.csi.aws.com`, `type: gp3`,
-    `encrypted: "true"`);
-  - `infrastructure/gcp-0/agent-workspace/storageclass.yaml` (`pd.csi.storage.gke.io`,
-    `type: pd-balanced`);
-  - their kustomizations, listed under each cloud's agent-platform cluster directory.
 - Modify: `security/base/agent-policies/validatingpolicies.yaml:238`. Add
   `agents.ogenki.io/operating-mode` and `agents.ogenki.io/remaining-seconds` to the factory's
   annotation list, and update its message.
 - Modify: `tooling/base/agent-factory/helm-values-configmap.yaml`. Add
   `sandbox: {launch: cold, suspend: {enabled: false, after: 5m}}`, only once the factory image
   that knows the key is pinned: decoding refuses unknown fields.
-- Test: `scripts/ci/tests/test-agent-workspace-storage.py` (both classes,
-  `WaitForFirstConsumer`, `Delete`) and `test-agent-factory-sandbox-off.py` (the values keep
+- Test: `scripts/ci/tests/test-agent-factory-sandbox-off.py` (the values keep
   `suspend.enabled: false` and `launch: cold`).
-- `task check`. Commit `feat(agents): inert storage and policy for suspendable runs`.
+- `task check`. Commit `feat(agents): let the factory suspend runs, off`.
 
 ### Task W1: run-binder (agent-platform)
 
@@ -460,6 +452,16 @@ interrupt event agent-server 1.49.6 emits, read from `openhands/sdk` at that tag
 | `sandbox.suspend.enabled: true`, attended rooms in use | Decision 3 | ai-native-ref values |
 | `controller.extensions: true`, warm-pool Kustomization listed, `replicas: 1`, `sandbox.launch: warm` | Decision 2, and decision 1's targets | ai-native-ref |
 | Live proofs W1–W5, S1–S4 | Decision 4 | runbook 01 |
+
+## Owner questions
+
+1. **Who drives attended rooms?** The factory makes only unattended rooms. If attended rooms will
+   be started by a human (a room plus `task agent:run`), the suspend trigger belongs where the
+   approvals are, the room-broker. It patches one annotation and mints nothing, so design D3's
+   objection does not apply. If the factory will open attended rooms, S3 stands as written.
+2. **Build the binder (W1) now, undeployed, or not until decision 2?** The plan builds it behind
+   W5's unlisted Kustomization. Its code then exists and gets reviewed, but it holds no authority
+   until the owner lists the Kustomization.
 
 ## Self-review against the design
 

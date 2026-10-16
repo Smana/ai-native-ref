@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: karpenter
 
 # Gated by the agent-platform umbrella: sandbox capacity exists only when agents do.
+# headroom/ is its own Flux Kustomization (agents-headroom): its objects live in agent-system.
 resources:
   - agents-gvisor-nodepool.yaml
   - agents-gvisor-ec2nc.yaml

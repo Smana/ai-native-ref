@@ -1,0 +1,31 @@
+# Answers 200 on every path: room-bridge's `gate` exits 0 once /admission says
+# 200, and the kubelet probes the same port.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agents-headroom-envoy
+  namespace: agent-system
+data:
+  envoy.yaml: |
+    static_resources:
+      listeners:
+        - name: headroom
+          address:
+            socket_address: {address: 0.0.0.0, port_value: 8085}
+          filter_chains:
+            - filters:
+                - name: envoy.filters.network.http_connection_manager
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                    stat_prefix: headroom
+                    route_config:
+                      virtual_hosts:
+                        - name: all
+                          domains: ["*"]
+                          routes:
+                            - match: {prefix: "/"}
+                              direct_response: {status: 200}
+                    http_filters:
+                      - name: envoy.filters.http.router
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router

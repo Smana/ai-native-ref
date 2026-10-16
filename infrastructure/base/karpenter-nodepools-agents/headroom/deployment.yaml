@@ -1,0 +1,106 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agents-headroom
+  namespace: agent-system
+automountServiceAccountToken: false
+---
+# Warm-sandboxes design step 1 (option A, a warm node rather than a warm pod): one
+# low-priority pod on the gVisor pool keeps a node up with the run images pulled.
+# A run preempts it; it goes Pending and Karpenter brings up the next warm node.
+# The three images and their digests are the AgentRun composition's
+# (crossplane-configuration v0.9.10, apis/agentrun/kcl/main.k): bump them with it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agents-headroom
+  namespace: agent-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agents-headroom
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agents-headroom
+    spec:
+      priorityClassName: agents-headroom
+      # Lands on the agents-gvisor pool through the RuntimeClass's nodeSelector and toleration.
+      runtimeClassName: gvisor
+      serviceAccountName: agents-headroom
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 5
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      # Two of the three images are distroless, with no `sleep`: Envoy serves the
+      # 200 that lets room-bridge's own `gate` mode exit 0.
+      initContainers:
+        - name: identity-proxy
+          image: docker.io/envoyproxy/envoy:distroless-v1.39.1@sha256:eb2c01c13125d1629637cb4e4cce7207009fb7cc2c8027f9742758549d15b6f4
+          restartPolicy: Always
+          args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "warn", "--disable-hot-restart", "--concurrency", "1"]
+          ports:
+            - name: health
+              containerPort: 8085
+              protocol: TCP
+          startupProbe:
+            httpGet: {path: /ready, port: health}
+            periodSeconds: 1
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /ready, port: health}
+            periodSeconds: 30
+          livenessProbe:
+            httpGet: {path: /ready, port: health}
+            periodSeconds: 30
+          # The run's identity-proxy reservation.
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          securityContext: &container-security
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - {name: envoy-config, mountPath: /etc/envoy, readOnly: true}
+            - {name: envoy-tmp, mountPath: /tmp}
+        - name: room-bridge
+          image: ghcr.io/smana/room-bridge:v0.12.0@sha256:4895836acdb61dc4e0121f60c2b27eabbb2d1a45501705ae73653dbc8fcdb0ec
+          args: ["gate"]
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 50m, memory: 32Mi}
+          securityContext: *container-security
+      containers:
+        - name: harness
+          image: ghcr.io/smana/agent-harness:v0.12.0@sha256:65c664bf6ce53362dc693bb8c8925e4aed37ecac0e84fd607feab0c79fbd2a6e
+          # tini forwards SIGTERM, so a preemption ends the pod at once.
+          command: ["tini", "--", "sleep", "infinity"]
+          readinessProbe:
+            exec: {command: ["true"]}
+            periodSeconds: 60
+          livenessProbe:
+            exec: {command: ["true"]}
+            periodSeconds: 60
+          # A `small` run's harness reservation, so the node keeps room for one.
+          resources:
+            requests: {cpu: "1", memory: 2Gi, ephemeral-storage: 1Gi}
+            limits: {cpu: "1", memory: 2Gi, ephemeral-storage: 1Gi}
+          securityContext: *container-security
+      volumes:
+        - name: envoy-config
+          configMap:
+            name: agents-headroom-envoy
+        - name: envoy-tmp
+          emptyDir: {medium: Memory, sizeLimit: 16Mi}

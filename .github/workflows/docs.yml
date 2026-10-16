@@ -22,7 +22,7 @@ concurrency:
 jobs:
   deploy:
     name: Build and deploy to GitHub Pages 🚀
-    # Off until the owner points ainref.ogenki.io at GitHub Pages and enables Pages
+    # Off until the owner points airef.ogenki.io at GitHub Pages and enables Pages
     # (S4 plan, S4.5): no deploy to a domain nobody configured.
     if: vars.PAGES_ENABLED == 'true'
     runs-on: ubuntu-latest

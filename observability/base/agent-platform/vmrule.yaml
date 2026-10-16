@@ -107,8 +107,7 @@ spec:
             description: "Invalid tokens, wrong audience or a sub outside namespace agents. T8: replayed or foreign tokens; R2: identity-proxy rotation broken."
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/02-identity-tokens.md"
             dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
-        # B6's mirror in USD (ratelimit.yaml: 10M reference tokens = $17/day). Fires in
-        # shadow, where agent-ratelimit refuses nothing.
+        # B6's mirror in USD (ratelimit.yaml: 10M reference tokens = $17/day), before it refuses.
         - alert: AnthropicFleetNearCap
           expr: sum(sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_request_model=~"claude-.*", gen_ai_token_type=~"input|output"}[24h])) * on (gen_ai_request_model, gen_ai_token_type) group_left() llm_gateway:price_usd_per_mtoken) / 1e6 > 13.6
           for: 10m
@@ -116,7 +115,7 @@ spec:
             severity: warning
           annotations:
             summary: "internal runs spent {{ $value | humanize }} USD on Anthropic in 24h, over 80 % of B6 ($17)"
-            description: "B6 is in shadow until SP4 PR 7: nothing is refused. Find the noisiest internal run on the agent-gateway dashboard and revoke it if needed: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
+            description: "In shadow nothing is refused; with agent-ratelimit's SHADOW_MODE false, B6 refuses internal calls past $17. Find the noisiest internal run on the agent-gateway dashboard and revoke it if needed: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
             dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
         - alert: AgentRateLimitDown
@@ -128,4 +127,33 @@ spec:
             summary: "agent-ratelimit is down: agentgateway budgets count nothing"
             description: "The router fails open, so agents run unmetered by B1-B2. kubectl get pods -n agent-gateway -l app.kubernetes.io/name=agent-ratelimit"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        # The refusal metric, one series per mode, so each alert's severity follows the
+        # mode (ratelimit.yaml's SHADOW_MODE) without reading it. In shadow, the reference
+        # tokens over a budget, by bucket (key1: agent = B1, fleet_agents = B2,
+        # provider_anthropic = B6), kept only while global_shadow_mode admits calls:
+        # enforcing, over_limit still counts the overshoot of the call that crossed.
+        # Enforcing, the calls refused with 429, by run. A RateLimit 429 is a budget's
+        # or the per-replica local limit's; a provider's is reason Upstream.
+        - record: agent_router:budget_shadow_overrun_tokens:increase10m
+          expr: sum by (key1) (increase(ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"}[10m])) and on () sum(increase(ratelimit_service_global_shadow_mode{namespace="agent-gateway"}[10m])) > 0
+        - record: agent_router:budget_refusals:increase10m
+          expr: sum by (ar_agent) (increase(agentgateway_requests_total{namespace="agent-gateway", reason="RateLimit"}[10m]))
+        - alert: AgentBudgetShadowOverrun
+          expr: agent_router:budget_shadow_overrun_tokens:increase10m > 0
+          labels:
+            severity: info
+          annotations:
+            summary: "Shadow: {{ $labels.key1 }} admitted {{ $value | humanize }} reference tokens over its budget in 10 minutes"
+            description: "Nothing was refused (agent-ratelimit's SHADOW_MODE is true). Enforcing, these calls would get 429. Judge each before flipping the flag: a run under its factory caps here is a false refusal."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        - alert: AgentBudgetRefused
+          expr: agent_router:budget_refusals:increase10m > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "agent-router refused {{ $value }} calls of {{ $labels.ar_agent }} on a token budget in 10 minutes"
+            description: "The harness logs the 429's agent_budget_exhausted body and the run fails; the meter revokes it on its next tick (budget-run or budget-fleet). The factory's caps should have stopped it first: read the run's cost against its tier."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets"
             dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"

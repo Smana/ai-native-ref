@@ -3,7 +3,8 @@
 Two independent gateways are in scope here. **Part A (SP1)** proves that no provider key ever lands
 in namespace `agents`, and that the `agents-secrets` OpenBao role reads the `agents` mount and
 nothing else — plus the `internal`-listener half of SC-17 (an `internal` run has no route to Z.ai
-at all), and that the agents' budgets B1–B2 count on agentgateway's own rate-limit server, in shadow.
+at all), and that the agents' budgets B1–B2 count on agentgateway's own rate-limit server.
+**Part D** turns those budgets from counting to refusing, behind one flag that defaults to shadow.
 **Part B (SP4 PR 1)** proves the human/system Gateway's frontier route answers real chat
 requests, its token usage is counted (in shadow mode, nothing is rejected on the real route), and a
 route-level rate-limit policy actually fires a 429 when its bucket is exhausted — the mechanism
@@ -108,7 +109,7 @@ next run: the empty-route form is not yet recorded on agentgateway).
 **What this proves:** SC-17 (listener half) — an `internal`-class run has no path to Z.ai whatsoever,
 structurally (the route doesn't exist on that listener), not just by audience mismatch.
 
-### Step 5 — the agents' budgets B1–B2 count, in shadow, on their own server
+### Step 5 — the agents' budgets B1–B2 count on their own server
 
 Agent budgets are not on `ai-gateway`'s rate limit (Part B): agentgateway's `token-budgets` policy
 sends them to its own `agent-ratelimit` (`infrastructure/base/agent-gateway/ratelimit.yaml`), backed
@@ -121,10 +122,10 @@ kubectl get deploy -n agent-gateway agent-ratelimit -o jsonpath='{.spec.template
 kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=sum%20by%20(key1)%20(ratelimit_service_rate_limit_total_hits%7Bnamespace%3D%22agent-gateway%22%7D)" | jq -c '.data.result[] | [.metric.key1, .value[1]]'
 ```
 
-Expected: `READY True`; `Running 1/1`; `true`; a `total_hits` series for `agent` (B1, per run) and
-`fleet_agents` (B2) once a run has made model calls. Nothing answers `429`: every descriptor sets
-`shadow_mode` and `SHADOW_MODE=true` overrides the server. `AgentRateLimitDown` fires if the pod is
-gone; the router then fails open (`failureMode: FailOpen` in `policy-budgets.yaml`).
+Expected: `READY True`; `Running 1/1`; `true` (the flag, [Part D](#part-d--enforcing-the-agents-budgets));
+a `total_hits` series for `agent` (B1, per run) and `fleet_agents` (B2) once a run has made model
+calls. While the flag is `true` nothing answers `429`. `AgentRateLimitDown` fires if the pod is gone;
+the router then fails open (`failureMode: FailOpen` in `policy-budgets.yaml`).
 
 **What this proves:** B1–B2 are metered per verified `sub` and fleet-wide, apart from the human
 budgets B3–B5.
@@ -288,10 +289,129 @@ The query, decoded: `sum by (principal) (increase(agent_factory_run_revocations_
 | A row is a false refusal: the wrong person charged, or a day filled by reservations the meter later released | Fix in agent-platform; the week restarts |
 | Rows are correct but frequent for one person | Raise `perPerson.dailyTokens` (default `humanDaily`) before enforcing; the week restarts |
 
+## Part D — enforcing the agents' budgets
+
+The gateway's budgets are a backstop under the factory's own caps: they hold if the factory
+misbehaves, and they never refuse a call the factory would admit. One flag turns them from
+counting to refusing: `SHADOW_MODE` on the `agent-ratelimit` Deployment
+(`infrastructure/base/agent-gateway/ratelimit.yaml`). It is `"true"` in the source, so a rebuild
+changes nothing. No descriptor sets its own `shadow_mode` (gate AG8), so the flip is one line.
+
+| Bucket | Key | Limit per day (reference tokens, $1.70/M) | The factory's cap it sits above |
+|---|---|---|---|
+| B1 | `agent`, the verified `sub`: one run | 5M ($8.50) | the dearest tier's run cap: `frontier` `runUSD` $6.80 (4M) and `runTokens` 4M |
+| B2 | `fleet_agents` | 41M ($69.70) | `budgets.factoryDaily` 25M plus `caps.concurrentRuns` 4 runs at 4M |
+| B6 | `provider_anthropic`, the `internal` listener | 10M ($17) | none: a provider cap the factory does not know |
+
+Each call is charged at completion at the run meter's own price (`meter.prices`, the same table and
+formula), so a cache read costs its cache rate. Gate AG8 regenerates the policy's cost expression
+from `meter.prices` and checks B1 and B2 against the factory's values: a price or a cap that moves
+alone fails `task check`. A model without a price row is charged its raw tokens, as in the meter.
+
+```mermaid
+flowchart LR
+  call["model call"] --> check{"agent-ratelimit:<br/>bucket over its limit?"}
+  check -->|no| up["provider"] --> charge["charged at completion,<br/>at meter.prices"]
+  check -->|yes, SHADOW_MODE true| up
+  check -->|yes, SHADOW_MODE false| refuse["429, agent_budget_exhausted,<br/>retry-after = bucket reset"]
+  refuse --> harness["harness: terminal (OD-7),<br/>run fails, meter revokes it"]
+```
+
+The call that crosses a limit completes; the next one is refused. The refusal is a `429` with
+`x-ratelimit-limit`, `x-ratelimit-reset`, `retry-after` and a body the harness logs:
+
+```json
+{"error":{"type":"rate_limit_error","code":"agent_budget_exhausted","message":"agent-router refused this call: a gateway token budget is spent (limit 5000000, resets in 12877 s). Not retryable."}}
+```
+
+The limit names the bucket (the table above, or 40,000,000 for the per-replica local limit, which
+always refuses and uses the same body). A provider's own `429` keeps its body and logs
+`reason: Upstream`, never `RateLimit`.
+
+| Signal | Mode | Meaning |
+|---|---|---|
+| `agent_router:budget_shadow_overrun_tokens:increase10m{key1}` → `AgentBudgetShadowOverrun` (info) | shadow | reference tokens admitted over a bucket's limit |
+| `agent_router:budget_refusals:increase10m{ar_agent}` → `AgentBudgetRefused` (warning) | enforcing | calls refused with `429`, per run |
+
+### Step 1 — read the mode
+
+```bash
+kubectl get deploy -n agent-gateway agent-ratelimit -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="SHADOW_MODE")].value}{"\n"}'
+```
+
+Expected: `true` until the owner flips it.
+
+### Step 2 — the shadow record
+
+```bash
+kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=sum%20by%20(key1)%20(increase(ratelimit_service_rate_limit_over_limit%7Bnamespace%3D%22agent-gateway%22%7D%5B7d%5D))" | jq -c '.data.result[] | [.metric.key1, .value[1]]'
+```
+
+Decoded: `sum by (key1) (increase(ratelimit_service_rate_limit_over_limit{namespace="agent-gateway"}[7d]))`.
+Each row is a bucket that went over. For an `agent` row, find the run on the agent-gateway dashboard
+and compare its cost with its tier's `runUSD`.
+
+| Exit criterion | Then |
+|---|---|
+| A week of real runs, and no row is a run under its factory caps | Flip (Step 3) |
+| A row is a run under its caps | A false refusal: fix the price or the limit; AG8 should have caught it, so add the case to its test |
+| No run reached the gateway in the week | The record proves nothing; wait |
+
+### Step 3 — flip the flag (owner)
+
+In ai-native-ref, `infrastructure/base/agent-gateway/ratelimit.yaml`: `SHADOW_MODE` `"true"` →
+`"false"`. Release, then bump the pin in cloud-native-ref. The Deployment rolls; its one replica
+restarts and the router fails open for those seconds. Roll back with the same line.
+
+### Step 4 — prove a refusal live
+
+With the flag `false`, give the probe a 1-token bucket of its own, call twice, put the config back.
+A descriptor with a `value` wins over the key-only one for that `sub`.
+
+```bash
+flux suspend kustomization agent-gateway -n flux-system
+kubectl get cm -n agent-gateway agent-ratelimit-config -o jsonpath='{.data.config\.yaml}' > /tmp/rl.yaml
+{ cat /tmp/rl.yaml; printf '  - key: agent\n    value: system:serviceaccount:agents:agent-probe\n    rate_limit: {unit: hour, requests_per_unit: 1}\n'; } \
+  | kubectl create cm -n agent-gateway agent-ratelimit-config --from-file=config.yaml=/dev/stdin --dry-run=client -o yaml | kubectl apply -f -
+sleep 90   # the kubelet syncs the ConfigMap, then the server reloads it
+kubectl apply -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
+kubectl wait -n agents sandbox/agent-probe --for=condition=Ready --timeout=10m
+for i in 1 2; do kubectl exec -n agents agent-probe -c probe -- sh -c "curl -s -o /dev/stderr -w '%{http_code}\n' -H \"Authorization: Bearer \$(cat /var/run/secrets/probe/public/token)\" -H 'content-type: application/json' -d '{\"model\":\"agent-default\",\"messages\":[{\"role\":\"user\",\"content\":\"ok\"}]}' http://agent-router.agent-gateway.svc.cluster.local:8080/v1/chat/completions"; done
+flux resume kustomization agent-gateway -n flux-system   # restores the ConfigMap
+kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
+```
+
+Expected: `200`, then `429` with the `agent_budget_exhausted` body, `limit 1`. Within 2 minutes
+the meter's throttle query (plan F.4) returns the probe's `x_ar_agent`, and `AgentBudgetRefused`
+fires for `system:serviceaccount:agents:agent-probe`. With the flag `true` the second call is a
+`200` and `ratelimit_service_global_shadow_mode` rises instead.
+
+**What this proves:** the flag refuses a call over budget with a reason the harness logs, and
+only that `sub`'s bucket is touched.
+
 ## Results
 
 > Every round below predates phase H (#2429): the agent rows ran on Envoy's agent-router in
 > `envoy-gateway-system` and use its log fields. Part A Step 5 has no recorded round yet.
+
+### Part D offline — agentgateway v1.6.0, 2026-10-16
+
+Not a cluster: agentgateway v1.6.0 (the pinned digest), envoyproxy/ratelimit at
+`ratelimit.yaml`'s digest and Valkey in containers, against a fake OpenAI upstream. The
+configuration was rendered from this repository's `ratelimit.yaml`, `policy-budgets.yaml`,
+`policies-identity.yaml` (public listener) and `llm.yaml` (`zai` aliases). Run A sent eight calls of
+4M input tokens, 3.8M of them cache reads, and 50k output tokens: $1.488 at glm-5.3, or 875,294
+reference tokens.
+
+| Check | Observed | Pass/Fail |
+|---|---|---|
+| The charge is the meter's price | Valkey `agent-router_agent_<run A>` rose by 875,294 per call; `requests_per_unit` 5,000,000 | PASS |
+| (a) shadow: over budget, admitted and counted | Calls 7 and 8 over B1: `200`; `over_limit{key1="agent"}` 2,002,352, `global_shadow_mode` 5 | PASS |
+| (b) enforcing: refused | Calls 7 and 8: `429`, `retry-after`, the `agent_budget_exhausted` body; `agentgateway_requests_total{status="429",reason="RateLimit"}` | PASS |
+| (c) another run within budget | Run B `200` beside run A's refusals | PASS |
+| Step 4's probe descriptor | Run C with its own 1-token bucket: `200`, then `429`, `limit 1` | PASS |
+| A provider's 429 | Body untouched, `reason="Upstream"` | PASS |
+| A stream is not buffered | Four SSE events one second apart, as the upstream sent them; charged at its price | PASS |
 
 ### Round 7 — gcp-0, 2026-09-30 (`integration/agent-factory` @ `a2c645ba`)
 

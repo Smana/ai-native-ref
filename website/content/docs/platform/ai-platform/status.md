@@ -83,7 +83,7 @@ Each gate is a go/no-go on evidence; how each v2 decision is weighed is in the [
 | v2.1: a second active cloud, `gcp-0` | When `gcp-0` runs live again: the factory reaches the identity provider over GKE's network and the CPU quota allows its nodes |
 | A sandbox runtime spike, Substrate against agent-sandbox | Two days at the next `gcp-0` rebuild ([alternatives]({{< relref "/docs/platform/ai-platform/agents/alternatives.md" >}})) |
 | A continuation loop that picks a PR's next step from its state | Only if a cohort shows tasks abandoned on PRs that could still have been fixed |
-| Budgets enforced at the gateway | They count in shadow today; enforced once their numbers are trusted |
+| Budgets enforced at the gateway | Built behind one flag, still in shadow: a week of shadow record on real runs, then the owner flips it ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)) |
 
 ### Serving {#serving-roadmap}
 

@@ -67,6 +67,19 @@ spec:
         set:
           - name: x-ar-agent
             value: jwt.sub
+      # A budget 429 (policy-budgets.yaml) comes with an empty body, which the
+      # harness would log as a bare RateLimitError: name the cause. Only the
+      # gateway's own 429 lacks a content-type; a provider's keeps its body.
+      # Here, not on token-budgets: per field, a listener's policy replaces the
+      # Gateway's (1.6 route_policies). No response.body read: streams stay unbuffered.
+      response:
+        body: >-
+          response.code == 429 && !("content-type" in response.headers)
+          ? {"error": {"type": "rate_limit_error", "code": "agent_budget_exhausted",
+          "message": "agent-router refused this call: a gateway token budget is spent (limit "
+          + default(response.headers["x-ratelimit-limit"], "unknown") + ", resets in "
+          + default(response.headers["x-ratelimit-reset"], "unknown") + " s). Not retryable."}}
+          : null
     # A long GLM completion must not time out (agent-router's agent-models rule).
     timeouts:
       request: 600s
@@ -109,6 +122,19 @@ spec:
         set:
           - name: x-ar-agent
             value: jwt.sub
+      # A budget 429 (policy-budgets.yaml) comes with an empty body, which the
+      # harness would log as a bare RateLimitError: name the cause. Only the
+      # gateway's own 429 lacks a content-type; a provider's keeps its body.
+      # Here, not on token-budgets: per field, a listener's policy replaces the
+      # Gateway's (1.6 route_policies). No response.body read: streams stay unbuffered.
+      response:
+        body: >-
+          response.code == 429 && !("content-type" in response.headers)
+          ? {"error": {"type": "rate_limit_error", "code": "agent_budget_exhausted",
+          "message": "agent-router refused this call: a gateway token budget is spent (limit "
+          + default(response.headers["x-ratelimit-limit"], "unknown") + ", resets in "
+          + default(response.headers["x-ratelimit-reset"], "unknown") + " s). Not retryable."}}
+          : null
     # A long GLM completion must not time out (agent-router's agent-models rule).
     timeouts:
       request: 600s

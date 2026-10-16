@@ -5,10 +5,8 @@
 # OpenBao agents/anthropic (../agent-router/externalsecret-anthropic.yaml).
 #
 # Names as on public (llm.yaml's table): four aliases, other names refused 400
-# by the `model` transformation, no fixed model (gate AG12). The built-in
-# catalog prices claude-opus-5-5 and claude-sonnet-5-5, so budgets charge their
-# gateway price; claude-haiku-5-5 is not in it and charges total tokens until
-# phase J's overlay.
+# by the `model` transformation, no fixed model (gate AG12). Budgets charge
+# each model at the meter's price (policy-budgets.yaml), not the built-in catalog.
 #
 # Typed routes: without them every path is Completions. Chat Completions convert
 # to Messages; Messages pass through.

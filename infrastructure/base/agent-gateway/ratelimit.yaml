@@ -2,12 +2,16 @@
 # envoyproxy/ratelimit, the image and digest Envoy Gateway runs for ai-gateway,
 # with a static config instead of Envoy Gateway's xDS.
 #
-# Limits are ADR-0050's, in reference tokens (design D11: USD / $1.70 per M):
-# B1 5M per run per day (= $8.50), B2 40M for the whole fleet per day (= $68).
+# Limits are in reference tokens (design D11: USD / $1.70 per M), sized so the
+# gateway never refuses before the factory would (agent-factory values, gate AG8):
+# B1 5M per run per day ($8.50) is above every tier's run cap (frontier: runUSD
+# $6.80, runTokens 4M); B2 41M for the fleet per day ($69.70) is
+# budgets.factoryDaily plus caps.concurrentRuns runs at the frontier cap
+# (25M + 4 x 4M). B6 is a provider cap the factory does not know.
 #
-# SHADOW twice, so no budget can answer 429 before SP4 PR 7: every descriptor
-# sets shadow_mode, and SHADOW_MODE overrides any result server-wide, including
-# a descriptor added later without it. Gate AG8 holds both.
+# The flag is SHADOW_MODE on the Deployment below: "true" counts and admits,
+# "false" refuses with 429. It is the only switch: no descriptor sets
+# shadow_mode (gate AG8), so the flip is one line. Runbook 04, Part D.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -22,21 +26,18 @@ data:
         rate_limit:
           unit: day
           requests_per_unit: 5000000
-        shadow_mode: true
       # B2: one bucket for every agent call.
       - key: fleet
         value: agents
         rate_limit:
           unit: day
-          requests_per_unit: 40000000
-        shadow_mode: true
+          requests_per_unit: 41000000
       # B6: Anthropic's share of B2, in reference tokens: 10M = $17/day.
       - key: provider
         value: anthropic
         rate_limit:
           unit: day
           requests_per_unit: 10000000
-        shadow_mode: true
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -46,7 +47,7 @@ metadata:
 automountServiceAccountToken: false
 ---
 # One replica: the policy fails open, so a restart costs a few uncounted
-# requests. Enforcement (SP4 PR 7) revisits HA.
+# requests, enforcing or not: one uncounted window per restart beats a refusal.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -75,6 +76,7 @@ spec:
           image: docker.io/envoyproxy/ratelimit:0482748e@sha256:5fdd8e3ae335ab6d64316f8d2fd9a886830075cbbb40a1d8065c869275909162
           command: ["/bin/ratelimit"]
           env:
+            # THE FLAG (runbook 04, Part D). Shadow until the owner flips it.
             - name: SHADOW_MODE
               value: "true"
             # Reads /data/ratelimit/config/*.yaml; watching the subdirectory
@@ -164,8 +166,8 @@ spec:
       targetPort: grpc
       appProtocol: kubernetes.io/h2c
 ---
-# Shadow counters: the only evidence of what B1-B2 WOULD refuse
-# (ratelimit_service_rate_limit_{total_hits,shadow_mode}, as on ai-gateway).
+# Counters per bucket (key1): total_hits, over_limit (reference tokens over a
+# budget), and global_shadow_mode (calls SHADOW_MODE admitted over one).
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMPodScrape
 metadata:

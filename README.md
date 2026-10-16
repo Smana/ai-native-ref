@@ -9,6 +9,7 @@ LLM serving and the agent factory, as Flux children of the host's three opt-in u
 | `infrastructure/`, `security/`, `tooling/`, `observability/`, `apps/` | What those children apply |
 | `flux/sources/` | The AI-owned Flux sources, applied by the `ai-sources` child |
 | `website/` | The docs site, [airef.ogenki.io](https://airef.ogenki.io/): the AI section, the AI ADRs (numbering continues at 0058) |
+| `scripts/ops/`, `scripts/docs/` | Agent-factory ops: `task agent:run`, `task agentgateway:live-check`, `task factory:walkthrough`, the identity probe, the cohort sheet |
 | `docs/` | Agent-factory runbooks, AI specs and plans, drawio sources (moved from the host with their history) |
 
 ## How the host consumes it

@@ -73,11 +73,15 @@ exit codes) are already closed by the phase-0 spike and by CI — no live step a
 
 ## Prerequisites (all runbooks)
 
-Every runbook starts from the repository root with `CLOUD` set. gcp-0 is the live target; the aws
-variants are kept for the next aws-0 rebuild.
+Every runbook starts from the root of a `cloud-native-ref` checkout, the host, with `CLOUD` set: the
+CA paths under `opentofu/` and `task agent:run` are the host's. The probe and check scripts live
+here, so `AI_NATIVE_REF_DIR` names an `ai-native-ref` checkout; the host's `task agent:run` calls
+`$AI_NATIVE_REF_DIR/scripts/ops/k8s/agent-run.sh` with the host's CA. gcp-0 is the live target; the
+aws variants are kept for the next aws-0 rebuild.
 
 ```bash
 CLOUD=gcp    # or aws
+export AI_NATIVE_REF_DIR=~/Sources/ai-native-ref
 ```
 
 | | gcp-0 | aws-0 |
@@ -204,7 +208,7 @@ cloud-native-ref verifies only signatures from `release.yaml@refs/tags/v…`.
 
 ```bash
 kubectl delete agentruns -n agents --all --wait
-kubectl delete -f scripts/ops/k8s/agent-probe.yaml --ignore-not-found
+kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml --ignore-not-found
 ```
 
 To take the agent platform down while keeping the cluster, revert the test-only unsuspend commit on

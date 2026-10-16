@@ -61,9 +61,9 @@ gates whether the rest of this runbook's tool checks mean anything).
 ### Step 3 — SC-17 (MCP half): `public` has no cluster-read tool
 
 ```bash
-kubectl apply -f scripts/ops/k8s/agent-probe.yaml
+kubectl apply -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 kubectl wait -n agents sandbox/agent-probe --for=condition=Ready --timeout=10m
-kubectl cp scripts/ops/k8s/agent-probe-mcp.sh agents/agent-probe:/tmp/mcp.sh -c probe
+kubectl cp "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe-mcp.sh agents/agent-probe:/tmp/mcp.sh -c probe
 kubectl exec -n agents agent-probe -c probe -- sh /tmp/mcp.sh public tools/list | grep -o '"name":"[^"]*"'
 ```
 
@@ -137,7 +137,7 @@ are `internal`-only; `public` sees documentation and room tools regardless of ro
 ### Cleanup
 
 ```bash
-kubectl delete -f scripts/ops/k8s/agent-probe.yaml
+kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 ```
 
 ## Results

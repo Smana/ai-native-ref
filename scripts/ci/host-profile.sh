@@ -29,7 +29,7 @@ for f in sys.stdin.read().split("\0"):
         sys.stdout.write(f + "\0")
 ' "$OUT/scripts/ci/flux-schema/ai-boundary.yaml" | (cd "$OUT" && xargs -0 -r rm -f)
 
-for d in clusters infrastructure security tooling observability apps flux scripts/ci; do
+for d in clusters infrastructure security tooling observability apps flux scripts; do
   [ -d "$d" ] && rsync -a "$d/" "$OUT/$d/"
 done
 
@@ -37,6 +37,6 @@ done
 # describe the composite. Since S3 the host .gitignores the AI paths, so `add -A` alone would
 # leave this tree's files out of the index, and out of every one of those gates.
 git -C "$OUT" add -A
-git ls-files -z -- clusters infrastructure security tooling observability apps flux scripts/ci |
+git ls-files -z -- clusters infrastructure security tooling observability apps flux scripts |
   (cd "$OUT" && xargs -0 -r git add -f --)
 echo "composite: host $(git -C "$HOST" rev-parse --short HEAD) + $(git rev-parse --short HEAD) in $OUT/"

@@ -26,7 +26,7 @@ harness never gets to see directly.
 ### Step 1 — apply the probe
 
 ```bash
-kubectl apply -f scripts/ops/k8s/agent-probe.yaml
+kubectl apply -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 kubectl wait -n agents sandbox/agent-probe --for=condition=Ready --timeout=10m
 ```
 
@@ -105,7 +105,7 @@ container does not mount, and hot restart (which would open an abstract socket) 
 ### Step 4 — clean up the probe (keep it if runbook 04 or 06 runs next in the same session)
 
 ```bash
-kubectl delete -f scripts/ops/k8s/agent-probe.yaml
+kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 ```
 
 ## Part B — R2 (token TTL) and SC-07 (revocation timings)
@@ -122,7 +122,7 @@ REV=$(task agent:run -- --role implementer --class public --task "Run 'sleep 500
 kubectl wait -n agents agentrun/$REV --for=jsonpath='{.status.phase}'=Running --timeout=15m
 GHT=$(kubectl exec -n agents $REV -c harness -- /usr/local/bin/git-credential-agent token)
 GWT=$(kubectl create token $REV -n agents --audience agent-router.implementer.public --duration 10m); ISSUED=$(date +%s)
-kubectl apply -f scripts/ops/k8s/agent-probe.yaml && kubectl wait -n agents sandbox/agent-probe --for=condition=Ready --timeout=10m
+kubectl apply -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml && kubectl wait -n agents sandbox/agent-probe --for=condition=Ready --timeout=10m
 ```
 
 `$GHT` and `$GWT` never leave the shell as printed text — only used as header values below.
@@ -162,7 +162,7 @@ to make the initial token live long enough).
 ### Cleanup
 
 ```bash
-kubectl delete -f scripts/ops/k8s/agent-probe.yaml
+kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 ```
 
 ## Results

@@ -1,0 +1,40 @@
+version: "3"
+
+tasks:
+  default:
+    silent: true
+    cmds: ["task --list"]
+
+  check:
+    desc: Every gate CI runs, against the host profile (HOST_REF)
+    cmds:
+      - task: host-profile
+      - task: validate
+      - task: test
+      - task: links
+      - task: sources
+
+  host-profile:
+    desc: Build .composite/ = cloud-native-ref at HOST_REF with this tree in place of its AI paths
+    cmds: ["./scripts/ci/host-profile.sh"]
+
+  validate:
+    desc: The host's validate-manifests.sh on the composite
+    cmds:
+      # A pre-release crossplane-configuration pin on the host ships its XRD CRDs as an OCI
+      # artifact; a release pin prints nothing and gen-catalog.sh fetches the asset itself.
+      - |
+        f="${XRD_CRDS_FILE:-$(./.composite/scripts/ci/fetch-xrd-crds.sh)}"
+        XRD_CRDS_FILE="$f" ./.composite/scripts/ci/validate-manifests.sh
+
+  test:
+    desc: This repository's suites, run inside the composite
+    cmds: ["./scripts/ci/run-tests.sh"]
+
+  links:
+    desc: Every relative Markdown link in this repository
+    cmds: ["./scripts/ci/validate-links.sh"]
+
+  sources:
+    desc: No child names a host source
+    cmds: ["./scripts/ci/check-sources.sh"]

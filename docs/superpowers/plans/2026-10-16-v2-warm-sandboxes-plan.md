@@ -21,7 +21,9 @@ harness's `agent_run.py`), agent-sandbox v1.0.6 (`agents.x-k8s.io/v1beta1`,
 - Every behaviour change is off by default. The flags:
   - AgentRun `spec.suspendable`: absent means today's run.
   - AgentRun `spec.launch`: absent or `Cold` means a Sandbox.
-  - The factory's `sandbox.suspend.enabled: false` and `sandbox.launch: cold`.
+  - The factory's `sandbox.suspend.enabled: false` (and, for the warm track, `sandbox.launch: cold`).
+  - The room-broker's `suspend.enabled: false`, and its grant's Flux Kustomization
+    `room-broker-suspend` unlisted.
   - `AgentWarmPool.spec.replicas: 0`.
   - The warm-pool Flux Kustomization stays out of every cluster's `kustomization.yaml`.
 - `controller.extensions` stays `false` until the owner's warm-pool go (design decision 2).
@@ -65,9 +67,9 @@ flowchart LR
   subgraph suspend[Suspend track]
     S1[S1 xcfg: AgentRun suspendable render] --> S5
     S2[S2 ap: harness resumes a persisted conversation]
-    S3[S3 ap: factory suspend trigger, off] --> S5
-    S4[S4 ap: approval survives the suspend]
-    S5[S5 anr: VAP keys, factory values]
+    S3[S3 ap: broker suspend trigger, off] --> S5
+    S4[S4 ap: the resumed bridge answers] --> S4x[S4 xcfg: bridge AGENT_SUSPENDABLE]
+    S5[S5 anr: broker grant unlisted, Kyverno limit]
   end
   subgraph warm[Warm-pool track]
     W1[W1 ap: run-binder + client] --> W2[W2 ap: agent-run / bridge read the bind file]
@@ -83,9 +85,9 @@ flowchart LR
 |---|---|---|---|---|---|
 | **S1** | crossplane-configuration | `spec.suspendable`, phase `Suspended`, the two annotations, a `workspace` PVC | `spec.suspendable` absent | KCL tests, golden `agentrun-suspendable`, `task check`; kind: Running → Suspended → Running on the pinned controller keeps the PVC | S2–S4 |
 | **S2** | agent-platform | agent-run keeps a per-run key and resumes a persisted conversation | `AGENT_SUSPENDABLE` unset | Unit tests in `test_agent_run.py` (`harness-test`) | S1 (spike W-2 under gVisor) |
-| **S3** | agent-platform | Factory config `sandbox.{launch,suspend}`; `Suspended` treated as live; the trigger | `suspend.enabled: false` | Go unit tests, `task check` | S2 |
-| **S4** | agent-platform | An approval stays pending across a suspend; the resumed bridge answers the reloaded confirmation from the decision | none (behaviour only reachable from S3) | Store test (testcontainers), bridge unit tests | S3, S4 |
-| **S5** | ai-native-ref | The VAP allows the factory the two new annotations; the factory values carry `sandbox:` explicitly off | values off | `task check` + a test asserting the values stay off | — |
+| **S3** | agent-platform | **The room-broker's** trigger (owner decision 2026-10-16): broker config `suspend.{enabled,after}`, the Room reconciler suspends and resumes through three annotations; `Suspended` is live. The factory writes `spec.suspendable` on a run in an attended room | broker `suspend.enabled: false`, factory `sandbox.suspend.enabled: false` | Go unit tests, `task check` | S2 |
+| **S4** | agent-platform, crossplane-configuration | The resumed bridge answers the reloaded confirmation from the decision, under `AGENT_SUSPENDABLE`, which the composition now gives the bridge too | `AGENT_SUSPENDABLE` unset | Store test (testcontainers), bridge unit tests; KCL test and golden | S3, S4 |
+| **S5** | ai-native-ref | The broker's `patch` on `agentruns` in a Flux Kustomization no cluster lists; a Kyverno limit on the broker's AgentRun updates, always on | unlisted | `task check` + a test asserting the grant stays unlisted and the config off; kind: the limit against the broker's patches | — |
 | **W1** | agent-platform | `run-binder` service and `run-binder-client` sidecar (design §4–§5) | not deployed | Go unit tests over fake TokenReview / TokenRequest / claim reads | W2, W3 |
 | **W2** | agent-platform | agent-run and room-bridge read `/run/agent/bind/run.json` when present | file absent | Unit tests | W3 |
 | **W3** | crossplane-configuration | `AgentWarmPool` XR: SandboxTemplate, SandboxWarmPool, SA `agent-warm`, pool CNP | `replicas: 0` | KCL tests, golden, `task check`; kind: no NetworkPolicy created, label propagation, `env` claim refused | W2 |
@@ -260,90 +262,70 @@ secrets.token_urlsafe(32))`. In `main`:
 - [ ] **Step 4:** the tests PASS, and the whole suite passes.
 - [ ] **Step 5:** Commit `feat(harness): resume a suspendable run's persisted conversation`.
 
-### Task S3: the factory's suspend trigger, off by default (agent-platform)
+### Task S3: the room-broker's suspend trigger, off by default (agent-platform)
+
+**Owner decision, 2026-10-16:** the trigger lives in the room-broker, not the factory. Humans
+drive attended rooms through `roomctl`, and the factory only creates unattended rooms
+(`internal/factory/rooms/rooms.go:41`). The factory's part is to mark the run at create:
+`spec.suspendable` is immutable, and only the factory creates runs (C3).
 
 **Files:**
-- Modify: `internal/factory/config/config.go`:
+- `internal/config/config.go`: `suspend: {enabled: false, after: 5m}`, `after` within [1m, 25m],
+  under the 30 min attended TTL.
+- `internal/runwatch/run.go`: `Run` reads `spec.suspendable`, the three annotations and the
+  claim's `resourceVersion`. `Suspended` is not terminal, and a test pins it.
+- `internal/suspend/`: the pure `Decide(after, run, waiting, idleSince, now)` and the
+  `Suspender`, which merge-patches the claim under its `resourceVersion`.
+- `internal/factory/config`, `internal/factory/runs`, `internal/factory/api`: with
+  `sandbox.suspend.enabled`, a `POST /v1/runs` into an attended room writes
+  `spec.suspendable: true`. Otherwise the claim carries no such field.
+- `internal/roomctrl/reconciler.go`: each 15 s resync of a room that is not closed hands the
+  trigger the room, its log's `lastEventAt` and its runs. A conflict requeues after 1 s.
 
-```go
-type Sandbox struct {
-	Launch  string  `json:"launch,omitzero"`
-	Suspend Suspend `json:"suspend,omitzero"`
-}
-type Suspend struct {
-	Enabled bool     `json:"enabled,omitzero"`
-	After   Duration `json:"after,omitzero"`
-}
-```
+| Rule | Why |
+|---|---|
+| Attended rooms (the default profile), `spec.suspendable: true`, a live run | Nobody is expected in an unattended room |
+| Suspend: phase `Running`, an approval of the run pending, the room's log idle for `after` | A room with activity has its human present |
+| Resume: `operating-mode: Suspended` and none of the run's approvals pending | Decided, expired and superseded all close it |
+| `remaining-seconds` is written at suspend: the current pod's budget less its running time since `status.startedAt` or `resumed-at`, floor 60 | agent-sandbox v1.0.6 syncs only template metadata to a live pod, and `Suspended` deletes it (`sandbox_controller.go:1328-1356`) |
+| A third annotation, `agents.ogenki.io/resumed-at`, written at resume; the composition ignores it | The trigger keeps no state: a broker restart loses nothing |
 
-  Defaults: launch `cold`, after 5m. `Validate` accepts only launch `cold`; `warm` is refused
-  until W4 ships, and `after` must be in [1m, 25m], under the 30 min attended TTL.
-- Modify: `internal/factory/runs/runs.go`:
-  - `Spec.Suspendable bool`, written as `spec.suspendable: true` only when true.
-  - Constants `AnnOperatingMode` and `AnnRemainingSeconds`, patchable by `Annotate`.
-  - `PhaseSuspended`.
-- Modify: `internal/runwatch/run.go`. `Suspended` is not terminal. A test pins it.
-- Modify: the reconciler:
-  - `Suspended` counts as live everywhere `Running` does (`observe`/`absorb`, `pending()`,
-    `boundPending`, `stuck`).
-  - New pure `suspendDecision(cfg, run, approvals, now) (mode string, remaining int, ok bool)`
-    over the room's `approval_requested`/`approval_decided`/expired events from `EventsSince`.
-- Test: `config_test.go`, `runs_test.go`, `run_test.go`, `suspend_test.go`, all table-driven with
-  hand-written fakes.
-
-**Interfaces:**
-- Consumes: S1's annotations and phase.
-- Produces: with `suspend.enabled: false`, the factory claim and annotations are byte-identical to
-  today (`TestBuildIsTheSP1Claim` unchanged).
-
-Steps:
-- Write the tests first:
-  - default off;
-  - `Suspendable` only when enabled **and** the room profile is `attended`;
-  - the decision table (pending < after: nothing; pending ≥ after: Suspended with the remaining
-    seconds; decided or expired while Suspended: Running);
-  - `remaining` = maxMinutes×60 − running seconds, never below 60.
-- Run `go test ./internal/factory/... ./internal/runwatch/...` and expect FAIL. Implement. Then
-  `task check` must exit 0.
-- Commit `feat(factory): suspend a waiting run behind sandbox.suspend.enabled`.
-
-Note: today every factory room is `unattended` (`internal/factory/rooms/rooms.go:41`), so even
-with the flag on, nothing suspends until attended rooms exist (design decision 3's trigger).
-Whether those rooms will be factory-driven or human-driven decides whether this trigger belongs
-in the factory at all, so S3 waits for the owner's answer (below).
+Authority (S5): `patch` on `agentruns` in `agents`, fenced by a Kyverno policy to these three
+annotations, with valid values, on a suspendable run. It mints nothing, so design D3's
+objection does not apply.
 
 ### Task S4: the resumed bridge answers the pending confirmation (agent-platform)
 
-**Files:** `internal/bridge/confirm.go` and its tests, plus `internal/store/approvals_test.go`
-(testcontainers) as a regression guard.
+**Files:** `internal/bridge/confirm.go`, `internal/bridge/resume_test.go`,
+`internal/app/bridge.go`, plus `internal/store/approvals_test.go` (testcontainers) as a
+regression guard; and the composition's bridge env (crossplane-configuration).
 
-- Bridge tests:
-  - A resumed conversation that is paused or `waiting_for_confirmation` on call C, with the
-    room's approval for C already decided. The bridge sends one `respond_to_confirmation` with
-    that decision, which runs the conversation. It asks the broker for no new approval.
-  - Still pending: the bridge waits. It sends neither a run nor a message (P6).
-  - Expired: it rejects with `textTimeout`, as today.
-- Store guard: an approval pending for call C, then the SIGTERM path's events for a paused
-  conversation (no `tool_result`), then `SupersedeAnswered`. The approval stays `pending`.
-- `task check`. Commit `feat(bridge): answer a resumed run's pending confirmation from the room`.
+- Under `AGENT_SUSPENDABLE=true` (now on the bridge as well as the harness), a `paused` status
+  found at the bridge's **first** status is the previous pod's. Its pending step is answered
+  like a waiting one: the approval is re-asked by event id, and the broker returns the stored one.
+  The room's decision is applied: accept runs the call, while a decline or an expiry rejects it
+  and `/run` lets the model read why. With nothing pending, one `/run` continues the run. A
+  pause after any other status stays a human's interrupt.
+- Still pending: no write at all. Never a message, never a bare `/run` (P6).
+- Store guard: the SIGTERM path's interrupt and pause events leave the approval `pending`.
 
 Spike W-2 confirms live that the reloaded state is paused or `waiting_for_confirmation` with
 the action still pending.
 
 ### Task S5: inert manifests for suspend (ai-native-ref)
 
-Ships with S3's release, not before: until then, nothing writes the two annotations.
-
 **Files:**
-- Modify: `security/base/agent-policies/validatingpolicies.yaml:238`. Add
-  `agents.ogenki.io/operating-mode` and `agents.ogenki.io/remaining-seconds` to the factory's
-  annotation list, and update its message.
-- Modify: `tooling/base/agent-factory/helm-values-configmap.yaml`. Add
-  `sandbox: {launch: cold, suspend: {enabled: false, after: 5m}}`, only once the factory image
-  that knows the key is pinned: decoding refuses unknown fields.
-- Test: `scripts/ci/tests/test-agent-factory-sandbox-off.py` (the values keep
-  `suspend.enabled: false` and `launch: cold`).
-- `task check`. Commit `feat(agents): let the factory suspend runs, off`.
+- Create: `infrastructure/base/room-broker/suspend/`, Role and RoleBinding `room-broker-suspend`
+  (`patch` on `agentruns` in `agents`, for SA `agent-system/room-broker`).
+- Create: `clusters/{aws-0,gcp-0}-agent-platform/infrastructure-room-broker-suspend.yaml`, a
+  Flux Kustomization that **neither** cluster's `kustomization.yaml` lists.
+- Modify: `security/base/agent-policies/validatingpolicies.yaml`, adding
+  `agentrun-broker-patch-limit`. It is always on and matches only the broker: no change to spec,
+  labels or finalizers, only the three annotations change, with valid values, and only on a
+  suspendable run. The factory's list is unchanged: the factory writes none of them.
+- Test: `scripts/ci/tests/test-room-broker-suspend-off.py`.
+- The broker config's `suspend` key lands only with a broker image that reads it, because the
+  decode is strict.
 
 ### Task W1: run-binder (agent-platform)
 
@@ -449,19 +431,16 @@ Ships with S3's release, not before: until then, nothing writes the two annotati
 
 | Switch | Owner decision | PR |
 |---|---|---|
-| `sandbox.suspend.enabled: true`, attended rooms in use | Decision 3 | ai-native-ref values |
+| Broker `suspend.enabled: true` and `room-broker-suspend` listed, attended rooms in use | Decision 3 | ai-native-ref |
 | `controller.extensions: true`, warm-pool Kustomization listed, `replicas: 1`, `sandbox.launch: warm` | Decision 2, and decision 1's targets | ai-native-ref |
 | Live proofs W1–W5, S1–S4 | Decision 4 | runbook 01 |
 
-## Owner questions
+## Owner questions (answered 2026-10-16)
 
-1. **Who drives attended rooms?** The factory makes only unattended rooms. If attended rooms will
-   be started by a human (a room plus `task agent:run`), the suspend trigger belongs where the
-   approvals are, the room-broker. It patches one annotation and mints nothing, so design D3's
-   objection does not apply. If the factory will open attended rooms, S3 stands as written.
-2. **Build the binder (W1) now, undeployed, or not until decision 2?** The plan builds it behind
-   W5's unlisted Kustomization. Its code then exists and gets reviewed, but it holds no authority
-   until the owner lists the Kustomization.
+1. **Who drives attended rooms?** Humans, through `roomctl`. The suspend trigger is the
+   room-broker's (S3 above).
+2. **Build the binder (W1) now?** No. It waits for the owner to accept its token-minting
+   authority. The W track is not built.
 
 ## Self-review against the design
 
@@ -471,7 +450,7 @@ Ships with S3's release, not before: until then, nothing writes the two annotati
 | §4 claim without env or VCT, allow-list, binder sidecar, CNP keyed on run-id, pod read by claim name | W4, P10, W1, W3, W4 |
 | §5 security rows | W1 (one uid, audience), W5 (VAP, binder CNP), W3 (pool CNP, gVisor in the template) |
 | §6 state table | S1 (PVC), S2 (key, conversation), P5 (lease: no change), S4 (in-flight call), S3 (deadline) |
-| §7 flags | Global Constraints; S3, S5 |
+| §7 flags | Global Constraints; S3, S5 (the trigger moved to the broker: `suspend.enabled` is the broker's) |
 | §8 observability | Not in this plan. The run dashboard's "start" and "pool" rows land with W5, once there are samples |
 | §9 acceptance | The right-hand column of the PR table |
 | Status gate "extensions controller enabled" | The owner's switch, above |

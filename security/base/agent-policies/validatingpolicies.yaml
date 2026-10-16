@@ -250,6 +250,62 @@ spec:
         variables.old.all(k, k in variables.allowed || k in variables.new)
       message: "the factory changes only the usage-tokens, pull-request and revoked annotations"
 ---
+# The room broker's suspend trigger (v2 warm-sandboxes S3, owner decision 2026-10-16) may write
+# three annotations of a suspendable run and nothing else: operating-mode (Suspended or
+# Running), remaining-seconds (the composition's 1-6 digits) and resumed-at (RFC 3339 UTC). Its
+# grant, the room-broker-suspend Role, is opt-in; this limit holds whether or not it is granted,
+# so the grant can never land unfenced. Only the broker's requests match.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: agentrun-broker-patch-limit
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  evaluation:
+    background:
+      enabled: false
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [cloud.ogenki.io]
+        apiVersions: [v1alpha1]
+        operations: [UPDATE]
+        resources: [agentruns]
+  matchConditions:
+    - name: the-room-broker
+      expression: "request.userInfo.username == 'system:serviceaccount:agent-system:room-broker'"
+  variables:
+    - name: mode
+      expression: "'agents.ogenki.io/operating-mode'"
+    - name: left
+      expression: "'agents.ogenki.io/remaining-seconds'"
+    - name: resumed
+      expression: "'agents.ogenki.io/resumed-at'"
+    - name: allowed
+      expression: "[variables.mode, variables.left, variables.resumed]"
+    - name: new
+      expression: "has(object.metadata.annotations) ? object.metadata.annotations : {}"
+    - name: old
+      expression: "has(oldObject.metadata.annotations) ? oldObject.metadata.annotations : {}"
+  validations:
+    - expression: "has(object.spec.suspendable) && object.spec.suspendable == true"
+      message: "the room broker writes only to a suspendable run"
+    - expression: "object.spec == oldObject.spec"
+      message: "the room broker never changes an AgentRun's spec"
+    - expression: >-
+        (has(object.metadata.labels) ? object.metadata.labels : {}) == (has(oldObject.metadata.labels) ? oldObject.metadata.labels : {}) &&
+        (has(object.metadata.finalizers) ? object.metadata.finalizers : []) == (has(oldObject.metadata.finalizers) ? oldObject.metadata.finalizers : [])
+      message: "the room broker never changes an AgentRun's labels or finalizers"
+    - expression: >-
+        variables.new.all(k, k in variables.allowed || (k in variables.old && variables.old[k] == variables.new[k])) &&
+        variables.old.all(k, k in variables.allowed || k in variables.new)
+      message: "the room broker changes only the operating-mode, remaining-seconds and resumed-at annotations"
+    - expression: >-
+        (!(variables.mode in variables.new) || variables.new[variables.mode] in ['Suspended', 'Running']) &&
+        (!(variables.left in variables.new) || variables.new[variables.left].matches('^[0-9]{1,6}$')) &&
+        (!(variables.resumed in variables.new) || variables.new[variables.resumed].matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$'))
+      message: "operating-mode is Suspended or Running, remaining-seconds 1-6 digits, resumed-at RFC 3339 UTC"
+---
 # Ruling TV: the compensation for the factory's unbounded ledger RBAC. A ledger is date-named
 # (R50), so resourceNames cannot bound it and agent-factory holds get,list,create,update,delete on
 # every configmap in agent-system. One of those objects must not be factory-writable:

@@ -621,3 +621,41 @@ pre.mermaid { cursor: zoom-in; }
 .diagram-zoom { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
   background: rgb(0 0 0 / 0.85); cursor: grab; overflow: hidden; touch-action: none; }
 .diagram-zoom svg { width: 90vw; height: 90vh; background: var(--diagram-bg); border-radius: 8px; transform-origin: center; }
+
+/* Homepage hero with the Agent Factory clip (layouts/_shortcodes/hero-video.html). The clip is
+ * 4:5 portrait, so it sits beside the text from md up and below it on phones. */
+.anr-hero {
+  display: grid;
+  gap: 2.5rem;
+  width: 100%;
+  align-items: center;
+}
+.anr-hero-text { min-width: 0; }
+.anr-hero-text > p,
+.anr-hero-text > h1 { margin-top: 1rem; }
+.anr-hero-text > a[class*="bg-primary-600"] { margin: 1.5rem 0.5rem 0 0; }
+.anr-hero-media { margin: 0; justify-self: center; width: min(100%, 26rem); }
+.anr-hero-video,
+.anr-hero-poster {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(148 163 184 / 30%);
+  background: #0b1220;
+}
+.anr-hero-poster { display: none; }
+.anr-hero-media figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--cnref-stamp, #64748b);
+}
+@media (min-width: 768px) {
+  .anr-hero { grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem); gap: 3rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .anr-hero-video { display: none; }
+  .anr-hero-poster { display: block; }
+}

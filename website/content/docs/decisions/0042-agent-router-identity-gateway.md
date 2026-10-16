@@ -10,7 +10,7 @@ lastVerified: 2026-09-26
 **Partly superseded**: Option 1 (Agent Router on Envoy Gateway) and its rejection of Option 2, for the agent router only. The audiences, listeners, Kyverno reservation and in-pod identity-proxy stand.
 **Date**: 2026-09-26
 **Deciders**: Smana (Platform Owner)
-**Related Spec**: [SP1 — Agent runtime & identity](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md)
+**Related Spec**: [SP1 — Agent runtime & identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md)
 
 ---
 
@@ -136,8 +136,8 @@ Option 2's "UNVERIFIED" `sub`-prefix claim is now verified from source (agentgat
 CEL `startsWith`, and its RBAC tests match on `jwt.sub`). A time-boxed PoC replacing this Gateway
 with agentgateway is running on gcp-0; its result decides whether this ADR is superseded. Envoy
 Gateway citations above are corrected to 1.9.2, the `main` pin since 2026-09-30. Evidence: the
-[ecosystem re-check](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-ecosystem-recheck-research.md)
-and the [gap matrix](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agentgateway-gap-matrix-research.md).
+[ecosystem re-check](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-ecosystem-recheck-research.md)
+and the [gap matrix](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agentgateway-gap-matrix-research.md).
 
 ---
 

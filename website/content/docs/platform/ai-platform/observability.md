@@ -72,7 +72,7 @@ it stands, what it did, what it cost and where its time went.
 The full transcript (prompts and outputs) stays in the
 [room]({{< relref "/docs/platform/ai-platform/agents/rooms.md" >}}), behind room access. Alerting
 on runs belongs to the factory's rules, per the
-[observability design](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-27-agent-observability-design.md).
+[observability design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-27-agent-observability-design.md).
 Which question each signal answers, from a developer's seat, is in the
 [user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#observability-what-you-can-inspect" >}}).
 

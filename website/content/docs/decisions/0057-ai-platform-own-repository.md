@@ -146,4 +146,4 @@ The creation of `ai-native-ref` (S2) waits for the v1 hardening milestone to clo
 ## References
 
 - [Status and roadmap]({{< relref "/docs/platform/ai-platform/status.md#v2-roadmap" >}})
-- [Agent factory v1 review](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)
+- [Agent factory v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)

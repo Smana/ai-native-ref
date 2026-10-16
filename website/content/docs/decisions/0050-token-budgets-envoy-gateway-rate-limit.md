@@ -10,7 +10,7 @@ lastVerified: 2026-10-07
 **Partly superseded**: Option 1 (Envoy Gateway's global rate limit), for the agent router only. The budget model stands; `ai-gateway`'s budgets stay on Envoy Gateway.
 **Date**: 2026-09-25
 **Deciders**: Smana (Platform Owner)
-**Related Spec**: [SP4 — LLM complexity routing](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md)
+**Related Spec**: [SP4 — LLM complexity routing](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md)
 
 ---
 

@@ -12,7 +12,7 @@ today is on the [status page]({{< relref "/docs/platform/ai-platform/status.md#v
 
 ![Rooms. A developer's browser reaches the web view through oauth2-proxy and ZITADEL single sign-on; roomctl offers the same room from a terminal. Both talk to the room-broker, which keeps each task's append-only log in PostgreSQL through CloudNativePG, with LISTEN/NOTIFY fanning new entries out to every broker replica. In each agent run, the room-bridge sidecar polls the harness and streams its events to the broker over TLS with a room token only it holds, and carries steering back. The agents' room tools reach the broker through the agent gateway. The broker posts a reviewer's verdict on the GitHub pull request](/images/diagrams/ai-platform-4.svg)
 
-*Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/cloud-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 4.*
+*Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 4.*
 
 ## Components and software
 
@@ -27,7 +27,7 @@ today is on the [status page]({{< relref "/docs/platform/ai-platform/status.md#v
 
 ## Steering, approvals and forks
 
-From the [rooms design](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md):
+From the [rooms design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md):
 
 | Mechanism | How it works |
 |---|---|

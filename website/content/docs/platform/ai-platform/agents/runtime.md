@@ -11,7 +11,7 @@ what runs today is on the [status page]({{< relref "/docs/platform/ai-platform/s
 
 ![The agent runtime. An AgentRun claim goes through a Crossplane composition, which renders a ServiceAccount with projected tokens, a default-deny CiliumNetworkPolicy and a Sandbox. The Sandbox pod runs under gVisor on a dedicated pool, GKE Sandbox on gcp-0 or Karpenter on aws-0. Inside it, the OpenHands harness never holds the run token: the Envoy identity-proxy sidecar attaches it to every call to the agent gateway, and the room-bridge sidecar holds the room token. The gateway's token exchange reaches octo-sts, which mints a short-lived GitHub token for the agents' App, confined by rulesets to agent/** branches and no tags. OpenBao and External Secrets hold the platform's secrets, none of which reach the sandbox](/images/diagrams/ai-platform-3.svg)
 
-*Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/cloud-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 3.*
+*Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 3.*
 
 ## Components and software
 

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cnref motion</title>
+    <style>
+      html, body { margin: 0; background: #05080c; color: #cbd5e1; font: 14px system-ui, sans-serif; }
+      canvas { display: block; }
+      body.preview { display: grid; place-items: center; min-height: 100vh; }
+      body.preview canvas { height: calc(100vh - 70px); width: auto; }
+      #bar { display: flex; gap: 12px; align-items: center; width: min(90vw, 700px); padding: 8px 0; }
+      #bar input { flex: 1; }
+    </style>
+  </head>
+  <body>
+    <canvas width="1080" height="1350"></canvas>
+    <div id="bar" hidden><input id="scrub" type="range" min="0" step="0.01" value="0" /><span id="time">0.00 s</span><span>space: play/pause</span></div>
+    <script type="module">
+      import './build/main.js';
+      const q = new URLSearchParams(location.search);
+      if (q.has('preview')) {
+        document.body.classList.add('preview');
+        await window.mc.init(q.get('scene') || 'agent-factory');
+        window.mc.preview();
+      }
+      window.mcReady = true;
+    </script>
+  </body>
+</html>

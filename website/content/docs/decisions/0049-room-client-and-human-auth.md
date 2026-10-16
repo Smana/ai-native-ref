@@ -9,7 +9,7 @@ lastVerified: 2026-09-30
 **Status**: Accepted
 **Date**: 2026-09-27
 **Deciders**: Smana (Platform Owner)
-**Related Spec**: [SP2 — Collaboration rooms](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md)
+**Related Spec**: [SP2 — Collaboration rooms](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md)
 
 ---
 
@@ -108,5 +108,5 @@ binding; its auth model is Kubernetes RBAC, not room roles.
 
 ## References
 
-- [SP2 design §3, §8](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md)
+- [SP2 design §3, §8](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md)
 - [ADR-0044](0044-room-session-protocol.md)

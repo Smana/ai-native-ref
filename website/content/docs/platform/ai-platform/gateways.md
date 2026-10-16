@@ -22,7 +22,7 @@ today is on the
 
 ![The two gateways side by side. Top: humans and coding clients reach ai-gateway over the tailnet with an API key; the Semantic Router may pick the model, and the request lands on a vLLM model in the serving fleet. Bottom: an agent run's identity-proxy sidecar attaches the run's own token; the agent gateway verifies it, meters the run's tokens and routes the model alias to a frontier provider (Z.ai GLM, Claude), the MCP tools, or octo-sts for a GitHub token. Both gateways write access logs and gen_ai metrics to the Victoria stack](/images/diagrams/ai-platform-2.svg)
 
-*Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/cloud-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 2.*
+*Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 2.*
 
 ## `ai-gateway`: humans and coding clients
 
@@ -250,7 +250,7 @@ a repository is described on the [agents overview]({{< relref "/docs/platform/ai
 
 ## What the two share, and what they keep apart
 
-From the [model routing and budgets design](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md)
+From the [model routing and budgets design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md)
 (SP4):
 
 | Concern | Decision | Why |

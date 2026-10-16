@@ -76,6 +76,8 @@ destroy pipeline. Everything below resumes on the rebuild, in the [order below](
 
 ## Roadmap {#v2-roadmap}
 
+Each gate is a go/no-go on evidence; how each v2 decision is weighed is in the [v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md#how-v2-is-judged).
+
 | Next | When |
 |---|---|
 | v2.1: a second active cloud, `gcp-0` | When `gcp-0` runs live again: the factory reaches the identity provider over GKE's network and the CPU quota allows its nodes |

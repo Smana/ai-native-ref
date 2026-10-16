@@ -14,17 +14,70 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.13.0, the chart's appVersion.
+      # agent-platform v0.14.0, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.13.0@sha256:fcd8d541f865cf71a7717772e5a20a14483c7b7d32a241361f99f814ea480f3a"
+      tag: "v0.14.0@sha256:295992553cb64a6dd30c51139b53911b224426dc1c4230b7048027ae954cc874"
     # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
     githubSecret: agent-factory-github
     brokerCASecret: openbao-ca
+    zitadelReaderSecret: agent-factory-zitadel-reader  # externalsecret-zitadel-reader.yaml, at api.access.readerFile
     config:
-      repository: Smana/cloud-native-ref
-      maintainers: [Smana]
-      controlIssue: 2188
-      triggerLabel: factory/ready
+      # The ownership fence (agent-platform v0.14.0): a repository is acted on only while its
+      # .github/agent-factory.yaml names this factory, so aws-0 and gcp-0 never take the same issue.
+      factory: ${cluster_name}
+      # One entry per repository (at most 8); api.repositories is derived from the names.
+      repositories:
+        - name: Smana/cloud-native-ref
+          maintainers: [Smana]
+          triggerLabel: factory/ready
+          classes:
+            # Shadow until the wave (owner, 2026-09-27; R32): decided like a live class, never armed.
+            docs-links: {shadow: true}
+            revert: {shadow: true}
+            docs: {}
+            tests: {}
+            dashboards: {}
+            scripts: {}
+          merge:
+            # Classic protection's 8 contexts (app 15368), read with `gh api repos/Smana/cloud-native-ref/branches/main/protection`.
+            requiredChecks:
+              - "Pre-commit checks 🛃"
+              - "Security scanning 🔒"
+              - "Kubernetes validation ☸"
+              - "Rendered manifest diff 📝"
+              - "Check the shell scripts 💻"
+              - "Check the documentation links 🔗"
+              - "Validate Vector Log Parsing Configuration (vlsingle)"
+              - "Validate Vector Log Parsing Configuration (vlcluster)"
+            # The jobs ci.yaml runs on push to main, watched on the merge commit (§6.4). Not the Vector
+            # checks (their push trigger is path-filtered) nor the rendered diff (PR-only).
+            verifyChecks:
+              - "Pre-commit checks 🛃"
+              - "Security scanning 🔒"
+              - "Kubernetes validation ☸"
+              - "Check the shell scripts 💻"
+              - "Check the documentation links 🔗"
+            policyBotLogin: ogenki-merge-gate[bot]
+            mergerLogin: ogenki-agent-merger[bot]
+            autoMergesPerDay: 10
+            fixRuns: 2
+            # Re-runs of a cancelled required check per task (agent-platform #86); 0 hands it to a
+            # human. Above 0 the merger App needs actions: write.
+            checkReruns: 1
+            verifyFor: 30m
+            revertWindow: 168h
+            leakScanCheck: "Security scanning 🔒"  # R42: TruffleHog's check run, in both lists above
+            breaker: {window: 10, maxReverts: 1}      # R41: 1 revert in the last 10 merges demotes a class
+          schedules:
+            - name: link-rot
+              cron: "0 6 * * 1"  # Mondays, 06:00 UTC
+              class: docs-links
+              text: |
+                Find broken external links in Markdown under docs/ and website/content/, outside
+                docs/superpowers/, docs/specs/ and website/content/docs/decisions/. Fix those with an
+                obvious replacement, changing fewer than 21 lines in total and adding or deleting no
+                file. If none is broken, change nothing and open no pull request.
+      control: {repository: Smana/cloud-native-ref, issue: 2188}  # factory/stop here stops every repository
       factoryLogin: ogenki-agent-factory[bot]
       agentsLogin: ogenki-agents[bot]
       roomsURL: https://rooms.${private_domain_name}
@@ -43,12 +96,17 @@ data:
       api:
         # Plaintext inside the mesh; 8443 is the broker's TLS listener (agent-platform#111).
         listen: ":8082"
-        repositories: [Smana/cloud-native-ref]  # OD-6
         humanIssuer: ${identity_provider_url}
         humanJWKS: ${identity_provider_url}/oauth/v2/keys
         clientIDFiles:
           - /etc/agent-factory-oidc/rooms-proxy-client-id
           - /etc/agent-factory-oidc/roomctl-client-id
+        # Resolves a human caller to their GitHub login (the broker's ZITADEL reader, mounted from
+        # externalsecret-zitadel-reader.yaml); write on the repository is then asked of GitHub.
+        # Without it every human run is refused 403 repository_permission.
+        access:
+          readerFile: /etc/agent-factory-zitadel-reader/reader.json
+          ttl: 5m
       # The RunLore intake (FR-9, §1). The strict parser requires every key below; the token
       # is mounted from the agent-factory-intake ExternalSecret. OD-9 filters findings here.
       runlore:
@@ -56,6 +114,7 @@ data:
         tokenFile: /etc/agent-factory-intake/token
         minConfidence: 0.75  # OD-9
         dailyCap: 5          # OD-9
+        repository: Smana/cloud-native-ref  # where its issues go, whatever the caller asks
       poll: {issues: 60s, tasks: 30s, meter: 30s}
       # pair until a class goes live (FR-11): every task gets a reviewer (SP3 phase 3).
       defaults: {template: pair, tier: standard, dataClass: public, predictedClass: review}
@@ -64,53 +123,6 @@ data:
         # standard with fallback: static, which status.classification records.
         classifierURL: http://complexity-classifier.agent-system.svc.cluster.local:8080/v1/classify
         controlPercent: 10  # OD-14
-      classes:
-        # Shadow until the wave (owner, 2026-09-27; R32): decided like a live class, never armed.
-        docs-links: {shadow: true}
-        revert: {shadow: true}
-        docs: {}
-        tests: {}
-        dashboards: {}
-        scripts: {}
-      merge:
-        # Classic protection's 8 contexts (app 15368), read with `gh api repos/Smana/cloud-native-ref/branches/main/protection`.
-        requiredChecks:
-          - "Pre-commit checks 🛃"
-          - "Security scanning 🔒"
-          - "Kubernetes validation ☸"
-          - "Rendered manifest diff 📝"
-          - "Check the shell scripts 💻"
-          - "Check the documentation links 🔗"
-          - "Validate Vector Log Parsing Configuration (vlsingle)"
-          - "Validate Vector Log Parsing Configuration (vlcluster)"
-        # The jobs ci.yaml runs on push to main, watched on the merge commit (§6.4). Not the Vector
-        # checks (their push trigger is path-filtered) nor the rendered diff (PR-only).
-        verifyChecks:
-          - "Pre-commit checks 🛃"
-          - "Security scanning 🔒"
-          - "Kubernetes validation ☸"
-          - "Check the shell scripts 💻"
-          - "Check the documentation links 🔗"
-        policyBotLogin: ogenki-merge-gate[bot]
-        mergerLogin: ogenki-agent-merger[bot]
-        autoMergesPerDay: 10
-        fixRuns: 2
-        # Re-runs of a cancelled required check per task (agent-platform #86); 0 hands it to a
-        # human. Above 0 the merger App needs actions: write.
-        checkReruns: 1
-        verifyFor: 30m
-        revertWindow: 168h
-        leakScanCheck: "Security scanning 🔒"  # R42: TruffleHog's check run, in both lists above
-        breaker: {window: 10, maxReverts: 1}      # R41: 1 revert in the last 10 merges demotes a class
-      schedules:
-        - name: link-rot
-          cron: "0 6 * * 1"  # Mondays, 06:00 UTC
-          class: docs-links
-          text: |
-            Find broken external links in Markdown under docs/ and website/content/, outside
-            docs/superpowers/, docs/specs/ and website/content/docs/decisions/. Fix those with an
-            obvious replacement, changing fewer than 21 lines in total and adding or deleting no
-            file. If none is broken, change nothing and open no pull request.
       # Every tier asks for agent-default (R11). The router serves tier-* on both listeners since
       # AGW-8; a tier moves to its name with that model's meter price below.
       tiers:
@@ -138,12 +150,26 @@ data:
       # SP4 PR 2's agent_router:run_tokens:total expression over the raw series (R12).
       meter:
         url: http://vmsingle-victoria-metrics-k8s-stack.observability.svc:8428
-        query: 'sum by (ar_agent, gen_ai_token_type) (gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type=~"input|cached_input|cache_creation_input|output"})'
-        # GLM-5.3 list (Z.ai), $ per M tokens: right for public runs only. On internal,
-        # agent-default is claude-opus-5-5 ($4/$20), so phase J's gateway price must replace
-        # this before an internal run reaches the model (plan, Task J0).
+        # Grouped by gen_ai_request_model, the model the backend's alias resolved to: the meter
+        # prices each run by the model that served it (plan, phase J), since agent-default is
+        # GLM-5.3 on public and Claude Opus 5.5 on internal.
+        query: 'sum by (ar_agent, gen_ai_request_model, gen_ai_token_type) (gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type=~"input|cached_input|cache_creation_input|output"})'
+        # The price overlay (plan J.1): one row per model a backend in
+        # infrastructure/base/agent-gateway pins, so no agentgateway release moves a price
+        # without a commit here. AG10 fails a pinned model without its row. A model with no
+        # row is never free: its runs fall back to their token caps and AgentModelUnpriced
+        # fires. List prices, $ per M tokens, read 2026-10-16:
+        # Z.ai https://docs.z.ai/guides/overview/pricing (cache writes not billed, so no
+        # cacheWrite) and https://platform.claude.com/docs/en/about-claude/pricing (5-minute
+        # cache writes). Haiku 5.5 is at its over-100K-prompt rate, which an agent's context
+        # soon reaches: over-counting is the safe direction for a cap.
         prices:
-          agent-default: {input: 1.40, cacheRead: 0.26, output: 4.40}
+          glm-5.3: {input: 1.40, cacheRead: 0.26, output: 4.40}
+          glm-5.3-flashx: {input: 0.37, cacheRead: 0.075, output: 1.25}
+          glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}
+          claude-opus-5-5: {input: 4.00, cacheRead: 0.20, cacheWrite: 5.00, output: 20.00}
+          claude-sonnet-5-5: {input: 2.00, cacheRead: 0.10, cacheWrite: 2.50, output: 10.00}
+          claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50}
         # The 429 lookup (R13): throttle hits per agent over the gateway's access logs.
         # agentgateway's agent router (ADR-0053, plan F.4): a rate-limit refusal logs http.status 429, reason RateLimit.
         logsURL: http://victoria-logs-victoria-logs-single-server.observability.svc:9428

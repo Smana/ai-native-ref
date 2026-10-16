@@ -105,3 +105,14 @@ spec:
             description: "Its .github/agent-factory.yaml on the default branch is absent, unparsable, or names another factory (a read failing for 15 minutes counts too): no intake, schedules, API runs or merges there. Check the file, then: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep -i fence"
             runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#factory-alerts"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentModelUnpriced
+          # J-AC4: a model served a run with no meter.prices row. The run is held to its token
+          # caps, never metered at $0, but a USD cap cannot bite on it.
+          expr: sum by (model) (increase(agent_factory_meter_unpriced_model_runs_total[1h])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "Model {{ $labels.model }} served agent runs without a price"
+            description: "Add its row to meter.prices in tooling/base/agent-factory/helm-values-configmap.yaml, from the provider's list price (input, cacheRead, output, and cacheWrite where the provider bills it). Until then its runs are capped in tokens. The leader's log names each run: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep 'without a price'"
+            runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#budget-signals"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"

@@ -93,3 +93,15 @@ spec:
             description: "With budgets.enforcePrincipal on, new runs are refused (503 meter_blind) and Queued tasks wait with waiting_meter_blind; active runs continue to their deadline and are revoked on recovery. Read the leader's logs: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep -i meter"
             runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#metrics"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryRepositoryNotOwned
+          # The fence gauge (agent-platform #125) is per replica; max() so one replica's stale read
+          # does not page. No absent(): before a release carries the gauge this matches nothing.
+          expr: max by (repository) (agent_factory_repository_owned) == 0
+          for: 20m
+          labels:
+            severity: warning
+          annotations:
+            summary: "The agent factory does not own {{ $labels.repository }}"
+            description: "Its .github/agent-factory.yaml on the default branch is absent, unparsable, or names another factory (a read failing for 15 minutes counts too): no intake, schedules, API runs or merges there. Check the file, then: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep -i fence"
+            runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#factory-alerts"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"

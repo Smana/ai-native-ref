@@ -89,7 +89,7 @@ namespaced `agents-secrets` OpenBao role is scoped to exactly `agents/*` (never 
 ### Step 4 — SC-17, listener half: `internal` cannot reach Z.ai
 
 ```bash
-kubectl apply -f scripts/ops/k8s/agent-probe.yaml
+kubectl apply -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 kubectl wait -n agents sandbox/agent-probe --for=condition=Ready --timeout=10m
 # The token substitution ($(cat ...)) runs INSIDE the pod's shell, so it never
 # appears in this host's process list or shell history.
@@ -132,7 +132,7 @@ budgets B3–B5.
 ### Cleanup
 
 ```bash
-kubectl delete -f scripts/ops/k8s/agent-probe.yaml
+kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 ```
 
 ## Part B — SP4 frontier route and budgets (200, then 429)

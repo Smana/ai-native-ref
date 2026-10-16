@@ -15,9 +15,9 @@ provides; anything not in it is not yours to rely on.
   against `.host/`), and the source check. Never claim done without its output.
 - **The site links to the host by absolute URL** (`https://cnref.ogenki.io/…`): a `relref` cannot
   cross sites. Keep those links few; the S4 link check fetches each one.
-- **Host scripts are used from the host profile, never vendored.** Only the AI-owned gates and suites
-  live here (`scripts/ci/flux-schema/assert-*-gateway.py`, `scripts/ci/tests/`); they overwrite the
-  host's copies in the composite.
+- **Host scripts are used from the host profile, never vendored.** Only the AI-owned gates, suites
+  and ops scripts live here (`scripts/ci/flux-schema/assert-*-gateway.py`, `scripts/ci/tests/`,
+  `scripts/ops/`, `scripts/docs/`); they overwrite the host's copies in the composite.
 - **Every child names `sourceRef: {kind: OCIRepository, name: ai-native-ref}`** and depends only on
   the host Kustomizations in H2. `check-sources.sh` and the host's `check-ai-boundary.py` enforce it.
 - **A host change you need is a cloud-native-ref PR first**, then a `HOST_REF` bump here.

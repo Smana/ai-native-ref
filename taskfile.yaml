@@ -62,3 +62,15 @@ tasks:
     cmds:
       - cd website && hugo --gc --minify
       - ./scripts/ci/verify-doc-paths.sh
+
+  agent:run:
+    desc: "Ask the agent factory for one AgentRun (roomctl login first; AGENT_FACTORY_CA=<private CA PEM>)"
+    cmds: ["./scripts/ops/k8s/agent-run.sh {{.CLI_ARGS}}"]
+
+  agentgateway:live-check:
+    desc: "Run the agentgateway live checks L1-L8 on the current context: the PoC (five tiny GLM-5.3 calls), or --gateway real"
+    cmds: ["./scripts/ops/k8s/agentgateway-poc-live-check.sh {{.CLI_ARGS}}"]
+
+  factory:walkthrough:
+    desc: "Drive the dark factory's developer journey live (issue, label, review, close) and write the transcript the docs journey page is built from"
+    cmds: ["./scripts/ops/github/factory-walkthrough.sh {{.CLI_ARGS}}"]

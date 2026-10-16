@@ -57,11 +57,12 @@ spec:
             unit: Tokens
             cost: '{"claude-haiku-5-5": [0.5, 0.05, 0.625, 2.5], "claude-opus-5-5": [4.0, 0.2, 5.0, 20.0], "claude-sonnet-5-5": [2.0, 0.1, 2.5, 10.0], "glm-5.3": [1.4, 0.26, 1.4, 4.4], "glm-5.3-flash": [0.15, 0.03, 0.15, 0.5], "glm-5.3-flashx": [0.37, 0.075, 0.37, 1.25]}.with(p, llm.requestModel in p ? p[llm.requestModel].with(r, uint(((double(default(llm.inputTokens, 0)) - double(default(llm.cachedInputTokens, 0)) - double(default(llm.cacheCreationInputTokens, 0))) * r[0] + double(default(llm.cachedInputTokens, 0)) * r[1] + double(default(llm.cacheCreationInputTokens, 0)) * r[2] + double(default(llm.outputTokens, 0)) * r[3]) / 1.7)) : uint(llm.totalTokens))'
       # OD-8's backstop, per proxy replica and verified sub, in raw tokens. Not a
-      # budget, and sized so that no run the meter allows can reach it: the
-      # frontier tier's $6.80 run cap buys at most 26M tokens, all cache reads
-      # at $0.26/M, over its 90 minutes. Only a runaway the meter failed to
-      # revoke gets its 429.
+      # budget, and it refuses whatever SHADOW_MODE says, so it sits above any run
+      # the meter allows, all of whose calls may reach one replica: the frontier
+      # tier's $6.80 cap buys 34M tokens of Opus cache reads ($0.20/M). Gate AG8
+      # derives that floor from meter.prices and the tiers. Only a runaway the
+      # meter failed to revoke gets its 429.
       local:
-        - tokens: 30000000
+        - tokens: 40000000
           unit: Hours
           key: jwt.sub

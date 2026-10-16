@@ -246,7 +246,8 @@ values. They run in **shadow mode** until the owner flips one flag, `SHADOW_MODE
 then a call over budget gets a `429` whose body, `agent_budget_exhausted`, the harness logs
 ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)). The server is `envoyproxy/ratelimit` (`agent-ratelimit`) on the Valkey
 `KVStore` `xplane-agent-ratelimit`; if it is down the router fails open and `AgentRateLimitDown`
-fires. A per-replica backstop of 30M raw tokens per hour per `sub` always enforces, sized so that
+fires. A per-replica backstop of 40M raw tokens per hour per `sub` always enforces, above the largest run
+the factory allows (34M tokens of Opus cache reads for $6.80), sized so that
 only a runaway the run meter failed to revoke reaches it.
 
 The token-exchange listener names each repository's audiences, at most eight per listener; adding

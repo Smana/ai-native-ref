@@ -166,7 +166,7 @@ def compliant(key=REAL):
                          "cost": COST},
                         {"entries": [{"name": "provider", "expression": B6}], "unit": "Tokens",
                          "cost": COST}]},
-                "local": [{"tokens": 30000000, "unit": "Hours", "key": "jwt.sub"}]}}}),
+                "local": [{"tokens": 40000000, "unit": "Hours", "key": "jwt.sub"}]}}}),
         {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"namespace": gw_ns, "name": "agent-ratelimit-config"},
          "data": {"config.yaml": yaml.safe_dump({"domain": "agent-router", "descriptors": [
              {"key": "agent", "rate_limit": {"unit": "day", "requests_per_unit": 5000000}},
@@ -176,8 +176,8 @@ def compliant(key=REAL):
          "data": {"values.yaml": yaml.safe_dump({"config": {"meter": {
              "query": "sum by (ar_agent, gen_ai_request_model, gen_ai_token_type) (gen_ai_client_token_usage_sum)",
              "prices": PRICES},
-             "tiers": {"light": {"runTokens": 300000, "runUSD": 0.51},
-                       "frontier": {"runTokens": 4000000, "runUSD": 6.80}},
+             "tiers": {"light": {"model": "agent-default", "runTokens": 300000, "runUSD": 0.51},
+                       "frontier": {"model": "agent-default", "runTokens": 4000000, "runUSD": 6.80}},
              "budgets": {"factoryDaily": 25000000}, "caps": {"concurrentRuns": 4}}})}},
         {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"namespace": gw_ns, "name": "agent-ratelimit"},
          "spec": {"template": {"spec": {
@@ -558,6 +558,16 @@ expect("a meter price change the gateway's cost misses fails",
        edit_meter(lambda m: m["prices"]["glm-5.3"].update({"input": 1.50})), "AG8", "meter.prices")
 expect("a raised factoryDaily without B2 fails",
        edit_config(lambda c: c["budgets"].update({"factoryDaily": 26000000})), "AG8", "fleet")
+expect("a local limit below an all-cache-read Opus run fails (34M)",
+       lambda o: local(o)[0].update({"tokens": 30000000}), "AG8", "34000000")
+poc = compliant(REAL) + compliant(POC)
+next(o for o in poc if o["kind"] == "AgentgatewayPolicy" and o["metadata"]["namespace"] == POC[0]
+     and o["metadata"]["name"] == "token-budgets")["spec"]["traffic"]["rateLimit"]["local"][0]["tokens"] = 200000
+got = [v for v in gate.run(poc) if "local limit" in v]
+check("the PoC's test-sized local limit passes (it serves no run)", got == [], f"got {got}")
+expect("a tier's name reaching a cheaper cache rate without the local limit fails",
+       lambda o: zai(o)["policies"]["ai"]["modelAliases"].update({"agent-default": "glm-5.3-flash"}),
+       "AG8", "local limit")
 expect("a dearer frontier tier without B1 fails",
        edit_config(lambda c: c["tiers"]["frontier"].update({"runUSD": 9})), "AG8", "agent")
 print("AG10 every pinned model has its price in the meter's overlay (continued)")

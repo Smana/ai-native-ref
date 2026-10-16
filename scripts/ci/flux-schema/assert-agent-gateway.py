@@ -40,7 +40,11 @@ names its listeners, audiences, caller namespace and route namespace:
        bucket is at least every tier's run cap (runUSD in reference tokens, and
        runTokens), the fleet bucket at least budgets.factoryDaily plus
        caps.concurrentRuns runs at that cap: the gateway never refuses before
-       the factory would. Every descriptor entry and local-limit key reads only
+       the factory would. A local limit on the real router, which refuses in either mode, allows
+       at least the raw tokens of the largest run the factory admits: its
+       USD cap spent entirely on cache reads at the cheapest rate among the
+       models its tier's name reaches, or its runTokens. Every descriptor
+       entry and local-limit key reads only
        claims the JWT policy requires on each listener it covers: a descriptor
        whose CEL fails is dropped, unlimited (#3523). `aud` counts as required
        where every covered listener checks audiences. A local limit names a key.
@@ -536,6 +540,28 @@ def factory_floors(cfg):
     return run, fleet
 
 
+def raw_run_ceiling(objs, cfg):
+    """The raw tokens of the largest run the factory admits (OD-8's floor).
+
+    A tier without runUSD caps at runTokens counted at REF (agent-platform), so
+    that is its USD cap. A model without a price falls back to runTokens."""
+    prices = (cfg.get("meter") or {}).get("prices") or {}
+    aliases = [((spec_of(b).get("policies") or {}).get("ai") or {}).get("modelAliases") or {}
+               for b in kind(objs, "AgentgatewayBackend")]
+    ceiling = 0
+    for t in (cfg.get("tiers") or {}).values():
+        if not isinstance(t, dict):
+            continue
+        name = t.get("model", "agent-default")
+        served = {str(a[name]) for a in aliases if name in a} or set(prices)
+        rates = [prices[m]["cacheRead"] for m in served
+                 if isinstance(prices.get(m), dict) and isinstance(prices[m].get("cacheRead"), (int, float))
+                 and prices[m]["cacheRead"] > 0]
+        usd = t.get("runUSD", t.get("runTokens", 0) * REF_USD_PER_M / 1e6)
+        ceiling = max(ceiling, t.get("runTokens", 0), round(usd * 1e6 / min(rates)) if rates else 0)
+    return ceiling
+
+
 def check_budgets(objs):
     out = []
     configs = ratelimit_configs(objs)
@@ -548,6 +574,12 @@ def check_budgets(objs):
             elif extra := unrequired_reads(lim["key"], required):
                 out.append(f"AG8: {ref(p)} local key reads {extra}, which the JWT policy does not require: "
                            "an unevaluable key falls into one shared bucket (#3523)")
+            # Only the real router serves runs; the PoC's limits are test values.
+            serves_runs = any(prof.required and gateway_targets(p, g) for g, prof in profiled(objs))
+            factory = factory_values(objs)
+            if serves_runs and factory is not None and lim.get("tokens", 0) < (floor := raw_run_ceiling(objs, factory)):
+                out.append(f"AG8: {ref(p)} local limit is {lim.get('tokens', 0)} raw tokens, below the {floor} the "
+                           "largest admitted run can spend: it refuses whatever SHADOW_MODE says")
         glob = rate_limit.get("global")
         if glob is None:
             continue

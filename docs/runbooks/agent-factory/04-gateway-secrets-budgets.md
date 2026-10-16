@@ -324,7 +324,7 @@ The call that crosses a limit completes; the next one is refused. The refusal is
 {"error":{"type":"rate_limit_error","code":"agent_budget_exhausted","message":"agent-router refused this call: a gateway token budget is spent (limit 5000000, resets in 12877 s). Not retryable."}}
 ```
 
-The limit names the bucket (the table above, or 30,000,000 for the per-replica local limit, which
+The limit names the bucket (the table above, or 40,000,000 for the per-replica local limit, which
 always refuses and uses the same body). A provider's own `429` keeps its body and logs
 `reason: Upstream`, never `RateLimit`.
 

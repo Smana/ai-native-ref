@@ -15,8 +15,8 @@ spec:
   timeout: 15m0s
   path: ./infrastructure/gcp-0/room-broker
   sourceRef:
-    kind: ExternalArtifact
-    name: infra-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   postBuild:
     substituteFrom:
       - kind: ConfigMap

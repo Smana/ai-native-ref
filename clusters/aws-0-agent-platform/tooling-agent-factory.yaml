@@ -13,8 +13,8 @@ spec:
   timeout: 5m0s
   path: ./tooling/aws-0/agent-factory
   sourceRef:
-    kind: ExternalArtifact
-    name: tooling-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   postBuild:
     substituteFrom:
       - kind: ConfigMap

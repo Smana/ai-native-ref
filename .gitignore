@@ -1,0 +1,12 @@
+# Host profile (scripts/ci/host-profile.sh) and the host's render output
+.host/
+.composite/
+.bundle/
+.schemas/
+# Release staging (.github/workflows/release.yaml)
+dist/
+
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+.superpowers/
+.vscode

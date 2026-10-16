@@ -12,8 +12,8 @@ spec:
   timeout: 5m0s
   path: ./infrastructure/base/llm-gateway
   sourceRef:
-    kind: ExternalArtifact
-    name: infra-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   dependsOn:
     # The AIGatewayRoute binds to Gateway ai-gateway, and the Agent Router CRDs
     # ship with that child.

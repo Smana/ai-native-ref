@@ -12,8 +12,8 @@ spec:
   timeout: 5m0s
   path: ./infrastructure/base/llm-gateway
   sourceRef:
-    kind: ExternalArtifact
-    name: infra-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   dependsOn:
     - name: envoy-ai-gateway
     - name: envoy-gateway

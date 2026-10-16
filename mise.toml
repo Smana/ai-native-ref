@@ -1,0 +1,15 @@
+# The host profile's gates run with these binaries. Versions follow cloud-native-ref's
+# mise.toml at HOST_REF; a bump there is a bump here.
+min_version = "2024.11.1"
+
+[tools]
+pre-commit = "4.7.0"
+# flux 2.9+ for `flux plugin`; CI installs the schema plugin: flux plugin install schema@0.11.0
+flux2 = "2.9.6"
+helm = "4.3.1"
+# `github:`, not `polaris`: the other backends 404 on every release after 8.5.0.
+"github:FairwindsOps/polaris" = "10.2.5"
+promtool = "3.15.0"
+"aqua:prometheus/alertmanager" = "0.34.1"
+kustomize = "5.8.3"
+task = "3.54.0"

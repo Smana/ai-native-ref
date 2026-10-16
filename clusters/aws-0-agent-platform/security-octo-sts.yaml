@@ -14,8 +14,8 @@ spec:
   timeout: 3m0s
   path: ./security/aws-0/octo-sts
   sourceRef:
-    kind: ExternalArtifact
-    name: security-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   postBuild:
     substituteFrom:
       - kind: ConfigMap

@@ -13,7 +13,7 @@ spec:
   timeout: 2m0s
   path: ./observability/base/runlore-factory
   sourceRef:
-    kind: ExternalArtifact
-    name: observability-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   dependsOn:
     - name: agent-factory

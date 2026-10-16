@@ -12,5 +12,5 @@ spec:
   timeout: 2m0s
   path: ./infrastructure/base/agent-runtime
   sourceRef:
-    kind: ExternalArtifact
-    name: infra-artifact
+    kind: OCIRepository
+    name: ai-native-ref

@@ -11,8 +11,8 @@ spec:
   timeout: 5m0s
   path: ./infrastructure/base/agent-sandbox
   sourceRef:
-    kind: ExternalArtifact
-    name: infra-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   # ServiceMonitor comes from the prometheus-operator CRDs in `crds`.
   dependsOn:
     - name: crds

@@ -14,8 +14,8 @@ spec:
   timeout: 10m0s
   path: ./infrastructure/gcp-0/vllm-semantic-router
   sourceRef:
-    kind: ExternalArtifact
-    name: infra-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   postBuild:
     substituteFrom:
       - kind: ConfigMap

@@ -14,8 +14,8 @@ spec:
   timeout: 5m0s
   path: ./infrastructure/aws-0/agent-mcp
   sourceRef:
-    kind: ExternalArtifact
-    name: infra-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   postBuild:
     substituteFrom:
       - kind: ConfigMap

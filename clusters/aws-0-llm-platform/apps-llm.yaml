@@ -22,8 +22,8 @@ spec:
   timeout: 30m0s
   path: ./apps/llm
   sourceRef:
-    kind: ExternalArtifact
-    name: apps-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   postBuild:
     substituteFrom:
       - kind: ConfigMap

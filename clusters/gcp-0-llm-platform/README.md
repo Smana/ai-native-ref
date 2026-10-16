@@ -7,7 +7,7 @@ auto-discover the children and bypass the umbrella's `spec.suspend: true` gate. 
 defaults to `spec.suspend: true`, so none of these children — and therefore none of the
 LLM-platform resources — are created on a fresh cluster.
 
-GCP analogue of `clusters/aws-0-llm-platform/`. See [ADR-0021](../../website/content/docs/decisions/0021-gcs-fuse-for-model-weights-on-gcp.md)
+GCP analogue of `clusters/aws-0-llm-platform/`. See [ADR-0021](https://github.com/Smana/cloud-native-ref/blob/main/website/content/docs/decisions/0021-gcs-fuse-for-model-weights-on-gcp.md)
 for why the weights path differs from `aws-0`.
 
 The gateway layer — `envoy-gateway`, `envoy-ai-gateway`, `vllm-semantic-router` and

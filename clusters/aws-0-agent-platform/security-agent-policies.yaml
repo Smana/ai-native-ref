@@ -12,8 +12,8 @@ spec:
   timeout: 2m0s
   path: ./security/base/agent-policies
   sourceRef:
-    kind: ExternalArtifact
-    name: security-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   dependsOn:
     - name: security
     - name: crossplane-configuration

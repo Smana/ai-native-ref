@@ -11,8 +11,8 @@ spec:
   timeout: 2m0s
   path: ./observability/gcp-0/agent-platform
   sourceRef:
-    kind: ExternalArtifact
-    name: observability-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   postBuild:
     substituteFrom:
       - kind: ConfigMap

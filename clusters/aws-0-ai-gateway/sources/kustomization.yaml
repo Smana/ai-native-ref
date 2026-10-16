@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Lists the AI sources rather than applying ./flux/sources: in the host tree that
+# directory is a host path (check-ai-boundary.py), so a child may not apply it whole.
+resources:
+  - ../../../flux/sources/gitrepo-agent-sandbox.yaml
+  - ../../../flux/sources/helmrepo-open-telemetry.yaml
+  - ../../../flux/sources/ocirepo-agent-factory.yaml
+  - ../../../flux/sources/ocirepo-envoy-ai-gateway-crds.yaml
+  - ../../../flux/sources/ocirepo-envoy-ai-gateway.yaml
+  - ../../../flux/sources/ocirepo-envoy-gateway.yaml
+  - ../../../flux/sources/ocirepo-flux-operator-mcp.yaml
+  - ../../../flux/sources/ocirepo-inferencepool.yaml
+  - ../../../flux/sources/ocirepo-kueue.yaml
+  - ../../../flux/sources/ocirepo-vllm-semantic-router.yaml

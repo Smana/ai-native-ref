@@ -5,6 +5,7 @@ kind: Kustomization
 # first three moved from gcp-0-llm-platform/ with their names unchanged, so every
 # dependsOn edge that names them still resolves.
 resources:
+  - flux-sources-ai.yaml
   - infrastructure-envoy-gateway.yaml
   - infrastructure-envoy-ai-gateway.yaml
   - infrastructure-vllm-semantic-router.yaml

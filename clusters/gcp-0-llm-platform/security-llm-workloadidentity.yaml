@@ -19,8 +19,8 @@ spec:
   interval: 1m0s
   retryInterval: 30s
   sourceRef:
-    kind: ExternalArtifact
-    name: security-artifact
+    kind: OCIRepository
+    name: ai-native-ref
   path: ./security/gcp-0/llm-models-preload
   postBuild:
     substituteFrom:

@@ -1,0 +1,29 @@
+---
+# The broker's suspend trigger (v2 warm-sandboxes, owner decision 2026-10-16): it writes the
+# operating-mode, remaining-seconds and resumed-at annotations of a suspendable AgentRun in an
+# attended room (agent-platform internal/suspend). A merge patch is the verb it calls.
+# resourceNames cannot bound it, since runs are created per task; the Kyverno policy
+# agentrun-broker-patch-limit narrows it to those three annotations on a suspendable run.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: room-broker-suspend
+  namespace: agents
+rules:
+  - apiGroups: ["cloud.ogenki.io"]
+    resources: ["agentruns"]
+    verbs: ["patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: room-broker-suspend
+  namespace: agents
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: room-broker-suspend
+subjects:
+  - kind: ServiceAccount
+    name: room-broker
+    namespace: agent-system

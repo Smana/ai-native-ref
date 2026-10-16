@@ -1,0 +1,20 @@
+---
+# The room broker's suspend grant (v2 warm-sandboxes S5). Not listed in kustomization.yaml:
+# listing it, with suspend.enabled: true in the broker's config.yaml and a broker image that
+# reads that key, is the owner's switch. Until then the broker cannot patch an AgentRun.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: room-broker-suspend
+  namespace: flux-system
+spec:
+  prune: true
+  interval: 5m0s
+  timeout: 2m0s
+  path: ./infrastructure/base/room-broker/suspend
+  sourceRef:
+    kind: OCIRepository
+    name: ai-native-ref
+  dependsOn:
+    - name: room-broker
+    - name: agent-policies

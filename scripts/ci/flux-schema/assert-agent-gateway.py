@@ -44,12 +44,15 @@ names its listeners, audiences, caller namespace and route namespace:
   AG11 A provider with a host override names its path (1.6 sends `/` when the
        base has none), and a Z.ai backend routes typed formats only: Detect
        and Passthrough join the path wrongly (#3853).
-  AG12 An LLM backend has one provider and serves only models we list: either
-       a fixed provider model, or modelAliases with a `*` catch-all and no
-       fixed model (a fixed model replaces the requested name before aliases
-       resolve, so it would pre-empt every alias). An agent name therefore
-       maps 100 % to one model, and no request names a model of its own
-       choosing (design D8).
+  AG12 An LLM backend has one provider. One the agent router routes to
+       refuses every name outside AGENT_MODELS before any upstream call
+       (design D8): modelAliases names exactly AGENT_MODELS, with no wildcard;
+       a `model` transformation, MODEL_ALLOWLIST, nulls any other name, which
+       1.6 answers 400 "model not specified" (finalize_request_model); and no
+       fixed provider model, override or default supplies a model, since each
+       maps every name to one. No policy carries aliases or a model mutation:
+       names live on the backend. Any other backend (the PoC) keeps a fixed
+       model or a `*` catch-all, so it serves only models we list.
 
 1.6 CRDs store no defaults, so every check reads explicit fields: an absent
 field fails rather than being assumed. The bundle holds base and per-cluster
@@ -58,6 +61,7 @@ renders of the same objects, so the checks run once per cluster.
 Usage: assert-agent-gateway.py [BUNDLE_DIR]    (default .bundle)
 Exit:  0 clean, 1 violations (each printed), 2 bundle missing.
 """
+import json
 import pathlib
 import re
 import sys
@@ -83,6 +87,10 @@ PROVIDER_LISTENERS = {"Z.ai": {"public"}, "Anthropic": {"internal"}}
 # the descriptor silently, so the string is pinned.
 REF = "0.0000017"
 BILLABLE_COST = f"has(llm.cost) ? uint(llm.cost.total / {REF}) : uint(llm.totalTokens)"
+# Design D8, plan I.1: the agent names, on every agent-router listener.
+AGENT_MODELS = ("agent-default", "tier-light", "tier-standard", "tier-frontier")
+MODEL_ALLOWLIST = f"llmRequest.model in {json.dumps(list(AGENT_MODELS))} ? llmRequest.model : null"
+MODEL_MUTATIONS = ("overrides", "defaults")
 CLUSTER = re.compile(r"-((?:aws|gcp)-\d+)-")
 
 
@@ -560,21 +568,53 @@ def check_provider_paths(objs):
     return out
 
 
+def ai_policy(spec):
+    return (spec.get("policies") or {}).get("ai") or {}
+
+
+def router_backends(objs):
+    """(namespace, name) of every backend a route on a required Gateway (the agent router) sends to."""
+    return {b for g, p in profiled(objs) if p.required for r in routes_on(objs, g) for b in backend_refs(r)}
+
+
 def check_model_pinning(objs):
     out = []
+    routed = router_backends(objs)
     for b in kind(objs, "AgentgatewayBackend"):
         provs = providers(b)
         if not provs:
             continue
         if len(provs) > 1:
             out.append(f"AG12: {ref(b)} has {len(provs)} providers; an agent name maps to one provider model")
-        aliases = ((spec_of(b).get("policies") or {}).get("ai") or {}).get("modelAliases") or {}
+        ai = ai_policy(spec_of(b))
+        aliases = ai.get("modelAliases") or {}
         fixed = any(isinstance(v, dict) and v.get("model") for p in provs for v in p.values())
-        if fixed and aliases:
-            out.append(f"AG12: {ref(b)} fixes a provider model, which pre-empts every alias")
-        elif not fixed and "*" not in aliases:
-            out.append(f"AG12: {ref(b)} needs a fixed model or a `*` catch-all alias: a request could name "
-                       "any model the key can buy")
+        if key(b) not in routed:
+            if fixed and aliases:
+                out.append(f"AG12: {ref(b)} fixes a provider model, which pre-empts every alias")
+            elif not fixed and "*" not in aliases:
+                out.append(f"AG12: {ref(b)} needs a fixed model or a `*` catch-all alias: a request could name "
+                           "any model the key can buy")
+            continue
+        if fixed:
+            out.append(f"AG12: {ref(b)} fixes a provider model, which replaces every requested name")
+        wild = sorted(n for n in aliases if "*" in n)
+        if wild:
+            out.append(f"AG12: {ref(b)} aliases {wild}: a catch-all gives an unlisted name a model")
+        if set(aliases) - set(wild) != set(AGENT_MODELS):
+            out.append(f"AG12: {ref(b)} must alias exactly {list(AGENT_MODELS)}, got {sorted(aliases)}")
+        xfm = {t.get("field"): t.get("expression") for t in ai.get("transformations") or []}
+        if xfm.get("model") != MODEL_ALLOWLIST:
+            out.append(f"AG12: {ref(b)} needs the `model` transformation {MODEL_ALLOWLIST!r} to refuse "
+                       "unlisted names before any upstream call")
+        for field in MODEL_MUTATIONS:
+            if "model" in (ai.get(field) or {}):
+                out.append(f"AG12: {ref(b)} sets model in {field}, which gives an unlisted name a model")
+    for p in policies(objs):
+        ai = (spec_of(p).get("backend") or {}).get("ai") or {}
+        xfm = {t.get("field") for t in ai.get("transformations") or []}
+        if ai.get("modelAliases") or "model" in xfm or any("model" in (ai.get(f) or {}) for f in MODEL_MUTATIONS):
+            out.append(f"AG12: {ref(p)} maps model names; names live on the backend, where AG12 reads them")
     return out
 
 

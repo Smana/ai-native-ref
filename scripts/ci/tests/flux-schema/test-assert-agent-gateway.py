@@ -39,6 +39,10 @@ def obj(kind, ns, name, spec, api="agentgateway.dev/v1alpha1"):
     return {"apiVersion": api, "kind": kind, "metadata": {"namespace": ns, "name": name}, "spec": spec}
 
 
+def agent_aliases(model):
+    return {name: model for name in gate.AGENT_MODELS}
+
+
 def compliant(key=REAL):
     gw_ns, gw_name = key
     prof = gate.PROFILES[key]
@@ -97,11 +101,13 @@ def compliant(key=REAL):
                 "host": "api.z.ai", "port": 443}},
             "policies": {"auth": {"secretRef": {"name": "zai-api-key", "key": "apiKey"}},
                          "ai": {"routes": {"/v1/chat/completions": "Completions", "/v1/messages": "Messages"},
-                                "modelAliases": {"tier-light": "glm-5.3-flash", "*": "glm-5.3"}}}}),
+                                "modelAliases": agent_aliases("glm-5.3"),
+                                "transformations": [{"field": "model", "expression": gate.MODEL_ALLOWLIST}]}}}),
         obj("AgentgatewayBackend", "agent-system", "anthropic", {
             "ai": {"provider": {"anthropic": {}}},
             "policies": {"auth": {"secretRef": {"name": "anthropic-api-key", "key": "apiKey"}},
-                         "ai": {"modelAliases": {"tier-light": "claude-haiku-5-5", "*": "claude-opus-5-5"}}}}),
+                         "ai": {"modelAliases": agent_aliases("claude-opus-5-5"),
+                                "transformations": [{"field": "model", "expression": gate.MODEL_ALLOWLIST}]}}}),
         route("agent-models-internal", "internal", [
             {"name": "models", "matches": [{"path": {"type": "Exact", "value": "/v1/models"}}],
              "backendRefs": backend_ref("anthropic")},
@@ -393,18 +399,44 @@ def anthropic_spec(o):
     return find(o, "AgentgatewayBackend", "anthropic")["spec"]
 
 
+def zai_ai(o):
+    return zai(o)["policies"]["ai"]
+
+
 expect("a provider model beside aliases fails", lambda o: anthropic_spec(o)["ai"]["provider"]["anthropic"]
-       .update({"model": "claude-opus-5-5"}), "AG12", "pre-empts")
-expect("aliases without a catch-all fails", lambda o: zai(o)["policies"]["ai"]["modelAliases"].pop("*"),
+       .update({"model": "claude-opus-5-5"}), "AG12", "replaces every requested name")
+expect("a `*` catch-all alias fails", lambda o: zai_ai(o)["modelAliases"].update({"*": "glm-5.3"}),
        "AG12", "catch-all")
-expect("neither a fixed model nor aliases fails", lambda o: anthropic_spec(o)["policies"].pop("ai"), "AG12",
-       "catch-all")
+expect("a glob alias fails", lambda o: zai_ai(o)["modelAliases"].update({"claude-*": "glm-5.3"}),
+       "AG12", "catch-all")
+expect("an unlisted name fails", lambda o: zai_ai(o)["modelAliases"].update({"gpt-4o": "glm-5.3"}),
+       "AG12", "exactly")
+expect("a missing agent name fails", lambda o: zai_ai(o)["modelAliases"].pop("tier-frontier"), "AG12", "exactly")
+expect("no aliases fails", lambda o: anthropic_spec(o)["policies"].pop("ai"), "AG12", "exactly")
+expect("no model allowlist fails", lambda o: zai_ai(o).pop("transformations"), "AG12", "refuse")
+expect("a model transformation that passes every name fails", lambda o: zai_ai(o)["transformations"][0]
+       .update({"expression": "llmRequest.model"}), "AG12", "refuse")
+expect("a model override fails", lambda o: zai_ai(o).update({"overrides": {"model": "glm-5.3"}}), "AG12",
+       "overrides")
+expect("a model default fails", lambda o: zai_ai(o).update({"defaults": {"model": "glm-5.3"}}), "AG12",
+       "defaults")
+expect("a policy's catch-all alias fails", lambda o: o.append(obj("AgentgatewayPolicy", "agent-system", "aliases", {
+    "targetRefs": [{"group": "agentgateway.dev", "kind": "AgentgatewayBackend", "name": "anthropic"}],
+    "backend": {"ai": {"modelAliases": {"*": "claude-opus-5-5"}}}})), "AG12", "names live on the backend")
 expect("provider groups fail", lambda o: anthropic_spec(o)["ai"].update(
     {"groups": [{"providers": [{"anthropic": {}}, {"anthropic": {}}]}]}), "AG12", "one provider")
-got = gate.run([o if o["kind"] != "AgentgatewayBackend" or o["metadata"]["name"] != "anthropic" else
-                {**o, "spec": {"ai": {"provider": {"anthropic": {"model": "claude-opus-5-5"}}},
-                               "policies": {"auth": o["spec"]["policies"]["auth"]}}} for o in compliant()])
-check("a fixed model without aliases passes", got == [], f"got {got}")
+poc = [o if o["kind"] != "AgentgatewayBackend" or o["metadata"]["name"] != "anthropic" else
+       {**o, "spec": {"ai": {"provider": {"anthropic": {"model": "claude-opus-5-5"}}},
+                      "policies": {"auth": o["spec"]["policies"]["auth"]}}} for o in compliant(POC)]
+got = gate.check_model_pinning(poc)
+check("a fixed model passes on a backend the agent router does not route to",
+      not any("anthropic" in v for v in got), f"got {got}")
+got = gate.check_model_pinning([o for o in poc if not (o["kind"] == "AgentgatewayBackend"
+                                                       and o["metadata"]["name"] == "zai")] +
+                               [{**find(poc, "AgentgatewayBackend", "zai"),
+                                 "spec": {**zai(poc), "policies": {"ai": {"modelAliases": {"x": "glm-5.3"}}}}}])
+check("off the agent router, aliases without a catch-all still fail", any("catch-all" in v for v in got),
+      f"got {got}")
 
 print("AG8 B6 reads the verified audience")
 

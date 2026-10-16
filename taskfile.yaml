@@ -14,6 +14,7 @@ tasks:
       - task: vmrules
       - task: test
       - task: links
+      - task: docs
       - task: sources
 
   host-profile:
@@ -55,3 +56,9 @@ tasks:
   sources:
     desc: No child names a host source
     cmds: ["./scripts/ci/check-sources.sh"]
+
+  docs:
+    desc: Build the site (an unresolved relref fails it) and check every repository path it names
+    cmds:
+      - cd website && hugo --gc --minify
+      - ./scripts/ci/verify-doc-paths.sh

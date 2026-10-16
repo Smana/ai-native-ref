@@ -7,7 +7,7 @@ lastVerified: 2026-08-27
 
 The cluster exposes an OpenAI-compatible endpoint at
 `https://llm.priv.aws.ogenki.io/v1` (Tailscale-fronted, `tag:k8s` ACL — see
-[Private Access]({{< relref "/docs/platform/networking/private-access.md" >}})).
+[Private Access](https://cnref.ogenki.io/docs/platform/networking/private-access/)).
 Any client that speaks the OpenAI chat-completions API, or the OpenAI
 completions API for FIM, can talk to it — once all three
 [opt-in gates]({{< relref "/docs/platform/ai-platform/serving/_index.md#turning-it-on" >}})
@@ -187,4 +187,4 @@ curl -sS -X POST https://llm.priv.aws.ogenki.io/v1/completions \
   request. Either the source pod lacks a `CiliumNetworkPolicy` egress rule
   to the AI Gateway data plane, or the destination `InferenceService`'s
   policy doesn't allow the client's identity — see the network-policy
-  checklist in [Policies]({{< relref "/docs/platform/security/policies.md" >}}).
+  checklist in [Policies](https://cnref.ogenki.io/docs/platform/security/policies/).

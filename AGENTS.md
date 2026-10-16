@@ -11,7 +11,10 @@ provides; anything not in it is not yours to rely on.
 - **`task check` is the evidence.** It clones the host at `HOST_REF` into `.host/`, builds
   `.composite/` (the host with its AI paths replaced by this tree) and runs the host's own
   `validate-manifests.sh`, this repository's gates on the bundle it renders, its suites, the
-  link check and the source check. Never claim done without its output.
+  link check, the site build and the doc-path check (paths may name host files: they resolve
+  against `.host/`), and the source check. Never claim done without its output.
+- **The site links to the host by absolute URL** (`https://cnref.ogenki.io/…`): a `relref` cannot
+  cross sites. Keep those links few; the S4 link check fetches each one.
 - **Host scripts are used from the host profile, never vendored.** Only the AI-owned gates and suites
   live here (`scripts/ci/flux-schema/assert-*-gateway.py`, `scripts/ci/tests/`); they overwrite the
   host's copies in the composite.

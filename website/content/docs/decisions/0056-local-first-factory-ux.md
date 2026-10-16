@@ -9,7 +9,7 @@ lastVerified: 2026-10-08
 **Status**: Accepted
 **Date**: 2026-10-08
 **Deciders**: Smana (Platform Owner)
-**Related Spec**: [Agent factory: local-first developer UX](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)
+**Related Spec**: [Agent factory: local-first developer UX](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)
 
 ---
 
@@ -19,7 +19,7 @@ Developers live in a local coding agent or IDE and will not open a browser room 
 task. The room shows raw events, and one broker serves every repo, where any `agents-member` reads
 every room. A room holds the issue, code the agent read, diffs and tool output, so with a second team
 or a private repo it becomes a way to read a repo around GitHub's own permissions. Three choices had
-credible alternatives; the rest of the [design](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)
+credible alternatives; the rest of the [design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)
 did not.
 
 ---
@@ -86,7 +86,7 @@ id, resolves it to the current login (`GET /user/{id}`), and asks GitHub with th
 installation token whether that login can read the room's repo. Each answer is cached for at most
 5 minutes, and non-admins fail closed when ZITADEL or GitHub cannot be reached. GitHub read access
 lets you see a room; it never grants steering or approving, which stay with the existing standings.
-Details: [spec, "Rooms across repos"](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md).
+Details: [spec, "Rooms across repos"](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md).
 
 ---
 
@@ -119,6 +119,6 @@ Details: [spec, "Rooms across repos"](https://github.com/Smana/cloud-native-ref/
 
 ## References
 
-- [Spec: local-first developer UX](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)
+- [Spec: local-first developer UX](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)
 - [ADR-0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}}): `roomctl` never approves or steers
 - [ADR-0044]({{< relref "/docs/decisions/0044-room-session-protocol.md" >}}): the room log the summary folds

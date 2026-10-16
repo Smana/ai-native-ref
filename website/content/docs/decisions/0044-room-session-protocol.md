@@ -9,7 +9,7 @@ lastVerified: 2026-09-29
 **Status**: Accepted
 **Date**: 2026-09-27
 **Deciders**: Smana (Platform Owner)
-**Related Spec**: [SP2 — Collaboration rooms](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md)
+**Related Spec**: [SP2 — Collaboration rooms](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md)
 
 ---
 
@@ -66,14 +66,14 @@ infrastructure beyond the platform's own claims.
 capability in **Preview**, on Envoy's native A2A filter, and an `A2ARoute` CRD is proposed upstream
 ([agent-router#2070](https://github.com/theagentrouter/agent-router/issues/2070)). If an agent
 outside the cluster must join a room, try it on the gateway the platform already runs first
-([ecosystem re-check](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-ecosystem-recheck-research.md)).
+([ecosystem re-check](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-ecosystem-recheck-research.md)).
 
 ### Option 5: Valkey Streams, NATS JetStream, or one in-memory broker as the log
 
 **Cons**: KVStore is cache semantics by its XRD; JetStream is new infrastructure; one replica makes a
 spot interruption an outage for every open approval.
 
-### Option 6: Valkey pub/sub hints beside the CNPG log ([design S8](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#decisions))
+### Option 6: Valkey pub/sub hints beside the CNPG log ([design S8](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#decisions))
 
 A `KVStore` carries "room X reached seq N" hints between broker replicas; the log stays in CNPG.
 
@@ -136,12 +136,12 @@ Code: `Smana/agent-platform` (OD-4). Manifests: `infrastructure/base/room-broker
   ([agent-platform `AGENTS.md`](https://github.com/Smana/agent-platform/blob/main/AGENTS.md)). It keeps
   the core reusable outside this platform.
 - **Spin-out deferred.** Whether agent-platform becomes a standalone project is decided at the
-  [plan](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/plans/2026-09-27-agent-collaboration-rooms-plan.md)'s Phase 7 UX sign-off, not before: the choice needs the finished UX to judge.
+  [plan](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/plans/2026-09-27-agent-collaboration-rooms-plan.md)'s Phase 7 UX sign-off, not before: the choice needs the finished UX to judge.
 
 ---
 
 ## References
 
-- [SP2 design](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md)
+- [SP2 design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md)
 - [Agent Host Protocol](https://microsoft.github.io/agent-host-protocol/guide/what-is-ahp.html)
 - [ADR-0041](0041-agent-sandbox-gvisor-al2023.md)

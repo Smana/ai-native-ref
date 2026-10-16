@@ -9,7 +9,7 @@ lastVerified: 2026-09-26
 **Status**: Accepted
 **Date**: 2026-09-26
 **Deciders**: Smana (Platform Owner)
-**Related Spec**: [SP1 — Agent runtime & identity](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md)
+**Related Spec**: [SP1 — Agent runtime & identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md)
 
 ---
 

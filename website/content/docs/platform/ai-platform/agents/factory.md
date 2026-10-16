@@ -12,7 +12,7 @@ every run has a task and a budget. This page describes the design; what runs tod
 
 ![The factory, from issue to merge. A maintainer labels a GitHub issue factory/ready; intake snapshots it, and triage picks the task's class, team and budget. The Task controller runs the team as sequential agent runs in one room: an implementer, then a reviewer, and a tester in the larger teams. Kueue admits each sandbox. The implementer opens a PR; a maintainer's "Request changes" review becomes a new run on the same branch. The merge gate, policy-bot and a separate merger App, merges only low-risk classes with green CI; every other PR waits for a human. The run meter revokes a run at its token cap, and the kill switch, a stop ConfigMap or a label on a pinned control issue, pauses intake and stops every task](/images/diagrams/ai-platform-5.svg)
 
-*Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/cloud-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 5.*
+*Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 5.*
 
 ## From issue to merge
 
@@ -48,5 +48,5 @@ The developer's view of the same journey is in the
 
 The sandbox, identity and GitHub boundaries are on
 [Runtime → Security boundaries]({{< relref "/docs/platform/ai-platform/agents/runtime.md#security-boundaries" >}}).
-The [factory design](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md)
+The [factory design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md)
 has the full merge policy, gate paths and the five-layer kill switch.

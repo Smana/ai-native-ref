@@ -9,7 +9,7 @@ lastVerified: 2026-10-15
 **Status**: Accepted
 **Date**: 2026-10-01, amended 2026-10-15 (version rule, v1.6.0, aws-0)
 **Deciders**: Smana (Platform Owner)
-**Related Spec**: [Agent router on agentgateway — design](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-router-agentgateway-design.md)
+**Related Spec**: [Agent router on agentgateway — design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-router-agentgateway-design.md)
 **Supersedes, for the agent router only**: [ADR-0042]({{< relref "/docs/decisions/0042-agent-router-identity-gateway.md" >}}) Option 1 (and its rejection of Option 2), [ADR-0050]({{< relref "/docs/decisions/0050-token-budgets-envoy-gateway-rate-limit.md" >}}) Option 1
 
 ---
@@ -33,7 +33,7 @@ changed by 2026-10-01:
   wrong namespace (403), forged identity headers were replaced, MCP tools, prompts and resources were
   filtered per role with no bearer reaching a server, and token budgets counted in shadow through
   `envoyproxy/ratelimit`
-  ([PoC result](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agentgateway-gap-matrix-research.md#poc-result-2026-10-01-gcp-0)).
+  ([PoC result](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agentgateway-gap-matrix-research.md#poc-result-2026-10-01-gcp-0)).
   A second PoC, v1.6.0 beside agent-router on aws-0 (#2385), passed the live check L1–L7 on
   2026-10-15.
 
@@ -164,7 +164,7 @@ overrides the rule.
 
 The rule was "a new minor only at its first patch release". The project rarely ships one: 1.5 got
 none, none is planned for 1.6, and the fixes we want land in the next minor
-([open-issues research](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-15-agentgateway-open-issues-research.md)). The old rule would have skipped 1.5 and 1.6 both. v1.7.0 is
+([open-issues research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-15-agentgateway-open-issues-research.md)). The old rule would have skipped 1.5 and 1.6 both. v1.7.0 is
 re-run through L1–L8 before the cutover.
 
 | # | The gate checks, on the live cluster |
@@ -182,7 +182,7 @@ re-run through L1–L8 before the cutover.
 
 ## Implementation Notes
 
-[The plan](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/plans/2026-10-15-agent-router-agentgateway-plan.md)
+[The plan](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/plans/2026-10-15-agent-router-agentgateway-plan.md)
 runs agentgateway beside the Envoy agent-router, switches new runs by changing the identity-proxy's
 upstream, and deletes the Envoy agent-router only after the live gates pass. SP4 PR 2's agent half
 (tiers and B1–B2) is built on agentgateway; its `ai-gateway` half is unchanged. Which providers

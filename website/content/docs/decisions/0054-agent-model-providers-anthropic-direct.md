@@ -9,7 +9,7 @@ lastVerified: 2026-10-15
 **Status**: Accepted
 **Date**: 2026-10-01, updated 2026-10-15 (v1.6.0, aws-0)
 **Deciders**: Smana (Platform Owner)
-**Related Spec**: [Agent router on agentgateway — design](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-router-agentgateway-design.md)
+**Related Spec**: [Agent router on agentgateway — design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-router-agentgateway-design.md)
 **Supersedes**: [ADR-0046]({{< relref "/docs/decisions/0046-frontier-providers-zai-and-bedrock.md" >}})'s provider for internal data (keyless Claude through Bedrock on aws-0 and Vertex on gcp-0). Its Z.ai choice for public data stands.
 
 ---
@@ -131,7 +131,7 @@ data processor. Bedrock is provable on aws-0 too; it still means a second backen
 
 ## Implementation Notes
 
-The [agentgateway plan](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/plans/2026-10-15-agent-router-agentgateway-plan.md)
+The [agentgateway plan](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/plans/2026-10-15-agent-router-agentgateway-plan.md)
 phase I adds the Anthropic backend, the internal tiers and per-provider budgets, proven on aws-0.
 agentgateway 1.6's built-in catalog prices `claude-opus-5-5` and `claude-sonnet-5-5`; our overlay
 still carries a row for every pinned model. Its

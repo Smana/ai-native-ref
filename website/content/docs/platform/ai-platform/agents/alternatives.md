@@ -83,7 +83,7 @@ The full records are in the programme's design documents, listed under [Sources]
 | Postgres `LISTEN/NOTIFY` for room fan-out | NATS JetStream, for fan-out only: the log stays in Postgres and is written first | Notification latency or database load shows on the room dashboards, or rooms need many broker replicas |
 | gVisor | Kata or Firecracker microVMs | Concurrency reaches about 20 sandboxes, enough to fill a metal host; a gVisor incompatibility blocks a class of task; or nested virtualisation becomes available on our node types |
 | agent-sandbox, one pod per run | [Agent Substrate](#agent-substrate) | See [Reconsidering Substrate](#reconsidering-substrate-not-now-deliberately-open) |
-| One cold pod per run, held or ended while it waits | agent-sandbox's own `SandboxWarmPool` and `operatingMode: Suspended`, in the pinned v1.0.5; the composition suspends only finished runs | Now: a run starts in about 90 s on a fresh node ([v1 review, 2026-10-12](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)). A claim that sets `env` or volume templates bypasses the warm pool |
+| One cold pod per run, held or ended while it waits | agent-sandbox's own `SandboxWarmPool` and `operatingMode: Suspended`, in the pinned v1.0.5; the composition suspends only finished runs | Now: a run starts in about 90 s on a fresh node ([v1 review, 2026-10-12](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)). A claim that sets `env` or volume templates bypasses the warm pool |
 
 ## Projects evaluated in detail
 
@@ -157,7 +157,7 @@ GKE-only memory snapshots driven from its Python SDK; the composition suspends o
 | The open-source controller authorizes every action and takes the user's identity from a header, so anything reaching it directly can act as anyone | [auth.go](https://github.com/kagent-dev/kagent/blob/bf8afa563e4f55f2c9f9e9cb54c4efa4dd23d271/go/core/pkg/auth/auth.go#L95-L106) |
 | v1 cannot run without Substrate, and gives an agent no ServiceAccount or pod spec of its own | [app.go](https://github.com/kagent-dev/kagent/blob/bf8afa563e4f55f2c9f9e9cb54c4efa4dd23d271/go/core/pkg/app/app.go#L272-L280), [AGENTS.md](https://github.com/kagent-dev/kagent/blob/bf8afa563e4f55f2c9f9e9cb54c4efa4dd23d271/AGENTS.md#L17-L19) |
 | An agent identifies itself to the controller with an unsigned header until Substrate ships per-agent tokens | [substrate#1660](https://github.com/agent-substrate/substrate/issues/1660) |
-| No GitHub intake, PR handling, merge gate, budgets, daily cap or stop switch, in either edition | [Research](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md) |
+| No GitHub intake, PR handling, merge gate, budgets, daily cap or stop switch, in either edition | [Research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md) |
 | It dropped kubernetes-sigs/agent-sandbox in June: "substrate is the thing we'll go with" | [#2049](https://github.com/kagent-dev/kagent/pull/2049) |
 
 **Worth learning from:** forking a session together with a snapshot of the running agent, which
@@ -277,12 +277,12 @@ time with our sandbox pod.
 
 ## Sources
 
-- [Agent factory v1 review, 2026-10-12](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md):
+- [Agent factory v1 review, 2026-10-12](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md):
   build-or-adopt per layer, Symphony, agent-sandbox's suspend and warm pools
-- [kagent evaluation, 2026-10-04](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md)
-- [ax and Substrate re-check, 2026-10-04](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-ecosystem-recheck-research.md#2026-10-04-re-check-ax-and-substrate-claims-against-code)
-- [Runtime research, with the first ax and Substrate evaluation](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-research.md)
-- Designs: [programme](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md),
-  [runtime](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md),
-  [rooms](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md),
-  [factory](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md)
+- [kagent evaluation, 2026-10-04](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md)
+- [ax and Substrate re-check, 2026-10-04](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-ecosystem-recheck-research.md#2026-10-04-re-check-ax-and-substrate-claims-against-code)
+- [Runtime research, with the first ax and Substrate evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-research.md)
+- Designs: [programme](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md),
+  [runtime](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md),
+  [rooms](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md),
+  [factory](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md)

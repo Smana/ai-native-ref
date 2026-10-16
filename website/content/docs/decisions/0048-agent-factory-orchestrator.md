@@ -9,7 +9,7 @@ lastVerified: 2026-10-01
 **Status**: Accepted
 **Date**: 2026-09-27
 **Deciders**: Smana
-**Related Spec**: [SP3 dark factory](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md)
+**Related Spec**: [SP3 dark factory](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md)
 
 ---
 
@@ -113,5 +113,5 @@ What phase 1 builds, against the decision above:
 
 ## References
 
-- [SP3 research](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-research.md#orchestrator)
+- [SP3 research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-research.md#orchestrator)
 - [Kueue ClusterQueue](https://kueue.sigs.k8s.io/docs/concepts/cluster_queue/)

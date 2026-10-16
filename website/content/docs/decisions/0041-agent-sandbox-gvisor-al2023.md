@@ -9,7 +9,7 @@ lastVerified: 2026-10-01
 **Status**: Accepted
 **Date**: 2026-09-26
 **Deciders**: Smana (Platform Owner)
-**Related Spec**: [SP1 — Agent runtime & identity](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md)
+**Related Spec**: [SP1 — Agent runtime & identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md)
 
 ---
 
@@ -135,7 +135,7 @@ The `AgentRun` names only `runtimeClassName: gvisor`, so the composition is the 
 aws-0: `infrastructure/base/karpenter-nodepools-agents/` and `infrastructure/base/runtimeclass-gvisor/`.
 gcp-0: the `agents-gvisor` pool in `opentofu/gcp/gke/init/`. Both: `infrastructure/base/agent-sandbox/`, Kyverno `agents-pod-shape` in `security/base/agent-policies/`,
 all behind the `agent-platform` umbrella. The XR is `AgentRun` in `Smana/crossplane-configuration`.
-Spike results: [SP1 agent-runtime-identity spike](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-spike.md).
+Spike results: [SP1 agent-runtime-identity spike](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-spike.md).
 
 ---
 

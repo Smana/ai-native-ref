@@ -23,7 +23,7 @@ New to the vocabulary (run, role, sandbox, room)? Read
 | You need | Why |
 |---|---|
 | Access to the tailnet | The room UI, Grafana and the factory's API are private |
-| Your OS trusting the platform's root CA | The room page and `roomctl` talk to private endpoints signed by it. Without it, `roomctl` fails with `x509: certificate signed by unknown authority`. Fetch and trust it as in [runbook 11's prerequisites](https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#prerequisites) |
+| Your OS trusting the platform's root CA | The room page and `roomctl` talk to private endpoints signed by it. Without it, `roomctl` fails with `x509: certificate signed by unknown authority`. Fetch and trust it as in [runbook 11's prerequisites](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#prerequisites) |
 | SSO membership in `agents-member` | To watch rooms and runs, and to start a run by hand. Requesting `internal` work or a `triager` run needs `agents-admin`. A valid login that still 403s on the room UI: see the [FAQ](#frequently-asked-questions) |
 | Your GitHub account linked to your ZITADEL user | You see a room only if GitHub lets you read its repository: see [who sees a room](#who-sees-a-room) |
 | Maintainer rights on the repository | Labels and reviews are how you steer. The agents never merge on their own, except for the low-risk classes below |

@@ -10,7 +10,7 @@ lastVerified: 2026-10-07
 **Partly superseded**: the provider for internal data (keyless Claude through Bedrock or Vertex) is now the Anthropic API. Z.ai for public data stands.
 **Date**: 2026-09-25
 **Deciders**: Smana (Platform Owner)
-**Related Spec**: [SP4 — LLM complexity routing](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md)
+**Related Spec**: [SP4 — LLM complexity routing](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md)
 
 ---
 

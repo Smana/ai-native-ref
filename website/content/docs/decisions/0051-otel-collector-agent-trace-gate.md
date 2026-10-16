@@ -136,5 +136,5 @@ Dropping spans that carry links would lose the trace, so the gate is the only op
 ## References
 
 - `docs/superpowers/plans/2026-09-27-agent-observability-plan.md` (the trace-gate rulings)
-- [ADR-0030]({{< relref "/docs/decisions/0030-vector-as-log-shipper.md" >}})
-- [ADR-0005]({{< relref "/docs/decisions/0005-gke-standard-self-managed-cilium.md" >}})
+- [ADR-0030](https://cnref.ogenki.io/docs/decisions/0030-vector-as-log-shipper/)
+- [ADR-0005](https://cnref.ogenki.io/docs/decisions/0005-gke-standard-self-managed-cilium/)

@@ -623,7 +623,9 @@ pre.mermaid { cursor: zoom-in; }
 .diagram-zoom svg { width: 90vw; height: 90vh; background: var(--diagram-bg); border-radius: 8px; transform-origin: center; }
 
 /* Homepage hero with the Agent Factory clip (layouts/_shortcodes/hero-video.html). The clip is
- * 4:5 portrait, so it sits beside the text from md up and below it on phones. */
+ * 4:5 portrait, so it sits beside the text from md up and below it on phones. It is the hero's
+ * focus: half the row on tablets, up to 58 % of it and its 720 px source width, but never taller than the viewport,
+ * since a portrait clip cut off at the fold has to be scrolled to be seen whole. */
 .anr-hero {
   display: grid;
   gap: 2.5rem;
@@ -634,7 +636,7 @@ pre.mermaid { cursor: zoom-in; }
 .anr-hero-text > p,
 .anr-hero-text > h1 { margin-top: 1rem; }
 .anr-hero-text > a[class*="bg-primary-600"] { margin: 1.5rem 0.5rem 0 0; }
-.anr-hero-media { margin: 0; justify-self: center; width: min(100%, 26rem); }
+.anr-hero-media { margin: 0; justify-self: center; width: min(100%, 24rem); }
 .anr-hero-video,
 .anr-hero-poster {
   display: block;
@@ -653,7 +655,11 @@ pre.mermaid { cursor: zoom-in; }
   color: var(--cnref-stamp, #64748b);
 }
 @media (min-width: 768px) {
-  .anr-hero { grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem); gap: 3rem; }
+  .anr-hero { grid-template-columns: minmax(18rem, 1fr) min(50%, calc(min(85vh, 900px) * 0.8)); gap: 3rem; }
+  .anr-hero-media { width: 100%; }
+}
+@media (min-width: 1280px) {
+  .anr-hero { grid-template-columns: minmax(18rem, 1fr) min(58%, 720px, calc(min(85vh, 900px) * 0.8)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .anr-hero-video { display: none; }

@@ -1,0 +1,62 @@
+# The merge policy (cloud-native-ref ADR-0045), adapted to this repository. policy-bot reads it
+# from main, never from the PR it evaluates. A gate path itself: agents can never change it. When
+# every rule skips, policy-bot posts `error`, so an unknown author or a gate-path PR cannot merge.
+#
+# No low-risk rule: every class here is review or shadow (second-repository design D9), so every
+# agent PR needs a maintainer's review. A live class needs its rule added here first.
+#
+# This repository is the factory's own configuration, so its gate list is wider than the host's:
+# clusters/, flux/, security/ and the CI gates (scripts/ci/, HOST_REF, taskfile.yaml, pre-commit)
+# are gated whole. scripts/ci/tests/test-agent-repo-files.py fails when the list drops one.
+policy:
+  approval:
+    - or:
+        - human-authored
+        - agent change approved by a maintainer
+
+approval_defaults:
+  options:
+    invalidate_on_push: true      # a push after approval re-opens the gate
+    ignore_edited_comments: true
+    methods:
+      comments: []
+      github_review: true         # only a GitHub review from a listed human approves
+
+approval_rules:
+  - name: human-authored
+    if:
+      has_author_in:
+        users: [Smana]
+
+  - name: agent change approved by a maintainer  # every agent PR, shadow classes included
+    if:
+      has_author_in:
+        users: ["ogenki-agents[bot]"]
+      no_changed_files:
+        paths:
+          - '^\.policy\.yml$'
+          - '^\.github/'
+          - '^\.github/agent-factory\.yaml$'  # the ownership fence: which factory acts here
+          - '(^|/)(AGENTS|CLAUDE)\.md$'
+          - '^\.(agents|claude)/'
+          - '^clusters/'
+          - '^flux/'                          # the agent-factory and kueue pins included
+          - '^security/'
+          - '^infrastructure/base/(agent-sandbox|karpenter-nodepools-agents|runtimeclass-gvisor|agent-runtime|agent-router|agent-mcp|room-broker|kueue|kueue-queues|agent-model-routing|agentgateway|agent-gateway)/'
+          - '^infrastructure/(aws-0|gcp-0)/(agent-mcp|agent-router|room-broker|kueue|agentgateway|agent-gateway|agentgateway-poc)/'
+          - '^infrastructure/aws-0/agent-model-routing/'
+          - '^observability/base/agent-platform/'
+          - '^observability/base/runlore-factory/'
+          - '^observability/(aws-0|gcp-0)/agent-platform/'
+          - '^tooling/base/(agent-factory|policy-bot)/'
+          - '^tooling/(aws-0|gcp-0)/agent-factory/'
+          - '^scripts/ci/'                    # the gates CI runs, assert-agent-gateway.py included
+          - '^(HOST_REF|taskfile\.yaml|\.pre-commit-config\.yaml|\.secrets\.baseline|\.gitignore)$'  # what CI validates against, and how
+    requires:
+      count: 1
+      users: [Smana]
+    options:
+      allow_non_author_contributor: true  # a maintainer who pushed during a takeover can still approve
+      request_review:
+        enabled: true
+        mode: all-users

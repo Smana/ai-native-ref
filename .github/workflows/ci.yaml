@@ -66,8 +66,8 @@ jobs:
           head: ${{ github.sha }}
           extra_args: --only-verified
 
-  # One signed artifact per PR push, v<next-patch>-pr<N>.g<sha8> (D5), for feature-branch
-  # clusters (H1 ai_native_ref_tag). <sha8> is the PR head's, not the merge commit. The `g`
+  # One signed artifact per PR push, v<next-patch>-pr<N>.g<sha8> (D5), which a feature-branch
+  # cluster pins by tag and digest (H1). <sha8> is the PR head's, not the merge commit. The `g`
   # keeps a digits-only sha a valid semver identifier. Dependabot gets a read-only token.
   prerelease:
     needs: [validate, lint]

@@ -10,6 +10,7 @@ tasks:
     cmds:
       - task: host-profile
       - task: validate
+      - task: vmrules
       - task: test
       - task: links
       - task: sources
@@ -26,6 +27,12 @@ tasks:
       - |
         f="${XRD_CRDS_FILE:-$(./.composite/scripts/ci/fetch-xrd-crds.sh)}"
         XRD_CRDS_FILE="$f" ./.composite/scripts/ci/validate-manifests.sh
+
+  vmrules:
+    desc: promtool over every VMRule in the composite, this repository's included
+    # validate-manifests.sh runs it too; called here as well so the AI rules stay parsed even
+    # if the host drops the call, since the host's own CI no longer sees them (S3).
+    cmds: ["./.composite/scripts/ci/validate-vmrules.sh"]
 
   test:
     desc: This repository's suites, run inside the composite

@@ -9,6 +9,7 @@ resources:
   - externalsecret-intake.yaml
   - externalsecret-merger.yaml
   - externalsecret-oidc.yaml
+  - externalsecret-zitadel-reader.yaml
   - httproute.yaml
   - network-policy.yaml
   - vmservicescrape.yaml

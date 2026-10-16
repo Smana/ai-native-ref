@@ -1,12 +1,12 @@
 ---
-title: The factory's reviewer on public tasks runs on another model family
+title: The factory's reviewer on public tasks keeps the implementer's GLM model
 linkTitle: 0058 · Reviewer on another model
 weight: 580
-description: Proposed. Which model reviews a public task's pull request — GLM as today, Claude through a public-listener Anthropic route for the reviewer only, or another open-weight family — and how the choice is measured on the cohort. Owner decision pending.
+description: Accepted. A public task's reviewer keeps the implementer's GLM model, so no public-class data goes to Anthropic. A Claude reviewer through a reviewer-only route was rejected on data class and cost, to revisit with the cohort's measurement if review quality becomes the bottleneck; another open-weight family has no route in the gateway.
 lastVerified: 2026-10-16
 ---
 
-**Status**: Proposed — owner decision pending
+**Status**: Accepted
 **Date**: 2026-10-16
 **Deciders**: Smana (Platform Owner)
 **Related**: [status, v2 gate "A reviewer on another model"]({{< relref "/docs/platform/ai-platform/status.md#v2-roadmap" >}}), [ADR-0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}), [hard-task cohort results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-v2-hard-task-cohort-design.md#results)
@@ -46,7 +46,7 @@ from the tiers. Each option below is a value of it plus whatever the gateway mus
 
 ## Considered Options
 
-### Option A: GLM for both roles
+### Option A: GLM for both roles (chosen)
 
 `reviewerModel` unset, or `tier-standard` (`glm-5.3-flashx`) to make the reviewer at least another size.
 
@@ -58,7 +58,7 @@ from the tiers. Each option below is a value of it plus whatever the gateway mus
 - Same family: correlated mistakes, the property the gate exists to break
 - `glm-5.3-flashx` is a smaller model judging a larger one's work
 
-### Option B: Claude reviewer for public tasks (recommended)
+### Option B: Claude reviewer for public tasks (rejected)
 
 A public-listener Anthropic route serving one new logical name to the reviewer role only.
 
@@ -112,18 +112,21 @@ Each fits the reviewer's `frontier` caps (`runUSD` 6.80, `taskUSD` 13.60) with r
 
 ## Decision Outcome
 
-**Recommended option**: "Option B" with `claude-sonnet-5-5`, owner decision pending.
+**Chosen option**: "Option A", decided by the owner on 2026-10-16. The reviewer keeps the
+implementer's model, `glm-5.3`; no public-class data goes to Anthropic.
+`templates.<name>.reviewerModel` (agent-platform#129) stays available and unset.
 
-**Rationale**: It is the only option that changes the family on evidence we already have, and it
-costs what today's reviewer costs. Its data-class question is narrower than it looks: ADR-0054
-already sends `internal` data to the same provider, and `public` content is in public
-repositories. What the owner decides is therefore a second spend line on `public`, not a new
-processor.
+**Option B rejected**: the owner's choice on data class and cost. It would send `public`
+repository content to a second provider and open a second spend line on `public`, for a reviewer
+gap the cohort did not show (A's reviewer approved nothing the maintainer rejected). Revisit with
+the measurement plan below if review quality becomes the factory's bottleneck.
 
-**The owner's decision**: whether public-class reviews may be sent to Anthropic, and under
-which daily cap.
+**Option C rejected**: no route serves another family on `public`, and the one in-cluster family
+is too small to judge a frontier model's diff.
 
-### What B needs
+### What B would need
+
+Kept for the revisit; none of it is built.
 
 | Where | Change |
 |---|---|
@@ -137,7 +140,7 @@ which daily cap.
 
 ## Measurement plan
 
-Run before the change becomes the default, on the next **N = 20** `pair` tasks of the hard-task
+Not run. If B is revisited, run it before the change becomes the default, on the next **N = 20** `pair` tasks of the hard-task
 cohort's classes (`scripts`, `tests`, `dashboards`). Each task gets both reviews of the same head:
 today's (`glm-5.3`) and the candidate's, the candidate in shadow (its verdict recorded, never
 gating).
@@ -158,17 +161,17 @@ not, the record moves to Option A and the gate closes.
 
 ### Positive
 
-- The reviewer's mistakes stop being the implementer's
-- `reviewerModel` makes the reviewer's model a config line, independent of the tier-routing gate
+- `public` content stays with one processor, Z.ai; no second spend line, no fifth logical name
+- `reviewerModel` makes a later change a config line, independent of the tier-routing gate
 
 ### Negative
 
-- B: `public` content leaves for Anthropic; a second spend line to watch on `public`
-- B: one more role-restricted name the gateway gates must keep honest
+- The reviewer shares the implementer's model and its blind spots, the property the gate exists
+  to break
 
 ### Neutral
 
-- A remains one config value away: `reviewerModel` unset
+- B remains one route and one config value away, measured first by the plan above
 
 ---
 

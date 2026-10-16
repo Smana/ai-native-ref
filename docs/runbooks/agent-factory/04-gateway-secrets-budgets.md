@@ -256,6 +256,38 @@ unset LLM_API_KEY
 kubectl delete btp -n llm-gateway zz-budget-marker-probe --ignore-not-found
 ```
 
+## Part C — per-person caps, the shadow week
+
+`budgets.perPerson.enabled: true` with `enforcePrincipal: false` charges every run to its person
+(`github:<login>`) and to the fleet, and refuses nothing: a run past a day is admitted and counted
+as `agent_factory_run_revocations_total{reason="budget-principal-shadow", principal}`
+([agent-platform: per-person caps](https://github.com/Smana/agent-platform/blob/main/docs/factory.md#per-person-caps)).
+`AgentPersonCapShadowRefusal` (info) fires on each one. Turning on `enforcePrincipal` refuses on
+the person's day **and** on the fleet's, so both count.
+
+### Step 1 — attribution is on
+
+```bash
+kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=agent_factory_budget_remaining_tokens%7Bprincipal%3D~%22github%3A.%2B%22%7D" | jq -c '.data.result[] | [.metric.principal, .value[1]]'
+```
+
+Expected, once a labelled task has run: a `github:<login>` row. None means no run was charged to a
+person, and an empty Step 2 proves nothing.
+
+### Step 2 — after 7 days
+
+```bash
+kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=sum%20by%20(principal)%20(increase(agent_factory_run_revocations_total%7Breason%3D%22budget-principal-shadow%22%7D%5B7d%5D))" | jq -c '.data.result[] | [.metric.principal, .value[1]]'
+```
+
+The query, decoded: `sum by (principal) (increase(agent_factory_run_revocations_total{reason="budget-principal-shadow"}[7d]))`.
+
+| Exit criterion (D8) | Then |
+|---|---|
+| 7 days since the release went live, Step 1 shows a person, and every Step 2 row is a run that *should* have been refused | Set `enforcePrincipal: true` |
+| A row is a false refusal: the wrong person charged, or a day filled by reservations the meter later released | Fix in agent-platform; the week restarts |
+| Rows are correct but frequent for one person | Raise `perPerson.dailyTokens` (default `humanDaily`) before enforcing; the week restarts |
+
 ## Results
 
 > Every round below predates phase H (#2429): the agent rows ran on Envoy's agent-router in

@@ -7,7 +7,7 @@ lastVerified: 2026-10-16
 
 The records behind the AI platform: serving, the agent factory and the split from its host. They
 moved here from [cloud-native-ref](https://cnref.ogenki.io/docs/decisions/) with their numbers
-(split design §8); the next record here is **0058**. Host decisions (Flux, Cilium, OpenBao, EKS Pod
+(split design §8); the next record here is **0059**. Host decisions (Flux, Cilium, OpenBao, EKS Pod
 Identity, …) stay on the host site and are linked, not copied.
 
 A technology choice with a rejected alternative needs a record before merge. Version bumps,
@@ -36,3 +36,4 @@ chart-value changes and single-file fixes never do. Start from the host's
 | [0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}) | Internal agent work calls the Anthropic API directly; public work stays on Z.ai, with OpenRouter optional | Accepted | 2026-10-01 |
 | [0056]({{< relref "/docs/decisions/0056-local-first-factory-ux.md" >}}) | The factory is driven from the developer's local agent through a skill and roomctl, and a room is as visible as its repo on GitHub | Accepted | 2026-10-08 |
 | [0057]({{< relref "/docs/decisions/0057-ai-platform-own-repository.md" >}}) | The AI platform moves to its own repository, consumed by cloud-native-ref as a pinned artifact | Accepted | 2026-10-12 |
+| [0058]({{< relref "/docs/decisions/0058-reviewer-on-another-model.md" >}}) | The factory's reviewer on public tasks runs on another model family | Proposed | 2026-10-16 |

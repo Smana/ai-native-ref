@@ -10,7 +10,7 @@ automountServiceAccountToken: false
 # low-priority pod on the gVisor pool keeps a node up with the run images pulled.
 # A run preempts it; it goes Pending and Karpenter brings up the next warm node.
 # The three images and their digests are the AgentRun composition's
-# (crossplane-configuration v0.9.13, apis/agentrun/kcl/main.k): bump them with it.
+# (crossplane-configuration v0.9.14, apis/agentrun/kcl/main.k): bump them with it.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -76,7 +76,7 @@ spec:
             - {name: envoy-config, mountPath: /etc/envoy, readOnly: true}
             - {name: envoy-tmp, mountPath: /tmp}
         - name: room-bridge
-          image: ghcr.io/smana/room-bridge:v0.15.0@sha256:8853af82084a31936be0eb09af30adfa68fa596dce6d08e09b1e410d8554bd7b
+          image: ghcr.io/smana/room-bridge:v0.15.1@sha256:8e9a7d0e7f22dcb068d9c38f1997d8a8b8329781e9e03d565e1f11876d458269
           args: ["gate"]
           resources:
             requests: {cpu: 10m, memory: 16Mi}
@@ -84,7 +84,7 @@ spec:
           securityContext: *container-security
       containers:
         - name: harness
-          image: ghcr.io/smana/agent-harness:v0.15.0@sha256:7e213303e85545d079ceea979004531f49cc9d7bef1870402765b438e9750b5e
+          image: ghcr.io/smana/agent-harness:v0.15.1@sha256:4d20e4437ce7804cf2694ff0ab67a7cbd483042608501f34c15befb9fd68b23e
           # tini forwards SIGTERM, so a preemption ends the pod at once.
           command: ["tini", "--", "sleep", "infinity"]
           readinessProbe:

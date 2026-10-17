@@ -1,0 +1,17 @@
+# v2 suspend on gcp-0: a run the factory creates in an attended room gets spec.suspendable,
+# so the room broker may suspend it while its approval waits (the broker's suspend.after).
+# Merged over agent-factory-helm-values; the factory's parser refuses any other sandbox key.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # As agent-factory-helm-values: a change upgrades the release at once.
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
+  name: agent-factory-helm-values-suspend
+  namespace: agent-system
+data:
+  values.yaml: |
+    config:
+      sandbox:
+        suspend:
+          enabled: true

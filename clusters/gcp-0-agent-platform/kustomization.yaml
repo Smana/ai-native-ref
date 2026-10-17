@@ -17,6 +17,7 @@ resources:
   - security-octo-sts.yaml
   - infrastructure-agent-mcp.yaml
   - infrastructure-room-broker.yaml
+  - infrastructure-room-broker-suspend.yaml
   - infrastructure-kueue.yaml
   - infrastructure-agents-headroom.yaml
   - tooling-agent-factory.yaml

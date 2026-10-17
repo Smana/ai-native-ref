@@ -18,7 +18,7 @@ no gVisor RuntimeClass child here (GKE provides it, GP-9).
 | `octo-sts` | `security/gcp-0/octo-sts` | GitHub token exchange for the agents' App, reached only through agent-router's `sts` listener |
 | `agent-mcp` | `infrastructure/gcp-0/agent-mcp` | Flux, VictoriaMetrics, VictoriaLogs MCP servers and their MCPRoutes |
 | `room-broker` | `infrastructure/gcp-0/room-broker` | Room CRD, broker, room log (CNPG), retention, and from phase 2 oauth2-proxy (SP2) |
-| `room-broker-suspend` (unlisted) | `infrastructure/base/room-broker/suspend` | `patch` on `agentruns`, for the broker's suspend trigger (v2 warm-sandboxes S3). Listing it, with `suspend.enabled: true` in the broker config, turns suspend on |
+| `room-broker-suspend` | `infrastructure/base/room-broker/suspend` | `patch` on `agentruns`, for the broker's suspend trigger (v2 warm-sandboxes S3). On with the broker's `suspend.enabled` (`infrastructure/gcp-0/room-broker/config.yaml`) and the factory's `sandbox.suspend.enabled` (`tooling/gcp-0/agent-factory/helm-values-suspend.yaml`); live proof in [runbook 01, Step 8](../../docs/runbooks/agent-factory/01-runtime-sandbox.md#step-8--suspend-and-resume-a-waiting-run-gcp-0) |
 | `kueue` | `infrastructure/gcp-0/kueue` | Kueue controller: admits sandbox pods by integration, pod-only, `agents` namespace only (SP3) |
 | `kueue-queues` | `infrastructure/base/kueue-queues` | ResourceFlavor, the `agents-factory`/`agents-interactive` ClusterQueues and their LocalQueues (SP3) |
 | `agents-headroom` | `infrastructure/base/karpenter-nodepools-agents/headroom` | One preemptible pod keeping a warm `agents-gvisor` node with the run images pulled (v2 warm sandboxes, step 1); it holds one `e2-standard-8` up |

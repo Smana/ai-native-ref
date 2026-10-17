@@ -5,7 +5,7 @@ metadata:
   namespace: observability
 spec:
   allowCrossNamespaceImport: true
-  folderRef: "agent-factory"
+  folderRef: "agents"
   instanceSelector:
     matchLabels:
       dashboards: "grafana"

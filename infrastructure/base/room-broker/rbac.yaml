@@ -1,8 +1,9 @@
 ---
-# Exactly the verbs the phase-1 broker calls (agent-platform internal/roomctrl and
-# controller-runtime's leader election): the Room controller reads Rooms, updates
-# their finalizer and merge-patches their status. Phase 2's API, which creates and
-# deletes Rooms, adds those verbs with its code (SP2 §9).
+# Exactly the verbs the broker calls (agent-platform internal/roomctrl, internal/humanapi and
+# controller-runtime's leader election): the Room controller reads Rooms, updates their
+# finalizer and merge-patches their status; the human API creates a Room for "new room" and
+# a fork, and updates one for an act. It never deletes a Room. Without create the web view
+# answers 503, which the broker does not log.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -11,7 +12,7 @@ metadata:
 rules:
   - apiGroups: ["agents.ogenki.io"]
     resources: ["rooms"]
-    verbs: ["get", "list", "watch", "update"]
+    verbs: ["get", "list", "watch", "create", "update"]
   - apiGroups: ["agents.ogenki.io"]
     resources: ["rooms/status"]
     verbs: ["patch"]

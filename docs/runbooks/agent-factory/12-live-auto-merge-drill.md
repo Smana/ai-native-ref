@@ -3,12 +3,55 @@
 Drills the first unattended merge to `main` and its revert, gate evidence G2 and G3 of the
 [live auto-merge design](../../superpowers/specs/2026-10-16-v2-live-auto-merge-design.md) (D4).
 The factory merges to `main` without a human for the drill's duration: **run it only on the
-owner's go.** gcp-0 only: `Smana/cloud-native-ref`'s ownership fence names `gcp-0` since
-2026-10-17, so no other cluster acts on it even though every cluster renders the same values. See [README.md](README.md) for `CLOUD`.
+owner's go.** The drill runs on the factory that `Smana/cloud-native-ref`'s
+`.github/agent-factory.yaml` names (the ownership fence): `gcp-0` today, the only live cluster.
+Every other factory renders the same values and never acts on the repository. See
+[README.md](README.md) for `CLOUD`.
+
+## Owner's GitHub prerequisites
+
+Nothing below reaches the cluster. All three must hold before ai-native-ref
+[#21](https://github.com/Smana/ai-native-ref/pull/21) (the held config PR) merges.
+
+- [ ] **The merger App `ogenki-agent-merger` holds `issues: write` and `actions: write`, accepted on
+  the installation.** `issues` writes the ledger labels (GitHub labels PRs through the issues API);
+  `actions` re-runs a cancelled check (`checkReruns: 1`). Settings → Developer settings → GitHub
+  Apps → `ogenki-agent-merger` → Permissions → Issues and Actions: Read and write; then accept the
+  change on the installation page. Proof: the [mint test](#the-mint-test) returns `201`.
+- [ ] **The `agent-merge` ruleset exists on `Smana/cloud-native-ref`**, covering `refs/heads/main`,
+  `refs/heads/revert-*` and `refs/heads/revert-*/**`, with the merger App on its bypass list. From a
+  cloud-native-ref checkout (the App ID is on github.com/settings/apps/ogenki-agent-merger; a private
+  App's `/apps/<slug>` 404s):
+
+  ```bash
+  MERGER_APP_ID=<merger App ID> task ops:github:agent-merge-ruleset -- Smana/cloud-native-ref
+  gh api repos/Smana/cloud-native-ref/rulesets --jq '.[] | select(.name == "agent-merge") | .id'
+  ```
+
+- [ ] **The live `agent-branches` ruleset (24063626) no longer covers `main`.** This is the blocker:
+  it excludes only `refs/heads/agent/**`, and its bypass list (human roles, Renovate) omits the
+  merger App, so every live merge and revert is refused. After `agent-merge` exists (the script
+  refuses before):
+
+  ```bash
+  task ops:github:agent-branch-ruleset -- Smana/cloud-native-ref
+  gh api repos/Smana/cloud-native-ref/rulesets/24063626 --jq .conditions.ref_name.exclude
+  ```
+
+  Expected: `refs/heads/agent/**`, `refs/heads/main`, `refs/heads/revert-*`, `refs/heads/revert-*/**`.
+
+Observed read-only on 2026-10-17:
+
+| Item | Observed |
+|---|---|
+| Merger App permissions | Not readable with a user token (`/user/installations` answers 403). The mint test needs the factory's `agent-factory-merger` Secret, absent on gcp-0 while the `agent-factory` Kustomization is not Ready |
+| `agent-merge` | Not applied: the repository's rulesets are `agent-branches` (24063626) and `agent-tags` (24293886) only |
+| `agent-branches` | Still covers `main`: `exclude: ["refs/heads/agent/**"]`, bypass = repository roles 2, 4, 5 and Integration 2740 (Renovate) |
 
 ```mermaid
 flowchart LR
-  pin["cnref pin → release with<br/>docs-links + revert live"] --> issue["issue: class:docs-links<br/>+ factory/ready"]
+  gh["owner: App permissions,<br/>agent-merge, agent-branches"] --> pin["cnref pin → release with<br/>docs-links + revert live"]
+  pin --> issue["issue: class:docs-links<br/>+ factory/ready"]
   issue --> pr["agent PR"] --> gate{"merge gate"}
   gate -->|"arm, armed"| merge["merger App merges<br/>at the decided head"]
   merge --> lbl["label factory/auto-merged:docs-links"]
@@ -28,23 +71,26 @@ flowchart LR
 - **Live means `{live: true}`.** `{}` is "neither": a label only, the gate hands off `class_mismatch`.
 - **Both classes go live in one commit** (D5): a live class with a shadow `revert` would wait for a
   human to merge its own revert.
+- **A missing App grant stops every merger call.** Once a class is live, the factory asks the
+  merger's tokens for `issues: write` and `actions: write`. GitHub refuses the whole mint if the
+  installation lacks one, so the shadow calls stop too, not only the labels.
 
 ## Prerequisites
 
+From a cloud-native-ref checkout, `kubectl` on the factory's cluster
+(`gke_ogenki-435905_europe-west4-a_gcp-0` for gcp-0; `kubectl config current-context` shows it).
+
 | # | Check | How |
 |---|---|---|
-| P1 | gcp-0 runs agent-platform `v0.14.0` or later | cloud-native-ref pins ai-native-ref `v0.1.5` or later (#2453), and the pod runs that tag: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/agent-factory:v0.15.2@sha256:214f…` today |
-| P2 | The merger App `ogenki-agent-merger` holds `issues: write`, **accepted on the installation** | Owner: Settings → Developer settings → GitHub Apps → `ogenki-agent-merger` → Permissions → Issues: Read and write; then accept the change on the installation page. Then the mint test below |
+| P1 | The factory runs agent-platform `v0.14.0` or later | cloud-native-ref pins ai-native-ref `v0.1.5` or later, and the pod runs that tag: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/agent-factory:v0.15.2@sha256:214f…` at pin `v0.1.9` |
+| P2 | The owner's GitHub prerequisites hold | The three boxes above ticked, and the mint test below returns `201` |
 | P3 | The factory is idle on `Smana/cloud-native-ref` | `kubectl get tasks -n agent-system` shows no task outside a final phase (`Done`, `Rejected`, `NoOp`, `Reverted`, `Closed`, `Stopped`) |
 | P4 | `main` is green | `gh run list -R Smana/cloud-native-ref --branch main --limit 3` |
 | P5 | No auto-merge today | `gh pr list -R Smana/cloud-native-ref --state merged --label 'factory/auto-merged:docs-links'` is empty (the drill's cap is 1 a day, labelled merges count) |
-| P6 | The `agent-merge` ruleset exists, and the live `agent-branches` ruleset (24063626) no longer covers `main`. On 2026-10-16 `agent-merge` was never applied, and `agent-branches` excluded only `refs/heads/agent/**` with a bypass list (human roles, Renovate) that omits the merger App, so every live merge and revert would be refused | Owner, from a cloud-native-ref checkout, in this order (the second refuses until `agent-merge` exists): `MERGER_APP_ID=<merger App ID> task ops:github:agent-merge-ruleset -- Smana/cloud-native-ref`, then `task ops:github:agent-branch-ruleset -- Smana/cloud-native-ref`. Check: `gh api repos/Smana/cloud-native-ref/rulesets/24063626 --jq .conditions.ref_name.exclude` lists `refs/heads/main`, `refs/heads/revert-*` and `refs/heads/revert-*/**`. The App ID is on github.com/settings/apps/ogenki-agent-merger |
 
-Once a class is live, the factory asks the merger's tokens for `issues: write` (and `actions: write`,
-since `checkReruns: 1`). GitHub refuses the whole mint if the installation lacks one, so a missing
-grant stops **every** merger call, the shadow ones included, not only the labels.
+### The mint test
 
-The P2 mint test asks for exactly that scope. Nothing reaches a process's argv, and the token is
+It asks for exactly the merger's live scope. Nothing reaches a process's argv, and the token is
 revoked at once:
 
 ```bash
@@ -65,14 +111,14 @@ printf 'Authorization: Bearer %s\n' "$(jq -r .token "$d/tok.json")" >"$d/tok"
 curl -s -o /dev/null -w 'revoked %{http_code}\n' -X DELETE -H @"$d/tok" https://api.github.com/installation/token
 ```
 
-Expected: `201`, then `revoked 204`. A `422` names the missing permission: fix P2 before going on.
+Expected: `201`, then `revoked 204`. A `422` names the missing permission: fix the first box above before going on.
 
 ## Steps
 
 Set once:
 
 ```bash
-CLOUD=gcp
+CLOUD=gcp    # the cloud of the factory the fence names
 CA=opentofu/$CLOUD/openbao/management/.tls/ca.pem
 VL=https://vl.priv.$CLOUD.ogenki.io
 vm() { kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=$(jq -rn --arg q "$1" '$q|@uri')" | jq -c '.data.result[] | [.metric, .value[1]]'; }
@@ -81,21 +127,22 @@ vm 'sum by (class, verdict, reason) (agent_factory_merge_decisions_total{class=~
 
 ### Step 1 — switch the classes live
 
-1. Merge the held ai-native-ref config PR (`docs-links` and `revert` `{live: true}`,
-   `autoMergesPerDay: 1`), then cut its release: an admin pushes tag `v0.1.N` on the merge commit,
-   and `release.yaml` publishes and signs the artifact.
+1. Merge the held ai-native-ref config PR, [#21](https://github.com/Smana/ai-native-ref/pull/21)
+   (`docs-links` and `revert` `{live: true}`, `autoMergesPerDay: 1`), then cut its release: an
+   admin pushes tag `v0.1.N` on the merge commit, and `release.yaml` publishes and signs the artifact.
 2. In cloud-native-ref, bump `flux/sources/ocirepo-ai-native-ref.yaml` to that tag and its digest
    (`crane digest ghcr.io/smana/ai-native-ref:v0.1.N`), and merge it.
 3. Watch it land:
 
 ```bash
 flux reconcile source oci ai-native-ref -n flux-system
-kubectl get cm -n agent-system agent-factory-helm-values -o jsonpath='{.data.values\.yaml}' | grep -E 'docs-links:|revert:|autoMergesPerDay'
+kubectl get cm -n agent-system agent-factory-helm-values -o jsonpath='{.data.values\.yaml}' | grep -E 'factory:|docs-links:|revert:|autoMergesPerDay'
 kubectl rollout status deploy -n agent-system agent-factory --timeout=5m
 ```
 
-Expected: `docs-links: {live: true}`, `revert: {live: true}`, `autoMergesPerDay: 1`; the rollout
-completes (a strictly parsed bad config fails it, and the old pods keep serving).
+Expected: `factory: gcp-0` (the name the fence holds), `docs-links: {live: true}`,
+`revert: {live: true}`, `autoMergesPerDay: 1`; the rollout completes (a strictly parsed bad config
+fails it, and the old pods keep serving).
 
 ### Step 2 — open the `docs-links` issue
 
@@ -169,7 +216,8 @@ Expected:
 
 - the revert PR is authored by the merger App, titled `Revert "…"`, its body `Reverts #<PR> (agent factory task …)`;
 - it carries `factory/revert-of:#<PR>`, and native auto-merge is on (the `revert` class is live);
-- it ends `MERGED` once its checks and `policy-bot: main` are green;
+- it ends `MERGED` once its required checks are green (and `policy-bot: main`, where the
+  `agent-merge-gate` ruleset requires it);
 - the control issue #2188's newest comment: "an auto-merge of `docs-links` was reverted … goes to human review".
 
 The breaker now holds 1 revert in 1 merge. Its proof is the next `docs-links` decision, which must be
@@ -235,7 +283,7 @@ Fill in during the drill.
 
 | Step | Expected | Observed | Pass/Fail |
 |---|---|---|---|
-| P1–P5 | `v0.14.0`+; mint `201`; idle; `main` green; no auto-merge today | | |
+| P1–P5 | `v0.14.0`+; GitHub boxes ticked, mint `201`; idle; `main` green; no auto-merge today | | |
 | 1 | both classes `{live: true}`, cap 1, rollout complete | | |
 | 2 | task `docs-links`, PR opened | | |
 | 3 | `AutoMerging` → `Verifying` | | |

@@ -1,0 +1,15 @@
+# Created before the upstream installer runs, so rustfs and the network policy are in place
+# first. The installer applies its own ate-system and podcertificate-controller-system.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: substrate-spike
+  labels:
+    spike: substrate
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ate-system
+  labels:
+    spike: substrate

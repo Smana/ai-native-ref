@@ -12,8 +12,7 @@ for why the weights path differs from `aws-0`.
 
 The gateway layer — `envoy-gateway`, `envoy-ai-gateway`, `vllm-semantic-router` and
 `llm-gateway` — is the separate `ai-gateway` umbrella (`../gcp-0/ai-gateway.yaml` →
-`../gcp-0-ai-gateway/`), also suspended by default. `llm-platform` depends on it, so resume
-`ai-gateway` first. Those children kept their names when they moved out of this directory, so the
+`../gcp-0-ai-gateway/`), live on gcp-0 for the agent factory. `llm-platform` depends on it. Those children kept their names when they moved out of this directory, so the
 `dependsOn` edges this directory's children have on them still resolve.
 
 | Child Kustomization | Path | Resources |

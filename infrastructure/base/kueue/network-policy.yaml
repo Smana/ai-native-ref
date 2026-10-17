@@ -12,6 +12,16 @@ spec:
     - fromEntities: [kube-apiserver]
       toPorts:
         - ports: [{port: "9443", protocol: TCP}]
+    # GKE's control plane reaches the webhook through konnectivity-agent, an ordinary
+    # kube-system pod, so `kube-apiserver` never matches there and admission times out
+    # (gcp-0: `failed calling webhook "mclusterqueue.kb.io" ... :9443: i/o timeout`).
+    # Inert on EKS, hence the shared base.
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: konnectivity-agent
+      toPorts:
+        - ports: [{port: "9443", protocol: TCP}]
     - fromEntities: [host]  # probes
       toPorts:
         - ports: [{port: "8081", protocol: TCP}]

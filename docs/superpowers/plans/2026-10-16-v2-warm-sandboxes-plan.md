@@ -323,7 +323,7 @@ the action still pending.
   `agentrun-broker-patch-limit`. It is always on and matches only the broker: no change to spec,
   labels or finalizers, only the three annotations change, with valid values, and only on a
   suspendable run. The factory's list is unchanged: the factory writes none of them.
-- Test: `scripts/ci/tests/test-room-broker-suspend-off.py`.
+- Test: `scripts/ci/tests/test-room-broker-suspend.py`.
 - The broker config's `suspend` key lands only with a broker image that reads it, because the
   decode is strict.
 

@@ -1,7 +1,7 @@
 ---
-# The room broker's suspend grant (v2 warm-sandboxes S5). Not listed in kustomization.yaml:
-# listing it, with suspend.enabled: true in the broker's config.yaml and a broker image that
-# reads that key, is the owner's switch. Until then the broker cannot patch an AgentRun.
+# The room broker's suspend grant (v2 warm-sandboxes S5), listed on gcp-0 with
+# infrastructure/gcp-0/room-broker's suspend.enabled and the factory's sandbox.suspend.
+# Unlisting it is the kill switch: the broker can then patch no AgentRun.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

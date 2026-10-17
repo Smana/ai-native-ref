@@ -6,8 +6,20 @@ kind: Kustomization
 # security/gcp-0/agent-secrets already points at Secret Manager.
 resources:
   - ../../base/agent-factory
+  - helm-values-suspend.yaml
 
 patches:
+  # Helm deep-merges valuesFrom in order: this entry adds sandbox.suspend to base's config.
+  - target:
+      group: helm.toolkit.fluxcd.io
+      kind: HelmRelease
+      name: agent-factory
+    patch: |-
+      - op: add
+        path: /spec/valuesFrom/-
+        value:
+          kind: ConfigMap
+          name: agent-factory-helm-values-suspend
   # ZITADEL on gcp-0 is this cluster's own Gateway VIP: Envoy enforces policy on
   # its runtime listener port, so any toPorts fails (ruling AU, as
   # infrastructure/gcp-0/room-broker). `test` pins the index.

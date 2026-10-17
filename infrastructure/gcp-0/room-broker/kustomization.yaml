@@ -9,6 +9,14 @@ kind: Kustomization
 resources:
   - ../../base/room-broker
 
+# v2 suspend is on here only: this config.yaml is base's plus suspend.enabled.
+configMapGenerator:
+  - name: room-broker-config
+    namespace: agent-system
+    behavior: replace
+    files:
+      - config.yaml
+
 patches:
   - target:
       group: cloud.ogenki.io

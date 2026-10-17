@@ -1,7 +1,6 @@
 ---
 # One preemptible pod holding a warm agents-gvisor node with the run images pulled
-# (warm-sandboxes design step 1). aws-0 only: the design measured Karpenter's
-# fresh-node tail here; gcp-0's sandbox pool is the host's GKE node pool.
+# (warm-sandboxes design step 1). gcp-0 has the same child on its GKE pool.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

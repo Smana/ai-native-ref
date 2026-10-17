@@ -394,6 +394,37 @@ only that `sub`'s bucket is touched.
 > Every round below predates phase H (#2429): the agent rows ran on Envoy's agent-router in
 > `envoy-gateway-system` and use its log fields. Part A Step 5 has no recorded round yet.
 
+### Parts C and D — gcp-0, 2026-10-17 (compressed same-day test)
+
+Each shadow week ran as a deliberate same-day test, by the owner's choice, because a week-long
+platform costs too much. The record covers six real `solo` tasks (19:56–21:35 UTC, one person,
+agent-platform v0.15.2). That is enough to show that nothing is wrongly refused. It is too short
+to show how often a real week would cross a limit, so the D8 exit criterion ("7 days") is **not**
+met: this round only shows the mechanism works.
+
+| Step | Expected | Observed | Pass/Fail |
+|---|---|---|---|
+| C.1 — attribution | a `github:<login>` row | `agent_factory_budget_remaining_tokens{principal="github:smana"}` 4,047,669 of 5,000,000. The 952,331 spent is exactly the six tasks' meter totals (92,486–192,697 each); `system:factory` shows the same spend | PASS |
+| C.2 — shadow refusals on real runs | rows only for runs that should be refused | No `agent_factory_run_revocations_total` series at all; `AgentPersonCapShadowRefusal` healthy, inactive | PASS (zero) |
+| D.1 — the mode | `true` | `true` | PASS |
+| D.2 — shadow record on real runs | no row for a run under its caps | `ratelimit_service_rate_limit_over_limit` had no real-run series: `agent` and `fleet_agents` only `within_limit` (189,248 and 189,310 reference tokens at 21:34); no `RateLimit` 429 | PASS (zero) |
+| D.4, shadow variant | `200`, `200`; the shadow counters rise | A 1-token-per-hour bucket for `system:serviceaccount:agents:agent-probe`: `200` (`x-ratelimit-remaining: 1`), then `200` (`x-ratelimit-remaining: 0`). `over_limit{key1="agent_system_serviceaccount_agents_agent-probe"}` 61, `global_shadow_mode` 3, no 429. The Kustomization resume put the ConfigMap back (no probe descriptor) | PASS |
+| D.4, the alert | `AgentBudgetShadowOverrun` fires | **Did not fire**: `agent_router:budget_shadow_overrun_tokens:increase10m` read `0` while `over_limit` held 61 | FAIL |
+
+**Finding: the shadow alert misses an overrun on a new series.** `over_limit` and
+`global_shadow_mode` are statsd counters, created at their first increment. A series therefore starts
+at the call's whole overshoot, 61 here, and `increase()` counts nothing for a series that has no
+earlier sample. So the first overrun of each bucket after a ratelimit pod starts is never alerted,
+and neither is this runbook's probe. Every rollout and rebuild resets this. Comparing against
+`offset 10m`, with the series' absence read as 0, returned `61` on the same data, as did MetricsQL's
+`increase_pure()`. `promtool` cannot parse `increase_pure()`, so the rule should use the offset form.
+
+**Sizing `perPerson.dailyTokens`:** today's metered usage was 0.95M tokens for six trivial docs
+tasks, about 160k each. That is the floor a maintainer reaches by labelling small issues. A day of
+real `pair` tasks runs at about 667k each (runbook 11's aws-0 round). Recommended: **keep 5,000,000**
+(the `humanDaily` default). That is 5.3 × today and about seven real `pair` tasks, and it sits
+under the fleet's 25M, so one person cannot spend the factory's day.
+
 ### Part D offline — agentgateway v1.6.0, 2026-10-16
 
 Not a cluster: agentgateway v1.6.0 (the pinned digest), envoyproxy/ratelimit at

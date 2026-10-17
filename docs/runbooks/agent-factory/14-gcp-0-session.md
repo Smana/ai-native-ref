@@ -12,9 +12,10 @@ cluster-level evidence goes in a `results-gcp-0-<date>.md`, as in
 |---|---|
 | 1, 3 | Done: option A. gcp-0 hosts ZITADEL, restored from `zitadel-20260828` |
 | 6 | Done: the go-live commit is on cloud-native-ref's `main`, and the fence names `gcp-0` |
-| 7.2 | Passes with one gVisor node; the second waits on the quota increase |
-| 7.1 | Open: the cross-node IdP check waits on a CiliumNetworkPolicy fix (step 7) |
-| 8–10 | Not run yet |
+| 7 | Done: `gcp-0-v21-checks.sh` passed at 20:11 UTC. 7.2's second node came up at 21:16 UTC, when a forced headroom preemption scaled `agents-gvisor` 1 → 2 with no quota event ([A1](../../superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#a1-the-forced-preemption)) |
+| 8 | Done: [runbook 11's gcp-0 round](11-v1-validation.md#results). Step 7 passed on release pins; 5b–5e stay open, as on aws-0 |
+| 9 | Compressed same-day test: warm-sandbox start time passes, idle cost fails its cap ([results](../../superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)); caps and gateway budgets refuse nothing on real runs ([runbook 04](04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)). The other rows of step 9 are not run |
+| 10 | Not run yet |
 
 ```mermaid
 flowchart TD
@@ -55,8 +56,8 @@ Every fixed machine is E2, so regional `E2_CPUS` binds before anything else.
 
 | Quota, measured 2026-10-17 | Limit | Verdict |
 |---|---|---|
-| europe-west4 `E2_CPUS` | **24** | **Binding.** One gVisor node fits (20); the second, for a `large` run, does not (28). **[OWNER]** increase to 48 requested on 2026-10-17; 7.2 waits on it |
-| `CPUS_ALL_REGIONS` | 48 | Fits the static 28; only the cluster ceiling plus surge (≈ 56) exceeds it |
+| europe-west4 `E2_CPUS` | **24** | Expected to bind: one gVisor node fits (20), the second does not (28). At 21:00 UTC it read usage **0** with 30 E2 vCPUs running, and the second `e2-standard-8` started at 21:16 UTC: E2 counted against `CPUS` and `CPUS_ALL_REGIONS` only. **[OWNER]** increase to 48 requested on 2026-10-17 |
+| `CPUS_ALL_REGIONS` | 48 | **The binding one.** 30 used at 21:00 UTC; a second gVisor node adds 8. It fits the static 28; only the cluster ceiling plus surge (≈ 56) exceeds it |
 | europe-west4 `N2_CPUS` | 200 | Fits: the `io` class needs at least 16 |
 | europe-west4 `CPUS` | 200 | Not a constraint |
 

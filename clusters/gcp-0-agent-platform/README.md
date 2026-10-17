@@ -20,8 +20,10 @@ no gVisor RuntimeClass child here (GKE provides it, GP-9).
 | `room-broker-suspend` (unlisted) | `infrastructure/base/room-broker/suspend` | `patch` on `agentruns`, for the broker's suspend trigger (v2 warm-sandboxes S3). Listing it, with `suspend.enabled: true` in the broker config, turns suspend on |
 | `kueue` | `infrastructure/gcp-0/kueue` | Kueue controller: admits sandbox pods by integration, pod-only, `agents` namespace only (SP3) |
 | `kueue-queues` | `infrastructure/base/kueue-queues` | ResourceFlavor, the `agents-factory`/`agents-interactive` ClusterQueues and their LocalQueues (SP3) |
+| `agents-headroom` | `infrastructure/base/karpenter-nodepools-agents/headroom` | One preemptible pod keeping a warm `agents-gvisor` node with the run images pulled (v2 warm sandboxes, step 1); it holds one `e2-standard-8` up |
 | `agent-factory` | `tooling/gcp-0/agent-factory` | The factory: Task CRD and controller, issue intake, run meter (SP3) |
 | `agent-observability` | `observability/gcp-0/agent-platform` | VMRules, the dashboards (`agent-platform`, `agent-run`, `agent-fleet`) and the agent trace collector |
+| `runlore-factory` | `observability/base/runlore-factory` | RunLore's notifier and intake token, merged into the host's RunLore through its optional `valuesFrom` (SP3 §1) |
 
 `AgentGvisorPoolNearLimit` and the dashboard's pool-usage panel read Karpenter metrics, so they stay
 silent here. A full `agents-gvisor` pool, or the cluster ceiling in `gke/init/variables.tfvars`,
@@ -29,9 +31,11 @@ shows up as `AgentSandboxPodPending`.
 
 ## Resume
 
-Not before the owner's UX sign-off (G-5) and never from `main` alone: this umbrella `dependsOn`
-`ai-gateway`, itself suspended by default, and both stay suspended on this branch. Only the
-integration branch's test-only commit unsuspends it (Phase 7).
+This umbrella `dependsOn` `ai-gateway`. Both, and the host's `OCIRepository/ai-native-ref`, are
+suspended in cloud-native-ref's committed `clusters/gcp-0/`, so a `flux resume` lasts only until the
+parent Kustomization re-applies them. Go live as aws-0 did (2026-10-16): one host commit sets
+`suspend: false` on `gcp-0/ai-gateway.yaml` and `gcp-0/agent-platform.yaml` and un-suspends the
+source with the patch `aws-0/flux/flux-sources.yaml` carries.
 
 Only once the crossplane-configuration pin serves `AgentRun`. Before it, `agent-policies` installs
 Kyverno policies against an API that does not exist, and Flux still reports it Ready.
@@ -53,17 +57,18 @@ check. The GCP lineage's raft snapshot cannot be restored across the AWS lineage
 other two agent keys are written the same way, once per GCP lineage:
 
     bao kv put -mount=agents zai api_key=-
+    bao kv put -mount=agents anthropic api_key=-
     bao kv put -mount=agents factory-app app_id=<App ID> private_key=@<pem file>
+    bao kv put -mount=agents merger-app app_id=<App ID> private_key=@<pem file>
+
+`anthropic` backs the internal tier on Claude. `merger-app` and the RunLore intake token
+(`runlore-intake`, [runbook README](../../docs/runbooks/agent-factory/README.md) action 4d) are
+mounted non-optionally: without them the factory pod never starts.
 
 `factory-app` is the factory App `ogenki-agent-factory`'s key (SP3's, created early). From SP2
 phase 3 the room broker posts reviewers' verdicts with it; without it the broker still runs, and
 the verdicts stay in the room instead of reaching the pull request.
 
-    flux resume kustomization ai-gateway -n flux-system
-    flux resume kustomization agent-platform -n flux-system
-
-`--class internal` runs have no model route until SP4 PR 2, so such a run 404s on every model call;
-`agent-run.sh` still accepts it because the runbooks use it to test the internal listener.
 
 ## Teardown
 

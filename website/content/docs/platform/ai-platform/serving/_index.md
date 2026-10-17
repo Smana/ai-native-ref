@@ -65,7 +65,7 @@ The umbrella aggregates **5** child Flux Kustomizations under
 
 The gateway layer these children attach to (Envoy Gateway, the Envoy AI Gateway, the Semantic
 Router and the `ai-gateway` Gateway) is a separate umbrella, `ai-gateway`, under
-`clusters/aws-0-ai-gateway/`. It is CPU only and live on aws-0 (suspended on gcp-0);
+`clusters/aws-0-ai-gateway/`. It is CPU only and live on both clusters;
 `llm-platform` depends on it.
 
 That directory is a **sibling** of `clusters/aws-0/`, not a child, on

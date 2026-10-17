@@ -1,6 +1,7 @@
 # gcp-0 agent platform (opt-in)
 
-Children of the `agent-platform` umbrella (`../gcp-0/agent-platform.yaml`, suspended by default).
+Children of the `agent-platform` umbrella (`../gcp-0/agent-platform.yaml`), live on gcp-0: the host's
+go-live commit un-suspends it, with `ai-gateway` and the source, and names gcp-0 as the factory.
 GCP parity with `aws-0-agent-platform/`: the sandbox pool is OpenTofu (`gke/init` `sandbox.tf`,
 `agents-gvisor`) and GKE ships the `gvisor` RuntimeClass itself, so there is no node-pool child and
 no gVisor RuntimeClass child here (GKE provides it, GP-9).
@@ -31,11 +32,11 @@ shows up as `AgentSandboxPodPending`.
 
 ## Resume
 
-This umbrella `dependsOn` `ai-gateway`. Both, and the host's `OCIRepository/ai-native-ref`, are
-suspended in cloud-native-ref's committed `clusters/gcp-0/`, so a `flux resume` lasts only until the
-parent Kustomization re-applies them. Go live as aws-0 did (2026-10-16): one host commit sets
-`suspend: false` on `gcp-0/ai-gateway.yaml` and `gcp-0/agent-platform.yaml` and un-suspends the
-source with the patch `aws-0/flux/flux-sources.yaml` carries.
+This umbrella `dependsOn` `ai-gateway`. The host goes live with one commit, not `flux resume`, which
+lasts only until the parent Kustomization re-applies `suspend: true`. That commit sets
+`suspend: false` on `gcp-0/ai-gateway.yaml` and `gcp-0/agent-platform.yaml`, un-suspends
+`OCIRepository/ai-native-ref` with a patch in `gcp-0/flux/flux-sources.yaml`, and sets
+`factory: gcp-0` in the host's ownership fence.
 
 Only once the crossplane-configuration pin serves `AgentRun`. Before it, `agent-policies` installs
 Kyverno policies against an API that does not exist, and Flux still reports it Ready.

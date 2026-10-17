@@ -27,39 +27,33 @@ flowchart TD
 | # | Check | How |
 |---|---|---|
 | 0.1 | **[OWNER]** Interactive Google auth for both the CLI and ADC. A reauth can expire ADC mid-run with `invalid_rapt`, which needs this step again | `gcloud auth login`, then `gcloud auth application-default login`, then `gcloud auth application-default set-quota-project ogenki-435905` |
-| 0.2 | **[OWNER]** The CPU quota fits the platform (sizing below) | `gcloud compute project-info describe --project ogenki-435905 --flatten=quotas --filter='quotas.metric=CPUS_ALL_REGIONS' --format='value(quotas.limit,quotas.usage)'` and `gcloud compute regions describe europe-west4 --project ogenki-435905 --flatten=quotas --filter='quotas.metric:(CPUS N2_CPUS)' --format='table(quotas.metric,quotas.limit,quotas.usage)'` |
+| 0.2 | **[OWNER]** The CPU quota fits the platform (sizing below) | `gcloud compute project-info describe --project ogenki-435905 --flatten=quotas --filter='quotas.metric=CPUS_ALL_REGIONS' --format='value(quotas.limit,quotas.usage)'` and `gcloud compute regions describe europe-west4 --project ogenki-435905 --flatten=quotas --filter='quotas.metric:(CPUS N2_CPUS E2_CPUS)' --format='table(quotas.metric,quotas.limit,quotas.usage)'` |
 | 0.3 | **[OWNER]** Shell inputs | `export TF_VAR_tailscale_api_key=…`, plus AWS credentials for `opentofu/shared/*` (state, Route53 federation) |
-| 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'` includes `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`, `zitadel-github-idp`, `github-gha-runner-scale-set-default`, `platform-llm-api-keys` |
+| 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Optional, both absent on 2026-10-17: `zitadel-github-idp` (without it the GitHub link IdP is skipped) and `github-gha-runner-scale-set-default` (GHA runners only) |
 | 0.5 | cloud-native-ref pins the releases under test, and the pin carries the gcp-0 fixes. These fixes are the factory's IdP egress, the warm headroom and the RunLore intake. An ai-native-ref release after v0.1.8 carries them | `flux/sources/ocirepo-ai-native-ref.yaml` tag; agent-platform v0.15.2; crossplane-configuration v0.9.15 |
-| 0.6 | Optional, decided now: serve the Substrate spike's APIs | `TF_VAR_enable_pod_certificate_apis=true` on step 3. It is safe to turn on later, but turning it off later replaces the cluster. It needs a control plane on 1.35 or later: `gcloud container get-server-config --zone europe-west4-a --format='yaml(channels)'` |
+| 0.6 | Optional, decided now: serve the Substrate spike's APIs | `TF_VAR_enable_pod_certificate_apis=true` on step 3. It is safe to turn on later, but turning it off later replaces the cluster. It needs a control plane on 1.35 or later: `gcloud container get-server-config --zone europe-west4-a --format='yaml(channels)'`. On 2026-10-17 STABLE was 1.35.6 and REGULAR 1.36.4, so either qualifies |
 
 ### CPU sizing
 
-| Capacity | vCPU |
+Every fixed machine is E2, so regional `E2_CPUS` binds before anything else.
+
+| E2 capacity in europe-west4 | vCPU |
 |---|---|
 | `static` pool, `e2-standard-4` ×2 (max 3) | 8 (12) |
 | `agents-gvisor`, `e2-standard-8` ×0–2, spot. The warm headroom keeps one up while the platform is live | 8 (16) |
-| NAP ComputeClasses (`general-purpose` e2/n2, `io` n2) | whatever the cluster ceiling leaves |
-| Cluster ceiling, all node pools (`autoscaling_max_cpu_cores`) | **48** |
-| OpenBao `e2-small` ×1 and the Tailscale router `e2-micro` ×1, outside GKE | ≤ 4 |
-| Surge during a node upgrade (one extra `e2-standard-4`) | 4 |
-| **Peak** | **≈ 56** |
+| OpenBao `e2-small` ×1 and the Tailscale router `e2-micro` ×1, outside GKE | 4 |
+| **Static total, both gVisor nodes up** | **≈ 28** |
+| NAP ComputeClasses (`general-purpose` e2/n2, `io` n2) and the upgrade surge (one `e2-standard-4`) | on top, up to the 48 cluster ceiling (`autoscaling_max_cpu_cores`) |
 
-The project's `CPUS_ALL_REGIONS` stood at 32 on 2026-09-30, with 26 in use. At that level an
-`e2-standard-8` cannot start (finding F3), and NAP falls back to an `e2-standard-4` gVisor node,
-which cannot hold a `large` run.
+| Quota, measured 2026-10-17 | Limit | Verdict |
+|---|---|---|
+| europe-west4 `E2_CPUS` | **24** | **Binding.** One gVisor node fits (20); the second, for a `large` run, does not (28). **[OWNER]** increase to 48 requested on 2026-10-17; 7.2 waits on it |
+| `CPUS_ALL_REGIONS` | 48 | Fits the static 28; only the cluster ceiling plus surge (≈ 56) exceeds it |
+| europe-west4 `N2_CPUS` | 200 | Fits: the `io` class needs at least 16 |
+| europe-west4 `CPUS` | 200 | Not a constraint |
 
-**[OWNER] Quota request** (Console → IAM & Admin → Quotas, or the command below):
-
-```bash
-gcloud beta quotas preferences create --project=ogenki-435905 \
-  --service=compute.googleapis.com --quota-id=CPUS-ALL-REGIONS-per-project \
-  --preferred-value=64 --preference-id=cpus-all-regions-64 \
-  --justification="GKE reference platform: 48 vCPU autoscaling ceiling + OpenBao + upgrade surge"
-```
-
-Also check regional `N2_CPUS` in europe-west4. The `io` class provisions `n2-standard-4`/`-8`, so
-it needs at least 16. Regional `CPUS` was 200 and is not a constraint.
+Short of quota, the `e2-standard-8` cannot start (finding F3 of 2026-09-30) and NAP falls back to a
+`nap-e2-standard-4` gVisor node, which cannot hold a `large` run.
 
 ## 1. [OWNER] The identity-provider topology
 
@@ -92,15 +86,15 @@ migrating back, because `aws/eks/configure` hosts unconditionally.
 | # | Check | How |
 |---|---|---|
 | 2.1 | The ZITADEL seed for the option chosen is restorable | `./scripts/ops/k8s/cnpg-promote-seed.sh --cloud gcp --bucket ogenki-435905-ogenki-cnpg-backups --verify-seed zitadel-20260828` |
-| 2.2 | Which OpenBao snapshot the rehydrate will pick | `gcloud storage ls gs://ogenki-435905-ogenki-openbao-snapshot/`. The daily S3→GCS mirror probably makes aws-0's pre-destroy `*-awskms.snap` the newest object, and a gcpckms node then stops on `SEAL MISMATCH`. In that case run step 3 with `OPENBAO_SNAPSHOT_SKIP_FOREIGN_SEAL=true`, or name the object with `OPENBAO_SNAPSHOT_KEY=<ts>-gcpckms.snap` |
+| 2.2 | The OpenBao snapshot the rehydrate restores | `gcloud storage ls gs://ogenki-435905-ogenki-openbao-snapshot/`. On 2026-10-17 the newest objects were the S3→GCS mirror's `2026-10-16T040028Z-awskms.snap`, which a gcpckms node refuses with `SEAL MISMATCH`. The newest gcp-lineage object was `2026-10-02T200530Z-gcpckms.snap`: name it in step 3 with `OPENBAO_SNAPSHOT_KEY`. Agents keys written after 2026-10-02 are then missing (step 5) |
 | 2.3 | The rooms DB | gcp-0 starts it fresh unless opted in: [runbook 13, Step A0](13-rooms-restore.md#step-a0--gcp-0-opt-in). No gcp-0 teardown has written `rooms-pre-destroy` yet, so this rebuild starts empty. Run [Part B](13-rooms-restore.md#part-b--scratch-restore-on-a-live-cluster) later in the session for the RPO and RTO |
 
 ## 3. [OWNER] Deploy
 
 ```bash
-cd opentofu && git pull                   # deploys apply the checkout's disk, not main
-TM_CLOUD=gcp terramate script run deploy  # + OPENBAO_SNAPSHOT_SKIP_FOREIGN_SEAL=true per 2.2
-                                          # + TF_VAR_enable_pod_certificate_apis=true per 0.6
+cd opentofu && git pull   # deploys apply the checkout's disk, not main
+TM_CLOUD=gcp OPENBAO_SNAPSHOT_KEY=2026-10-02T200530Z-gcpckms.snap \
+  terramate script run deploy             # per 2.2; + TF_VAR_enable_pod_certificate_apis=true per 0.6
 ```
 
 Afterwards, check the clouds rather than the log. Look first at `kubectl get certificate -n security`. Let's Encrypt allows
@@ -108,14 +102,29 @@ five certificates per identifier set per week, and a 429 there shows up as "ZITA
 
 ## 4. Platform gates
 
-Re-run the platform gates and the gVisor smoke probe of the
-[2026-09-30 round](results-gcp-0-2026-09-30.md): break-glass login, mounts, ExternalSecrets,
-ZITADEL fresh, public DNS, CNPG archiving. **Step 9 (a scheduled snapshot) is the live re-run that
-F1's fix still owes.**
+```bash
+scripts/ops/k8s/gcp-0-platform-gates.sh <kube-context>   # read-only; exit 1 on any FAIL
+```
+
+[`gcp-0-platform-gates.sh`](../../../scripts/ops/k8s/gcp-0-platform-gates.sh) prints one PASS or FAIL per check:
+
+| Area | It checks |
+|---|---|
+| Flux | Every unsuspended Kustomization and HelmRelease is Ready; the suspended ones are listed |
+| Certificates | `security` (ZITADEL) and `infrastructure` (the Gateways) are Ready, with no Let's Encrypt 429 event and no errored Order |
+| External Secrets | Every ClusterSecretStore and ExternalSecret is Ready |
+| CNPG | Every Cluster is Ready and archiving; ZITADEL's restored `zitadel-20260828` (`--zitadel-seed none` expects option C's initdb) |
+| ZITADEL | `identity_provider_url` is the cluster's own `https://auth.<domain>`, a replica is ready, discovery answers 200 with that issuer |
+| OpenBao | `bao status` over the tailnet: initialized, `sealed=false`, no 20 s hang; the snapshot CronJob's last success |
+| Nodes | Nodes by pool, all Ready, `static` at 2 |
+
+Still by hand, from the [2026-09-30 round](results-gcp-0-2026-09-30.md): break-glass login, mounts,
+public DNS and the gVisor smoke probe. **Step 9 (a scheduled snapshot) is the live re-run that F1's
+fix still owes.**
 
 ## 5. [OWNER] The agents keys, once per GCP lineage
 
-If the restored gcpckms snapshot predates these keys, they are missing. Write each one that
+The 2026-10-02 snapshot (2.2) predates the keys written since, so expect gaps. Write each one that
 `bao kv list -mount=agents` lacks, using the [owner actions](README.md#owner-actions-in-order)
 (2, 2b, 4, 4b, 4c, 4d):
 
@@ -145,10 +154,19 @@ Gate: `flux get kustomizations -A | grep -v True` lists nothing but `llm-platfor
 
 ## 7. The v2.1 blockers, live
 
-| # | Blocker | What proves it closed |
-|---|---|---|
-| 7.1 | The factory reaches the identity provider over GKE's network. Its CNP's IdP rule is replaced by a portless `toEntities: [all]`, as the broker's and rooms-proxy's already are | Use a factory pod on a node that does **not** run ZITADEL; a co-located pod succeeds under any policy. `kubectl logs -n agent-system deploy/agent-factory` shows the human JWKS loaded. A `roomctl` call to the run-request API (`:8082`) is accepted. `RoomsJWKSStale` stays silent |
-| 7.2 | The CPU quota allows its nodes | `agents-gvisor` scales 0→1 for the headroom, then to 2 for a `large` run. There is no `FailedScaleUp … GCE quota exceeded`, and no `nap-e2-standard-4` gVisor fallback |
+```bash
+scripts/ops/k8s/gcp-0-v21-checks.sh <kube-context>                   # after go-live: the headroom node
+scripts/ops/k8s/gcp-0-v21-checks.sh <kube-context> --gvisor-nodes 2  # during a large run
+```
+
+[`gcp-0-v21-checks.sh`](../../../scripts/ops/k8s/gcp-0-v21-checks.sh) is read-only. On a factory
+pod co-located with ZITADEL it fails and prints the cordon commands, which it never runs.
+
+| # | Blocker | What proves it closed | Scripted |
+|---|---|---|---|
+| 7.1 | The factory reaches the identity provider over GKE's network. Its CNP's IdP rule is replaced by a portless `toEntities: [all]`, as the broker's and rooms-proxy's already are | The factory pod runs on a node with no ZITADEL pod; a co-located pod succeeds under any policy. Its log has `agent-factory starting`: the human verifier is eager, so that line follows the JWKS fetch, and a failed fetch exits with `initial JWKS fetch`. The live CNP carries the portless rule. The broker's `rooms_authn_jwks_last_refresh_timestamp_seconds` for the IdP is under 6 h old, and neither `RoomAuthnJWKSStale` nor `RoomAuthnHumanIssuerNeverFetched` fires | Yes |
+| | | A `roomctl` call to the run-request API (`:8082`) is accepted | No: the owner's human token |
+| 7.2 | The E2 quota allows its nodes (sizing above) | `agents-gvisor` holds the headroom pod at 1 node, then 2 for a `large` run. There is no `FailedScaleUp` or quota event, and no gVisor node outside `agents-gvisor` (the `nap-e2-standard-4` fallback). Events live about 1 h: run it right after the scale-up | Yes |
 
 ## 8. The full test: runbook 11 on gcp-0
 

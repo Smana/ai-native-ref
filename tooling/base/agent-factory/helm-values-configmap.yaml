@@ -31,9 +31,10 @@ data:
           maintainers: [Smana]
           triggerLabel: factory/ready
           classes:
-            # Shadow until the wave (owner, 2026-09-27; R32): decided like a live class, never armed.
-            docs-links: {shadow: true}
-            revert: {shadow: true}
+            # LIVE for the drill (runbook 12, design D4): revert with it, or an auto-merge waits on a
+            # human to merge its own revert (D5). Back to {shadow: true} once the drill is over.
+            docs-links: {live: true}
+            revert: {live: true}
             docs: {}
             tests: {}
             dashboards: {}
@@ -59,7 +60,7 @@ data:
               - "Check the documentation links 🔗"
             policyBotLogin: ogenki-merge-gate[bot]
             mergerLogin: ogenki-agent-merger[bot]
-            autoMergesPerDay: 10
+            autoMergesPerDay: 1  # the drill: one unattended merge a day; 10 again with shadow
             fixRuns: 2
             # Re-runs of a cancelled required check per task (agent-platform #86); 0 hands it to a
             # human. Above 0 the merger App needs actions: write.

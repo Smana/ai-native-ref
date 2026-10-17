@@ -30,12 +30,18 @@ pass() { echo "PASS  $*"; }
 fail() { echo "FAIL  $*"; FAILED=1; }
 info() { echo "INFO  $*"; }
 indent() { sed 's/^/        /'; }
+ERR=$(mktemp)
+trap 'rm -f "$ERR"' EXIT
+# getjson <kubectl get args...>: stderr goes to $ERR, never into the JSON: a kubectl warning on a
+# successful get would otherwise break every jq that reads it.
+getjson() { k get "$@" -o json 2>"$ERR"; }
+kerr() { head -c 300 "$ERR"; }
 
 # gate <label> <kubectl get args...>: PASS when the list is non-empty and every unsuspended item's
 # Ready condition is True. Suspended items are listed as INFO.
 gate() {
   local label=$1 json bad n susp; shift
-  json=$(k get "$@" -o json 2>&1) || { fail "$label: $json"; return; }
+  json=$(getjson "$@") || { fail "$label: $(kerr)"; return; }
   n=$(jq '.items | length' <<<"$json")
   [ "$n" -gt 0 ] || { fail "$label: none found"; return; }
   susp=$(jq -r '[.items[] | select(.spec.suspend == true) | "\(.metadata.namespace)/\(.metadata.name)"] | join(" ")' <<<"$json")
@@ -58,14 +64,19 @@ for ns in security infrastructure; do
   gate "Certificates in $ns" certificates.cert-manager.io -n "$ns"
   # Let's Encrypt allows five certificates per identifier set per week; its 429 surfaces here,
   # and later as "ZITADEL not ready".
-  hits=$( { k get events -n "$ns" -o json | jq -r '.items[]
-              | select(.message // "" | test("rateLimited|too many certificates|\\b429\\b"; "i"))
-              | "\(.involvedObject.kind)/\(.involvedObject.name): \(.message[0:200])"'
-            k get orders.acme.cert-manager.io -n "$ns" -o json | jq -r '.items[]
-              | select(.status.state == "errored" or .status.state == "invalid")
-              | "Order/\(.metadata.name) \(.status.state): \((.status.reason // "")[0:200])"'
-          } 2>/dev/null | sort -u)
-  if [ -z "$hits" ]; then pass "no Let's Encrypt 429 or failed Order in $ns"; else fail "ACME trouble in $ns:"; indent <<<"$hits"; fi
+  # A failed query is a FAIL: an empty answer from a broken get would read as "no 429".
+  if ! events=$(getjson events -n "$ns"); then fail "events in $ns unreadable: $(kerr)"
+  elif ! orders=$(getjson orders.acme.cert-manager.io -n "$ns"); then fail "ACME Orders in $ns unreadable: $(kerr)"
+  else
+    hits=$( { jq -r '.items[]
+                | select(.message // "" | test("rateLimited|too many certificates|\\b429\\b"; "i"))
+                | "\(.involvedObject.kind)/\(.involvedObject.name): \(.message[0:200])"' <<<"$events"
+              jq -r '.items[]
+                | select(.status.state == "errored" or .status.state == "invalid")
+                | "Order/\(.metadata.name) \(.status.state): \((.status.reason // "")[0:200])"' <<<"$orders"
+            } | sort -u)
+    if [ -z "$hits" ]; then pass "no Let's Encrypt 429 or failed Order in $ns"; else fail "ACME trouble in $ns:"; indent <<<"$hits"; fi
+  fi
 done
 
 echo "== External Secrets"
@@ -73,7 +84,7 @@ gate "ClusterSecretStores (OpenBao and Secret Manager, seen from the cluster)" c
 gate "ExternalSecrets" externalsecrets.external-secrets.io -A
 
 echo "== CNPG"
-if json=$(k get clusters.postgresql.cnpg.io -A -o json 2>&1); then
+if json=$(getjson clusters.postgresql.cnpg.io -A); then
   [ "$(jq '.items | length' <<<"$json")" -gt 0 ] || fail "CNPG: no Cluster found"
   zitadel_boot=""
   while IFS=$'\t' read -r name ready arch boot; do
@@ -98,7 +109,7 @@ if json=$(k get clusters.postgresql.cnpg.io -A -o json 2>&1); then
   if [ "$zitadel_boot" = "$want" ]; then pass "ZITADEL's database bootstrapped from $want"
   else fail "ZITADEL's database bootstrap is '${zitadel_boot:-absent}', expected $want"; fi
 else
-  fail "CNPG: $json"
+  fail "CNPG: $(kerr)"
 fi
 
 echo "== ZITADEL"
@@ -135,7 +146,7 @@ snap=$(k get cronjob -n security -o json 2>/dev/null | jq -r '.items[] | select(
 info "snapshot CronJob (fires 04:00 UTC; F1's live re-run): ${snap:-none found}"
 
 echo "== Nodes by pool"
-nodes=$(k get nodes -o json 2>&1) || { fail "nodes: $nodes"; nodes='{"items":[]}'; }
+nodes=$(getjson nodes) || { fail "nodes: $(kerr)"; nodes='{"items":[]}'; }
 jq -r '.items[] | [(.metadata.labels["cloud.google.com/gke-nodepool"] // "?"),
     (.metadata.labels["node.kubernetes.io/instance-type"] // "?"),
     (.metadata.labels["sandbox.gke.io/runtime"] // "runc")] | @tsv' <<<"$nodes" \

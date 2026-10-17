@@ -32,13 +32,18 @@ indent() { sed 's/^/        /'; }
 PF_PIDS=()
 stop_forwards() { local p; for p in "${PF_PIDS[@]}"; do kill "$p" 2>/dev/null; done; }
 trap stop_forwards EXIT
-# fetch <namespace> <pod/… or svc/…> <remote port> <local port> <path>: one GET through a port-forward.
-fetch() {
-  local ns=$1 target=$2 rport=$3 lport=$4 path=$5 i
-  k -n "$ns" port-forward "$target" "$lport:$rport" >/dev/null 2>&1 &
+# start_forward <namespace> <pod/… or svc/…> <remote port> <local port>: call it in the parent
+# shell, never inside $(…), or the PID never reaches PF_PIDS and the forward outlives the script.
+# kubectl, not k: a backgrounded function is a subshell, and killing it leaves kubectl running.
+start_forward() {
+  kubectl --context "$CTX" -n "$1" port-forward "$2" "$4:$3" >/dev/null 2>&1 &
   PF_PIDS+=($!)
+}
+# get_local <local port> <path>: one GET through a forward start_forward opened.
+get_local() {
+  local i
   for i in 1 2 3 4 5 6 7 8 9 10; do
-    curl -sf -m 10 "http://127.0.0.1:$lport$path" && return 0
+    curl -sf -m 10 "http://127.0.0.1:$1$2" && return 0
     sleep "0.$i"
   done
   return 1
@@ -94,7 +99,7 @@ broker=$(k get pods -n agent-system -l app.kubernetes.io/name=room-broker --fiel
   -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
 if [ -z "$broker" ]; then
   fail "no Running room-broker pod"
-elif metrics=$(fetch agent-system "pod/$broker" 9090 19090 /metrics); then
+elif start_forward agent-system "pod/$broker" 9090 19090 && metrics=$(get_local 19090 /metrics); then
   last=$(awk -v want="rooms_authn_jwks_last_refresh_timestamp_seconds{issuer=\"$idp\"}" '$1 == want {printf "%d\n", $2}' <<<"$metrics")
   if [ -z "$last" ]; then fail "room-broker $broker: no JWKS refresh gauge for $idp"
   else
@@ -107,7 +112,8 @@ else
   fail "room-broker $broker: /metrics unreachable through a port-forward"
 fi
 
-alerts=$(fetch observability svc/vmalertmanager-victoria-metrics-k8s-stack 9093 19093 '/api/v2/alerts?active=true') \
+start_forward observability svc/vmalertmanager-victoria-metrics-k8s-stack 9093 19093
+alerts=$(get_local 19093 '/api/v2/alerts?active=true') \
   || { fail "VMAlertmanager unreachable through a port-forward"; alerts='[]'; }
 for a in RoomAuthnJWKSStale RoomAuthnHumanIssuerNeverFetched; do
   n=$(jq --arg a "$a" '[.[] | select(.labels.alertname == $a)] | length' <<<"$alerts")

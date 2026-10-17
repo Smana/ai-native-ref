@@ -12,7 +12,8 @@ fails=0
 fail() { printf 'FAIL  %s\n' "$*" >&2; fails=$((fails + 1)); }
 
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+# Reap any forward a broken script leaked, so a failing run cannot hold the stub's ports.
+trap '[ -f "$PF_LOG" ] && xargs -r kill <"$PF_LOG" 2>/dev/null; rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/bin"
 cat >"$tmp/bin/kubectl" <<'STUB'
 #!/usr/bin/env bash
@@ -24,6 +25,10 @@ while [ $# -gt 0 ]; do
 done
 echo "${args[0]}" >>"$CALLS"
 set -- "${args[@]}"
+# KWARN=1: every call warns on stderr, as kubectl does on a deprecated API; the JSON must survive it.
+[ "${KWARN:-0}" = 1 ] && echo 'Warning: stub deprecation notice' >&2
+# KFAIL=<resource>: `get <resource>` fails, as on a missing CRD or an RBAC denial.
+if [ -n "${KFAIL:-}" ] && [ "$1 ${2:-}" = "get $KFAIL" ]; then echo "stub: $KFAIL forbidden" >&2; exit 1; fi
 ready() { printf '{"type":"Ready","status":"%s","message":"m"}' "$1"; }
 B=${BROKEN:-0}
 case "$*" in
@@ -66,7 +71,7 @@ case "$*" in
   "get "*) echo '{"items":[]}' ;;
   "logs "*--previous*) exit 1 ;;
   "logs "*) echo 'time=t level=INFO msg="agent-factory starting" version=v0.15.2' ;;
-  "port-forward "*) exec sleep 30 ;;
+  "port-forward "*) echo $$ >>"$PF_LOG"; exec sleep 30 ;;
   *) echo "unstubbed: $*" >&2; exit 1 ;;
 esac
 STUB
@@ -83,7 +88,7 @@ esac
 STUB
 printf '#!/usr/bin/env bash\necho %s\n' "'{\"initialized\":true,\"sealed\":false,\"type\":\"gcpckms\"}'" >"$tmp/bin/bao"
 chmod +x "$tmp/bin/"*
-export PATH="$tmp/bin:$PATH" CALLS="$tmp/calls"
+export PATH="$tmp/bin:$PATH" CALLS="$tmp/calls" PF_LOG="$tmp/pf.pids"
 
 for s in "$GATES" "$V21"; do
   name=$(basename "$s")
@@ -93,6 +98,24 @@ for s in "$GATES" "$V21"; do
   grep -q '^FAIL' "$tmp/ok" && fail "$name on a healthy fixture prints a FAIL"
   BROKEN=1 bash "$s" ctx >"$tmp/$name.bad" 2>&1 && fail "$name on a broken fixture exits 0"
 done
+# Both runs of gcp-0-v21-checks.sh opened forwards; its EXIT trap must have reaped every one.
+[ -s "$PF_LOG" ] || fail "gcp-0-v21-checks.sh opened no port-forward"
+# A killed forward lingers until its SIGTERM lands and it is reaped: allow 2s. A leaked one sleeps 30s.
+while read -r pid; do
+  for _ in 1 2 3 4 5 6 7 8 9 10; do kill -0 "$pid" 2>/dev/null || break; sleep 0.2; done
+  kill -0 "$pid" 2>/dev/null && fail "a stub port-forward (pid $pid) outlived gcp-0-v21-checks.sh"
+done <"$PF_LOG"
+
+# A kubectl warning on stderr must not reach the JSON.
+KWARN=1 BROKEN=0 bash "$GATES" ctx >"$tmp/warn" 2>&1 \
+  || { fail "gcp-0-platform-gates.sh fails on a kubectl stderr warning"; sed 's/^/      /' "$tmp/warn" >&2; }
+# A failed ACME query is a FAIL, never "no 429".
+for r in events orders.acme.cert-manager.io; do
+  KFAIL=$r BROKEN=0 bash "$GATES" ctx >"$tmp/kfail" 2>&1 && fail "gcp-0-platform-gates.sh exits 0 when get $r fails"
+  grep -q "^FAIL .*unreadable: stub: $r forbidden" "$tmp/kfail" || fail "gcp-0-platform-gates.sh prints no FAIL for a failed get $r"
+  grep -q "^PASS  no Let's Encrypt 429" "$tmp/kfail" && fail "gcp-0-platform-gates.sh passes the 429 check when get $r fails"
+done
+
 # $tmp/ok is gcp-0-v21-checks.sh's: the gauge, in exponent form, reads as 60s old.
 grep -qE "JWKS (59|60|61|62)s ago" "$tmp/ok" || fail "the broker's JWKS gauge age is misread"
 

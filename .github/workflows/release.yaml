@@ -31,6 +31,13 @@ jobs:
       - run: flux plugin install schema@0.11.0
       - run: python3 -m pip install --quiet --disable-pip-version-check pyyaml
       - run: sudo apt-get update && sudo apt-get install -y jq
+      # ci.yaml's key: a tag run restores the cache main's CI saved, so the render pulls no chart
+      # from ECR Public, which rations anonymous pulls per runner IP (429 on v0.1.11).
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/helm
+          key: helm-${{ hashFiles('HOST_REF', '**/*helmrelease*.yaml', 'flux/sources/**') }}
+          restore-keys: helm-
       # A tag can point at a commit that never passed CI.
       - run: task check
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2

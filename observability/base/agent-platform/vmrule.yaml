@@ -135,8 +135,17 @@ spec:
         # enforcing, over_limit still counts the overshoot of the call that crossed.
         # Enforcing, the calls refused with 429, by run. A RateLimit 429 is a budget's
         # or the per-replica local limit's; a provider's is reason Upstream.
+        # Both counters are created at their first increment, so a new series starts at the
+        # whole overshoot and increase() reads 0 for it: compare with 10 minutes ago, absence
+        # read as 0 (increase_pure() would do it, but promtool cannot parse it).
         - record: agent_router:budget_shadow_overrun_tokens:increase10m
-          expr: sum by (key1) (increase(ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"}[10m])) and on () sum(increase(ratelimit_service_global_shadow_mode{namespace="agent-gateway"}[10m])) > 0
+          expr: >-
+            sum by (key1) (clamp_min(ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"}
+            - (ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"} offset 10m
+            or ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"} * 0), 0))
+            and on () sum(clamp_min(ratelimit_service_global_shadow_mode{namespace="agent-gateway"}
+            - (ratelimit_service_global_shadow_mode{namespace="agent-gateway"} offset 10m
+            or ratelimit_service_global_shadow_mode{namespace="agent-gateway"} * 0), 0)) > 0
         - record: agent_router:budget_refusals:increase10m
           expr: sum by (ar_agent) (increase(agentgateway_requests_total{namespace="agent-gateway", reason="RateLimit"}[10m]))
         - alert: AgentBudgetShadowOverrun

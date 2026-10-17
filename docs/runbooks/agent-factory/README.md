@@ -5,9 +5,11 @@ and the agent observability work on the live test cluster `gcp-0`. Every command
 Start with [Runbook 00](#runbook-00-one-time-cluster-setup): the cluster is already deployed, but four
 owner actions gate most runbooks.
 
-## Status (2026-10-01)
+## Status (2026-10-17)
 
-gcp-0 is the live target since 2026-09-29. Rounds 1–6 ran on aws-0, which was destroyed on 2026-09-29.
+gcp-0 is the live target again since 2026-10-17 ([runbook 14](14-gcp-0-session.md)), from `main` on release
+pins. Rounds 1–6 and v1 (to 2026-10-16) ran on aws-0, now torn down. The round 7 and 9 columns are
+gcp-0's earlier build, on `integration/agent-factory`.
 
 | Runbook | Round 7, gcp-0 (PASS/FAIL/OWNER) | Round 9, gcp-0 (PASS/FAIL/OWNER) | Still open |
 |---|---|---|---|
@@ -117,19 +119,10 @@ export AI_NATIVE_REF_DIR=~/Sources/ai-native-ref
 
 ### What is already in place
 
-gcp-0 tracks `integration/agent-factory`. That branch is never merged. It is the union of:
-
-- SP1 PRs 2–6 and SP4 PR 1;
-- SP2's collaboration rooms (room-broker, room log), SP3's factory (`tooling-agent-factory`) and the
-  agent observability work;
-- the GCP parity work and its gcp-0 fixes;
-- the design docs (#2092) and the Envoy Gateway CRD chore;
-- the crossplane-configuration pre-release pin (`v0.7.2-pr35.465e19f`, PR #35), which carries the
-  `AgentRun` XRD and the room-bridge sidecar;
-- one test-only commit that sets `spec.suspend: false` on the `ai-gateway` and `agent-platform`
-  umbrellas.
-
-The branch's own log is the authoritative list.
+gcp-0 tracks cloud-native-ref's `main`, on release pins: the `ai-native-ref` source, agent-platform
+and crossplane-configuration. The go-live commit on `main` un-suspends the source and the
+`ai-gateway` and `agent-platform` umbrellas, and names `gcp-0` in the ownership fence. Rounds 7 and 9
+ran on the earlier `integration/agent-factory` branch instead.
 
 Because the umbrellas are unsuspended **in git**, there is nothing to `flux resume`. A live resume
 would be reverted on the next `flux-system` reconcile.
@@ -144,11 +137,7 @@ flux get kustomizations -n flux-system | grep -E '^(ai-gateway|agent-platform)[[
 > Kustomization and reports nothing on the others. Every runbook command below now lists then
 > greps instead of passing multiple names positionally.
 
-Expected: `refs/heads/integration/agent-factory`; both `Ready=True`, `Suspended=False`.
-
-> **Footgun.** Deploy `*/openbao/management` and the cluster's `configure` stack only from an
-> `integration/agent-factory` checkout, with `TF_VAR_flux_git_ref`: from `main`, the `agents` mount
-> is destroyed and the agent platform pruned.
+Expected: `refs/heads/main`; both `Ready=True`, `Suspended=False`.
 
 ### Owner actions, in order
 
@@ -202,7 +191,7 @@ flux get kustomizations -n flux-system | grep -E '^(agent-router|agent-mcp|octo-
 Expected: all four `Ready=True`.
 
 Runs use the harness released by `agent-platform`, pinned by digest in the composition
-(`agent-harness:v0.12.0` at crossplane-configuration `v0.9.9`). A harness pre-release for a live gate
+(`agent-harness:v0.15.2` at crossplane-configuration `v0.9.15`). A harness pre-release for a live gate
 is a pre-release `v*` tag on `agent-platform` (its `release.yaml`; tags are admin-only under the
 release-tags ruleset) or the `-pr<N>.<sha8>` image its `ci.yaml` pushes for same-repo PRs;
 cloud-native-ref verifies only signatures from `release.yaml@refs/tags/v…`.
@@ -214,10 +203,10 @@ kubectl delete agentruns -n agents --all --wait
 kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml --ignore-not-found
 ```
 
-To take the agent platform down while keeping the cluster, revert the test-only unsuspend commit on
-`integration/agent-factory` and push. Pointing the cluster back at `main` needs a `TF_VAR_flux_git_ref`
-deploy of the cluster's `configure` stack, which prunes everything above. Destroying the cluster is a separate owner
-call.
+To take the agent platform down while keeping the cluster, revert the go-live commit on
+cloud-native-ref's `main`: the umbrellas and the source go back to `suspend: true`, which stops
+reconciling without removing anything, so follow the cluster README's Teardown for the children.
+Destroying the cluster is a separate owner call.
 
 ## Recording results
 

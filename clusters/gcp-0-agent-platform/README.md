@@ -55,7 +55,7 @@ and its key written to `github-app` on gcp-0's `agents` mount:
 
 Without the key, `octo-sts` sits in `CreateContainerConfigError` and its child fails the health
 check. The GCP lineage's raft snapshot cannot be restored across the AWS lineage's KMS seal, so the
-other two agent keys are written the same way, once per GCP lineage:
+other agent keys are written the same way, once per GCP lineage:
 
     bao kv put -mount=agents zai api_key=-
     bao kv put -mount=agents anthropic api_key=-

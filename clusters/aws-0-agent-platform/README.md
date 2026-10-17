@@ -1,7 +1,8 @@
 # aws-0 agent platform
 
-Children of the `agent-platform` umbrella (`../aws-0/agent-platform.yaml`), live on aws-0 since
-2026-10-16 (owner); gcp-0's twin is live too.
+Children of the `agent-platform` umbrella (`../aws-0/agent-platform.yaml`), released on aws-0
+(`suspend: false`). aws-0 ran the factory until it was torn down on 2026-10-16; gcp-0's twin runs it
+now, and the ownership fence names `gcp-0`.
 Design: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md`.
 
 | Child Kustomization | Path | Holds |

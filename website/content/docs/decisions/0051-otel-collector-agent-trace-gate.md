@@ -122,7 +122,7 @@ by something the sandbox cannot reach.
 `observability/base/agent-platform/agent-traces-collector.yaml`. The run CNP, composed by the
 `AgentRun` composition in crossplane-configuration, admits `POST /v1/traces` on :4318 only. Proved
 by [`test-agent-traces-filter.sh`](https://github.com/Smana/ai-native-ref/blob/main/scripts/ci/tests/test-agent-traces-filter.sh) (ai-native-ref) and the
-[observability live-test runbook](https://github.com/Smana/cloud-native-ref/blob/integration/agent-factory/docs/runbooks/agent-factory/08-observability.md),
+[observability live-test runbook](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/08-observability.md),
 and live on gcp-0 on 2026-09-30: no attribute key outside the allowlist reached VictoriaTraces.
 
 Clearing span links needs the ALPHA feature gate `ottl.set.allowNil` (v0.158+, off by default,

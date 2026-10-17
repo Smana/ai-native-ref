@@ -143,10 +143,11 @@ endpoint picker stands and what turning it on would take.
 
 `tier-frontier` is served by GLM-5.3 through Z.ai with the **platform** key, which only the gateway
 holds. It needs no GPU, so it answers with `llm-platform` suspended: the `ai-gateway` umbrella is
-live on both clusters.
+live on `gcp-0`, which generates its API keys in-cluster (Secret `ai-gateway-api-keys` in
+`envoy-ai-gateway-system`).
 
 ```bash
-curl -s https://llm.priv.aws.ogenki.io/v1/chat/completions \
+curl -s https://llm.priv.gcp.ogenki.io/v1/chat/completions \
   -H "Authorization: Bearer $LLM_API_KEY" -H "Content-Type: application/json" \
   -d '{"model": "tier-frontier", "messages": [{"role": "user", "content": "Say hi"}]}'
 ```

@@ -1,8 +1,9 @@
 # AI gateway — Flux umbrella
 
-Aggregated by `../aws-0/ai-gateway.yaml`, **live on aws-0** since 2026-10-16 (owner): the agent
-factory runs here. It was suspended by default (programme OD-3, amended 2026-09-26) until a suspended
-umbrella was found to freeze its children's own specs. gcp-0's twin stays suspended. CPU only. It is
+Aggregated by `../aws-0/ai-gateway.yaml`, **released on aws-0** (`suspend: false`) since 2026-10-16,
+when aws-0 was also torn down. It was suspended by default (programme OD-3, amended 2026-09-26) until
+a suspended umbrella was found to freeze its children's own specs. gcp-0's twin is live and carries
+the agent factory today. CPU only. It is
 what lets agents run on frontier models with no GPU node; `llm-platform` and `agent-platform` depend
 on it.
 

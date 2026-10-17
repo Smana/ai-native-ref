@@ -24,7 +24,7 @@ flowchart LR
 - `kubectl` on the cluster, `aws` or `gcloud` read access to the CNPG bucket, a cloud-native-ref checkout.
 - For Part A, ai-native-ref's claim restores from `rooms-pre-destroy` on this cloud:
   `infrastructure/base/room-broker/sqlinstance.yaml`. aws-0 does; gcp-0 starts fresh until it is opted
-  in ([Step A0](#step-a0--gcp-0-opt-in)).
+  in ([Step A0](#step-a0--gcp-0-opt-in)), so the 2026-10-17 gcp-0 rooms started empty.
 
 ```bash
 case $CLOUD in
@@ -79,7 +79,7 @@ rebuild's `xplane-rooms` never becomes Ready.
 
 ### Step A1 — before the teardown: capture
 
-On the cluster about to be destroyed, just before `terramate script run deploy` is reversed:
+On the cluster about to be destroyed, just before its teardown (`terramate script run destroy`, GKE or EKS only, or the full `--reverse destroy`):
 
 ```bash
 rooms_psql agent-system xplane-rooms-cnpg-cluster < /tmp/rooms-fingerprint.sql > /tmp/rooms-before.txt
@@ -87,8 +87,8 @@ echo "SELECT now(), max(ts), count(*) FROM events;" | rooms_psql agent-system xp
 wc -l /tmp/rooms-before.txt
 ```
 
-Expected: one line per room, then the `grant` and `role` lines. Note the `now()` (capture time) and
-`max(ts)`. Keep `/tmp/rooms-before.txt` off the cluster: it is the comparison baseline.
+Expected: one line per room, then the `grant` and `role` lines. Note the captured `max(ts)`, the
+newest event at capture: the RPO is measured against it. Keep `/tmp/rooms-before.txt` off the cluster: it is the comparison baseline.
 
 ### Step A2 — the teardown seeds the alias
 
@@ -139,8 +139,9 @@ echo "SELECT max(ts), count(*) FROM events;" | rooms_psql agent-system xplane-ro
 
 Expected: `IDENTICAL`. A room written between A1 and the seed shows as an added line or a higher
 `last_seq` for that room: acceptable (it postdates the baseline); a missing room, a lower `last_seq`, a
-changed hash at an equal `last_seq`, or a `grant`/`role` difference is a FAIL. **RPO** = the A1 capture
-time minus the restored `max(ts)` when that is negative, and 0 otherwise (nothing captured was lost).
+changed hash at an equal `last_seq`, or a `grant`/`role` difference is a FAIL. **RPO** =
+max(0, A1's captured `max(ts)` − the restored `max(ts)`): the span of events written before the
+capture that the restore lost. 0 means nothing captured was lost.
 
 ## Part B — scratch restore on a live cluster
 
@@ -153,7 +154,7 @@ and would be seeded as `rooms-drill-pre-destroy`.
 ```bash
 SEED=rooms-drill-$(date +%Y%m%d%H%M)
 rooms_psql agent-system xplane-rooms-cnpg-cluster < /tmp/rooms-fingerprint.sql > /tmp/rooms-before.txt
-date -u +%FT%TZ   # T0, the capture
+echo "SELECT now(), max(ts), count(*) FROM events;" | rooms_psql agent-system xplane-rooms-cnpg-cluster   # T0 and the captured max(ts)
 ./scripts/ops/k8s/cnpg-promote-seed.sh --cloud $CLOUD --bucket $BUCKET \
   --cluster xplane-rooms --namespace agent-system --seed $SEED --apply
 ```
@@ -206,7 +207,8 @@ diff /tmp/rooms-before.txt /tmp/rooms-drill.txt && echo IDENTICAL
 echo "SELECT max(ts) FROM events;" | rooms_psql rooms-drill xplane-rooms-drill-cnpg-cluster
 ```
 
-Expected and FAIL criteria as Step A4. **RPO** = T0 − restored `max(ts)` when negative, else 0.
+Expected and FAIL criteria as Step A4. **RPO** = max(0, B1's captured `max(ts)` − the restored
+`max(ts)`).
 
 ### Step B4 — clean up
 
@@ -226,7 +228,7 @@ delete the seed with the cloud CLI once the result is recorded; the gcp lifecycl
 | 1 | The rebuilt cluster's bootstrap is `recovery` from `rooms-pre-destroy`, and it archives to a new uid-keyed prefix | A3 |
 | 2 | Every baseline room is present with the same `last_seq` and event hash; grants and roles are identical | A4, B3 |
 | 3 | The broker is ready on the restored database | A3 |
-| 4 | RPO and RTO are recorded below for each part and cloud | A3–A4, B2–B3 |
+| 4 | RPO (max(0, captured `max(ts)` − restored `max(ts)`)) and RTO are recorded below for each part and cloud | A3–A4, B2–B3 |
 
 ## Results
 

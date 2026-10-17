@@ -9,7 +9,7 @@ on gcp-0 Google manages `runsc`. See [README.md](README.md) for prerequisites an
 
 ## Prerequisites
 
-- Runbook 00's first check passes (`integration/agent-factory` tracked, both umbrellas `Ready`).
+- Runbook 00's first check passes (`main` tracked, both umbrellas `Ready`).
 - No owner action specific to this runbook.
 
 ## Steps

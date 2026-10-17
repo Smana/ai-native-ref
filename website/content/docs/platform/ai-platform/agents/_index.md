@@ -2,13 +2,13 @@
 title: Agents
 weight: 20
 description: "The agent factory: autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes end to end."
-lastVerified: 2026-10-07
+lastVerified: 2026-10-17
 aliases:
   - /docs/platform/agent-factory/
 ---
 
 {{< callout type="info" >}}
-**v1 shipped on 2026-10-08, pilot scope.** On `main` and running on `aws-0`: a labelled issue becomes
+**v1 shipped on 2026-10-08, pilot scope.** On `main` and running on `gcp-0` (on `aws-0` until 2026-10-16): a labelled issue becomes
 a reviewed pull request, and a human merges it. Runs are metered, capped, resumed after a reclaim and
 stopped by the kill switch; people follow and approve in rooms, from the browser, a terminal or their
 coding agent. Three factory pull requests have merged end to end. v1 covers one public repository,

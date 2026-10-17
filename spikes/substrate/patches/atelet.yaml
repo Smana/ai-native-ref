@@ -1,0 +1,18 @@
+# kubectl patch -n ate-system daemonset/atelet --patch-file: run on GKE Sandbox nodes and store
+# snapshots in rustfs. Rerunning the upstream installer reverts this patch.
+spec:
+  template:
+    spec:
+      tolerations:
+        - {key: ate.dev/sandboxClass, operator: Exists, effect: NoSchedule}
+        - {key: cloud.google.com/compute-class, operator: Exists, effect: NoSchedule}
+        - {key: sandbox.gke.io/runtime, operator: Equal, value: gvisor, effect: NoSchedule}
+      initContainers:
+        - name: objectstore-plugin
+          env:
+            - {name: ATE_STORAGE_BACKEND, value: s3}
+            - {name: AWS_REGION, value: us-east-1}
+            - {name: AWS_ENDPOINT_URL, value: "http://rustfs.ate-system.svc:9000"}
+            - {name: AWS_S3_USE_PATH_STYLE, value: "true"}
+          envFrom:
+            - secretRef: {name: rustfs-credentials}

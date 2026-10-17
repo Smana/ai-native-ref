@@ -226,13 +226,71 @@ The run dashboard gains a "start" row (p50/p90 by launch) and a "pool" row.
 
 ## Results
 
-Step 1 (headroom) is live on aws-0 since ai-native-ref#5. Stopped for the 2026-10-16 pause; the
-remaining runs resume after the rebuild ([resume order](../../../website/content/docs/platform/ai-platform/status.md#next-on-gcp-0)).
+Step 1 (headroom) went live on aws-0 with ai-native-ref#5, and runs on gcp-0 since the
+2026-10-17 rebuild. **A1 and A2 were run as a compressed same-day test on 2026-10-17**, not as
+the two weeks step 1 names. The owner chose this because a week-long platform costs too much. A1
+is complete on its own terms (10 runs, spaced > 5 min). A2 is one measured idle hour,
+extrapolated: it shows what a day costs, not that a day passed without incident.
 
 | # | State | Evidence |
 |---|---|---|
-| A1 | **Partial, 4 of 10 runs** | created → Ready of 11, 11, 12 and 11 s, all on the warm gVisor node, against the 30 s target (p90 154 s before headroom). The headroom pod was never preempted, because each run fitted beside it, so the preemption path is unexercised. Left: 6 runs, one of them forcing preemption |
-| A2 | Not run | — |
+| A1 | **Pass** (compressed same-day test 2026-10-17) | 10 of 10 runs, all on the warm gVisor node: 11, 11, 12, 11 s on aws-0, then 17, 16, 16, 17, 16, 21 s on gcp-0. **p50 16 s, p90 17 s** against the 30 s target (p90 154 s before headroom). The preemption run is [below](#a1-the-forced-preemption) |
+| A2 | **Fails the cap** (compressed same-day test 2026-10-17) | The headroom node costs **~$126 a month**, against the ≤ $50 cap: [below](#a2-idle-cost). The cap assumed a 4-vCPU spot node; gcp-0's gVisor pool is `e2-standard-8` |
+
+Created → Ready is the pod's `Ready` transition minus its `creationTimestamp`: the same quantity as
+`kube_pod_status_ready_time − kube_pod_created`, read from the API every 5 s. On gcp-0 each run was a
+`solo` task from a `[v2 A1 probe]` docs issue. The probe pull requests were closed unmerged, except
+the one the owner merged as runbook 11 step 7. The gcp-0 split: 4–7 s from created to harness
+started (images cached), then 10–15 s for agent-server to boot under gVisor. That is the ~11 s that
+only the warm pool removes.
+
+### A1: the forced preemption
+
+The factory sizes every run `small` (1 vCPU harness, 1,070m with its sidecars), and `caps.concurrentRuns`
+is 4, so its runs alone cannot fill the warm node. Before run 8, a 5,599m `pause` pod at priority 0
+(a run's priority) stood in for a `large` run. It left 600m beside the headroom pod (priority −10),
+so the run fitted only if the headroom yielded. The filler was deleted after the probe.
+
+| Time (UTC) | Event |
+|---|---|
+| 21:15:11 | Run pod `xplane-run-xndo3o6k` created |
+| 21:15:12 | `agents-headroom` **Preempted** by the run on `…-wrfp`. The replacement headroom pod is Pending (`preemptionPolicy: Never`) |
+| 21:15:17 | `TriggeredScaleUp`: `agents-gvisor` 1 → 2 |
+| 21:15:28 | Run pod Ready: **17 s**, on the warm node |
+| 21:16:21 | Node `…-wc9m` created, `e2-standard-8` spot, in `agents-gvisor` (no NAP fallback) |
+| 21:17:22 / 21:18:53 | Headroom scheduled / Ready on `wc9m` (image pulls on a fresh node) |
+| 21:20:31 | Filler gone; the autoscaler drains `wc9m`. The headroom is back on `wrfp`, Ready in 4 s |
+
+There was no `FailedScaleUp` and no quota event: `CPUS_ALL_REGIONS` was at 30 of 48 before the
+scale-up. The run preempted the headroom, never the reverse. The cost: a warm node is
+missing for 3 min 41 s after a preemption, until the headroom is Ready elsewhere.
+
+### A2: idle cost
+
+The idle hour is 19:56–20:56 UTC, 2026-10-17, before the first run. All six nodes were present for
+the whole hour (180 of 180 scrapes of `kube_node_info`), and no run pod existed. The prices are the
+Cloud Billing Catalog's list prices for europe-west4 on the same day, a month taken as 730 h.
+
+| Nodes, idle hour | Model | Per hour | Per day | Per month |
+|---|---|---|---|---|
+| `agents-gvisor`: 1 × `e2-standard-8`, holding only the headroom pod, + 50 GB pd-standard | spot | $0.172 | $4.14 | **$125.80** |
+| `static`: 3 × `e2-standard-4`, + 3 × 50 GB pd-balanced | spot | $0.277 | $6.64 | $201.90 |
+| NAP: 2 × `e2-standard-4`, + 2 × 50 GB pd-standard | on-demand | $0.301 | $7.23 | $219.80 |
+| **Cluster nodes, idle** | | **$0.750** | **$18.00** | **$547.50** |
+
+Spot E2 is $0.01378 per vCPU-hour and $0.001846 per GiB-hour. On-demand is $0.02401 and $0.003218.
+The GKE management fee ($0.10/h) and the OpenBao and Tailscale VMs outside GKE are left out:
+headroom does not change them.
+
+The headroom's own idle cost is the `agents-gvisor` row, ~$126 a month, **2.5 × the cap**. Options,
+for the owner (decision 1):
+
+| Option | Idle cost a month | Trade |
+|---|---|---|
+| Keep `e2-standard-8` | $125.80 | Holds a `large` run beside the headroom |
+| `e2-standard-4` gVisor pool | $64.00 | Still over the cap; a `large` run (4 vCPU) no longer fits a node |
+| Headroom `replicas: 0` outside working hours (10 h × 22 days) | $37.25 + disk | Cold starts at night and at weekends |
+| Raise the cap to $130 | $125.80 | The measured price of a 16 s p90 |
 
 ## Decisions
 

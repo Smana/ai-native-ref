@@ -1,0 +1,83 @@
+# Default-deny for every namespace the spike creates. Substrate registers no admission webhook,
+# so nothing needs ingress from kube-apiserver and the GKE konnectivity sibling rule does not apply.
+# The actor itself gets no route out: atenet-egress below has no world egress, and Substrate
+# also drops actor DNS when no egress policy is set.
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: substrate-spike
+spec:
+  description: "Substrate spike: default-deny, intra-spike traffic, DNS, API server"
+  endpointSelector:
+    matchExpressions:
+      - key: io.kubernetes.pod.namespace
+        operator: In
+        values: [ate-system, podcertificate-controller-system, substrate-spike]
+  ingress:
+    - fromEndpoints:
+        - matchExpressions:
+            - key: io.kubernetes.pod.namespace
+              operator: In
+              values: [ate-system, podcertificate-controller-system, substrate-spike]
+    # Kubelet probes.
+    - fromEntities:
+        - host
+        - remote-node
+  egress:
+    - toEndpoints:
+        - matchExpressions:
+            - key: io.kubernetes.pod.namespace
+              operator: In
+              values: [ate-system, podcertificate-controller-system, substrate-spike]
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+# atelet pulls actor images itself, through GKE's image credential provider (metadata server),
+# and its object-store sidecar reads the public gVisor asset from gs://gvisor.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: atelet-egress
+  namespace: ate-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: atelet
+  egress:
+    - toFQDNs:
+        - matchName: storage.googleapis.com
+        - matchName: ghcr.io
+        - matchName: pkg-containers.githubusercontent.com
+        - matchName: registry.k8s.io
+        - matchPattern: "*.pkg.dev"
+        - matchName: oauth2.googleapis.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toCIDR:
+        - 169.254.169.254/32
+        - 169.254.169.252/32
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+            - port: "988"
+              protocol: TCP

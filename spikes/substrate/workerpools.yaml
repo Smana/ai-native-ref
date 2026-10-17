@@ -1,0 +1,30 @@
+# One pool on the agents-gvisor spot pool, pinned by NODE_OP/NODE_A (substituted at apply time).
+# Restore on another node: after a suspend, flip NODE_OP from In to NotIn; ate-controller rolls the
+# worker to the other node and the next resume restores there. No cordon.
+# Substrate runs its own runsc inside a runc pod: the worker tolerates GKE Sandbox's taint but must
+# not use its gvisor RuntimeClass (nested gVisor cannot checkpoint).
+apiVersion: ate.dev/v1alpha1
+kind: WorkerPool
+metadata:
+  name: openhands
+  namespace: substrate-spike
+  labels:
+    spike: substrate
+spec:
+  replicas: 1
+  workerImage: WORKER_IMAGE
+  sandboxClasses:
+    - name: gvisor
+  template:
+    nodeSelector:
+      cloud.google.com/gke-nodepool: agents-gvisor
+    tolerations:
+      - {key: sandbox.gke.io/runtime, operator: Equal, value: gvisor, effect: NoSchedule}
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - {key: kubernetes.io/hostname, operator: NODE_OP, values: [NODE_A]}
+    resources:
+      requests: {cpu: "1", memory: 4Gi}
+      limits: {cpu: "2500m", memory: 6Gi}

@@ -29,7 +29,7 @@ plain Flux reconciliation both leave the cluster LLM-free.
 | **Autoscaling** | KEDA, three vLLM saturation triggers OR-combined, `min=1` (always warm) |
 | **Weights** | Amazon S3 Files (POSIX over S3), RWX PVC shared by a preload Job and the serving pod |
 | **GPUs** | Karpenter `gpu-l4` NodePool — single-GPU `g6` spot-first instances, Bottlerocket NVIDIA AMI, capped at 4 GPUs |
-| **Composition** | `crossplane-inference-service` KCL module `0.9.0`, pinned inside `crossplane-configuration-aws:v0.9.8` |
+| **Composition** | Inline KCL in crossplane-configuration (`apis/inferenceservice/`), shipped in the `crossplane-configuration-aws` package the host pins |
 
 ## Turning it on
 
@@ -44,7 +44,7 @@ Kubernetes command must run before the third:
 # and exits 0).
 TM_LLM_PLATFORM_ENABLED=true terramate -C opentofu/aws/llm-platform script run deploy
 
-# Gate 2 — Kubernetes side, gateway layer: live on aws-0 already
+# Gate 2 — Kubernetes side, gateway layer: already released
 # (clusters/aws-0/ai-gateway.yaml, spec.suspend: false). llm-platform depends on it.
 
 # Gate 3 — Kubernetes side, GPU models. The umbrella Flux Kustomization ships
@@ -65,7 +65,8 @@ The umbrella aggregates **5** child Flux Kustomizations under
 
 The gateway layer these children attach to (Envoy Gateway, the Envoy AI Gateway, the Semantic
 Router and the `ai-gateway` Gateway) is a separate umbrella, `ai-gateway`, under
-`clusters/aws-0-ai-gateway/`. It is CPU only and live on both clusters;
+`clusters/aws-0-ai-gateway/`. It is CPU only and released on both clusters (live on `gcp-0`;
+`aws-0` is torn down);
 `llm-platform` depends on it.
 
 That directory is a **sibling** of `clusters/aws-0/`, not a child, on
@@ -78,8 +79,9 @@ entirely.
 `gcp-0` has **no OpenTofu gate**: the weights bucket is a Crossplane claim
 rather than an OpenTofu stack, so there is no `TM_LLM_PLATFORM_ENABLED`.
 The two Kubernetes gates match aws-0's: `clusters/gcp-0/ai-gateway.yaml`,
-then `clusters/gcp-0/llm-platform.yaml`, which depends on it (both
-`spec.suspend: true`). Weights are served from a GCS bucket over the Cloud
+then `clusters/gcp-0/llm-platform.yaml`, which depends on it. The first
+is released (`spec.suspend: false`, for the agent factory); the second
+ships `spec.suspend: true`. Weights are served from a GCS bucket over the Cloud
 Storage FUSE CSI driver instead of an S3 Files POSIX mount — see
 [ADR-0021]({{< relref "/docs/decisions/0021-gcs-fuse-for-model-weights-on-gcp.md" >}})
 for why, including what it gives up.

@@ -8,6 +8,14 @@ Each step points to the runbook that holds its detail. Results go in that runboo
 cluster-level evidence goes in a `results-gcp-0-<date>.md`, as in
 [the 2026-09-30 round](results-gcp-0-2026-09-30.md).
 
+| Progress, 2026-10-17 | State |
+|---|---|
+| 1, 3 | Done: option A. gcp-0 hosts ZITADEL, restored from `zitadel-20260828` |
+| 6 | Done: the go-live commit is on cloud-native-ref's `main`, and the fence names `gcp-0` |
+| 7.2 | Passes with one gVisor node; the second waits on the quota increase |
+| 7.1 | Open: the cross-node IdP check waits on a CiliumNetworkPolicy fix (step 7) |
+| 8–10 | Not run yet |
+
 ```mermaid
 flowchart TD
   pre["0. Prerequisites<br/>auth, quota, secrets, pins"] --> idp{"1. IdP topology<br/>[OWNER] decides"}
@@ -29,8 +37,8 @@ flowchart TD
 | 0.1 | **[OWNER]** Interactive Google auth for both the CLI and ADC. A reauth can expire ADC mid-run with `invalid_rapt`, which needs this step again | `gcloud auth login`, then `gcloud auth application-default login`, then `gcloud auth application-default set-quota-project ogenki-435905` |
 | 0.2 | **[OWNER]** The CPU quota fits the platform (sizing below) | `gcloud compute project-info describe --project ogenki-435905 --flatten=quotas --filter='quotas.metric=CPUS_ALL_REGIONS' --format='value(quotas.limit,quotas.usage)'` and `gcloud compute regions describe europe-west4 --project ogenki-435905 --flatten=quotas --filter='quotas.metric:(CPUS N2_CPUS E2_CPUS)' --format='table(quotas.metric,quotas.limit,quotas.usage)'` |
 | 0.3 | **[OWNER]** Shell inputs | `export TF_VAR_tailscale_api_key=…`, plus AWS credentials for `opentofu/shared/*` (state, Route53 federation) |
-| 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Optional, both absent on 2026-10-17: `zitadel-github-idp` (without it the GitHub link IdP is skipped) and `github-gha-runner-scale-set-default` (GHA runners only) |
-| 0.5 | cloud-native-ref pins the releases under test, and the pin carries the gcp-0 fixes. These fixes are the factory's IdP egress, the warm headroom and the RunLore intake. An ai-native-ref release after v0.1.8 carries them | `flux/sources/ocirepo-ai-native-ref.yaml` tag; agent-platform v0.15.2; crossplane-configuration v0.9.15 |
+| 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Required for the agent platform: `zitadel-github-idp`. Without it the deploy skips the GitHub link IdP and so never writes `room-broker-zitadel-reader`, the broker's link reader. It was absent on 2026-10-17. Optional: `github-gha-runner-scale-set-default` (GHA runners only) |
+| 0.5 | cloud-native-ref pins the releases under test, and the pin carries the gcp-0 fixes. These fixes are the factory's IdP egress, the warm headroom and the RunLore intake. ai-native-ref v0.1.9 carries them | `flux/sources/ocirepo-ai-native-ref.yaml` tag `v0.1.9`; agent-platform v0.15.2; crossplane-configuration v0.9.15 |
 | 0.6 | Optional, decided now: serve the Substrate spike's APIs | `TF_VAR_enable_pod_certificate_apis=true` on step 3. It is safe to turn on later, but turning it off later replaces the cluster. It needs a control plane on 1.35 or later: `gcloud container get-server-config --zone europe-west4-a --format='yaml(channels)'`. On 2026-10-17 STABLE was 1.35.6 and REGULAR 1.36.4, so either qualifies |
 
 ### CPU sizing
@@ -57,19 +65,22 @@ Short of quota, the `e2-standard-8` cannot start (finding F3 of 2026-09-30) and 
 
 ## 1. [OWNER] The identity-provider topology
 
-On `main`, ZITADEL is hosted by AWS. The relevant settings are `primary_cloud = "aws"` in `opentofu/config.tm.hcl`, aws-0's
-`security/zitadel.yaml` with `suspend: false`, and gcp-0's with `suspend: true`. gcp-0 alone would point every login
-at the dead `auth.cloud.ogenki.io`. The OIDC-client registration only warns and exits 0, so the
-deploy reports success while SSO is dead. **Decide one option before step 3:**
+**Decided 2026-10-17: option A, merged.** `main` now has `primary_cloud = "gcp"`. Before that, AWS
+hosted ZITADEL, and gcp-0 alone pointed every login at the dead `auth.cloud.ogenki.io`. The
+OIDC-client registration only warns and exits 0, so the deploy reported success while SSO was dead.
+A later session starts from step 2 unless it changes the topology. The options were:
 
 | Option | What it costs | |
 |---|---|---|
-| A. GCP primary, restoring gcp-0's own seed `zitadel-20260828` | One host commit (below). The masterkey `zitadel-envvars` is already in GCP. The seed predates the rooms clients, and the deploy's `zitadel-oidc-clients.sh sync` creates them | **Recommended** |
+| A. GCP primary, restoring gcp-0's own seed `zitadel-20260828` | One host commit (below). The masterkey `zitadel-envvars` is already in GCP. The seed predates the rooms clients, and the deploy's `zitadel-oidc-clients.sh sync` creates them | **Chosen** |
 | B. GCP primary, restoring AWS's `zitadel-pre-destroy` seed | Rsync the seed to GCS, copy the AWS masterkey, the PAT and eight client secrets, then mirror them into OpenBao. The migration guide misses the masterkey, `openbao-oidc` and `agents-rooms-proxy` | Highest fidelity, highest risk |
 | C. GCP primary, a fresh directory | As A, and also drop `objectStoreRecovery`. Human users and IdP links are lost, so the first login and the admin grant are redone | Fallback if A's seed fails 2.1 |
 | Keep AWS primary | gcp-0 cannot stand alone | No |
 
-The commit for A, in cloud-native-ref:
+The 2026-09-30 round's directory is not an option: its masterkey lived only in-cluster, so its
+archive cannot be decrypted.
+
+The commit for A, in cloud-native-ref (merged 2026-10-17):
 
 | File | Change |
 |---|---|
@@ -96,6 +107,15 @@ cd opentofu && git pull   # deploys apply the checkout's disk, not main
 TM_CLOUD=gcp OPENBAO_SNAPSHOT_KEY=2026-10-02T200530Z-gcpckms.snap \
   terramate script run deploy             # per 2.2; + TF_VAR_enable_pod_certificate_apis=true per 0.6
 ```
+
+Run it from a shell whose `KUBECONFIG` names gcp-0 or nothing. Pointed at another cluster,
+`helm-release-present.sh` answers "absent" and the deploy re-installs flux-operator, which fails
+with `cannot re-use a name`.
+
+**[OWNER] The admin PAT.** A ZITADEL restored from a seed has no admin PAT, so the OIDC-client sync
+cannot authenticate. Mint one in the ZITADEL console for the IAM admin, store it as Secret
+`security/iam-admin-pat`, and re-run the deploy: it persists the PAT to Secret Manager
+`zitadel-iam-admin-pat`.
 
 Afterwards, check the clouds rather than the log. Look first at `kubectl get certificate -n security`. Let's Encrypt allows
 five certificates per identifier set per week, and a 429 there shows up as "ZITADEL not ready".
@@ -141,14 +161,15 @@ Without `merger-app` or `runlore-intake` the factory pod never starts.
 
 ## 6. [OWNER] Go-live commit
 
-aws-0 went live with a commit, not with `flux resume`. The parent Kustomization re-applies
-`suspend: true` at its next reconcile, so a resume does not stick. Make one cloud-native-ref commit:
+**Done 2026-10-17.** Going live takes a commit, not `flux resume`: the parent Kustomization
+re-applies `suspend: true` at its next reconcile, so a resume does not stick. The cloud-native-ref
+commit:
 
 | File | Change |
 |---|---|
 | `clusters/gcp-0/flux/flux-sources.yaml` | The `OCIRepository/ai-native-ref` un-suspend patch, as in aws-0's |
 | `clusters/gcp-0/ai-gateway.yaml`, `clusters/gcp-0/agent-platform.yaml` | `suspend: false`. `llm-platform` stays suspended |
-| `.github/agent-factory.yaml` | `factory: gcp-0`. Only one factory may own the repository. The auto-merge drill (runbook 12) is written for aws-0 |
+| `.github/agent-factory.yaml` | `factory: gcp-0`. Only one factory may own the repository, so the auto-merge drill (runbook 12) runs on gcp-0 |
 
 Gate: `flux get kustomizations -A | grep -v True` lists nothing but `llm-platform`.
 
@@ -162,15 +183,23 @@ scripts/ops/k8s/gcp-0-v21-checks.sh <kube-context> --gvisor-nodes 2  # during a 
 [`gcp-0-v21-checks.sh`](../../../scripts/ops/k8s/gcp-0-v21-checks.sh) is read-only. On a factory
 pod co-located with ZITADEL it fails and prints the cordon commands, which it never runs.
 
+On GKE the API server reaches pods through konnectivity-agent, so an ingress rule
+`fromEntities: [kube-apiserver]` never matches there. A CNP that relies on it alone refuses the API
+server's calls to pods (admission webhooks, the services proxy) on gcp-0 only. The fix is a sibling
+rule from the `kube-system` konnectivity-agent pods on the same ports, inert on EKS;
+[`test-cnp-konnectivity-sibling.py`](../../../scripts/ci/tests/test-cnp-konnectivity-sibling.py)
+fails a CNP that lacks it.
+
 | # | Blocker | What proves it closed | Scripted |
 |---|---|---|---|
-| 7.1 | The factory reaches the identity provider over GKE's network. Its CNP's IdP rule is replaced by a portless `toEntities: [all]`, as the broker's and rooms-proxy's already are | The factory pod runs on a node with no ZITADEL pod; a co-located pod succeeds under any policy. Its log has `agent-factory starting`: the human verifier is eager, so that line follows the JWKS fetch, and a failed fetch exits with `initial JWKS fetch`. The live CNP carries the portless rule. The broker's `rooms_authn_jwks_last_refresh_timestamp_seconds` for the IdP is under 6 h old, and neither `RoomAuthnJWKSStale` nor `RoomAuthnHumanIssuerNeverFetched` fires | Yes |
+| 7.1 | The factory reaches the identity provider over GKE's network. Its CNP's IdP rule is replaced by a portless `toEntities: [all]`, as the broker's and rooms-proxy's already are. **Open on 2026-10-17**: the fix is in progress | The factory pod runs on a node with no ZITADEL pod; a co-located pod succeeds under any policy. Its log has `agent-factory starting`: the human verifier is eager, so that line follows the JWKS fetch, and a failed fetch exits with `initial JWKS fetch`. The live CNP carries the portless rule. The broker's `rooms_authn_jwks_last_refresh_timestamp_seconds` for the IdP is under 6 h old, and neither `RoomAuthnJWKSStale` nor `RoomAuthnHumanIssuerNeverFetched` fires | Yes |
 | | | A `roomctl` call to the run-request API (`:8082`) is accepted | No: the owner's human token |
-| 7.2 | The E2 quota allows its nodes (sizing above) | `agents-gvisor` holds the headroom pod at 1 node, then 2 for a `large` run. There is no `FailedScaleUp` or quota event, and no gVisor node outside `agents-gvisor` (the `nap-e2-standard-4` fallback). Events live about 1 h: run it right after the scale-up | Yes |
+| 7.2 | The E2 quota allows its nodes (sizing above). **Passes at one gVisor node on 2026-10-17** | `agents-gvisor` holds the headroom pod at 1 node, then 2 for a `large` run. There is no `FailedScaleUp` or quota event, and no gVisor node outside `agents-gvisor` (the `nap-e2-standard-4` fallback). Events live about 1 h: run it right after the scale-up | Yes |
 
 ## 8. The full test: runbook 11 on gcp-0
 
-Run [runbook 11](11-v1-validation.md) end to end, with `CLOUD=gcp`. Step 7, one task end to end on release pins, is the
+Run [runbook 11](11-v1-validation.md) end to end, with `CLOUD=gcp`: its private hosts are then
+`*.priv.gcp.ogenki.io` and its IdP `auth.gcp.cloud.ogenki.io`. Step 7, one task end to end on release pins, is the
 first gcp-0 run of the release-pinned factory. Runbook 01's GKE notes from the 2026-09-30
 round still apply: `sandbox.gke.io/runtime`, no `agents-nodepool`.
 
@@ -197,10 +226,9 @@ feature gate off for the beta.
 
 - the cross-node JWKS fetch (7.1)
 - the quota once it is raised (7.2)
-- the ZITADEL seed's restore
-- the rehydrate's snapshot choice
 - the scheduled OpenBao snapshot (F1)
 - the headroom pod being scheduled and preempted by GKE's autoscaler, whose PriorityClass cutoff is -10
 - the beta APIs (10)
 
-Every render check behind this runbook ran offline, and none of it has run on a live GKE cluster.
+The seed's restore and the rehydrate's snapshot choice ran live on 2026-10-17 (steps 1–3); the
+items above are still proven by render checks only.

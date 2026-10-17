@@ -2,7 +2,7 @@
 title: Status and roadmap
 weight: 60
 description: "What the AI platform does today, what is in progress, and what comes next."
-lastVerified: 2026-10-16
+lastVerified: 2026-10-17
 aliases:
   - /docs/platform/agent-factory/status/
   - /docs/platform/ai-platform/roadmap/
@@ -22,13 +22,13 @@ flowchart LR
     repo["Own repository and site"]
   end
   subgraph progress["In progress"]
+    cloud["v2.1: the factory on gcp-0"]
     warm["Warm sandboxes"]
     caps["Per-person caps"]
     merge["Live auto-merge"]
     second["A second repository"]
   end
   subgraph next["Next"]
-    cloud["v2.1: second cloud"]
     loop["Continuation loop, if needed"]
     serving["Serving paths"]
   end
@@ -55,22 +55,23 @@ v1 is a pilot, not yet dependable: its hardening is tracked on the **v1 hardenin
 
 ## In progress {#in-progress}
 
-{{< callout type="warning" >}}
-**Paused since 2026-10-16.** `aws-0` is torn down, its databases seeded and OpenBao snapshotted by the
-destroy pipeline. Everything below resumes on `gcp-0`, standing alone, in the [order below](#after-the-2026-10-16-pause).
+{{< callout type="info" >}}
+**Live on `gcp-0` since 2026-10-17.** `aws-0` is torn down; `gcp-0` runs alone, hosts the identity
+provider and runs the factory. The work below continues there in the [order below](#next-on-gcp-0).
 {{< /callout >}}
 
 | Feature | What is left |
 |---|---|
+| v2.1: the factory on `gcp-0` | The CPU quota allows one gVisor node; a second, for a large run, waits on a quota increase. The factory's identity-provider check across nodes waits on a network-policy fix ([runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md)) |
 | Warm sandboxes: runs start in seconds, not minutes | The start-time proof is partly done: its remaining runs, one forcing a preemption, and a day of idle cost are left. The warm pool and suspend are not built ([results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)) |
 | Per-person spend caps | Built and off. A shadow week comes next, then the daily limit is chosen before they are enforced ([runbook 04, Part C](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week)) |
 | Live auto-merge of link fixes and their reverts | GitHub setup (the merger App's permissions and two rulesets), then a live drill ([runbook 12](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md)) |
 | A second repository, `ai-native-ref` | The repository is prepared; GitHub setup, then the live checks ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-second-repository-design.md)) |
 
-### After the 2026-10-16 pause
+### Next on gcp-0 {#next-on-gcp-0}
 
-1. Bring `gcp-0` up alone from release pins: it passes runbook 11, step 7, and closes the move to this repository ([runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md)).
-2. v2.1 on `gcp-0`: the factory reaches the identity provider over GKE's network, and the CPU quota allows its nodes.
+1. v2.1 on `gcp-0`: the factory reaches the identity provider over GKE's network, and the CPU quota allows its nodes.
+2. The full test from release pins: runbook 11, step 7, which closes the move to this repository ([runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md)).
 3. The warm sandboxes' remaining start-time runs, then the day of idle cost.
 4. Release the per-person caps' shadow mode and start the shadow week.
 5. The GitHub setup, then the live auto-merge drill and the second repository.
@@ -81,7 +82,6 @@ Each gate is a go/no-go on evidence; how each v2 decision is weighed is in the [
 
 | Next | When |
 |---|---|
-| v2.1: a second active cloud, `gcp-0` | When `gcp-0` runs live again: the factory reaches the identity provider over GKE's network and the CPU quota allows its nodes |
 | A sandbox runtime spike, Substrate against agent-sandbox | Two days at the next `gcp-0` rebuild ([alternatives]({{< relref "/docs/platform/ai-platform/agents/alternatives.md" >}})) |
 | A continuation loop that picks a PR's next step from its state | Only if a cohort shows tasks abandoned on PRs that could still have been fixed |
 | Budgets enforced at the gateway | Built behind one flag, still in shadow: a week of shadow record on real runs, then the owner flips it ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)) |

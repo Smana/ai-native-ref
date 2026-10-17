@@ -2,24 +2,29 @@
 
 Proves the [local-first UX design](../../superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)
 ([ADR-0056](../../../website/content/docs/decisions/0056-local-first-factory-ux.md)) on a cluster pinned to the
-agent-platform `v0.8.0` release, and closes SP3 Task 10.6 Step 2 (one task end to end on release pins). aws-0.
+agent-platform `v0.8.0` release, and closes SP3 Task 10.6 Step 2 (one task end to end on release pins).
+Written on aws-0; [runbook 14](14-gcp-0-session.md) step 8 runs it on gcp-0 with `CLOUD=gcp`.
 See [README.md](README.md) for `CLOUD`; run [00](README.md#runbook-00-one-time-cluster-setup) first.
 
 ## Prerequisites
 
-- aws-0 runs `agent-platform` `v0.8.0` (factory, room-broker, `roomctl`) with `human.access` set in
+- The cluster runs `agent-platform` `v0.8.0` or later (factory, room-broker, `roomctl`) with `human.access` set in
   [`infrastructure/base/room-broker/config.yaml`](../../../infrastructure/base/room-broker/config.yaml), and
   the link-only GitHub IdP from `scripts/provision/zitadel-idp.sh` is provisioned.
 - The platform CA, needed up front: `roomctl` talks to the room broker and the room page is served at
-  `https://rooms.priv.aws.ogenki.io`, both private endpoints signed by that CA, and the same CA signs every
+  `https://rooms.priv.$CLOUD.ogenki.io`, both private endpoints signed by that CA, and the same CA signs every
   private endpoint in Step 6. `roomctl` has no `--cacert` flag, so fetch the chain below, then trust the root
   certificate (CN=Ogenki Root CA, the last certificate in `ca.pem`) in the OS trust store — for example
   `sudo trust anchor --store <root>.pem` on Linux (p11-kit). Without it, `roomctl rooms` fails with
   `tls: failed to verify certificate: x509: certificate signed by unknown authority` before Step 1:
 
   ```bash
-  scripts/provision/openbao-config.sh ca --root-ca-secret-name certificates/priv.aws.ogenki.io/ca-chain \
-    --ca-output-file ca.pem --region eu-west-3 --profile ""
+  case $CLOUD in
+    aws) scripts/provision/openbao-config.sh ca --root-ca-secret-name certificates/priv.aws.ogenki.io/ca-chain \
+           --ca-output-file ca.pem --region eu-west-3 --profile "" ;;
+    gcp) scripts/provision/openbao-config.sh ca --cloud gcp --project ogenki-435905 \
+           --root-ca-secret-name openbao-priv-gcp-ca-chain --ca-output-file ca.pem ;;
+  esac
   ```
 
 - `roomctl` `v0.8.0`, verified: `sha256sum -c --ignore-missing roomctl.sha256`, then `roomctl configure` and `roomctl login`
@@ -62,10 +67,10 @@ The `--after` call returns only notes newer than the cursor (none when nothing w
 
 ### Step 3 — the room page
 
-Open `https://rooms.priv.aws.ogenki.io/r/$TASK` as `agents-admin`, then as a user who only has the watcher role.
+Open `https://rooms.priv.$CLOUD.ogenki.io/r/$TASK` as `agents-admin`, then as a user who only has the watcher role.
 
 Expected: the status, needs-you, actions and notes blocks render, and the raw log is folded. The watcher sees **no** actions
-block. Open `https://rooms.priv.aws.ogenki.io/r/$TASK#<approvalId>` for an approval listed under needs-you: the page scrolls to
+block. Open `https://rooms.priv.$CLOUD.ogenki.io/r/$TASK#<approvalId>` for an approval listed under needs-you: the page scrolls to
 and highlights that approval's card.
 
 **What this proves:** the five-block page, the per-viewer view, and the approval deep link.
@@ -90,7 +95,7 @@ roomctl rooms                                  # dev2, before linking GitHub
 roomctl rooms | grep -c "$TASK"               # after linking, no read on the repo
 roomctl status "<private-room>"               # same identity
 DEV2_TOKEN=$(roomctl token)                   # dev2's config; never echoed
-curl -sSI -H "Authorization: Bearer $DEV2_TOKEN" https://rooms.priv.aws.ogenki.io/api/rooms | grep -i x-rooms-access
+curl -sSI -H "Authorization: Bearer $DEV2_TOKEN" https://rooms.priv.$CLOUD.ogenki.io/api/rooms | grep -i x-rooms-access
 ```
 
 The `X-Rooms-Access` header (R21) reads `unlinked` before `dev2` links GitHub (5a) and `ok` after (5b onward). `unverified`
@@ -99,7 +104,7 @@ The `X-Rooms-Access` header (R21) reads `unlinked` before `dev2` links GitHub (5
 | # | Check | Expected |
 |---|---|---|
 | 5a | `dev2`, GitHub **not** linked: `roomctl rooms` | The unlinked hint (link GitHub in your ZITADEL profile); no room listed |
-| 5a′ | `dev2` signs in with Google only: an admin runs `IDP_URL=https://auth.cloud.ogenki.io scripts/provision/zitadel-idp.sh link-github <dev2-login> <dev2-github> --cluster aws-0 --cloud aws --apply`, then `dev2` runs `roomctl rooms` after 5 minutes | `[linked ]` with GitHub's numeric id; the unlinked hint is gone and `X-Rooms-Access` reads `ok` (the self-service link ends on a password reset for a user without one, #2269) |
+| 5a′ | `dev2` signs in with Google only: an admin runs `IDP_URL=https://auth.gcp.cloud.ogenki.io scripts/provision/zitadel-idp.sh link-github <dev2-login> <dev2-github> --cluster gcp-0 --cloud gcp --apply` (aws-0: `auth.cloud.ogenki.io`, `--cluster aws-0 --cloud aws`), then `dev2` runs `roomctl rooms` after 5 minutes | `[linked ]` with GitHub's numeric id; the unlinked hint is gone and `X-Rooms-Access` reads `ok` (the self-service link ends on a password reset for a user without one, #2269) |
 | 5b | `dev2` links GitHub, has no read on `<private-repo>`: `roomctl rooms`, `roomctl status <private-room>`, and the page URL | The private room is not listed; `status` and the page answer 404, never 403 |
 | 5c | Grant `dev2` read on `<private-repo>` on GitHub; poll `roomctl rooms` every 30 s | The room appears within 5 minutes |
 | 5d | Open the room's WebSocket as `dev2` (the page, or `roomctl watch <room>`), then revoke `dev2`'s read | The socket is cut within TTL + 30 s (5 min 30 s) |
@@ -131,7 +136,7 @@ The private endpoints need `--cacert ca.pem` (Prerequisites). The VictoriaLogs M
 **Logs:**
 
 ```bash
-curl -sS --cacert ca.pem https://vl.priv.aws.ogenki.io/select/logsql/query \
+curl -sS --cacert ca.pem https://vl.priv.$CLOUD.ogenki.io/select/logsql/query \
   --data-urlencode "query=kubernetes.pod_name:\"$RUN\" | stats by (kubernetes.container_name) count() hits"
 ```
 
@@ -140,8 +145,8 @@ Expected: rows for the `harness`, `room-bridge`, `room-gate` and `identity-proxy
 **Metrics** (a scrape in the first minute can read 0; query again after the meter has written):
 
 ```bash
-curl -sS --cacert ca.pem https://vm.priv.aws.ogenki.io/api/v1/query --data-urlencode "query=agentrun_usage_tokens{run_id=\"$RUNID\"}"
-curl -sS --cacert ca.pem https://vm.priv.aws.ogenki.io/api/v1/query --data-urlencode 'query=agent_factory_kill_switch_engaged'
+curl -sS --cacert ca.pem https://vm.priv.$CLOUD.ogenki.io/api/v1/query --data-urlencode "query=agentrun_usage_tokens{run_id=\"$RUNID\"}"
+curl -sS --cacert ca.pem https://vm.priv.$CLOUD.ogenki.io/api/v1/query --data-urlencode 'query=agent_factory_kill_switch_engaged'
 ```
 
 Expected: a non-zero token count; `agent_factory_kill_switch_engaged` `0`.
@@ -149,7 +154,7 @@ Expected: a non-zero token count; `agent_factory_kill_switch_engaged` `0`.
 **Traces:**
 
 ```bash
-curl -sS --cacert ca.pem "https://vt.priv.aws.ogenki.io/select/jaeger/api/traces?service=agent-harness&lookback=1h" \
+curl -sS --cacert ca.pem "https://vt.priv.$CLOUD.ogenki.io/select/jaeger/api/traces?service=agent-harness&lookback=1h" \
   | jq '[.data[] | {traceID, runs: ([.spans[].tags[] | select(.key=="agent.run_id") | .value] | unique)}]'
 ```
 
@@ -159,9 +164,9 @@ The factory's root span (service `agent-factory`) is exported only once the task
 Fetch the trace by its id and assert the root is the ancestor of every run's spans:
 
 ```bash
-TRACE=$(curl -sS --cacert ca.pem "https://vt.priv.aws.ogenki.io/select/jaeger/api/traces?service=agent-factory&lookback=2h" \
+TRACE=$(curl -sS --cacert ca.pem "https://vt.priv.$CLOUD.ogenki.io/select/jaeger/api/traces?service=agent-factory&lookback=2h" \
   | jq -r '.data[0].traceID')
-curl -sS --cacert ca.pem "https://vt.priv.aws.ogenki.io/select/jaeger/api/traces/$TRACE" | jq -e '
+curl -sS --cacert ca.pem "https://vt.priv.$CLOUD.ogenki.io/select/jaeger/api/traces/$TRACE" | jq -e '
   .data[0] as $t
   | ($t.processes | map_values(.serviceName)) as $svc
   | ($t.spans | map({key: .spanID, value: (.references[0].spanID // null)}) | from_entries) as $parent
@@ -175,7 +180,7 @@ curl -sS --cacert ca.pem "https://vt.priv.aws.ogenki.io/select/jaeger/api/traces
 Expected: `true` (exit 0): one parentless `agent-factory` span, and the parent chain (`references`) of every span carrying
 `agent.run_id` ends at it. Check that the distinct `agent.run_id` values equal the task's runs; a chain that ends elsewhere is a fail.
 
-**Dashboards:** in Grafana (`https://grafana.priv.aws.ogenki.io`), `agent-run` (`/d/agent-run/agent-run?var-run=$RUNID`) and
+**Dashboards:** in Grafana (`https://grafana.priv.$CLOUD.ogenki.io`), `agent-run` (`/d/agent-run/agent-run?var-run=$RUNID`) and
 `agent-fleet` show this task's run, tokens and phase.
 
 **Alert:** an `AgentRun` takes its image from the composition, so use a bare `Sandbox` with an image that cannot be pulled. The
@@ -205,7 +210,7 @@ spec:
 kubectl apply -f /tmp/podpending-probe.yaml
 kubectl get pod -n agents podpending-probe -o jsonpath='{.status.phase} {.status.containerStatuses[0].state.waiting.reason}{"\n"}'
 # after 15 minutes:
-curl -sS --cacert ca.pem https://vm.priv.aws.ogenki.io/api/v1/query --data-urlencode 'query=ALERTS{alertname="AgentSandboxPodPending",alertstate="firing"}'
+curl -sS --cacert ca.pem https://vm.priv.$CLOUD.ogenki.io/api/v1/query --data-urlencode 'query=ALERTS{alertname="AgentSandboxPodPending",alertstate="firing"}'
 ```
 
 Expected: `Pending ErrImagePull` or `ImagePullBackOff`; the `ALERTS` series for `AgentSandboxPodPending` after 15 minutes.

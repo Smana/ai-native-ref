@@ -8,7 +8,7 @@ aliases:
 ---
 
 {{< callout type="info" >}}
-**v1, pilot scope.** On `main` and running on `aws-0`, for one public repository: you label, the
+**v1, pilot scope.** On `main` and running on `gcp-0`, for one public repository: you label, the
 agents work, you review and merge. The merge gate runs in shadow: it says what it would merge, and
 merges nothing. The task below ran on 2026-10-07, before v1's release. What v1 proves, and what
 comes next, is on the
@@ -218,13 +218,13 @@ room's repository, and keeps the answer for 5 minutes: a grant or a revocation t
 that. A room you cannot read answers 404, as if it did not exist, and when GitHub cannot be asked
 the broker refuses once its cached answer expires.
 
-Link your GitHub account once: sign in at `https://auth.cloud.ogenki.io`, choose **GitHub**, and link
+Link your GitHub account once: sign in at `https://auth.gcp.cloud.ogenki.io`, choose **GitHub**, and link
 it to your existing user. If you sign in with Google only, that flow ends on a password reset: ask an
 admin to add the link, which takes one command:
 
 ```bash
-IDP_URL=https://auth.cloud.ogenki.io scripts/provision/zitadel-idp.sh link-github \
-  <your-zitadel-login> <your-github-login> --cluster aws-0 --cloud aws --apply
+IDP_URL=https://auth.gcp.cloud.ogenki.io scripts/provision/zitadel-idp.sh link-github \
+  <your-zitadel-login> <your-github-login> --cluster gcp-0 --cloud gcp --apply
 ```
 
 Until the link exists, `roomctl rooms` lists nothing and says how to link; once it does, the hint

@@ -227,7 +227,7 @@ The run dashboard gains a "start" row (p50/p90 by launch) and a "pool" row.
 ## Results
 
 Step 1 (headroom) is live on aws-0 since ai-native-ref#5. Stopped for the 2026-10-16 pause; the
-remaining runs resume after the rebuild ([resume order](../../../website/content/docs/platform/ai-platform/status.md#after-the-2026-10-16-pause)).
+remaining runs resume after the rebuild ([resume order](../../../website/content/docs/platform/ai-platform/status.md#next-on-gcp-0)).
 
 | # | State | Evidence |
 |---|---|---|

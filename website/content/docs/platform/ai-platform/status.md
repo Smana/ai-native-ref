@@ -20,9 +20,9 @@ flowchart LR
     internal["Internal work on Claude"]
     gw["agentgateway, model tiers"]
     repo["Own repository and site"]
+    cloud["v2.1: the factory on gcp-0"]
   end
   subgraph progress["In progress"]
-    cloud["v2.1: the factory on gcp-0"]
     warm["Warm sandboxes"]
     caps["Per-person caps"]
     merge["Live auto-merge"]
@@ -47,6 +47,7 @@ flowchart LR
 | The reviewer keeps the implementer's model | Public work never goes to Anthropic for review ([ADR-0058]({{< relref "/docs/decisions/0058-reviewer-on-another-model.md" >}})) |
 | A measured comparison on harder tasks | The factory against a hosted agent on 15 harder issues: the gap follows the model, not the factory ([results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-v2-hard-task-cohort-design.md#results)) |
 | The AI platform in its own repository and site | Versioned and signed on its own, documented here; a rebuild from release pins closes the move ([ADR-0057]({{< relref "/docs/decisions/0057-ai-platform-own-repository.md" >}})) |
+| v2.1: the factory on `gcp-0` | The whole factory runs on GKE alone: a labelled issue became a merged pull request on release pins, its room followed live, and the gVisor pool scaled to its second node ([runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md)) |
 | Self-hosted model serving | vLLM on L4 GPUs behind an OpenAI-compatible gateway, off by default on both clouds ([known gaps]({{< relref "/docs/platform/ai-platform/serving/_index.md#known-gaps" >}})) |
 
 v1 is a pilot, not yet dependable: its hardening is tracked on the **v1 hardening** milestones of
@@ -62,19 +63,16 @@ provider and runs the factory. The work below continues there in the [order belo
 
 | Feature | What is left |
 |---|---|
-| v2.1: the factory on `gcp-0` | The CPU quota allows one gVisor node; a second, for a large run, waits on a quota increase. The factory's identity-provider check across nodes waits on a network-policy fix ([runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md)) |
-| Warm sandboxes: runs start in seconds, not minutes | The start-time proof is partly done: its remaining runs, one forcing a preemption, and a day of idle cost are left. The warm pool and suspend are not built ([results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)) |
-| Per-person spend caps | Built and off. A shadow week comes next, then the daily limit is chosen before they are enforced ([runbook 04, Part C](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week)) |
+| Warm sandboxes: runs start in seconds, not minutes | Compressed same-day test 2026-10-17: runs start in 16–17 s (target 30 s), and a run preempts the warm capacity, never the reverse. The warm node costs about $126 a month, over its $50 cap, so the owner picks a smaller node, a schedule or a new cap. The warm pool and suspend are not built ([results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)) |
+| Per-person spend caps | Counting, not refusing. Compressed same-day test 2026-10-17: every run was charged to its person, and none would have been refused. The recommended daily limit is the 5M-token default. Enforcing waits on a longer record ([runbook 04](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)) |
 | Live auto-merge of link fixes and their reverts | GitHub setup (the merger App's permissions and two rulesets), then a live drill ([runbook 12](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md)) |
 | A second repository, `ai-native-ref` | The repository is prepared; GitHub setup, then the live checks ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-second-repository-design.md)) |
 
 ### Next on gcp-0 {#next-on-gcp-0}
 
-1. v2.1 on `gcp-0`: the factory reaches the identity provider over GKE's network, and the CPU quota allows its nodes.
-2. The full test from release pins: runbook 11, step 7, which closes the move to this repository ([runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md)).
-3. The warm sandboxes' remaining start-time runs, then the day of idle cost.
-4. Release the per-person caps' shadow mode and start the shadow week.
-5. The GitHub setup, then the live auto-merge drill and the second repository.
+1. The owner's call on the warm node's idle cost: a smaller node, a schedule or a new cap.
+2. The shadow budget alert fixed so it fires on the first overrun, then a longer shadow record before either cap is enforced.
+3. The GitHub setup, then the live auto-merge drill and the second repository.
 
 ## Roadmap {#v2-roadmap}
 
@@ -84,7 +82,7 @@ Each gate is a go/no-go on evidence; how each v2 decision is weighed is in the [
 |---|---|
 | A sandbox runtime spike, Substrate against agent-sandbox | Two days at the next `gcp-0` rebuild ([alternatives]({{< relref "/docs/platform/ai-platform/agents/alternatives.md" >}})) |
 | A continuation loop that picks a PR's next step from its state | Only if a cohort shows tasks abandoned on PRs that could still have been fixed |
-| Budgets enforced at the gateway | Built behind one flag, still in shadow: a week of shadow record on real runs, then the owner flips it ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)) |
+| Budgets enforced at the gateway | Built behind one flag, still in shadow. Compressed same-day test 2026-10-17: no real run went over, and a deliberate overrun was admitted and counted. Its alert did not fire, which is to be fixed first. Then the owner flips the flag ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)) |
 
 ### Serving {#serving-roadmap}
 

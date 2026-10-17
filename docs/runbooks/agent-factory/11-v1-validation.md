@@ -280,6 +280,31 @@ Findings, each filed where it is fixed:
 | The spec calls the factory multi-repo; it takes issues from one repository | [#2268](https://github.com/Smana/cloud-native-ref/issues/2268) |
 | The unlinked hint says to link GitHub from the login page, which sends a Google-only user to a password reset | [#2269](https://github.com/Smana/cloud-native-ref/issues/2269) |
 
+### gcp-0, 2026-10-17
+
+Release pins: agent-platform v0.15.2, ai-native-ref v0.1.12, crossplane-configuration v0.9.15.
+`TASK=yyv2c2kn` (issue [#2484](https://github.com/Smana/cloud-native-ref/issues/2484), PR
+[#2491](https://github.com/Smana/cloud-native-ref/pull/2491), run `3hohu32j`). Intake polls
+(`poll.issues` 60 s) and needs no webhook: the Task appeared a minute after the label.
+
+| Step | Expected | Observed | Pass/Fail |
+|---|---|---|---|
+| 1 | issue filed by the skill, no `factory/ready` | An agent filed the issue as a warm-sandbox probe, not through the skill; the owner's token applied the label | Partial |
+| 2 | `summary/v1` fields | `roomctl status yyv2c2kn --json`: `summary/v1` with phase, run, budget, PR and `needsYou: []` | Pass |
+| 3 | blocks render | Owner: the room page renders every block | Pass |
+| 4 | diagram zooms | Not run | Open |
+| 5b–5e | as aws-0 | Not run: no second identity | Open |
+| 6 | logs, metrics, traces, alert | Read through the API server's service proxy. Logs: harness 480, room-bridge 59, identity-proxy 2, room-gate 1. Tokens 184,289 (`max_over_time(agentrun_usage_tokens{run_id="3hohu32j"}[1h])`), the task's total; kill switch `0`. One trace of 248 spans across `agent-factory`, `agent-harness` and `agent-router`: one parentless `agent-factory` root, the ancestor of every `3hohu32j` span (`jq -e` → `true`). `AgentSandboxPodPending` evaluated, healthy. Read-only, so no Pending probe was fired; dashboards not opened | Partial |
+| 7 | one task end to end on release pins | `yyv2c2kn`: implementer, PR #2491, merged by the owner 21:11:43, `Done` 21:12:21 | Pass |
+
+A run's `AgentRun` is deleted when its task ends, so Step 6's token query needs `max_over_time`
+once the task is over.
+
+The room page was blank for the first hour, for two reasons, neither a bug. A room is deleted when
+its task ends, and the first probe's PR was closed at 21:01:25, so for three minutes there was no
+room to show. Before 21:01:40, Secret `room-broker-zitadel-reader` did not exist, and every human
+request got `503 access_unverified`. That is runbook 14's step 0.4.
+
 ## Live findings
 
 Found by the live gates on `gcp-0` and `aws-0`.

@@ -155,6 +155,7 @@ Expected: `refs/heads/integration/agent-factory`; both `Ready=True`, `Suspended=
 |---|---|---|---|
 | 1 | OpenBao policy `agents-secrets` + JWT role `agents-secrets` on `jwt/<cluster>` — applied by the `opentofu/$CLOUD/openbao/management` stack | `agent-secrets` → `agent-router` → `agent-mcp`, `octo-sts` (runbooks 02, 04–07) | see below |
 | 2 | The agents' Z.ai key | runbook 04 (frontier route), 07 | `bao kv put -mount=agents zai api_key=-` (key on stdin, never as an argument) |
+| 2b | The agents' Anthropic key, read by the ExternalSecret `agents-anthropic-api-key` | the internal tier on Claude (agentgateway's Anthropic backend) | `bao kv put -mount=agents anthropic api_key=-` |
 | 3 | Branch ruleset, **before** the App exists | runbook 05 | `task ops:github:agent-branch-ruleset -- Smana/cloud-native-ref` |
 | 4 | GitHub App `ogenki-agents` on `Smana`, installed on `Smana/cloud-native-ref` only | runbook 05, 07 | `bao kv put -mount=agents github-app app_id=<id> private_key=@<pem file>` |
 | 4b | The `factory-app` GitHub App key, read by SP3's ExternalSecret `agent-factory-github` | the `agent-factory` Kustomization | `bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem file>` |
@@ -162,7 +163,7 @@ Expected: `refs/heads/integration/agent-factory`; both `Ready=True`, `Suspended=
 | 4d | The RunLore intake token: one generated value at two paths, the factory's (`agent-factory-intake`) and RunLore's (R45) | the `agent-factory` Deployment, which mounts it non-optionally; RunLore's posts to `/intake/runlore` | below |
 | 5 | A trivial issue URL (e.g. a broken relative link) | runbook 07 SC-04 | — |
 
-These keys (2, 4, 4b, 4c) are the platform's one owner-written exception: GitHub and Z.ai issue
+These keys (2, 2b, 4, 4b, 4c) are the platform's one owner-written exception: GitHub, Z.ai and Anthropic issue
 them, and the AWS snapshot cannot be restored across KMS seals (GCP parity). Once per GCP lineage.
 Without 4c or 4d the factory pod never starts: its Secret volumes are not optional.
 

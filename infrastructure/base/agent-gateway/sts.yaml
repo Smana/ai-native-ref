@@ -2,8 +2,8 @@
 # route on the Envoy one: same path, same Service. A route of its own rather than
 # a second parentRef, so the Envoy route stays untouched until phase H deletes it;
 # `octo-sts` is that route's name in agent-system. The listener pins this
-# cluster's issuer and the four octo-sts audiences, then forwards the bearer
-# (preserveToken), which octo-sts verifies itself.
+# cluster's issuer and each opted-in repository's four octo-sts audiences, then
+# forwards the bearer (preserveToken), which octo-sts verifies itself.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

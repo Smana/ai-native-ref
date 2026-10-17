@@ -77,6 +77,32 @@ data:
                 docs/superpowers/, docs/specs/ and website/content/docs/decisions/. Fix those with an
                 obvious replacement, changing fewer than 21 lines in total and adding or deleting no
                 file. If none is broken, change nothing and open no pull request.
+        # The second repository (v2 design D9): every class review or shadow, nothing arms until
+        # its own 20 shadow decisions. Its .policy.yml has no low-risk rule to match a live class.
+        - name: Smana/ai-native-ref
+          maintainers: [Smana]
+          triggerLabel: factory/ready
+          classes:
+            docs-links: {shadow: true}
+            revert: {shadow: true}
+            docs: {}
+            tests: {}
+            dashboards: {}
+            scripts: {}
+          merge:
+            # The `main` ruleset's 2 contexts (app 15368): `gh api repos/Smana/ai-native-ref/rulesets/25225244`.
+            # ci.yaml runs both on push to main too; TruffleHog is a step of `lint`.
+            requiredChecks: [validate, lint]
+            verifyChecks: [validate, lint]
+            policyBotLogin: ogenki-merge-gate[bot]
+            mergerLogin: ogenki-agent-merger[bot]
+            autoMergesPerDay: 2
+            fixRuns: 1
+            checkReruns: 0  # a cancelled check goes to a human
+            verifyFor: 30m
+            revertWindow: 168h
+            leakScanCheck: lint
+            breaker: {window: 10, maxReverts: 1}
       control: {repository: Smana/cloud-native-ref, issue: 2188}  # factory/stop here stops every repository
       factoryLogin: ogenki-agent-factory[bot]
       agentsLogin: ogenki-agents[bot]

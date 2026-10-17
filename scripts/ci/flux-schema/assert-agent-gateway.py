@@ -135,11 +135,14 @@ MODEL_MUTATIONS = ("overrides", "defaults")
 # Identity design T4: the internal listener's GitHub route reads, never writes. Git's
 # smart-HTTP fetch is these two requests; a push is GET ?service=git-receive-pack then
 # POST /git-receive-pack, and the REST API is not routed at all. The repositories are
-# the octo-sts opt-in (audiences() below): the same list, kept by hand on both.
+# the octo-sts opt-in: REPOSITORIES feeds both, and each repository's trust policies accept only
+# its own audiences. A third repository needs a second sts listener (design, security analysis).
+REPOSITORIES = ("Smana/cloud-native-ref", "Smana/ai-native-ref")
+_REPOS = "(" + "|".join(r.split("/")[1] for r in REPOSITORIES) + ")"
 GITHUB_READ_MATCHES = (
-    {"method": "GET", "path": {"type": "RegularExpression", "value": r"^/Smana/cloud-native-ref\.git/info/refs$"},
+    {"method": "GET", "path": {"type": "RegularExpression", "value": rf"^/Smana/{_REPOS}\.git/info/refs$"},
      "queryParams": [{"type": "Exact", "name": "service", "value": "git-upload-pack"}]},
-    {"method": "POST", "path": {"type": "RegularExpression", "value": r"^/Smana/cloud-native-ref\.git/git-upload-pack$"}},
+    {"method": "POST", "path": {"type": "RegularExpression", "value": rf"^/Smana/{_REPOS}\.git/git-upload-pack$"}},
 )
 # The run's JWT is already gone (preserveToken off, AG4); these go too, so GitHub sees an anonymous fetch.
 GITHUB_STRIPPED = ("authorization", "cookie")
@@ -172,7 +175,7 @@ PROFILES = {
 
 def audiences(prof, listener):
     if listener == "sts":
-        return {f"octo-sts/Smana/cloud-native-ref/{r}" for r in prof.roles}
+        return {f"octo-sts/{repo}/{r}" for repo in REPOSITORIES for r in prof.roles}
     return {f"{prof.aud_prefix}.{r}.{listener}" for r in prof.roles}
 
 

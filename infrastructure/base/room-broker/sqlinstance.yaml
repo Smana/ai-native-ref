@@ -1,5 +1,5 @@
 # The room log of record (SP2 §4). Standalone, not an App sub-block: only the
-# standalone XRD has objectStoreRecovery, added once a first seed exists (ruling P8).
+# standalone XRD has objectStoreRecovery (ruling P8).
 apiVersion: cloud.ogenki.io/v1alpha1
 kind: SQLInstance
 metadata:
@@ -35,6 +35,17 @@ spec:
     # of the broker image, so the schema and the binary match.
     ref: v0.15.2
     path: internal/store/migrations
+  # The next bootstrap restores the last teardown's log; `bootstrap` is immutable once
+  # the Cluster exists. `rooms-pre-destroy` is the alias the host's destroy hook
+  # (cnref scripts/ops/k8s/cnpg-pre-destroy-seed.sh, every SQLInstance with `backup`)
+  # refreshes only after a fresh dated seed verifies, as zitadel-pre-destroy. An empty
+  # prefix fails the bootstrap instead of starting fresh, so a cloud whose bucket has
+  # no alias yet removes this block (gcp-0 overlay). The new generation archives into
+  # its own uid-keyed prefix, so the restore never writes into the seed.
+  # Drill: docs/runbooks/agent-factory/13-rooms-restore.md.
+  objectStoreRecovery:
+    bucketName: "${region}-ogenki-cnpg-backups"
+    path: rooms-pre-destroy
   backup:
     # SIX fields, seconds first: CNPG uses robfig/cron (security/base/zitadel/sqlinstance.yaml).
     schedule: "0 0 2 * * *"

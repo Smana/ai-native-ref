@@ -67,6 +67,7 @@ Mixes rounds 4 to 6 (from `580042e6` on). Round 6 took issue #2112 to PR #2114 (
 | [10-disruption.md](10-disruption.md) | Disruption design acceptance 1–6 | Yes — a maintainer's `factory/ready`; aws-0 Step 7 needs IAM | ~60 min |
 | [11-v1-validation.md](11-v1-validation.md) | Local-first UX: the skill, `roomctl status`, the room page, zoomable diagrams, D7 room access, observability on one run, one task end to end on release pins | Yes — a maintainer's `factory/ready`; a second, non-admin identity and a private test repo | ~90 min |
 | [12-live-auto-merge-drill.md](12-live-auto-merge-drill.md) | Design D4, gate G1–G3: the first unattended `docs-links` merge at the run-reported head, its revert and the breaker | Yes — the owner's go, the merger App's `issues: write`, a maintainer's `factory/ready` | ~2 h |
+| [13-rooms-restore.md](13-rooms-restore.md) | Issue #27: the rooms database restores from `rooms-pre-destroy` on a rebuild, and into a scratch namespace; RPO and RTO | Part A: a teardown and rebuild. Part B: the owner's go (writes a seed) | A: the rebuild + 10 min; B: ~30 min |
 
 **Out of scope:** SC-15/SC-16 (gVisor overhead ratio and `validate-manifests.sh`/`task check`
 exit codes) are already closed by the phase-0 spike and by CI — no live step adds evidence.

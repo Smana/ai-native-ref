@@ -21,6 +21,11 @@ patches:
       - op: replace
         path: /spec/backup/bucketName
         value: ${project_id}-ogenki-cnpg-backups
+      # No rooms-pre-destroy in the GCS bucket yet, and an empty recovery prefix fails the
+      # bootstrap instead of starting fresh (as tooling/gcp-0/harbor in the host). Once a
+      # gcp-0 teardown has seeded it, opt in: runbook 13, Step A0.
+      - op: remove
+        path: /spec/objectStoreRecovery
   # `test` pins the indices: a reordered base fails the build instead of patching the
   # wrong rule.
   - target:

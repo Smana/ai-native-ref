@@ -44,7 +44,7 @@ flowchart TD
 
 ### CPU sizing
 
-Every fixed machine is E2, so regional `E2_CPUS` binds before anything else.
+Every fixed machine is E2. Regional `E2_CPUS` was expected to bind first, but on 2026-10-17 it read usage 0 while E2 ran (below), so `CPUS_ALL_REGIONS` is the one to watch.
 
 | E2 capacity in europe-west4 | vCPU |
 |---|---|
@@ -193,9 +193,9 @@ fails a CNP that lacks it.
 
 | # | Blocker | What proves it closed | Scripted |
 |---|---|---|---|
-| 7.1 | The factory reaches the identity provider over GKE's network. Its CNP's IdP rule is replaced by a portless `toEntities: [all]`, as the broker's and rooms-proxy's already are. **Open on 2026-10-17**: the fix is in progress | The factory pod runs on a node with no ZITADEL pod; a co-located pod succeeds under any policy. Its log has `agent-factory starting`: the human verifier is eager, so that line follows the JWKS fetch, and a failed fetch exits with `initial JWKS fetch`. The live CNP carries the portless rule. The broker's `rooms_authn_jwks_last_refresh_timestamp_seconds` for the IdP is under 6 h old, and neither `RoomAuthnJWKSStale` nor `RoomAuthnHumanIssuerNeverFetched` fires | Yes |
+| 7.1 | The factory reaches the identity provider over GKE's network. Its CNP's IdP rule is replaced by a portless `toEntities: [all]`, as the broker's and rooms-proxy's already are. **Passed on 2026-10-17** (`gcp-0-v21-checks.sh`, 20:11 UTC) | The factory pod runs on a node with no ZITADEL pod; a co-located pod succeeds under any policy. Its log has `agent-factory starting`: the human verifier is eager, so that line follows the JWKS fetch, and a failed fetch exits with `initial JWKS fetch`. The live CNP carries the portless rule. The broker's `rooms_authn_jwks_last_refresh_timestamp_seconds` for the IdP is under 6 h old, and neither `RoomAuthnJWKSStale` nor `RoomAuthnHumanIssuerNeverFetched` fires | Yes |
 | | | A `roomctl` call to the run-request API (`:8082`) is accepted | No: the owner's human token |
-| 7.2 | The E2 quota allows its nodes (sizing above). **Passes at one gVisor node on 2026-10-17** | `agents-gvisor` holds the headroom pod at 1 node, then 2 for a `large` run. There is no `FailedScaleUp` or quota event, and no gVisor node outside `agents-gvisor` (the `nap-e2-standard-4` fallback). Events live about 1 h: run it right after the scale-up | Yes |
+| 7.2 | The E2 quota allows its nodes (sizing above). **Passed on 2026-10-17**: one node at go-live, two at 21:16 UTC under a forced preemption (a 5.6-vCPU stand-in for a `large` run, since the factory sizes every run `small`) | `agents-gvisor` holds the headroom pod at 1 node, then 2 for a `large` run. There is no `FailedScaleUp` or quota event, and no gVisor node outside `agents-gvisor` (the `nap-e2-standard-4` fallback). Events live about 1 h: run it right after the scale-up | Yes |
 
 ## 8. The full test: runbook 11 on gcp-0
 

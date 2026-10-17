@@ -57,7 +57,7 @@ v1 is a pilot, not yet dependable: its hardening is tracked on the **v1 hardenin
 
 {{< callout type="warning" >}}
 **Paused since 2026-10-16.** `aws-0` is torn down, its databases seeded and OpenBao snapshotted by the
-destroy pipeline. Everything below resumes on the rebuild, in the [order below](#after-the-2026-10-16-pause).
+destroy pipeline. Everything below resumes on `gcp-0`, standing alone, in the [order below](#after-the-2026-10-16-pause).
 {{< /callout >}}
 
 | Feature | What is left |
@@ -69,10 +69,11 @@ destroy pipeline. Everything below resumes on the rebuild, in the [order below](
 
 ### After the 2026-10-16 pause
 
-1. Rebuild `aws-0` from release pins: it passes runbook 11, step 7, and closes the move to this repository.
-2. The warm sandboxes' remaining start-time runs, then the day of idle cost.
-3. Release the per-person caps' shadow mode and start the shadow week.
-4. The GitHub setup, then the live auto-merge drill and the second repository.
+1. Bring `gcp-0` up alone from release pins: it passes runbook 11, step 7, and closes the move to this repository ([runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md)).
+2. v2.1 on `gcp-0`: the factory reaches the identity provider over GKE's network, and the CPU quota allows its nodes.
+3. The warm sandboxes' remaining start-time runs, then the day of idle cost.
+4. Release the per-person caps' shadow mode and start the shadow week.
+5. The GitHub setup, then the live auto-merge drill and the second repository.
 
 ## Roadmap {#v2-roadmap}
 

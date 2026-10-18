@@ -1,6 +1,6 @@
 # v2: a second repository
 
-**Date:** 2026-10-16 · **Status:** draft, owner review pending ·
+**Date:** 2026-10-16 · **Status:** approved (owner, 2026-10-18; decision 4 open) ·
 **Part of:** the v2 roadmap on the
 [status page](../../../website/content/docs/platform/ai-platform/status.md#v2-roadmap), row "A second repository"
 
@@ -58,7 +58,7 @@ fails closed). Starting a run is a **write** through the agents' App, so it need
 | D4 | The caller's GitHub permission | **`write` or higher** (`GET /repos/{r}/collaborators/{login}/permission`) for **every** human run admission, room or not, all roles. The factory resolves `sub → login` itself with `ghidentity` (the broker forwards the token, never a login), cached 5 min, failing closed: `403 repository_permission`. `agents-admin` gets no bypass: GitHub stays the one answer to "who may change this repository" | `read`: every GitHub user can read a public repository, so it would gate nothing. Per role (read for reviewer/triager): one rule is testable in one table; a read-only run still spends the budget and posts as the App |
 | D5 | Label intake | The labeller is in **that repository's** `maintainers` **and** has `write` on it (D4's check). Each repository is polled for its own `triggerLabel` | The maintainers list alone: it drifts from GitHub silently |
 | D6 | System callers | `systemPrincipals` gains a repository list per principal; schedules and RunLore take the repository from their config entry (`runlore.repository`, default the first entry) | Letting a system principal name any allowed repository: RunLore files issues, it should not choose where |
-| D7 | The single-owner fence | **`.github/agent-factory.yaml` on the default branch: `factory: aws-0`.** The factory reads it with its App at start and every 5 min; a repository whose file is absent or names another factory gets no intake, no schedules, no API runs (`409 repository_not_owned`) and no merges (gate step `not_owned` → human). A gate path in that repository's `.policy.yml` | A repository Actions variable: outside review and GitOps, and needs a new App permission. A Kubernetes Lease: two clusters do not share an API server. A CI check that no two clusters list the same repository: static, it cannot stop a rebuilt cluster on a stale pin |
+| D7 | The single-owner fence | **`.github/agent-factory.yaml` on the default branch: `factory: gcp-0`** (aws-0 until its teardown, 2026-10-17). The factory reads it with its App at start and every 5 min; a repository whose file is absent or names another factory gets no intake, no schedules, no API runs (`409 repository_not_owned`) and no merges (gate step `not_owned` → human). A gate path in that repository's `.policy.yml` | A repository Actions variable: outside review and GitOps, and needs a new App permission. A Kubernetes Lease: two clusters do not share an API server. A CI check that no two clusters list the same repository: static, it cannot stop a rebuilt cluster on a stale pin |
 | D8 | GitHub connections | **One forge client per repository**, both Apps, built from the list; a repository whose installation is missing fails readiness, never silently skips | One client re-targeted per call: every call site would carry the repository, and a missed one acts on the wrong repository |
 | D9 | The second repository | **`Smana/ai-native-ref`** after the S3 switch, all classes `review` or `shadow` (no live auto-merge until its own 20 shadow decisions) | `agent-platform`: code with tests, a good cohort source, but the factory would PR its own admission code, and its CI and release signing are heavier to gate. A throwaway sandbox repository: proves the plumbing, not the work |
 | D10 | Metrics | A `repository` label on the task, outcome, intake, intervention and time-to-PR series; values only from the config list (≤ 8), anything else `other` | A label from request input: unbounded, and a refused request would mint series |
@@ -116,7 +116,7 @@ ZITADEL viewer PAT the broker uses, mounted into the factory too (one ExternalSe
 |---|---|
 | agent-platform | D1 config list and legacy read; D8 forge client per repository; intake polls each repository (D5); `admitRoom`/`admitResume` bind the repository (D3); the factory gains `ghidentity` + a `repoaccess.Permission` (D4); `systemPrincipals` per repository (D6); the fence reader and merge-gate step (D7); `repository` label (D10); the Room CRD default removed (`room_types.go:69`); `docs/factory.md`, `docs/api.md` (three new codes), `docs/security.md` |
 | ai-native-ref (after S3; the AI paths are frozen in cnref until then) | Factory values in the list shape, then the second entry; the ZITADEL viewer secret mounted in the factory; the `sts` listener's four new audiences (`policies-identity.yaml`); its own `.policy.yml`, `.github/chainguard/agent-*.sts.yaml` and `.github/agent-factory.yaml`; a runbook page "add a repository" |
-| cloud-native-ref | `.github/agent-factory.yaml` (`factory: aws-0`) as a gate path; the status row; nothing else: the ruleset scripts already take `<owner/repo>` |
+| cloud-native-ref | `.github/agent-factory.yaml` (`factory: gcp-0`) as a gate path; the status row; nothing else: the ruleset scripts already take `<owner/repo>` |
 | crossplane-configuration | None: audience, task URL and PR pattern already derive from `spec.repository` |
 
 ### Owner steps on the second repository, in order
@@ -163,7 +163,7 @@ cloud-native-ref before the next.
 
 ## The gate's proof
 
-On aws-0, with both repositories listed:
+On gcp-0, with both repositories listed:
 
 | # | Step | Expected |
 |---|---|---|
@@ -172,7 +172,7 @@ On aws-0, with both repositories listed:
 | P3 | `POST /v1/runs` with a cloud-native-ref room and `repository: Smana/ai-native-ref` | `400 repository_differs_from_the_room`; no AgentRun |
 | P4 | `resumeBranch` of a cloud-native-ref roomless run, `repository: Smana/ai-native-ref` | `400 repository_differs_from_the_branch` |
 | P5 | A second GitHub account, `agents` member, read-only on `ai-native-ref`, roomless run | `403 repository_permission`; the same account's room still visible (read) |
-| P6 | Fence file set to `gcp-0` on `ai-native-ref`, then a label | No Task; `agent_factory_repository_owned{repository="Smana/ai-native-ref"} 0`; revert, then a Task |
+| P6 | Fence file set to `aws-0` on `ai-native-ref`, then a label | No Task; `agent_factory_repository_owned{repository="Smana/ai-native-ref"} 0`; revert, then a Task |
 | P7 | A run pod's projected token presented to octo-sts for the other repository's audience | `403` from the trust policy (runbook 05 step 5, cross-repository) |
 
 ## Acceptance criteria
@@ -187,14 +187,14 @@ On aws-0, with both repositories listed:
 5. The status page row moves to proven, and the agents page's "One repository at first" becomes
    "Adding a repository".
 
-## Decisions to confirm (owner-only)
+## Owner decisions
 
-| # | Question | Recommended default |
+| # | Question | Decision |
 |---|---|---|
-| 1 | Is `ai-native-ref` the second repository (the factory working on its own config repository, behind gate paths), rather than `agent-platform` or a sandbox? | `ai-native-ref`, after S3 |
-| 2 | Is `write` the right bar for every run, with no `agents-admin` bypass? | Yes |
-| 3 | A second GitHub account for P5 (also unblocks runbook 11's four open checks) | Create one, read-only collaborator on `ai-native-ref` |
-| 4 | Order against per-person caps | This gate first: caps' D1 identity link is D4's lookup, built here |
+| 1 | Is `ai-native-ref` the second repository (the factory working on its own config repository, behind gate paths), rather than `agent-platform` or a sandbox? | **Decided** (owner, 2026-10-18): `ai-native-ref` |
+| 2 | Is `write` the right bar for every run, with no `agents-admin` bypass? | **Decided** (owner, 2026-10-18): yes, `write` for every run, no bypass |
+| 3 | A second GitHub account for P5 (also unblocks runbook 11's four open checks) | **Decided** (owner, 2026-10-18): one is created, read-only collaborator on `ai-native-ref` |
+| 4 | Order against per-person caps | Open. Recommended: this gate first, since caps' D1 identity link is D4's lookup, built here |
 
 No ADR: no technology is chosen over another; the fence, the shape and the permission bar are
 recorded above.

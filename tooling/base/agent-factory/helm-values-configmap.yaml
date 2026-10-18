@@ -169,10 +169,11 @@ data:
         investigate: {roles: [triager]}  # R38: proposes a public issue text, never writes
       caps: {activeTasks: 3, concurrentRuns: 4, tasksPerDay: 20, maxTextBytes: 14336, awaitingHumanWIP: 5}
       budgets:
-        # OD-10: only the principal cap keeps its shadow week (R3); the task cap is enforced
-        # since a shadow one let a task reach 3.35 M of its 3 M. The meter always enforces the run cap.
+        # OD-10: the task cap is enforced since a shadow one let a task reach 3.35 M of its 3 M; the
+        # principal cap since 2026-10-18, after a compressed same-day shadow record (owner's call,
+        # not R3's week). The meter always enforces the run cap.
         enforceTask: true
-        enforcePrincipal: false
+        enforcePrincipal: true
         factoryDaily: 25000000
         humanDaily: 5000000
         # Per-person caps in shadow (D8): counted as budget-principal-shadow{principal}, never refused.

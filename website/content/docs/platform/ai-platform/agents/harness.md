@@ -20,7 +20,7 @@ The harness is the program that runs the agent loop in the sandbox: OpenHands
 and driven by a small entrypoint, `agent-run`
 ([agent-platform `images/agent-harness/`](https://github.com/Smana/agent-platform/tree/main/images/agent-harness)).
 The isolation around it is on [Runtime]({{< relref "/docs/platform/ai-platform/agents/runtime.md" >}});
-model routing and prices are on the [routing and cost page](/docs/platform/ai-platform/routing/).
+model routing and prices are on the [routing and cost page]({{< relref "/docs/platform/ai-platform/routing.md" >}}).
 This page owns the configuration of a run and how to tune it.
 
 **Status on `gcp-0`, 2026-10-18.** Harness `v0.15.2` runs every sandbox (read from the running pod),
@@ -139,7 +139,7 @@ start by hand also goes through the factory's run API.
 
 | Field | What it does | Bounds |
 |---|---|---|
-| `model` | The logical name the run asks for: `agent-default`, `tier-light`, `tier-standard` or `tier-frontier`. Every tier asks for `agent-default` today, so the tier changes the caps and not the model. What each name resolves to is the [routing page](/docs/platform/ai-platform/routing/)'s | A C5 logical name |
+| `model` | The logical name the run asks for: `agent-default`, `tier-light`, `tier-standard` or `tier-frontier`. Every tier asks for `agent-default` today, so the tier changes the caps and not the model. What each name resolves to is the [routing page]({{< relref "/docs/platform/ai-platform/routing.md#agent-routing" >}})'s | A C5 logical name |
 | `runUSD` | The run meter revokes the run (`BudgetExhausted`, reason `budget-run`, limit `run-usd`) when its cost reaches this. Each model's tokens are priced from `meter.prices`, cache reads at their own rate | Positive; needs a price row for the tier's model |
 | `runTokens` | Written into the claim as `budget.maxTokens`. Caps the run **only when the meter cannot price it** (a model with no price row, or no USD cap): then the limit is `run-tokens` and `AgentModelUnpriced` fires | 1 … 5,000,000, the gateway's per-run ceiling |
 | `taskUSD`, `taskTokens` | The whole task's cap, every run and resume included. A resume or a new review round starts only if a whole run still fits under it | ≥ the run cap |
@@ -416,7 +416,7 @@ flowchart TD
 |---|---|---|
 | Per-task reasoning effort, iterations, condenser size | No claim field reaches them; the composition does not set `LLM_REASONING_EFFORT` | A harness change reading new env vars, then a composition change setting them |
 | A bigger sandbox for a factory run | The factory always writes `size: small`; the run API refuses `--size` | A factory change |
-| Another model per tier | Every tier asks for `agent-default` | Change `tiers.<tier>.model` and add its `meter.prices` row ([routing](/docs/platform/ai-platform/routing/)) |
+| Another model per tier | Every tier asks for `agent-default` | Change `tiers.<tier>.model` and add its `meter.prices` row ([routing]({{< relref "/docs/platform/ai-platform/routing.md#agent-routing" >}})) |
 | A tier chosen by task difficulty | The classifier is not deployed | The complexity-classifier (SP4 PR 5) |
 | A different harness | `harness` accepts only `openhands` | A new profile in the composition |
 

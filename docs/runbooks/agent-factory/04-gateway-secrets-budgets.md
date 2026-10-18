@@ -394,6 +394,17 @@ only that `sub`'s bucket is touched.
 > Every round below predates phase H (#2429): the agent rows ran on Envoy's agent-router in
 > `envoy-gateway-system` and use its log fields. Part A Step 5 has no recorded round yet.
 
+### D.4 enforcing — gcp-0, 2026-10-18
+
+ai-native-ref `v0.1.19`, `SHADOW_MODE: "false"` (#65). The refusal holds; its alert does not fire
+([#81](https://github.com/Smana/ai-native-ref/issues/81)).
+
+| Step | Expected | Observed | Pass/Fail |
+|---|---|---|---|
+| D.1 — the mode | `false` | `false` | PASS |
+| D.4 — a refusal | `200`, then `429` `agent_budget_exhausted`, `limit 1` | 18:24Z: `200` (`x-ratelimit-remaining: 1`), then `429` (`x-ratelimit-remaining: 0`, `retry-after: 2145`): "a gateway token budget is spent (limit 1, resets in 2145 s). Not retryable." The Kustomization resume put the ConfigMap back | PASS |
+| D.4 — the alert | `AgentBudgetRefused` fires for the probe | Silent: `agentgateway_requests_total` has no `reason="RateLimit"` or `429` series, so `agent_router:budget_refusals:increase10m` reads nothing; the ratelimit service's `over_limit` series for the probe is new, with one sample | FAIL ([#81](https://github.com/Smana/ai-native-ref/issues/81)) |
+
 ### D.4 alert re-run — gcp-0, 2026-10-18
 
 The shadow variant of Step 4 again, after the alert fix (#52, pinned in cloud-native-ref since

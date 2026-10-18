@@ -236,6 +236,9 @@ extrapolated: it shows what a day costs, not that a day passed without incident.
 |---|---|---|
 | A1 | **Pass** (compressed same-day test 2026-10-17) | 10 of 10 runs, all on the warm gVisor node: 11, 11, 12, 11 s on aws-0, then 17, 16, 16, 17, 16, 21 s on gcp-0. **p50 16 s, p90 17 s** against the 30 s target (p90 154 s before headroom). The preemption run is [below](#a1-the-forced-preemption) |
 | A2 | **Fails the cap** (compressed same-day test 2026-10-17) | The headroom node costs **~$126 a month**, against the ≤ $50 cap: [below](#a2-idle-cost). The cap assumed a 4-vCPU spot node; gcp-0's gVisor pool is `e2-standard-8` |
+| S2 | **Pass** (gcp-0, 2026-10-18) | `Suspended` under 6 min after the approval opened; pod gone, PVC `Bound`: [runbook 01, Step 8](../../runbooks/agent-factory/01-runtime-sandbox.md#step-8--gcp-0-2026-10-18-ai-native-ref-v0114) |
+| S3 | **Pass** (gcp-0, 2026-10-18) | New gVisor pod, same SA and PVC, one conversation; `Succeeded` with exactly one PR: [runbook 01, Step 8](../../runbooks/agent-factory/01-runtime-sandbox.md#step-8--gcp-0-2026-10-18-ai-native-ref-v0114) |
+| S4 | Not run | |
 
 Created → Ready is the pod's `Ready` transition minus its `creationTimestamp`: the same quantity as
 `kube_pod_status_ready_time − kube_pod_created`, read from the API every 5 s. On gcp-0 each run was a

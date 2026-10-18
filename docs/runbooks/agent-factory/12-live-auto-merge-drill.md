@@ -226,7 +226,7 @@ After `merge.verifyFor` (30 min) with `main` green, the task ends `Done` / `merg
 Within `merge.revertWindow` (168 h), from `Verifying` or `Done`:
 
 ```bash
-gh pr edit "$PR" -R Smana/cloud-native-ref --add-label factory/revert
+gh api -X POST "repos/Smana/cloud-native-ref/issues/$PR/labels" -f 'labels[]=factory/revert'   # gh pr edit fails silently here (Projects classic)
 kubectl get task -n agent-system "$TASK" -w -o jsonpath='{.status.phase} {.status.reason} {.status.pullRequest.revertNumber}{"\n"}'
 ```
 
@@ -243,8 +243,9 @@ Expected:
 
 - the revert PR is authored by the merger App, titled `Revert "…"`, its body `Reverts #<PR> (agent factory task …)`;
 - it carries `factory/revert-of:#<PR>`, and native auto-merge is on (the `revert` class is live);
-- it ends `MERGED` once its required checks are green (and `policy-bot: main`, where the
-  `agent-merge-gate` ruleset requires it);
+- it ends `MERGED` by the merger once its required checks are green (and `policy-bot: main`, where
+  the `agent-merge-gate` ruleset requires it). Before agent-platform `v0.15.6` it stays `BLOCKED`
+  ([finding 5](#findings)): merge it by hand;
 - the control issue #2188's newest comment: "an auto-merge of `docs-links` was reverted … goes to human review".
 
 The breaker now holds 1 revert in 1 merge. Its proof is the next `docs-links` decision, which must be
@@ -305,7 +306,27 @@ Expected: `verdict="arm", reason="armed"` once for `docs-links`; no `label the m
 
 ## Results
 
-### 2026-10-18, gcp-0
+### 2026-10-18 (afternoon), gcp-0: G2 and G3
+
+ai-native-ref `v0.1.19`, agent-factory `v0.15.5` (agent-platform #154 and #157), both classes
+`{live: true}`, `autoMergesPerDay: 1`. G2 passes unattended. G3 passes on every check except the
+revert's own merge, which waits on agent-platform [#158](https://github.com/Smana/agent-platform/pull/158)
+([finding 5](#findings)). Step 6 is not run: the owner keeps both classes live at one merge a day,
+and #66 is closed.
+
+| Step | Expected | Observed | Pass/Fail |
+|---|---|---|---|
+| 2 | task `docs-links`, PR opened | Issue cloud-native-ref#2519 (15:07Z) → task `ey5miixe`, run `2ka3pegs` → PR #2520 (15:13Z), +4/−4, Markdown link targets only | Pass |
+| 3 | `AutoMerging` → `Verifying` | CI green, `policy-bot: main` `success`, decision `arm` | Pass |
+| 4 (G2) | merged by the merger at the task's `headSHA`, `Agent-Run` trailer, `factory/auto-merged:docs-links` | Merged 15:20:09Z by `ogenki-agent-merger` at `91c8f0d1…`, the task's `headSHA`; merge commit `4be79ae7` carries `Agent-Run: 2ka3pegs`; label written. The task ended `Done` / `merged_verified` | Pass |
+| 5 (G3) | revert PR by the merger, `factory/revert-of:#<PR>`, merged; `ClassDemoted` on #2188 | `factory/revert` on #2520 → `Reverted` / `revert_requested`; #2521 (15:51Z) authored by the merger, `Revert "…"`, `Reverts #2520`, `factory/revert-of:#2520`, auto-merge armed; every required check and `policy-bot: main` green, yet `BLOCKED`. Disarmed at `verifyFor` (16:22Z, `revert-end-stalled`), merged by the owner 18:04Z. #2188 reports the demotion. `agent_factory_pr_outcomes_total{class="docs-links", outcome="reverted"}` 1 | Pass, except the unattended merge |
+| 6 | both classes `{shadow: true}`, cap 10 | Not run: the owner keeps them live, cap 1 | Skipped |
+| G1 | after the restart, `class_paused` | Not run | Not run |
+
+The breaker now holds 1 revert in 1 merge: the next `docs-links` decision must be `human` /
+`class_paused`.
+
+### 2026-10-18 (morning), gcp-0
 
 ai-native-ref `v0.1.17`, agent-factory `v0.15.3`, `docs-links` and `revert` `{live: true}`,
 `autoMergesPerDay: 1`. Two attempts, no unattended merge: the gate refused both, correctly by its
@@ -338,13 +359,25 @@ now `/reference/api-types/httproute/`, 200).
    and the tool schema allowed `^[0-9a-f]{7,40}$`. The finished run could not hand off again, so the
    hold was final. Fixed in agent-platform
    [#154](https://github.com/Smana/agent-platform/pull/154) (`room_handoff` and `room_verdict`
-   require the full 40-hex SHA), open and not yet released.
+   require the full 40-hex SHA), released in `v0.15.4`.
+3. **R52 read the base at `main`'s tip, not the merge base.** When #2508 merged during the drill, a
+   later PR's diff was read against a base that already held #2508's change, so `LinksOnly` saw lines
+   the PR never touched. Fixed in agent-platform [#157](https://github.com/Smana/agent-platform/pull/157):
+   `Files` reads the base at the merge-base commit. Released in `v0.15.5`.
+4. **R52's code-fence scan never left a fence.** `fencesOf` kept its in-fence state after a closing
+   fence, so every link below a code block read as code. Fixed in the same #157.
+5. **Native auto-merge never fires on a revert.** `agent-merge` restricts updates to `main` to its
+   bypass actors, so GitHub reads every PR as `BLOCKED` and native auto-merge waits forever. The
+   forward merge is unaffected: the merger merges at the decided head through its bypass. Fixed in
+   agent-platform [#158](https://github.com/Smana/agent-platform/pull/158): the revert watch merges a
+   green revert the same way, and native auto-merge stays armed as the fallback for a factory that is
+   down. Proven offline (`TestAGreenRevertIsMergedAtItsHead`); live at the next revert.
 
 ### What remains
 
-G2 and G3, once the factory runs a release with agent-platform #154 and a real broken Markdown link
-target appears. The weekly `link-rot` schedule (Mondays 06:00 UTC) files that issue unattended; with
-the classes live, its PR is the drill's Step 2. Then Steps 4–6 and G1 as written.
+The breaker's live proof (the next `docs-links` decision reads `class_paused`) and #158's unattended
+revert merge. Both come with the next `docs-links` PR and the next revert, which the weekly `link-rot`
+schedule (Mondays 06:00 UTC) produces unattended.
 
 ### Template
 

@@ -10,9 +10,9 @@ metadata:
 spec:
   image:
     repository: ghcr.io/smana/room-broker
-    # agent-platform v0.15.5, by digest. Move it with the retention CronJob's,
+    # agent-platform v0.15.6, by digest. Move it with the retention CronJob's,
     # crd-rooms.yaml and atlasSchema.ref together.
-    tag: "v0.15.5@sha256:113a2e78134e0d6e6c4e5cad09d1d0ede1071d1fbf08d0015747669b9b29d5ed"
+    tag: "v0.15.6@sha256:09ca8d78f74deaa186d50de1e21a2daa277afb01123c0cc19530df16502cf5d1"
   # Two from phase 2 (§9): the leader lease picks the controller, and every
   # replica serves humans through the LISTEN/NOTIFY hub (ruling AT).
   replicas: 2

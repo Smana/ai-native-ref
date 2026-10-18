@@ -82,7 +82,7 @@ From a cloud-native-ref checkout, `kubectl` on the factory's cluster
 
 | # | Check | How |
 |---|---|---|
-| P1 | The factory runs agent-platform `v0.14.0` or later | cloud-native-ref pins ai-native-ref `v0.1.5` or later, and the pod runs that tag: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/agent-factory:v0.15.2@sha256:214f…` at pin `v0.1.9` |
+| P1 | The factory runs agent-platform `v0.14.0` or later | cloud-native-ref pins ai-native-ref `v0.1.5` or later, and the pod runs that tag: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/agent-factory:v0.15.3@sha256:98e5…` at pin `v0.1.17` |
 | P2 | The owner's GitHub prerequisites hold | The three boxes above ticked, and the mint test below returns `201` |
 | P3 | The factory is idle on `Smana/cloud-native-ref` | `kubectl get tasks -n agent-system` shows no task outside a final phase (`Done`, `Rejected`, `NoOp`, `Reverted`, `Closed`, `Stopped`) |
 | P4 | `main` is green | `gh run list -R Smana/cloud-native-ref --branch main --limit 3` |

@@ -72,7 +72,7 @@ spec:
          "targets": [
            {"refId": "A", "datasource": {"type": "prometheus", "uid": "$${datasource}"}, "instant": true, "format": "table", "expr": "max by (run_id, tier) (last_over_time(agentrun_info{namespace=\"agents\", tier!=\"\"}[$__range]))"},
            {"refId": "B", "datasource": {"type": "prometheus", "uid": "$${datasource}"}, "instant": true, "format": "table", "expr": "label_replace(sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\")"},
-           {"refId": "C", "datasource": {"type": "victoriametrics-logs-datasource", "uid": "$${logs_datasource}"}, "queryType": "stats", "expr": "kubernetes.pod_namespace:\"agents\" AND kubernetes.container_name:\"harness\" AND _msg:~\"^agent-run step \" | extract \"xplane-run-<run_id>\" from kubernetes.pod_name | stats by (run_id) count() as steps"}
+           {"refId": "C", "datasource": {"type": "victoriametrics-logs-datasource", "uid": "$${logs_datasource}"}, "queryType": "stats", "expr": "kubernetes.pod_namespace:\"agents\" AND kubernetes.container_name:\"harness\" AND _msg:~\"^agent-run step \" | extract \"xplane-run-<run_id>\" from kubernetes.pod_name | extract_regexp \"^agent-run step (?P<step>[0-9]+):\" | stats by (run_id) count_uniq(step) as steps"}
          ],
          "transformations": [
            {"id": "merge", "options": {}},

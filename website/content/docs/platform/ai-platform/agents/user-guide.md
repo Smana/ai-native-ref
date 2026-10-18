@@ -275,8 +275,10 @@ Every model call is metered per run at the gateway, so the dashboard shows what 
 | What did it cost, how fast was it? | The dashboard: tokens in and out, cost, model latency, error rate. `agent-fleet` shows every run |
 | Where did the time go? | A trace per run: steps, model calls and tool calls, with timings. Metadata only: no prompts or outputs |
 
-A run's page is `/d/agent-run/agent-run?var-run=<id>`. A successful run shows its pull request; the
-outcome reason appears only when a run fails. One known issue: MCP tool calls are not yet joined to
+A run's page is `/d/agent-run/agent-run?var-run=<id>`; its *This run's window* link sets the time
+range to the run. A successful task run shows its pull request, a room's run links its room and its
+branch's pull requests; the outcome reason appears only when a run fails. A resumed run counts each
+step once and has one trace per attempt. One known issue: MCP tool calls are not yet joined to
 the run's trace ([F16](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#live-findings)).
 
 The full transcript (prompts and outputs) lives in the room, visible to the people with access to

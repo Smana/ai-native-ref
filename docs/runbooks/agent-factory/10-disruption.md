@@ -119,7 +119,7 @@ kubectl get agentrun -n agents $RUN2 -o jsonpath='{.spec.branch} {.spec.roomRef}
 
 Expected: `… the sandbox was lost (spot reclaim or eviction); resuming automatically (1/2).`; `Implementing 1 resume`;
 `agent/<TASK> <TASK>`. On the factory dashboard, *Automatic resumes by reason* shows `Disrupted` = 1; the run page of `$RUN`
-(`/d/agent-run/agent-run?var-run=${RUN#xplane-run-}`: the page takes the run id) lists `${RUN2#xplane-run-}` under *Runs of this task*.
+(`/d/agent-run/agent-run?var-run=${RUN#xplane-run-}`: the page takes the run id) lists `${RUN2#xplane-run-}` under *Runs of this task or room*.
 
 ### Step 6 — a plain delete reads PodLost and resumes; a third loss escalates
 

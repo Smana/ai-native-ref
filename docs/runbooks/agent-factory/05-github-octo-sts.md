@@ -95,9 +95,11 @@ kubectl exec -n agents $IMPL -c harness -- /usr/local/bin/python -c "import urll
 Expected: the reviewer gets a token but every push is rejected (`403`/permission — its trust policy
 grants only `contents: read`, so `remote: Permission to Smana/cloud-native-ref.git denied to
 ogenki-agents[bot]`); the other repository's exchange fails with `HTTP Error 404`
-`{"code":5,"message":"unable to find trust policy for \"agent-implementer\""}` (no trust policy
-there); the reviewer asking for `agent-implementer` fails with a `403` `code 7` audience mismatch (its
-projected token's audience is `octo-sts/Smana/cloud-native-ref/reviewer`, not `.../implementer`);
+`{"code":5,"message":"unable to find trust policy for \"agent-implementer\""}` when it has no trust
+policy, or with a `403` `{"code":7,"message":"trust policy: audience \"…\" did not match any of […]"}`
+(audience mismatch) when it has one; the reviewer asking for `agent-implementer` fails with a `403`
+`code 7` audience mismatch (its projected token's audience is
+`octo-sts/Smana/cloud-native-ref/reviewer`, not `.../implementer`);
 the direct call to octo-sts's Service exits 1 — a run's CNP opens no path to octo-sts except through
 `agent-router`'s `sts` listener.
 

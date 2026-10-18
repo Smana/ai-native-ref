@@ -8,14 +8,27 @@ lastVerified: 2026-10-18
 Every knob of a run, layer by layer. How to use them is on
 [Harness tuning]({{< relref "/docs/platform/ai-platform/agents/harness.md" >}}).
 
+{{< cards >}}
+  {{< card link="#tiers" title="Tiers" icon="adjustments" subtitle="USD cap, deadline and model per tier." >}}
+  {{< card link="#templates" title="Templates and triage" icon="user-group" subtitle="Which roles run, and how a task gets its template." >}}
+  {{< card link="#caps" title="Caps, resume, suspend" icon="shield-check" subtitle="Concurrency, daily caps, resumes and suspension." >}}
+  {{< card link="#run-api" title="Run API" icon="terminal" subtitle="Flags of a run started by hand." >}}
+  {{< card link="#claim" title="AgentRun claim" icon="document-text" subtitle="The fields a run is created with." >}}
+  {{< card link="#harness" title="Harness" icon="cog" subtitle="The loop's settings, baked into the image." >}}
+{{< /cards >}}
+
 **On `gcp-0`, 2026-10-18:** harness `v0.15.2`, composed by crossplane-configuration `v0.9.15`.
-Status marks: **live** (seen on a real run), **deployed** (configured, not yet exercised), **off**
-(shipped, switched off), **design** (not built).
+| Status | Meaning |
+|---|---|
+| {{< badge content="live" color="green" >}} | Seen working on a real run |
+| {{< badge content="deployed" color="blue" >}} | Configured, not yet exercised |
+| {{< badge content="off" color="gray" >}} | Shipped, switched off |
+| {{< badge content="design" color="yellow" >}} | Specified, not built |
 
 ## Factory: tiers {#tiers}
 
 `config.tiers` in `tooling/base/agent-factory/helm-values-configmap.yaml`. Triage fixes one tier per
-task; every run of the task inherits it. **deployed**; the USD cap **live**.
+task; every run of the task inherits it. {{< badge content="deployed" color="blue" >}}, the USD cap {{< badge content="live" color="green" >}}
 
 | Tier | `runUSD` / `taskUSD` | `runMinutes` | `runTokens` / `taskTokens` |
 |---|---|---|---|
@@ -37,7 +50,7 @@ at $4.46 of $6.80, since 95% were cache reads. The gateway's per-run budget B1 i
 
 ## Factory: templates and triage {#templates}
 
-`config.templates`: the roles that run, in order, on one branch. **deployed**.
+`config.templates`: the roles that run, in order, on one branch. {{< badge content="deployed" color="blue" >}}
 
 | Template | Roles | Review rounds |
 |---|---|---|
@@ -59,7 +72,7 @@ Triage picks the template from the class and the tier:
 | `docs-links` | `solo`; `pair` on `frontier` |
 | Any other class | `pair`; `trio` on `frontier` |
 
-The tier would come from the complexity classifier, which is **design**: every task falls back to
+The tier would come from the complexity classifier, which is {{< badge content="design" color="yellow" >}}: every task falls back to
 `standard`, except one in ten (`triage.controlPercent: 10`), the control group, on `frontier`.
 `defaults.template` and `defaults.tier` are read by nothing the deployed factory runs.
 
@@ -76,8 +89,8 @@ implementer's tier.
 | `caps.tasksPerDay` | 20 | Past it, a labelled issue is refused with a comment |
 | `caps.maxTextBytes` | 14,336 | The longest task text accepted |
 | `caps.maxPendingMinutes` | 30 (5 … 480) | A run still `Pending` escalates as `run_unschedulable` |
-| `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. **live** on aws-0 |
-| `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. **live** 2026-10-18 |
+| `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="live" color="green" >}} aws-0 |
+| `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
 | `budgets.*` | `factoryDaily` 25 M, `humanDaily` 5 M | Daily caps; the per-person one counts in shadow |
 
 ## Run API: runs started by hand {#run-api}
@@ -133,20 +146,20 @@ None is a claim field.
 
 | Knob | Value | Effect | Status |
 |---|---|---|---|
-| `reasoning_effort` | `high` | Unsent, GLM-5.3 thinks at maximum: 150 s per reply instead of 11 s | live |
-| Model timeout | 300 s per call | A timeout is not retried: it ends the run | live |
-| Retries | 3 attempts, 10 s then 20 s apart | On a 503 or a reset. **Never** a 429 or a timeout | live |
-| `max_iterations` | 500 | Past it the run ends `error`; the USD cap and deadline usually end it first | deployed |
-| Stuck detection | last 20 events | Ends the run `stuck` on 4 identical cycles, 3 repeated errors or 3 messages with no action | live |
-| Condenser | 80 events, keep first 4 | Summarises history with the same model, on the run's budget | deployed |
-| Event size | 30,000 chars | A huge output is truncated, not refused | deployed |
-| Tools | terminal, file editor, task tracker, MCP | No browser; MCP tools filtered per role by the gateway | live |
-| Prompt caching | on for `internal` | 85% of input from cache: $0.48 instead of $2.13 | live |
-| `autotitle` | off | Saves a model call per title | live |
-| Step log | every 15 s | Lines arrive in batches | live |
-| Progress notes | 5 milestones, ≤ 8 a run | Fixed texts in the room, nothing the model wrote | live |
-| Checkpoint on SIGTERM | implementer only | A reclaimed run's work survives on its branch | live on aws-0 |
-| Tracing | span per model and MCP call | No prompt or output content | live |
+| `reasoning_effort` | `high` | Unsent, GLM-5.3 thinks at maximum: 150 s per reply instead of 11 s | {{< badge content="live" color="green" >}} |
+| Model timeout | 300 s per call | A timeout is not retried: it ends the run | {{< badge content="live" color="green" >}} |
+| Retries | 3 attempts, 10 s then 20 s apart | On a 503 or a reset. **Never** a 429 or a timeout | {{< badge content="live" color="green" >}} |
+| `max_iterations` | 500 | Past it the run ends `error`; the USD cap and deadline usually end it first | {{< badge content="deployed" color="blue" >}} |
+| Stuck detection | last 20 events | Ends the run `stuck` on 4 identical cycles, 3 repeated errors or 3 messages with no action | {{< badge content="live" color="green" >}} |
+| Condenser | 80 events, keep first 4 | Summarises history with the same model, on the run's budget | {{< badge content="deployed" color="blue" >}} |
+| Event size | 30,000 chars | A huge output is truncated, not refused | {{< badge content="deployed" color="blue" >}} |
+| Tools | terminal, file editor, task tracker, MCP | No browser; MCP tools filtered per role by the gateway | {{< badge content="live" color="green" >}} |
+| Prompt caching | on for `internal` | 85% of input from cache: $0.48 instead of $2.13 | {{< badge content="live" color="green" >}} |
+| `autotitle` | off | Saves a model call per title | {{< badge content="live" color="green" >}} |
+| Step log | every 15 s | Lines arrive in batches | {{< badge content="live" color="green" >}} |
+| Progress notes | 5 milestones, ≤ 8 a run | Fixed texts in the room, nothing the model wrote | {{< badge content="live" color="green" >}} |
+| Checkpoint on SIGTERM | implementer only | A reclaimed run's work survives on its branch | {{< badge content="live" color="green" >}} aws-0 |
+| Tracing | span per model and MCP call | No prompt or output content | {{< badge content="live" color="green" >}} |
 
 ```promql
 # One run's tokens by model and type, as the meter prices them

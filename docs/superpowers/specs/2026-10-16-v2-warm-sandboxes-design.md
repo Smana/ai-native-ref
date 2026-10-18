@@ -226,8 +226,8 @@ The run dashboard gains a "start" row (p50/p90 by launch) and a "pool" row.
 
 ## Results
 
-Step 1 (headroom) went live on aws-0 with ai-native-ref#5, and runs on gcp-0 since the
-2026-10-17 rebuild. **A1 and A2 were run as a compressed same-day test on 2026-10-17**, not as
+Step 1 (headroom) went live on aws-0 with ai-native-ref#5, ran on gcp-0 from the 2026-10-17
+rebuild, and is [off by default](#headroom-off-by-default-on-for-production) since 2026-10-18. **A1 and A2 were run as a compressed same-day test on 2026-10-17**, not as
 the two weeks step 1 names. The owner chose this because a week-long platform costs too much. A1
 is complete on its own terms (10 runs, spaced > 5 min). A2 is one measured idle hour,
 extrapolated: it shows what a day costs, not that a day passed without incident.
@@ -235,7 +235,7 @@ extrapolated: it shows what a day costs, not that a day passed without incident.
 | # | State | Evidence |
 |---|---|---|
 | A1 | **Pass** (compressed same-day test 2026-10-17) | 10 of 10 runs, all on the warm gVisor node: 11, 11, 12, 11 s on aws-0, then 17, 16, 16, 17, 16, 21 s on gcp-0. **p50 16 s, p90 17 s** against the 30 s target (p90 154 s before headroom). The preemption run is [below](#a1-the-forced-preemption) |
-| A2 | **Fails the cap** (compressed same-day test 2026-10-17) | The headroom node costs **~$126 a month**, against the ≤ $50 cap: [below](#a2-idle-cost). The cap assumed a 4-vCPU spot node; gcp-0's gVisor pool is `e2-standard-8` |
+| A2 | **Pass with the headroom off** (the default since 2026-10-18): $0 idle | With it on, the node costs **~$126 a month**, 2.5 × the ≤ $50 cap ([below](#a2-idle-cost)); the cap assumed a 4-vCPU spot node, gcp-0's gVisor pool is `e2-standard-8`. The on-cost and the production options are [documented](#headroom-off-by-default-on-for-production) |
 | S2 | **Pass** (gcp-0, 2026-10-18) | `Suspended` under 6 min after the approval opened; pod gone, PVC `Bound`: [runbook 01, Step 8](../../runbooks/agent-factory/01-runtime-sandbox.md#step-8--gcp-0-2026-10-18-ai-native-ref-v0114) |
 | S3 | **Pass** (gcp-0, 2026-10-18) | New gVisor pod, same SA and PVC, one conversation; `Succeeded` with exactly one PR: [runbook 01, Step 8](../../runbooks/agent-factory/01-runtime-sandbox.md#step-8--gcp-0-2026-10-18-ai-native-ref-v0114) |
 | S4 | Not run | |
@@ -285,15 +285,47 @@ Spot E2 is $0.01378 per vCPU-hour and $0.001846 per GiB-hour. On-demand is $0.02
 The GKE management fee ($0.10/h) and the OpenBao and Tailscale VMs outside GKE are left out:
 headroom does not change them.
 
-The headroom's own idle cost is the `agents-gvisor` row, ~$126 a month, **2.5 × the cap**. Options,
-for the owner (decision 1):
+The headroom's own idle cost is the `agents-gvisor` row, ~$126 a month, **2.5 × the cap**. The
+owner's call (2026-10-18): [headroom off by default](#headroom-off-by-default-on-for-production).
 
-| Option | Idle cost a month | Trade |
+## Headroom: off by default, on for production {#headroom-off-by-default-on-for-production}
+
+**This demo platform ships the headroom at `replicas: 0`: $0 idle, and the first run on an empty
+pool starts cold (~1.5–3.5 min). The headroom is a supported switch: a production platform turns it
+on and gets ~16 s starts.** The PriorityClass and the Deployment stay deployed, so the switch is one
+value.
+
+```mermaid
+sequenceDiagram
+  participant H as headroom pod (priority −10)
+  participant N as warm agents-gvisor node
+  participant R as run pod (priority 0)
+  participant A as autoscaler
+  H->>N: holds the node, run images pulled
+  R->>N: scheduled; preempts the headroom
+  N-->>R: Ready in ~16 s (no node boot, no image pull)
+  H->>A: replacement headroom Pending
+  A->>A: scale agents-gvisor +1
+  A-->>H: headroom Running on the new node, warm for the next run
+```
+
+**Switch on:** `spec.replicas: 1` in
+[`infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml`](../../../infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml)
+(shared by every cluster). `0` turns it back off.
+
+| Production option | Idle cost a month | Start time |
 |---|---|---|
-| Keep `e2-standard-8` | $125.80 | Holds a `large` run beside the headroom |
-| `e2-standard-4` gVisor pool | $64.00 | Still over the cap; a `large` run (4 vCPU) no longer fits a node |
-| Headroom `replicas: 0` outside working hours (10 h × 22 days) | $37.25 + disk | Cold starts at night and at weekends |
-| Raise the cap to $130 | $125.80 | The measured price of a 16 s p90 |
+| Always on, one `e2-standard-8` spot node | ~$126 | ~16 s, every run |
+| Working hours only, scheduled scaling of `replicas` (10 h × 22 days) | ~$38 | ~16 s in hours, cold outside |
+| Smaller node, `e2-standard-4` | ~$63 | ~16 s for `small`; a `large` run doesn't fit, so it starts cold |
+| Off (this platform's default) | $0 | Cold: the first run ~1.5–3.5 min |
+
+Costs are our europe-west4 spot list prices ([A2](#a2-idle-cost)). Cold times: ~90 s
+submission-to-start in the phase-0 spike, 205 s created → Ready for a plain gVisor pod on a freshly
+scaled node on 2026-10-17 (vs ~32 s on an up node).
+
+**Recommended for production:** always on, or working hours if nights and weekends are quiet,
+with the gVisor node sized for the largest run class.
 
 ## Decisions
 
@@ -313,7 +345,8 @@ Only the owner holds these.
 1. **The start-time target and the idle-cost cap** (the gate requires both before the pool turns
    on). *Recommended:* p90 created → Ready **≤ 30 s** with headroom, **≤ 10 s** with the pool;
    idle cost **≤ $50 a month per active cloud** (one 4-vCPU spot node, an estimate to confirm from
-   the pricing API).
+   the pricing API). *Decided 2026-10-18:* the measured node is ~$126, so the headroom ships off;
+   production turns it on ([options](#headroom-off-by-default-on-for-production)).
 2. **Accept a component that can mint any live run's tokens** (the binder, §5), to buy the last
    ~11–15 s. *Recommended:* **not now** — headroom first; revisit when interactive rooms make
    seconds matter or headroom misses the target.

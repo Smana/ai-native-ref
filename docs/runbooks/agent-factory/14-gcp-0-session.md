@@ -49,7 +49,7 @@ Every fixed machine is E2. Regional `E2_CPUS` was expected to bind first, but on
 | E2 capacity in europe-west4 | vCPU |
 |---|---|
 | `static` pool, `e2-standard-4` ×2 (max 3) | 8 (12) |
-| `agents-gvisor`, `e2-standard-8` ×0–2, spot. The warm headroom keeps one up while the platform is live | 8 (16) |
+| `agents-gvisor`, `e2-standard-8` ×0–2, spot. The warm headroom, when on, keeps one up while the platform is live | 8 (16) |
 | OpenBao `e2-small` ×1 and the Tailscale router `e2-micro` ×1, outside GKE | 4 |
 | **Static total, both gVisor nodes up** | **≈ 28** |
 | NAP ComputeClasses (`general-purpose` e2/n2, `io` n2) and the upgrade surge (one `e2-standard-4`) | on top, up to the 48 cluster ceiling (`autoscaling_max_cpu_cores`) |
@@ -177,7 +177,7 @@ Gate: `flux get kustomizations -A | grep -v True` lists nothing but `llm-platfor
 ## 7. The v2.1 blockers, live
 
 ```bash
-scripts/ops/k8s/gcp-0-v21-checks.sh <kube-context>                   # after go-live: the headroom node
+scripts/ops/k8s/gcp-0-v21-checks.sh <kube-context>                   # after go-live: the headroom node, if on
 scripts/ops/k8s/gcp-0-v21-checks.sh <kube-context> --gvisor-nodes 2  # during a large run
 ```
 
@@ -208,7 +208,7 @@ round still apply: `sandbox.gke.io/runtime`, no `agents-nodepool`.
 
 | Feature | Live check |
 |---|---|
-| Warm sandboxes | `kubectl get pods -n agent-system -l app.kubernetes.io/name=agents-headroom -o wide` runs on an `agents-gvisor` node. Then the start-time runs still owed ([design results](../../superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)), the one forcing a preemption, and the day of idle cost on GKE prices |
+| Warm sandboxes | Headroom off by default ([runbook 01](01-runtime-sandbox.md#headroom-off-by-default-on-for-production)). When on, `kubectl get pods -n agent-system -l app.kubernetes.io/name=agents-headroom -o wide` runs on an `agents-gvisor` node. Then the start-time runs still owed ([design results](../../superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)), the one forcing a preemption, and the day of idle cost on GKE prices |
 | Per-person caps, shadow | [Runbook 04 Part C](04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week): start the shadow week on gcp-0 |
 | Gateway budgets, shadow + alerts | [Runbook 04 Part D](04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets): `AgentBudgetShadowOverrun` is evaluated, and the ratelimit server runs `SHADOW_MODE` |
 | The internal tier on Claude | One `--class internal` run is answered through agentgateway's Anthropic backend, which proves `agents/anthropic` |

@@ -173,12 +173,14 @@ fails it, and the old pods keep serving).
 ```bash
 gh issue create -R Smana/cloud-native-ref --label class:docs-links \
   --title "docs: fix broken external links (live auto-merge drill)" \
-  --body "Find broken external links in Markdown under docs/ and website/content/, outside docs/superpowers/, docs/specs/ and website/content/docs/decisions/. Fix those with an obvious replacement, changing fewer than 21 lines in total and adding or deleting no file. If none is broken, change nothing and open no pull request."
+  --body "Find broken external link targets in Markdown links ([text](url) or [ref]: url) under docs/ and website/content/, outside docs/superpowers/, docs/specs/ and website/content/docs/decisions/. Leave URLs in code blocks and plain text alone. Fix those with an obvious replacement, changing fewer than 21 lines in total and adding or deleting no file. If none is broken, change nothing and open no pull request."
 gh issue edit <issue> -R Smana/cloud-native-ref --add-label factory/ready
 ```
 
-This is the `link-rot` schedule's text. If the task ends `NoOp` (nothing broken), file a second issue
-naming one external link you have seen fail, with its replacement. A maintainer adds `factory/ready`
+This is the `link-rot` schedule's text, narrowed to Markdown link targets: the class's rule R52
+(`LinksOnly`) counts only those, so a fix to a URL in a code block or in prose is refused
+`class_mismatch` (2026-10-18, attempt 1). If the task ends `NoOp` (nothing broken), file a second
+issue naming one external link target you have seen fail, with its replacement. A maintainer adds `factory/ready`
 after `class:docs-links`: the class is read at triage.
 
 ```bash
@@ -195,8 +197,9 @@ kubectl get task -n agent-system "$TASK" -w -o jsonpath='{.status.phase} {.statu
 ```
 
 Expected: `AwaitingCI` (waits while checks run) → `AutoMerging` → `Verifying`. Any other ending (a
-`human` verdict with `class_mismatch`, `policy_*`, `verdict_stale`) is a finding: record the reason
-and stop at Step 6.
+`human` verdict with `class_mismatch`, `head_unreported`, `policy_*`, `verdict_stale`) is a
+finding: record the reason and stop at Step 6. A hand-off of a finished run is final: the run
+cannot hand off again, so a maintainer merges or closes the PR.
 
 ### Step 4 — verify the merge and its head pin (G2)
 
@@ -302,7 +305,48 @@ Expected: `verdict="arm", reason="armed"` once for `docs-links`; no `label the m
 
 ## Results
 
-Fill in during the drill.
+### 2026-10-18, gcp-0
+
+ai-native-ref `v0.1.17`, agent-factory `v0.15.3`, `docs-links` and `revert` `{live: true}`,
+`autoMergesPerDay: 1`. Two attempts, no unattended merge: the gate refused both, correctly by its
+rules, so G2 and G3 remain unproven.
+
+| Step | Expected | Observed | Pass/Fail |
+|---|---|---|---|
+| P1–P5 | `v0.14.0`+; GitHub boxes ticked, mint `201`; policy-bot posts on gcp-0; idle; `main` green; no auto-merge today | `v0.15.3`; boxes ticked; `policy-bot: main` from `ogenki-merge-gate[bot]` on cloud-native-ref #2508 and #2510 and ai-native-ref #64 (P2b) | Pass |
+| 1 | both classes `{live: true}`, cap 1, rollout complete | `v0.1.17` pinned, both classes live, cap 1 | Pass |
+| 2 | task `docs-links`, PR opened | Attempt 1: issue cloud-native-ref#2507 (the `link-rot` text) → task `wxzxxnwg` → PR #2508. Attempt 2: #2509 (the second issue) → task `vgvmy5bf` → PR #2510 | Pass |
+| 3 | `AutoMerging` → `Verifying` | #2508: CI green, policy-bot `success`, then `AwaitingHuman` / `class_mismatch` ([finding 1](#findings)). #2510: CI green, policy-bot `success`, then `AwaitingHuman` / `head_unreported` ([finding 2](#findings)); the owner merged #2510 by hand (11:20:29Z) | Fail |
+| 4 | merged by the merger at the task's `headSHA`, `Agent-Run` trailer, `factory/auto-merged:docs-links` | Not reached; the daily cap was not consumed | Not run (G2) |
+| 5 | revert PR by the merger, `factory/revert-of:#<PR>`, auto-merged; `ClassDemoted` on #2188 | Not reached | Not run (G3) |
+| 6 | both classes `{shadow: true}`, cap 10 | Pending: ai-native-ref [#66](https://github.com/Smana/ai-native-ref/pull/66) (draft) reverts #21, the owner's call | Pending |
+| G1 | after the restart, `class_paused` | Not run (needs a revert) | Not run |
+
+The link scan behind attempt 2: 91 external Markdown link targets in scope, one 404
+(`website/content/docs/platform/networking/gateway-api.md`, line 151: the HTTPRoute API reference,
+now `/reference/api-types/httproute/`, 200).
+
+### Findings
+
+1. **R52 counts Markdown link targets only.** #2508 changed one line (+1/-1): a RunLore
+   `runbook_url` inside a YAML code block in
+   `website/content/docs/platform/observability/dashboards-and-alerts.md` (old URL 404, new 200).
+   `LinksOnly` accepts only `[x](url)` and `[ref]: url` targets, so the gate handed it off
+   `class_mismatch`. A correct refusal; the issue text in Step 2 now says link targets only.
+2. **R02 compares the full head SHA, and the handoff carried a short one.** The implementer's
+   `room_handoff` reported `c3119614`; the gate compares it with the PR's 40-character head exactly,
+   and the tool schema allowed `^[0-9a-f]{7,40}$`. The finished run could not hand off again, so the
+   hold was final. Fixed in agent-platform
+   [#154](https://github.com/Smana/agent-platform/pull/154) (`room_handoff` and `room_verdict`
+   require the full 40-hex SHA), open and not yet released.
+
+### What remains
+
+G2 and G3, once the factory runs a release with agent-platform #154 and a real broken Markdown link
+target appears. The weekly `link-rot` schedule (Mondays 06:00 UTC) files that issue unattended; with
+the classes live, its PR is the drill's Step 2. Then Steps 4–6 and G1 as written.
+
+### Template
 
 | Step | Expected | Observed | Pass/Fail |
 |---|---|---|---|

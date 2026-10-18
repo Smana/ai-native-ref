@@ -4,7 +4,7 @@
 
 - Each trust policy is the host's, byte for byte, but for its audience: the issuer, subject and
   permissions never drift wider than the host's, and the audience names this repository.
-- The fence names gcp-0, the only live factory.
+- The fence names aws-0: the P6 drill flip (second-repository design), reverted right after.
 - .policy.yml: every agent rule excludes the whole gate list, and every sentinel is a gate path.
 
 run-tests.sh runs this from .composite/ (the host's .github/ stays there) with cwd = this repo."""
@@ -45,8 +45,8 @@ if extra:
     fails.append(f"unexpected trust policies: {sorted(extra)}")
 
 fence = OWN / ".github/agent-factory.yaml"
-if not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": "gcp-0"}:
-    fails.append(".github/agent-factory.yaml: must be exactly `factory: gcp-0`")
+if not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": "aws-0"}:
+    fails.append(".github/agent-factory.yaml: must be exactly `factory: aws-0`")
 
 rules = yaml.safe_load((OWN / ".policy.yml").read_text()).get("approval_rules", [])
 canon = next((r for r in rules if r.get("name") == "agent change approved by a maintainer"), None)

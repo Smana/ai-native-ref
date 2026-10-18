@@ -133,8 +133,9 @@ spec:
         # tokens over a budget, by bucket (key1: agent = B1, fleet_agents = B2,
         # provider_anthropic = B6), kept only while global_shadow_mode admits calls:
         # enforcing, over_limit still counts the overshoot of the call that crossed.
-        # Enforcing, the calls refused with 429, by run. A RateLimit 429 is a budget's
-        # or the per-replica local limit's; a provider's is reason Upstream.
+        # Enforcing, the same over_limit counter while global_shadow_mode stands still:
+        # agentgateway records no requests_total series for a ratelimit 429 (#81, seen live
+        # on gcp-0 2026-10-18), so the refusal is read where it is decided.
         # Both counters are created at their first increment, so a new series starts at the
         # whole overshoot and increase() reads 0 for it: compare with 10 minutes ago, absence
         # read as 0 (increase_pure() would do it, but promtool cannot parse it).
@@ -146,8 +147,14 @@ spec:
             and on () sum(clamp_min(ratelimit_service_global_shadow_mode{namespace="agent-gateway"}
             - (ratelimit_service_global_shadow_mode{namespace="agent-gateway"} offset 10m
             or ratelimit_service_global_shadow_mode{namespace="agent-gateway"} * 0), 0)) > 0
-        - record: agent_router:budget_refusals:increase10m
-          expr: sum by (ar_agent) (increase(agentgateway_requests_total{namespace="agent-gateway", reason="RateLimit"}[10m]))
+        - record: agent_router:budget_refused_tokens:increase10m
+          expr: >-
+            sum by (key1) (clamp_min(ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"}
+            - (ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"} offset 10m
+            or ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"} * 0), 0)) > 0
+            unless on () sum(clamp_min(ratelimit_service_global_shadow_mode{namespace="agent-gateway"}
+            - (ratelimit_service_global_shadow_mode{namespace="agent-gateway"} offset 10m
+            or ratelimit_service_global_shadow_mode{namespace="agent-gateway"} * 0), 0)) > 0
         - alert: AgentBudgetShadowOverrun
           expr: agent_router:budget_shadow_overrun_tokens:increase10m > 0
           labels:
@@ -158,11 +165,11 @@ spec:
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets"
             dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
         - alert: AgentBudgetRefused
-          expr: agent_router:budget_refusals:increase10m > 0
+          expr: agent_router:budget_refused_tokens:increase10m > 0
           labels:
             severity: warning
           annotations:
-            summary: "agent-router refused {{ $value }} calls of {{ $labels.ar_agent }} on a token budget in 10 minutes"
+            summary: "Enforcing: {{ $labels.key1 }} went {{ $value | humanize }} reference tokens over its budget in 10 minutes; its next calls get 429"
             description: "The harness logs the 429's agent_budget_exhausted body and the run fails; the meter revokes it on its next tick (budget-run or budget-fleet). The factory's caps should have stopped it first: read the run's cost against its tier."
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets"
             dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"

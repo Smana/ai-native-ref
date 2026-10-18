@@ -331,7 +331,7 @@ always refuses and uses the same body). A provider's own `429` keeps its body an
 | Signal | Mode | Meaning |
 |---|---|---|
 | `agent_router:budget_shadow_overrun_tokens:increase10m{key1}` → `AgentBudgetShadowOverrun` (info) | shadow | reference tokens admitted over a bucket's limit |
-| `agent_router:budget_refusals:increase10m{ar_agent}` → `AgentBudgetRefused` (warning) | enforcing | calls refused with `429`, per run |
+| `agent_router:budget_refused_tokens:increase10m{key1}` → `AgentBudgetRefused` (warning) | enforcing | reference tokens over a budget while `global_shadow_mode` stands still: that bucket's next calls get `429`. Read from the ratelimit service, since agentgateway records no series for a ratelimit `429` ([#81](https://github.com/Smana/ai-native-ref/issues/81)) |
 
 ### Step 1 — read the mode
 
@@ -383,7 +383,7 @@ kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 
 Expected: `200`, then `429` with the `agent_budget_exhausted` body, `limit 1`. Within 2 minutes
 the meter's throttle query (plan F.4) returns the probe's `x_ar_agent`, and `AgentBudgetRefused`
-fires for `system:serviceaccount:agents:agent-probe`. With the flag `true` the second call is a
+fires for `key1="agent_system_serviceaccount_agents_agent-probe"`. With the flag `true` the second call is a
 `200` and `ratelimit_service_global_shadow_mode` rises instead.
 
 **What this proves:** the flag refuses a call over budget with a reason the harness logs, and
@@ -403,7 +403,7 @@ ai-native-ref `v0.1.19`, `SHADOW_MODE: "false"` (#65). The refusal holds; its al
 |---|---|---|---|
 | D.1 — the mode | `false` | `false` | PASS |
 | D.4 — a refusal | `200`, then `429` `agent_budget_exhausted`, `limit 1` | 18:24Z: `200` (`x-ratelimit-remaining: 1`), then `429` (`x-ratelimit-remaining: 0`, `retry-after: 2145`): "a gateway token budget is spent (limit 1, resets in 2145 s). Not retryable." The Kustomization resume put the ConfigMap back | PASS |
-| D.4 — the alert | `AgentBudgetRefused` fires for the probe | Silent: `agentgateway_requests_total` has no `reason="RateLimit"` or `429` series, so `agent_router:budget_refusals:increase10m` reads nothing; the ratelimit service's `over_limit` series for the probe is new, with one sample | FAIL ([#81](https://github.com/Smana/ai-native-ref/issues/81)) |
+| D.4 — the alert | `AgentBudgetRefused` fires for the probe | Silent: `agentgateway_requests_total` has no `reason="RateLimit"` or `429` series, so `agent_router:budget_refusals:increase10m` reads nothing; the ratelimit service's `over_limit` series for the probe is new, with one sample | FAIL ([#81](https://github.com/Smana/ai-native-ref/issues/81)); the rule now reads the ratelimit service: replayed on this run's data, it reads 918 for the probe at 18:26Z and 18:30Z |
 
 ### D.4 alert re-run — gcp-0, 2026-10-18
 

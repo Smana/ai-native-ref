@@ -8,6 +8,7 @@
 set -euo pipefail
 AS=substrate-spike
 ROUTER=${ROUTER:-http://127.0.0.1:18081}
+MOCK_API_KEY=not-a-key  # pragma: allowlist secret
 
 now() { date +%s.%N; }
 ms() { awk -v a="$1" -v b="$2" 'BEGIN{printf "%d", (b-a)*1000}'; }
@@ -55,7 +56,7 @@ conversation() { # M3-M7
   echo "node_initial $(node_of "$a")"
   cid=$(oh "$a" POST /api/conversations '{
     "agent": {"llm": {"model": "openai/mock", "base_url": "http://127.0.0.1:4000/v1",
-                      "api_key": "not-a-key", "usage_id": "agent", "num_retries": 0},
+                      "api_key": "'"$MOCK_API_KEY"'", "usage_id": "agent", "num_retries": 0},
               "tools": []},
     "workspace": {"working_dir": "/tmp/ws"},
     "initial_message": {"role": "user", "content": [{"type": "text", "text": "Reply with the word PONG."}], "run": true},

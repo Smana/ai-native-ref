@@ -10,7 +10,8 @@ aliases:
 Every model call on this platform crosses one of two gateways, chosen by who is calling. Both speak
 the OpenAI API; they differ in how they know the caller and in what they let it do. What runs
 today is on the
-[status page]({{< relref "/docs/platform/ai-platform/status.md#v2-roadmap" >}}).
+[status page]({{< relref "/docs/platform/ai-platform/status.md#v2-roadmap" >}}). How each gateway picks a model, how to tune
+it and what it costs is on [Model routing and cost]({{< relref "/docs/platform/ai-platform/routing.md" >}}).
 
 | | `ai-gateway` | Agent gateway |
 |---|---|---|

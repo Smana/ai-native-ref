@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # Spike measurements (docs/superpowers/specs/2026-10-17-substrate-spike.md). Needs kubectl-ate
 # from the v0.5.0 tag on PATH, KUBECONFIG pointing at gcp-0, and
-#   kubectl -n ate-system port-forward svc/atenet-router 18000:80
+#   kubectl -n ate-system port-forward svc/atenet-router 18081:8081
+# The router's plain HTTP port reaches an actor's port 80 only; agent-server listens on 8000, so
+# requests go through the CONNECT listener (8081) with the port in the tunnel's authority.
 # Usage: measure.sh start <template> <n> | conversation | baseline <n>
 set -euo pipefail
 AS=substrate-spike
-ROUTER=${ROUTER:-http://127.0.0.1:18000}
+ROUTER=${ROUTER:-http://127.0.0.1:18081}
 
 now() { date +%s.%N; }
 ms() { awk -v a="$1" -v b="$2" 'BEGIN{printf "%d", (b-a)*1000}'; }
 oh() { # oh <actor> <method> <path> [json]: agent-server through the atenet router
-  curl -sf -X "$2" -H "ate-target-actor: $AS/$1" -H 'Content-Type: application/json' \
-    ${4:+--data "$4"} "$ROUTER$3"
+  curl -sf --max-time 10 --proxytunnel --proxy "$ROUTER" --proxy-header "ate-target-actor: $AS/$1" \
+    -X "$2" -H 'Content-Type: application/json' ${4:+--data "$4"} "http://actor:8000$3"
 }
 node_of() {
   local pod

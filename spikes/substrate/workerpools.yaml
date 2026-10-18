@@ -17,7 +17,8 @@ spec:
     - name: gvisor
   template:
     nodeSelector:
-      cloud.google.com/gke-nodepool: agents-gvisor
+      # Not agents-gvisor: a pool created before the beta APIs lacks the kubelet trust-bundle gates.
+      cloud.google.com/gke-nodepool: substrate-gvisor
     tolerations:
       - {key: sandbox.gke.io/runtime, operator: Equal, value: gvisor, effect: NoSchedule}
     nodeAffinity:

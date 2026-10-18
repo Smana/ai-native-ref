@@ -81,3 +81,23 @@ spec:
               protocol: TCP
             - port: "988"
               protocol: TCP
+---
+# ate-api-server verifies kubectl-ate's ServiceAccount token against the GKE issuer, whose OpenID
+# discovery document and JWKS are public at container.googleapis.com. Without this, every client
+# call fails "invalid bearer token" and the server logs nothing about why.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ate-api-server-egress
+  namespace: ate-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: ate-api-server
+  egress:
+    - toFQDNs:
+        - matchName: container.googleapis.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

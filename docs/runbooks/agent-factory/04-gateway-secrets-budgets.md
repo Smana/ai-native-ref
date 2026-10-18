@@ -394,6 +394,19 @@ only that `sub`'s bucket is touched.
 > Every round below predates phase H (#2429): the agent rows ran on Envoy's agent-router in
 > `envoy-gateway-system` and use its log fields. Part A Step 5 has no recorded round yet.
 
+### D.4 alert re-run — gcp-0, 2026-10-18
+
+The shadow variant of Step 4 again, after the alert fix (#52, pinned in cloud-native-ref since
+ai-native-ref v0.1.14). The ratelimit pod had run since 2026-10-17 19:23Z, so the probe's series
+already existed at 61: this proves the alert on a live series. The new-series case rests on #52's
+`promtool` test and its replay on the 10-17 data.
+
+| Step | Expected | Observed | Pass/Fail |
+|---|---|---|---|
+| D.1 — the mode | `true` | `true` | PASS |
+| D.4, shadow variant | `200`, `200`; the shadow counters rise | `200` (`x-ratelimit-remaining: 1`), then `200` (`x-ratelimit-remaining: 0`), 08:38Z. `over_limit{key1="agent_system_serviceaccount_agents_agent-probe"}` 61 → 1,693, `global_shadow_mode` 3 → 6, no 429. The Kustomization resume put the ConfigMap back (no probe descriptor) | PASS |
+| D.4, the alert | `AgentBudgetShadowOverrun` fires | `agent_router:budget_shadow_overrun_tokens:increase10m` = 1,632 (exactly 1,693 − 61); `ALERTS{alertname="AgentBudgetShadowOverrun", key1="…agent-probe"}` `firing` at 08:42Z, within 4 minutes | PASS |
+
 ### Parts C and D — gcp-0, 2026-10-17 (compressed same-day test)
 
 Each shadow week ran as a deliberate same-day test, by the owner's choice, because a week-long

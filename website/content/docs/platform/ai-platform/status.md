@@ -72,7 +72,7 @@ provider and runs the factory. The work below continues there in the [order belo
 
 ### Next on gcp-0 {#next-on-gcp-0}
 
-1. The shadow budget alert fixed so it fires on the first overrun, then a longer shadow record before either cap is enforced.
+1. A longer shadow record before either cap is enforced.
 2. The GitHub setup, then the live auto-merge drill and the second repository.
 
 ## Roadmap {#v2-roadmap}
@@ -81,9 +81,9 @@ Each gate is a go/no-go on evidence; how each v2 decision is weighed is in the [
 
 | Next | When |
 |---|---|
-| A sandbox runtime spike, Substrate against agent-sandbox | Two days at the next `gcp-0` rebuild ([alternatives]({{< relref "/docs/platform/ai-platform/agents/alternatives.md" >}})) |
+| Substrate as the sandbox runtime | Spike passed on `gcp-0` 2026-10-18: a run restores on another node with its conversation intact, and warm-starts in 2.9 s. Not adopted now (beta kubelet gates, a second control plane, no published images); next look 2026-12-15, or sooner if those costs shrink upstream ([spike](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-17-substrate-spike.md#conclusion)) |
 | A continuation loop that picks a PR's next step from its state | Only if a cohort shows tasks abandoned on PRs that could still have been fixed |
-| Budgets enforced at the gateway | Built behind one flag, still in shadow. Compressed same-day test 2026-10-17: no real run went over, and a deliberate overrun was admitted and counted. Its alert did not fire, which is to be fixed first. Then the owner flips the flag ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)) |
+| Budgets enforced at the gateway | Built behind one flag, still in shadow. Compressed same-day test 2026-10-17: no real run went over, and a deliberate overrun was admitted and counted. Its alert now fires (fixed, proven live 2026-10-18). Next a longer shadow record, then the owner flips the flag ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#d4-alert-re-run--gcp-0-2026-10-18)) |
 
 ### Serving {#serving-roadmap}
 

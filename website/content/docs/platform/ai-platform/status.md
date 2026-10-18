@@ -2,7 +2,7 @@
 title: Status and roadmap
 weight: 60
 description: "What the AI platform does today, what is in progress, and what comes next."
-lastVerified: 2026-10-17
+lastVerified: 2026-10-18
 aliases:
   - /docs/platform/agent-factory/status/
   - /docs/platform/ai-platform/roadmap/
@@ -21,9 +21,10 @@ flowchart LR
     gw["agentgateway, model tiers"]
     repo["Own repository and site"]
     cloud["v2.1: the factory on gcp-0"]
+    warm["Warm sandboxes, off by default"]
   end
   subgraph progress["In progress"]
-    warm["Warm sandboxes"]
+    suspend["Suspend, warm pool"]
     caps["Per-person caps"]
     merge["Live auto-merge"]
     second["A second repository"]
@@ -48,6 +49,7 @@ flowchart LR
 | A measured comparison on harder tasks | The factory against a hosted agent on 15 harder issues: the gap follows the model, not the factory ([results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-v2-hard-task-cohort-design.md#results)) |
 | The AI platform in its own repository and site | Versioned and signed on its own, documented here; a rebuild from release pins closes the move ([ADR-0057]({{< relref "/docs/decisions/0057-ai-platform-own-repository.md" >}})) |
 | v2.1: the factory on `gcp-0` | The whole factory runs on GKE alone: a labelled issue became a merged pull request on release pins, its room followed live, and the gVisor pool scaled to its second node ([runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md)) |
+| Warm sandboxes, off by default on this platform | Turned on, a run starts in 16–17 s instead of 1.5–3.5 min (target 30 s), and a run preempts the warm capacity, never the reverse. Off here, since the warm node costs about $126 a month; a production platform turns it on with one value ([headroom](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#headroom-off-by-default-on-for-production)) |
 | Self-hosted model serving | vLLM on L4 GPUs behind an OpenAI-compatible gateway, off by default on both clouds ([known gaps]({{< relref "/docs/platform/ai-platform/serving/_index.md#known-gaps" >}})) |
 
 v1 is a pilot, not yet dependable: its hardening is tracked on the **v1 hardening** milestones of
@@ -63,16 +65,15 @@ provider and runs the factory. The work below continues there in the [order belo
 
 | Feature | What is left |
 |---|---|
-| Warm sandboxes: runs start in seconds, not minutes | Compressed same-day test 2026-10-17: runs start in 16–17 s (target 30 s), and a run preempts the warm capacity, never the reverse. The warm node costs about $126 a month, over its $50 cap, so the owner picks a smaller node, a schedule or a new cap. Suspend and resume proven live on gcp-0 on 2026-10-18: a run waiting on a human gives up its pod and resumes with the same workspace and conversation ([runbook 01](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/01-runtime-sandbox.md#step-8--gcp-0-2026-10-18-ai-native-ref-v0114)). The warm pool is not built ([results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)) |
+| Suspend and the warm pool | Suspend and resume proven live on gcp-0 on 2026-10-18: a run waiting on a human gives up its pod and resumes with the same workspace and conversation ([runbook 01](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/01-runtime-sandbox.md#step-8--gcp-0-2026-10-18-ai-native-ref-v0114)). The warm pool is not built ([results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)) |
 | Per-person spend caps | Counting, not refusing. Compressed same-day test 2026-10-17: every run was charged to its person, and none would have been refused. The recommended daily limit is the 5M-token default. Enforcing waits on a longer record ([runbook 04](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)) |
 | Live auto-merge of link fixes and their reverts | GitHub setup (the merger App's permissions and two rulesets), then a live drill ([runbook 12](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md)) |
 | A second repository, `ai-native-ref` | The repository is prepared; GitHub setup, then the live checks ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-second-repository-design.md)) |
 
 ### Next on gcp-0 {#next-on-gcp-0}
 
-1. The owner's call on the warm node's idle cost: a smaller node, a schedule or a new cap.
-2. The shadow budget alert fixed so it fires on the first overrun, then a longer shadow record before either cap is enforced.
-3. The GitHub setup, then the live auto-merge drill and the second repository.
+1. The shadow budget alert fixed so it fires on the first overrun, then a longer shadow record before either cap is enforced.
+2. The GitHub setup, then the live auto-merge drill and the second repository.
 
 ## Roadmap {#v2-roadmap}
 

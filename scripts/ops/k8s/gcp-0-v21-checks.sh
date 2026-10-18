@@ -5,14 +5,14 @@
 #
 # One PASS or FAIL line per check, exit 1 on any FAIL. INFO lines are context, never a verdict.
 # 7.1: the factory reaches ZITADEL across nodes. 7.2: agents-gvisor scales inside the quota.
-# --gvisor-nodes is the agents-gvisor node count to require: 1 for the headroom (default), 2
-# during a `large` run. Nothing here cordons, deletes or restarts anything: a co-located factory
+# --gvisor-nodes is the agents-gvisor node count to require: by default 1 with the headroom on, 0
+# with it off (replicas 0, the default); 2 during a `large` run. Nothing here cordons, deletes or restarts anything: a co-located factory
 # prints the commands for the owner to run.
 set -uo pipefail
 usage() { sed -n '4p' "$0" >&2; exit 2; }
 [ $# -ge 1 ] && [ "${1#-}" = "$1" ] || usage
 CTX=$1; shift
-GVISOR_NODES=1
+GVISOR_NODES=
 while [ $# -gt 0 ]; do
   case "$1" in
     --gvisor-nodes) GVISOR_NODES=${2:?}; shift ;;
@@ -123,6 +123,9 @@ info "RoomAuthnHumanIssuerNeverFetched needs 30m to fire: re-run 30m after the b
 info "the roomctl call to :8082 is the owner's, with a human token (runbook 11 step 3)"
 
 echo "== 7.2 agents-gvisor scales inside the CPU quota"
+headroom_replicas=$(k get deploy agents-headroom -n agent-system -o jsonpath='{.spec.replicas}' 2>/dev/null)
+headroom_replicas=${headroom_replicas:-0}
+[ -n "$GVISOR_NODES" ] || { [ "$headroom_replicas" -gt 0 ] && GVISOR_NODES=1 || GVISOR_NODES=0; }
 nodes=$(k get nodes -o json 2>/dev/null || echo '{"items":[]}')
 gv=$(jq '[.items[] | select(.metadata.labels["cloud.google.com/gke-nodepool"] == "agents-gvisor")
   | select(([.status.conditions[]? | select(.type == "Ready")][0].status) == "True")] | length' <<<"$nodes")
@@ -134,9 +137,14 @@ stray=$(jq -r '.items[] | select(.metadata.labels["sandbox.gke.io/runtime"] == "
 if [ -z "$stray" ]; then pass "no gVisor node outside agents-gvisor (no nap-e2-standard-4 fallback)"
 else fail "gVisor nodes outside agents-gvisor, the NAP fallback that cannot hold a large run:"; indent <<<"$stray"; fi
 
-headroom=$(k get pods -n agent-system -l app.kubernetes.io/name=agents-headroom \
-  -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.phase}{"\t"}{.spec.nodeName}{"\n"}{end}' 2>/dev/null)
-[ -n "$headroom" ] || fail "no agents-headroom pod in agent-system"
+if [ "$headroom_replicas" -eq 0 ]; then
+  info "agents-headroom is off (replicas 0): runs start on a cold node"
+  headroom=
+else
+  headroom=$(k get pods -n agent-system -l app.kubernetes.io/name=agents-headroom \
+    -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.phase}{"\t"}{.spec.nodeName}{"\n"}{end}' 2>/dev/null)
+  [ -n "$headroom" ] || fail "no agents-headroom pod in agent-system"
+fi
 while IFS=$'\t' read -r pod phase node; do
   [ -n "$pod" ] || continue
   pool=$(jq -r --arg n "$node" '.items[] | select(.metadata.name == $n) | .metadata.labels["cloud.google.com/gke-nodepool"] // "?"' <<<"$nodes")

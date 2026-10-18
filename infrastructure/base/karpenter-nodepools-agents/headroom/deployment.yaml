@@ -11,13 +11,15 @@ automountServiceAccountToken: false
 # A run preempts it; it goes Pending and Karpenter brings up the next warm node.
 # The three images and their digests are the AgentRun composition's
 # (crossplane-configuration v0.9.15, apis/agentrun/kcl/main.k): bump them with it.
+# Off by default: the warm node costs ~$126/month on gcp-0, over the demo's idle cap. `replicas: 1`
+# turns it on (runs start in ~16 s instead of 1.5-3.5 min); see the design's "Headroom" section.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agents-headroom
   namespace: agent-system
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: agents-headroom

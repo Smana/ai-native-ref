@@ -16,6 +16,7 @@ no gVisor RuntimeClass child here (GKE provides it, GP-9).
 | `agentgateway` | `infrastructure/gcp-0/agentgateway` | agentgateway controller and CRDs in `agentgateway-system` (ADR-0053) |
 | `agent-gateway` | `infrastructure/gcp-0/agent-gateway` | The agent router on agentgateway, beside `agent-router` until the cutover: Gateway `agent-gateway/agent-router`, JWT per listener, B1-B2 in shadow on its own rate-limit server and Valkey |
 | `octo-sts` | `security/gcp-0/octo-sts` | GitHub token exchange for the agents' App, reached only through agent-router's `sts` listener |
+| `merge-gate-secrets` | `security/gcp-0/merge-gate-secrets` | `SecretStore merge-gate-secrets` -> the `merge-gate` mount, policy-bot's App secret (SP3 R44) |
 | `agent-mcp` | `infrastructure/gcp-0/agent-mcp` | Flux, VictoriaMetrics, VictoriaLogs MCP servers and their MCPRoutes |
 | `room-broker` | `infrastructure/gcp-0/room-broker` | Room CRD, broker, room log (CNPG), retention, and from phase 2 oauth2-proxy (SP2) |
 | `room-broker-suspend` | `infrastructure/base/room-broker/suspend` | `patch` on `agentruns`, for the broker's suspend trigger (v2 warm-sandboxes S3). On with the broker's `suspend.enabled` (`infrastructure/gcp-0/room-broker/config.yaml`) and the factory's `sandbox.suspend.enabled` (`tooling/gcp-0/agent-factory/helm-values-suspend.yaml`); live proof in [runbook 01, Step 8](../../docs/runbooks/agent-factory/01-runtime-sandbox.md#step-8--suspend-and-resume-a-waiting-run-gcp-0) |
@@ -23,6 +24,7 @@ no gVisor RuntimeClass child here (GKE provides it, GP-9).
 | `kueue-queues` | `infrastructure/base/kueue-queues` | ResourceFlavor, the `agents-factory`/`agents-interactive` ClusterQueues and their LocalQueues (SP3) |
 | `agents-headroom` | `infrastructure/base/karpenter-nodepools-agents/headroom` | One preemptible pod keeping a warm `agents-gvisor` node with the run images pulled (v2 warm sandboxes, step 1). Off by default (`replicas: 0`); on, it holds one `e2-standard-8` up |
 | `agent-factory` | `tooling/gcp-0/agent-factory` | The factory: Task CRD and controller, issue intake, run meter (SP3) |
+| `policy-bot` | `tooling/gcp-0/policy-bot` | The merge gate: policy-bot, its public hook and tailnet UI (SP3, ADR-0045) |
 | `agent-observability` | `observability/gcp-0/agent-platform` | VMRules, the dashboards (`agent-platform`, `agent-run`, `agent-fleet`) and the agent trace collector |
 | `runlore-factory` | `observability/base/runlore-factory` | RunLore's notifier and intake token, merged into the host's RunLore through its optional `valuesFrom` (SP3 §1) |
 
@@ -42,8 +44,8 @@ Only once the crossplane-configuration pin serves `AgentRun`. Before it, `agent-
 Kyverno policies against an API that does not exist, and Flux still reports it Ready.
 
 On an **existing** cluster, first apply `opentofu/gcp/openbao/management` then
-`opentofu/gcp/gke/configure` — they create the `agents-secrets` policy and JWT role, without which
-`SecretStore agents-secrets` never goes Ready. On a feature-branch cluster, `gke/configure` needs
+`opentofu/gcp/gke/configure` — they create the `agents-secrets` and `merge-gate-secrets` policies
+and JWT roles, without which their SecretStores never go Ready. On a feature-branch cluster, `gke/configure` needs
 `TF_VAR_flux_git_ref=refs/heads/<branch>`.
 
 The owner prerequisites come next, in this order (ADR-0043): the agents' rulesets
@@ -61,6 +63,13 @@ other agent keys are written the same way, once per GCP lineage:
     bao kv put -mount=agents anthropic api_key=-
     bao kv put -mount=agents factory-app app_id=<App ID> private_key=@<pem file>
     bao kv put -mount=agents merger-app app_id=<App ID> private_key=@<pem file>
+
+policy-bot's App `ogenki-merge-gate` goes on its own mount, with its webhook pointed at
+`https://policy-bot.gcp.cloud.ogenki.io/api/github/hook`:
+
+    bao kv put -mount=merge-gate policy-bot app_id=<id> private_key=@<pem file> webhook_secret=@<file> oauth_client_id=<id> oauth_client_secret=@<file>
+
+Without it `policy-bot` never starts, and every merge-gate decision is `human`/`policy_absent`.
 
 `anthropic` backs the internal tier on Claude. `merger-app` and the RunLore intake token
 (`runlore-intake`, [runbook README](../../docs/runbooks/agent-factory/README.md) action 4d) are

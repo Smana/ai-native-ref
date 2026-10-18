@@ -1,6 +1,6 @@
 # v2: a second repository
 
-**Date:** 2026-10-16 · **Status:** approved (owner, 2026-10-18; decision 4 open) ·
+**Date:** 2026-10-16 · **Status:** proven live 2026-10-18 except P5 ([results](#results); decision 4 open) ·
 **Part of:** the v2 roadmap on the
 [status page](../../../website/content/docs/platform/ai-platform/status.md#v2-roadmap), row "A second repository"
 
@@ -22,7 +22,8 @@ Token scoping needs no change: the AgentRun composition already binds the run's 
 to `spec.repository` (crossplane-configuration `apis/agentrun/kcl/main.k:665`), and each repository's
 trust policies accept only their own audience.
 
-Read against agent-platform `main` at 205d9e9. Cited as `AP/<path>:<line>`.
+Read against agent-platform `main` at 205d9e9. Cited as `AP/<path>:<line>`. The cites locate the gap
+before the work; agent-platform v0.15.2 implements D1–D10, so its line numbers differ.
 
 ## What exists, and the gap
 
@@ -57,8 +58,8 @@ fails closed). Starting a run is a **write** through the agents' App, so it need
 | D3 | Repository ↔ room binding | **The room's repository wins.** `POST /v1/runs` with `roomRef` refuses `400 repository_differs_from_the_room` when `in.Repository` differs; a fork inherits it (as today); `resumeBranch` refuses `400 repository_differs_from_the_branch` when the branch's last run (or room) names another | Overwriting `in.Repository` with the room's silently: a caller learns nothing, and the idempotency fingerprint would hash a body it never sent |
 | D4 | The caller's GitHub permission | **`write` or higher** (`GET /repos/{r}/collaborators/{login}/permission`) for **every** human run admission, room or not, all roles. The factory resolves `sub → login` itself with `ghidentity` (the broker forwards the token, never a login), cached 5 min, failing closed: `403 repository_permission`. `agents-admin` gets no bypass: GitHub stays the one answer to "who may change this repository" | `read`: every GitHub user can read a public repository, so it would gate nothing. Per role (read for reviewer/triager): one rule is testable in one table; a read-only run still spends the budget and posts as the App |
 | D5 | Label intake | The labeller is in **that repository's** `maintainers` **and** has `write` on it (D4's check). Each repository is polled for its own `triggerLabel` | The maintainers list alone: it drifts from GitHub silently |
-| D6 | System callers | `systemPrincipals` gains a repository list per principal; schedules and RunLore take the repository from their config entry (`runlore.repository`, default the first entry) | Letting a system principal name any allowed repository: RunLore files issues, it should not choose where |
-| D7 | The single-owner fence | **`.github/agent-factory.yaml` on the default branch: `factory: gcp-0`** (aws-0 until its teardown, 2026-10-17). The factory reads it with its App at start and every 5 min; a repository whose file is absent or names another factory gets no intake, no schedules, no API runs (`409 repository_not_owned`) and no merges (gate step `not_owned` → human). A gate path in that repository's `.policy.yml` | A repository Actions variable: outside review and GitOps, and needs a new App permission. A Kubernetes Lease: two clusters do not share an API server. A CI check that no two clusters list the same repository: static, it cannot stop a rebuilt cluster on a stale pin |
+| D6 | System callers | each system principal gets a repository list (`api.systemRepositories`); schedules and RunLore take the repository from their config entry (`runlore.repository`, default the first entry) | Letting a system principal name any allowed repository: RunLore files issues, it should not choose where |
+| D7 | The single-owner fence | **`.github/agent-factory.yaml` on the default branch: `factory: gcp-0`**, the only live factory since aws-0's teardown (2026-10-17). The factory reads it with its App at start and every 5 min; a repository whose file is absent or names another factory gets no intake, no schedules, no API runs (`409 repository_not_owned`) and no merges (gate step `not_owned` → human). A gate path in that repository's `.policy.yml` | A repository Actions variable: outside review and GitOps, and needs a new App permission. A Kubernetes Lease: two clusters do not share an API server. A CI check that no two clusters list the same repository: static, it cannot stop a rebuilt cluster on a stale pin |
 | D8 | GitHub connections | **One forge client per repository**, both Apps, built from the list; a repository whose installation is missing fails readiness, never silently skips | One client re-targeted per call: every call site would carry the repository, and a missed one acts on the wrong repository |
 | D9 | The second repository | **`Smana/ai-native-ref`** after the S3 switch, all classes `review` or `shadow` (no live auto-merge until its own 20 shadow decisions) | `agent-platform`: code with tests, a good cohort source, but the factory would PR its own admission code, and its CI and release signing are heavier to gate. A throwaway sandbox repository: proves the plumbing, not the work |
 | D10 | Metrics | A `repository` label on the task, outcome, intake, intervention and time-to-PR series; values only from the config list (≤ 8), anything else `other` | A label from request input: unbounded, and a refused request would mint series |
@@ -173,7 +174,34 @@ On gcp-0, with both repositories listed:
 | P4 | `resumeBranch` of a cloud-native-ref roomless run, `repository: Smana/ai-native-ref` | `400 repository_differs_from_the_branch` |
 | P5 | A second GitHub account, `agents` member, read-only on `ai-native-ref`, roomless run | `403 repository_permission`; the same account's room still visible (read) |
 | P6 | Fence file set to `aws-0` on `ai-native-ref`, then a label | No Task; `agent_factory_repository_owned{repository="Smana/ai-native-ref"} 0`; revert, then a Task |
-| P7 | A run pod's projected token presented to octo-sts for the other repository's audience | `403` from the trust policy (runbook 05 step 5, cross-repository) |
+| P7 | A run pod's projected token presented to octo-sts for the other repository's audience | `403` code 7, audience mismatch: the other repository's trust policy exists and accepts only its own audience (runbook 05 step 5 expected `404` code 5, from a repository without one) |
+
+## Results
+
+gcp-0, 2026-10-18: ai-native-ref v0.1.17, agent-factory v0.15.3.
+
+| # | Result | Evidence |
+|---|---|---|
+| P1 | Pass | ai-native-ref#63 became task `dbe5fvc3` (template `trio`: implementer, tester and reviewer, all `Succeeded`). PR ai-native-ref#64 by `ogenki-agents`; policy-bot posted `pending 0/1`; the owner merged it at 11:13:11Z; the task ended `Done`, merged |
+| P2 | Pass | cloud-native-ref#2507 became task `wxzxxnwg` at 10:20:53Z, ai-native-ref#63 became `dbe5fvc3` at 10:21:52Z: 59 s apart |
+| P3 | Pass | `400 repository_differs_from_the_room`; no ai-native-ref AgentRun. A first attempt sent nothing: roomctl's token refresh met a transient ZITADEL `connection refused` |
+| P4 | Pass | `400 repository_differs_from_the_branch` on the branch of run `e3i3ctcz` (P7's roomless cloud-native-ref run, after it `Succeeded`); no AgentRun |
+| P5 | Not run | Skipped by owner decision: no second GitHub account. The read-only caller check is not proven live |
+| P6 | Pass | #62 (fence `aws-0`) merged 11:14:03Z; `owned` 0 on 2/2 replicas at 11:15:52; ai-native-ref#68 labelled 11:16:03; no Task at 11:19:09. Revert #67 merged 11:20:53Z; task `237ly4c7` for #68 at 11:24:52Z; `owned` 1 on 2/2 at 11:26:02. The window was 12 min, and `FactoryRepositoryNotOwned` (20 min) never fired |
+| P7 | Pass | Run `e3i3ctcz` (cloud-native-ref): its own audience got a `ghs_` token; ai-native-ref's answered `403` code 7, audience mismatch |
+
+`agent_factory_admission_refusals_total{repository="Smana/ai-native-ref"}` counted
+`repository_differs_from_the_room` 1 and `repository_differs_from_the_branch` 1. The second
+appeared one scrape late.
+
+What the live run found against this design's text:
+
+| Topic | Design said | Live |
+|---|---|---|
+| P6 | Set the fence to `aws-0` | `test-agent-repo-files.py` pins the fence to `gcp-0` inside `validate`, a required check with no bypass. The drill PR changed the fence and the test together; the revert restored both |
+| O1 | Fold the `main` ruleset into the agent-merge shape | `main` stays as it was (no bypass, squash only, `validate` and `lint`); `agent-merge`, `agent-branches`, `agent-tags` and `agent-merge-gate` sit beside it |
+| Second account | Created, read-only collaborator | None exists. GitHub answers `read` for any user on a public repository, so a collaborator is not needed; an `agents` member with a GitHub link is |
+| S3 | The second repository waits on the S3 switch | S3 has landed |
 
 ## Acceptance criteria
 
@@ -193,7 +221,7 @@ On gcp-0, with both repositories listed:
 |---|---|---|
 | 1 | Is `ai-native-ref` the second repository (the factory working on its own config repository, behind gate paths), rather than `agent-platform` or a sandbox? | **Decided** (owner, 2026-10-18): `ai-native-ref` |
 | 2 | Is `write` the right bar for every run, with no `agents-admin` bypass? | **Decided** (owner, 2026-10-18): yes, `write` for every run, no bypass |
-| 3 | A second GitHub account for P5 (also unblocks runbook 11's four open checks) | **Decided** (owner, 2026-10-18): one is created, read-only collaborator on `ai-native-ref` |
+| 3 | A second GitHub account for P5 (also unblocks runbook 11's four open checks) | **Decided** (owner, 2026-10-18), then skipped the same day: no second account exists, so P5 is not proven live |
 | 4 | Order against per-person caps | Open. Recommended: this gate first, since caps' D1 identity link is D4's lookup, built here |
 
 No ADR: no technology is chosen over another; the fence, the shape and the permission bar are

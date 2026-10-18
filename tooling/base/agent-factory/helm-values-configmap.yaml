@@ -73,11 +73,15 @@ data:
             - name: link-rot
               cron: "0 6 * * 1"  # Mondays, 06:00 UTC
               class: docs-links
+              # R52: the gate accepts only Markdown link targets ([text](url), [ref]: url); a URL in a
+              # code block or in prose is held as class_mismatch (runbook 12, 2026-10-18).
               text: |
-                Find broken external links in Markdown under docs/ and website/content/, outside
-                docs/superpowers/, docs/specs/ and website/content/docs/decisions/. Fix those with an
-                obvious replacement, changing fewer than 21 lines in total and adding or deleting no
-                file. If none is broken, change nothing and open no pull request.
+                Find broken external Markdown link targets ([text](url) or [ref]: url) under docs/
+                and website/content/, outside docs/superpowers/, docs/specs/ and
+                website/content/docs/decisions/. Fix those with an obvious replacement on the same
+                host, changing only the link target: leave code blocks, prose and link text alone,
+                change fewer than 21 lines in total and add or delete no file. If none is broken,
+                change nothing and open no pull request.
         # The second repository (v2 design D9): every class review or shadow, nothing arms until
         # its own 20 shadow decisions. Its .policy.yml has no low-risk rule to match a live class.
         - name: Smana/ai-native-ref

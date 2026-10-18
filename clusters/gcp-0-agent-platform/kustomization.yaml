@@ -15,11 +15,13 @@ resources:
   - infrastructure-agentgateway.yaml
   - infrastructure-agent-gateway.yaml
   - security-octo-sts.yaml
+  - security-merge-gate-secrets.yaml
   - infrastructure-agent-mcp.yaml
   - infrastructure-room-broker.yaml
   - infrastructure-room-broker-suspend.yaml
   - infrastructure-kueue.yaml
   - infrastructure-agents-headroom.yaml
   - tooling-agent-factory.yaml
+  - tooling-policy-bot.yaml
   - observability-agent-platform.yaml
   - observability-runlore-factory.yaml

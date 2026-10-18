@@ -78,7 +78,8 @@ deployed, or planned.
 | Part | What it covers |
 |---|---|
 | [Runtime]({{< relref "/docs/platform/ai-platform/agents/runtime.md" >}}) | The gVisor sandbox on each cloud, per-run identity, octo-sts, the branch and tag rulesets, network policy |
-| [Harness tuning]({{< relref "/docs/platform/ai-platform/agents/harness.md" >}}) | Every setting of a run from the factory's tiers to the OpenHands loop: defaults, trade-offs, measuring a change, failure modes, recipes |
+| [Harness tuning]({{< relref "/docs/platform/ai-platform/agents/harness.md" >}}) | Which knob moves cost, time and quality; measuring a change; failure modes and recipes |
+| [Harness reference]({{< relref "/docs/platform/ai-platform/agents/harness-reference.md" >}}) | Every setting of a run, from the factory's tiers to the OpenHands loop, with its value and status |
 | [Rooms]({{< relref "/docs/platform/ai-platform/agents/rooms.md" >}}) | The broker's append-only log, the bridge, the web view, steering, room tools, approvals |
 | [Factory]({{< relref "/docs/platform/ai-platform/agents/factory.md" >}}) | Intake, triage, teams, revise, the merge gate and the kill switch |
 | [Gateways]({{< relref "/docs/platform/ai-platform/gateways.md#the-agent-gateway-agent-runs" >}}) | The agent gateway: per-run identity, models, MCP tools, token exchange |

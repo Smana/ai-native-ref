@@ -1,0 +1,14 @@
+# kubectl patch -n ate-system deployment/ate-api-server --patch-file: store snapshots in rustfs.
+# Rerunning the upstream installer reverts this patch.
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: objectstore-plugin
+          env:
+            - {name: ATE_STORAGE_BACKEND, value: s3}
+            - {name: AWS_REGION, value: us-east-1}
+            - {name: AWS_ENDPOINT_URL, value: "http://rustfs.ate-system.svc:9000"}
+            - {name: AWS_S3_USE_PATH_STYLE, value: "true"}
+          envFrom:
+            - secretRef: {name: rustfs-credentials}

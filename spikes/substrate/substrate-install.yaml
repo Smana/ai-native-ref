@@ -1,0 +1,25 @@
+# Upstream installer settings (docs/operator-install.md at v0.5.0). The installer, not kustomize,
+# applies Substrate: it generates the CA and JWT-signing Secrets at install time, which cannot
+# live in git. Run it from a v0.5.0 checkout:
+#   ATE_CONFIG=substrate-install.yaml ate-setup deploy ate-system
+apiVersion: install.ate.dev/v1alpha1
+kind: SubstrateInstall
+
+namespace: ate-system
+clusterSize: size0
+rolloutTimeout: 5m0s
+
+atenet:
+  dataplane: envoy
+  egress:
+    # No credential injection: the actor has no credentials to receive.
+    credentialProvider: '{"enabled":false}'
+
+images:
+  # Upstream publishes no images (agent-substrate/substrate#2730); built from the tag with
+  # `ate-setup publish release-images` and pushed here.
+  repo: REGISTRY
+  tag: v0.5.0
+
+storage:
+  bucketName: ate-snapshots

@@ -324,7 +324,8 @@ DASHBOARDS = "observability/base/agent-platform"
 
 def dashboard(rel, name):
     d = find(rel, "GrafanaDashboard", name)
-    check(not re.search(r"(?<!\$)\$\{", (ROOT / rel).read_text()), f"{rel}: every ${{…}} is written $${{…}} for Flux")
+    check(not re.search(r"(?<!\$)\$\{(?!private_domain_name\})", (ROOT / rel).read_text()),
+          f"{rel}: every ${{…}} but ${{private_domain_name}} is written $${{…}} for Flux")
     check(d.get("spec", {}).get("folderRef") == "agents", f"{rel}: in the agents folder (O10)")
     try:
         return json.loads(d.get("spec", {}).get("json", "{}").replace("$$", "$"))
@@ -333,8 +334,19 @@ def dashboard(rel, name):
         return {}
 
 
+def flat(board):
+    """Every panel, a collapsed row's children included."""
+    for p in board.get("panels", []):
+        yield p
+        yield from p.get("panels", [])
+
+
 def titled(board):
-    return {p["title"]: p for p in board.get("panels", [])}
+    return {p["title"]: p for p in flat(board)}
+
+
+TRACE_HARNESS = "Run traces (agent-harness, one per attempt)"
+TRACE_ROUTER = "agent-router traces (adds calls outside the run trace)"
 
 
 def check_run_dashboard():
@@ -344,13 +356,17 @@ def check_run_dashboard():
     panels = titled(board)
     want = {"Run", "Duration", "Tokens vs budget", "Phase", "Step log", "Model calls through agent-router",
             "MCP calls", "Errors", "Tokens in / out", "Cost (USD)", "Model latency p50 / p95", "Error rate",
-            "Steps", "Trace (agent-harness)", "agent-router spans"}
+            "Steps", "Distinct steps", TRACE_HARNESS, TRACE_ROUTER}
     check(want <= set(panels), f"missing panels: {sorted(want - set(panels))}")
-    for title in ("Trace (agent-harness)", "agent-router spans"):
+    for title in (TRACE_HARNESS, TRACE_ROUTER):
         check(panels.get(title, {}).get("datasource") == {"type": "jaeger", "uid": "VictoriaTraces"}, f"{title} reads VictoriaTraces")
-    for title in ("Step log", "Model calls through agent-router", "MCP calls", "Errors", "Steps"):
+    for title in ("Step log", "Model calls through agent-router", "MCP calls", "Errors", "Steps", "Distinct steps"):
         check(panels.get(title, {}).get("datasource", {}).get("type") == "victoriametrics-logs-datasource", f"{title} reads VictoriaLogs")
-    targets = json.dumps([t for p in board.get("panels", []) for t in p.get("targets", [])])
+    check("count_uniq(step)" in json.dumps(panels.get("Distinct steps", {}).get("targets", [])),
+          "steps are distinct step numbers: a resumed attempt re-logs the earlier steps")
+    check(any('"phase", "Suspended"' in t.get("expr", "") for t in panels.get("Phase", {}).get("targets", [])),
+          "the phase timeline derives Suspended, which KSM's stateSet does not export")
+    targets = json.dumps([t for p in flat(board) for t in p.get("targets", [])])
     check('run_id=\\"${run}\\"' in targets and "xplane-run-${run}" in targets and "agent.run_id=${run}" in targets,
           "the panels filter on the run: KSM run_id, the pod and principal, the span tag")
 
@@ -383,7 +399,7 @@ def check_fleet_tier():
     panels = titled(dashboard(f"{DASHBOARDS}/grafana-dashboard-agent-fleet.yaml", "agent-fleet"))
     check({"Tier vs tokens and steps per run", "Tokens by tier"} <= set(panels), "tier vs spend panels (O23)")
     targets = json.dumps(panels.get("Tier vs tokens and steps per run", {}).get("targets", []))
-    check("stats by (run_id) count() as steps" in targets and "agentrun_info" in targets,
+    check("stats by (run_id) count_uniq(step) as steps" in targets and "agentrun_info" in targets,
           "tier, tokens and steps joined on run_id")
 
 
@@ -391,7 +407,7 @@ def check_task_runs():
     board = dashboard(f"{DASHBOARDS}/grafana-dashboard-agent-run.yaml", "agent-run")
     names = [v["name"] for v in board.get("templating", {}).get("list", [])]
     check("task" in names, "a hidden `task` variable, read from the run's agentrun_info")
-    panel = titled(board).get("Runs of this task", {})
+    panel = titled(board).get("Runs of this task or room", {})
     check('task=\\"${task}\\"' in json.dumps(panel.get("targets", [])), "the table filters on the run's task")
     check("/d/agent-run/agent-run?var-run=${__value.text}" in json.dumps(panel.get("fieldConfig", {})),
           "one click from a run of the task, the resumed one included, opens its page (disruption design §6)")

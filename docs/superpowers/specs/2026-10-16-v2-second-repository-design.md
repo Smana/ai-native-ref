@@ -185,7 +185,7 @@ gcp-0, 2026-10-18: ai-native-ref v0.1.17, agent-factory v0.15.3.
 | P1 | Pass | ai-native-ref#63 became task `dbe5fvc3` (template `trio`: implementer, tester and reviewer, all `Succeeded`). PR ai-native-ref#64 by `ogenki-agents`; policy-bot posted `pending 0/1`; the owner merged it at 11:13:11Z; the task ended `Done`, merged |
 | P2 | Pass | cloud-native-ref#2507 became task `wxzxxnwg` at 10:20:53Z, ai-native-ref#63 became `dbe5fvc3` at 10:21:52Z: 59 s apart |
 | P3 | Pass | `400 repository_differs_from_the_room`; no ai-native-ref AgentRun. A first attempt sent nothing: roomctl's token refresh met a transient ZITADEL `connection refused` |
-| P4 | Pass | `400 repository_differs_from_the_branch` on a roomless cloud-native-ref run's branch; no AgentRun |
+| P4 | Pass | `400 repository_differs_from_the_branch` on the branch of run `e3i3ctcz` (P7's roomless cloud-native-ref run, after it `Succeeded`); no AgentRun |
 | P5 | Not run | Skipped by owner decision: no second GitHub account. The read-only caller check is not proven live |
 | P6 | Pass | #62 (fence `aws-0`) merged 11:14:03Z; `owned` 0 on 2/2 replicas at 11:15:52; ai-native-ref#68 labelled 11:16:03; no Task at 11:19:09. Revert #67 merged 11:20:53Z; task `237ly4c7` for #68 at 11:24:52Z; `owned` 1 on 2/2 at 11:26:02. The window was 12 min, and `FactoryRepositoryNotOwned` (20 min) never fired |
 | P7 | Pass | Run `e3i3ctcz` (cloud-native-ref): its own audience got a `ghs_` token; ai-native-ref's answered `403` code 7, audience mismatch |

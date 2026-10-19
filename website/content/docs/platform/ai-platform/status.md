@@ -2,7 +2,7 @@
 title: Status and roadmap
 weight: 60
 description: "What the AI platform does today, what is in progress, and what comes next."
-lastVerified: 2026-10-18
+lastVerified: 2026-10-19
 aliases:
   - /docs/platform/agent-factory/status/
   - /docs/platform/ai-platform/roadmap/
@@ -30,9 +30,13 @@ flowchart LR
   subgraph progress["In progress"]
     caps["Per-person caps"]
   end
-  subgraph next["Next"]
-    loop["Continuation loop, if needed"]
-    serving["Serving paths"]
+  subgraph next["Next: v3"]
+    bench["Eval bench"]
+    scoper["Scoper and stall limit"]
+    tester["Test-first tester"]
+    split["Splitter"]
+    bake["Open-weight bake-off"]
+    classes["More auto-merge classes"]
   end
   landed --> progress --> next
 ```
@@ -64,28 +68,54 @@ v1 is a pilot, not yet dependable: its hardening is tracked on the **v1 hardenin
 ## In progress {#in-progress}
 
 {{< callout type="info" >}}
-**Live on `gcp-0` since 2026-10-17.** `aws-0` is torn down; `gcp-0` runs alone, hosts the identity
-provider and runs the factory. The work below continues there in the [order below](#next-on-gcp-0).
+**Paused between releases.** v2.0 shipped on `gcp-0` on 2026-10-18, then `gcp-0` was torn down, its
+OpenBao snapshot and databases saved. A rebuild from the release pins restores it; the work below and
+v3 resume there, in the [order below](#before-v3).
 {{< /callout >}}
 
 | Feature | What is left |
 |---|---|
-| Per-person spend caps | Counting, not refusing. Compressed same-day test 2026-10-17: every run was charged to its person, and none would have been refused. The recommended daily limit is the 5M-token default. Enforcing waits on counting cache reads at their discounted weight (agent-platform #155) and a longer record ([runbook 04](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)) |
+| Per-person spend caps | Counting, not refusing. Compressed same-day test 2026-10-17: every run was charged to its person, and none would have been refused. The recommended daily limit is the 5M-token default. Enforcing waits on daily caps that count dollars rather than raw tokens, and a longer record ([runbook 04](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)) |
 
-### Next on gcp-0 {#next-on-gcp-0}
+### Before v3 {#before-v3}
 
-1. Per-person caps: count cache reads at their weight (agent-platform #155), then a longer shadow record before enforcing.
-2. The breaker's live proof and the revert's unattended merge, at the next `docs-links` pull request and revert.
+1. Rebuild `gcp-0` from the release pins.
+2. Truthful costs: the price rule discounts cache reads, and daily caps count dollars.
+3. Per-person caps: a longer shadow record before enforcing.
+4. The breaker's live proof and the revert's unattended merge, at the next link-fix pull request and revert.
 
-## Roadmap {#v2-roadmap}
+<span id="v2-roadmap"></span>
 
-Each gate is a go/no-go on evidence; how each v2 decision is weighed is in the [v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md#how-v2-is-judged).
+## Roadmap: v3 {#roadmap}
 
-| Next | When |
+v3 makes the factory **land more accepted pull requests per dollar on the models it may use**. Public
+work stays on open-weight models and internal work on Claude, so the lever is the task, not the
+model: shape it to fit, measure every change, let the best open model win on our own issues. Each
+feature is a go/no-go on the eval bench ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md), [how v3 is judged](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#how-v3-is-judged)).
+
+| Feature | What it does for you | Gate |
+|---|---|---|
+| Eval bench | A fixed set of hard and routine issues, three runs each, scored on acceptance and cost per accepted pull request: every change below is judged on it | A baseline, with its run-to-run spread |
+| Scoper | Rewrites a vague issue into a bounded task with acceptance criteria and the check that proves it, or asks its author the question it could not answer | Fewer wandering runs, acceptance not lower |
+| Stall limit | A run with no commit by its step limit stops and posts what it found, instead of spending its budget searching | Less spend on wandering runs |
+| Test-first tester | The tester writes the failing test first; it becomes the implementer's contract | Acceptance rises on routine issues |
+| Search as a tool | The implementer asks a read-only search helper with a fresh context, instead of reading the repository itself | Fewer steps at equal acceptance |
+| Splitter | A hard issue becomes sub-issues, each with its own check, built through the usual templates | Hard issues land through their sub-issues |
+| Open-weight bake-off | The open models available compete on our issues; the winner per class sets the tier's model. Internal work picks Sonnet or Opus per task | A model beats GLM-5.3 on cost per accepted pull request |
+| More auto-merge classes | Beyond link fixes: lint fixes and dependency bumps with green CI, as declarative risk tiers, each proven by a live drill | Each class stays within the breaker's revert budget |
+
+Not in v3: public work on Claude, a doc-writer or standalone architect agent, parallel writers on one
+branch, and switching models in the middle of a run ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#not-in-v3)).
+
+### Later {#later}
+
+| Feature | When |
 |---|---|
+| Install on any Kubernetes: a core profile on kind with any OIDC provider, a GitHub App and one model key; sandboxes through [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox); cloud-native-ref as the reference profile | After v3: worth installing once the bench shows the outcomes ([shape](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#later)) |
 | Substrate as the sandbox runtime | Spike passed on `gcp-0` 2026-10-18: a run restores on another node with its conversation intact, and warm-starts in 2.9 s. Not adopted now (beta kubelet gates, a second control plane, no published images); next look 2026-12-15, or sooner if those costs shrink upstream ([spike](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-17-substrate-spike.md#conclusion)) |
-| The warm pool: pre-warmed sandboxes handed to a run (binder W1) | After v2; needs the owner's acceptance of the binder's token-minting authority ([results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)) |
-| A continuation loop that picks a PR's next step from its state | Only if a cohort shows tasks abandoned on PRs that could still have been fixed |
+| The warm pool: pre-warmed sandboxes handed to a run (binder W1) | Needs the owner's acceptance of the binder's token-minting authority, unless agent-sandbox's warm pools replace it ([results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)) |
+| A continuation loop that picks a PR's next step from its state | Only if the bench shows tasks abandoned on PRs that could still have been fixed |
+| Untrusted-input hardening: an agent that writes only through validated outputs | When a repository takes issues from people outside its maintainers |
 
 ### Serving {#serving-roadmap}
 

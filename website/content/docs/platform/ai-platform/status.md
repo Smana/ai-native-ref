@@ -97,7 +97,7 @@ feature is a go/no-go on the eval bench ([design](https://github.com/Smana/ai-na
 | Feature | What it does for you | Gate |
 |---|---|---|
 | Eval bench | A fixed set of hard and routine issues, three runs each, scored on acceptance and cost per accepted pull request: every change below is judged on it | A baseline, with its run-to-run spread |
-| Scoper | Rewrites a vague issue into a bounded task with acceptance criteria and the check that proves it, or asks its author the question it could not answer | Fewer wandering runs, acceptance not lower |
+| Scoper | Rewrites a vague issue into a bounded task with acceptance criteria and the check that proves it, taken from a short steering note per class, or asks its author the question it could not answer | Fewer wandering runs, acceptance not lower |
 | Stall limit | A run with no commit by its step limit stops and posts what it found, instead of spending its budget searching | Less spend on wandering runs |
 | Test-first tester | The tester writes the failing test first; it becomes the implementer's contract | Acceptance rises on routine issues |
 | Search as a tool | The implementer asks a read-only search helper with a fresh context, instead of reading the repository itself | Fewer steps at equal acceptance |
@@ -105,8 +105,8 @@ feature is a go/no-go on the eval bench ([design](https://github.com/Smana/ai-na
 | Open-weight bake-off | The open models available compete on our issues; the winner per class sets the tier's model. Internal work picks Sonnet or Opus per task | A model beats GLM-5.3 on cost per accepted pull request |
 | More auto-merge classes | Beyond link fixes: lint fixes and dependency bumps with green CI, as declarative risk tiers, each proven by a live drill | Each class stays within the breaker's revert budget |
 
-Not in v3: public work on Claude, a doc-writer or standalone architect agent, parallel writers on one
-branch, and switching models in the middle of a run ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#not-in-v3)).
+Not in v3: public work on Claude, a doc-writer or standalone architect agent, memory across tasks,
+parallel writers on one branch, and switching models in the middle of a run ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#not-in-v3)).
 
 ### On the road to a dark factory {#dark-factory}
 

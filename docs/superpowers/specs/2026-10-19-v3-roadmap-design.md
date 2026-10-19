@@ -64,7 +64,7 @@ flowchart LR
 | # | Feature | What changes | Gate, on bench numbers |
 |---|---|---|---|
 | 0 | **Eval bench** | A fixed corpus scored the same way every time: the cohort's 15 hard issues and 15 routine ones from the factory's history, 3 runs each, on pinned releases. Scored on [the metrics below](#how-v3-is-judged). Runs on truthful costs: the price rule discounts cache reads, and daily caps count dollars, not raw tokens | A baseline, with its run-to-run spread measured |
-| 1 | **Scoper** | The `investigate` template grows into the first stage of every non-mechanical class: it rewrites the issue into a bounded task (the files or components, acceptance criteria, the check that proves it) or sends it back to its author with the question it could not answer | Fewer runs past the stall limit; acceptance not lower |
+| 1 | **Scoper** | The `investigate` template grows into the first stage of every non-mechanical class: it rewrites the issue into a bounded task (the files or components, acceptance criteria, the check that proves it) or sends it back to its author with the question it could not answer. The check comes from the class's **steering**: a procedural note per class, three modules at most, on how to verify the change here and which paths to leave alone, read from the intake snapshot and itself a gate path. Focused skills lift smaller models ([SkillsBench](https://arxiv.org/abs/2602.12670)); a repository overview does not ([Not in v3](#not-in-v3)). The harness sets no agent context today, so a run sees nothing of the repository: steering alone is the first bench experiment | Fewer runs past the stall limit; acceptance not lower. Steering alone: fewer review rounds per accepted PR, cost per accepted PR not higher |
 | 2 | **Stall limit** | In the harness: no commit by step N stops the run and posts what it found | Spend on wandering runs drops; acceptance not lower |
 | 3 | **Test-first tester** | Where the change has testable behaviour, the tester runs before the implementer and writes the failing test that becomes its contract | Acceptance rises on routine issues |
 | 4 | **Search as a tool** | Inside the implementer, a read-only search subagent with a fresh context returns a short summary, instead of the implementer reading the repository itself | Steps or cost drop at equal acceptance |
@@ -86,7 +86,7 @@ Every feature is a go/no-go on the bench, the way each v2 gate was a go/no-go on
 | Steps | Median and p90 per run |
 | Wandering share | Runs past N steps with no commit |
 | Scoper bounce rate | Issues sent back, and acceptance after the author answers |
-| Reviewer yield | Real defects caught per PR, against false alarms |
+| Reviewer yield | Real defects caught per PR, against false alarms, and how many repeat a defect seen on an earlier task |
 
 Each issue runs at least 3 times per variant: rankings can flip between single runs. A change ships
 only if it moves acceptance or cost per accepted PR by more than the spread the baseline measured.
@@ -98,7 +98,8 @@ internal-class results against.
 | Not built | Why |
 |---|---|
 | Public work on Claude | D2 |
-| A doc-writer agent | Repository overviews written by agents show no gain and add cost ([ETH](https://arxiv.org/abs/2602.11988)); agent-written skills come out net negative ([SkillsBench](https://arxiv.org/abs/2602.12670)) |
+| A doc-writer agent | Context files do not raise success rates and cost over 20% more, written by developers or by agents alike; their instructions are followed, their overviews are not ([ETH](https://arxiv.org/abs/2602.11988)); agent-written skills come out net negative ([SkillsBench](https://arxiv.org/abs/2602.12670)) |
+| Memory across tasks | A 3.7% average gain, only once lessons are abstracted, and it grows with the pool ([memory transfer](https://arxiv.org/abs/2604.14004)): under the bench's spread at 20 tasks a day. A write path from one run into every later run's prompt, across data classes, and runs on the bench stop being independent. Reopens if reviewer yield shows repeat defects, as entries agents propose and humans merge into the class's steering |
 | A standalone architect agent | Planning helps as a phase inside the implementer; as a separate agent it hands its decisions over in prose |
 | Parallel writers on one branch, swarms | Writes must stay single-threaded ([Cognition 2026](https://cognition.com/blog/multi-agents-working)) |
 | Per-step model switching on the agent loop | Breaks the prompt cache that carries 95% of input |

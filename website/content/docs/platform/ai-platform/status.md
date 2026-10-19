@@ -90,7 +90,8 @@ v3 resume there, in the [order below](#before-v3).
 
 v3 makes the factory **land more accepted pull requests per dollar on the models it may use**. Public
 work stays on open-weight models and internal work on Claude, so the lever is the task, not the
-model: shape it to fit, measure every change, let the best open model win on our own issues. Each
+model: shape it to fit, measure every change, let the best open model win on our own issues. We are
+[on the road to a dark factory](#dark-factory), one proven lane at a time. Each
 feature is a go/no-go on the eval bench ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md), [how v3 is judged](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#how-v3-is-judged)).
 
 | Feature | What it does for you | Gate |
@@ -106,6 +107,26 @@ feature is a go/no-go on the eval bench ([design](https://github.com/Smana/ai-na
 
 Not in v3: public work on Claude, a doc-writer or standalone architect agent, parallel writers on one
 branch, and switching models in the middle of a run ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#not-in-v3)).
+
+### On the road to a dark factory {#dark-factory}
+
+A *dark factory* is the top of Dan Shapiro's levels of AI-assisted programming, named after robot
+factories that run with the lights off: specs go in, software comes out, and no human writes or
+reviews the changes ([the levels](https://simonwillison.net/2026/Jan/28/the-five-levels/)).
+StrongDM's AI team runs one under two rules: code must not be written by humans, and must not be
+reviewed by humans ([StrongDM](https://factory.strongdm.ai/)).
+
+| Level | Who does what | Here |
+|---|---|---|
+| 3 · Developer | Agents write most of the code; a human reviews it | |
+| 4 · Engineering team | Humans write the specs; agents build | **Most work**: a human writes the issue and approves the merge; agents implement and review each other |
+| 5 · Dark factory | No human in the loop | **One lane**: link fixes merge with no human, at most once a day, and a revert sends the class back to human review |
+
+We are not a dark factory yet, and we do not remove humans wholesale. Each class of change earns its
+way to lights-out on evidence: a live drill, a revert breaker, a budget. v3's new auto-merge classes
+are the next lanes, and the bench decides which. Dropping human review is a consequential choice,
+not only a productivity one ([Stanford CodeX](https://law.stanford.edu/2026/02/08/built-by-agents-tested-by-agents-trusted-by-whom/)),
+which is why each lane is reversible by one label.
 
 ### Later {#later}
 

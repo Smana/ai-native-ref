@@ -149,6 +149,7 @@ which is why each lane is reversible by one label.
 
 | Path | Trigger |
 |---|---|
+| GPU sharing for the small always-warm models: native time-slicing, each model's memory fraction set, the GPU pool's limit counting shared replicas ([options]({{< relref "/docs/platform/ai-platform/serving/autoscaling-and-gpu.md#gpu-sharing" >}})) | Now: the FIM model and LlamaGuard each hold a whole L4 for a fraction of its memory; packing them frees a node, about $260–325 a month |
 | The endpoint picker on a high-traffic model | A model at two replicas or more without a LoRA canary (it is built, enabled on no claim) |
 | Saturation of the InferencePool as an autoscaling trigger | Specified, not built: when the endpoint picker is on |
 | A bigger coder model on the same L4 GPUs | The 7B coder hits its tool-call or correctness limits |

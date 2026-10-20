@@ -2,7 +2,7 @@
 title: Autoscaling & GPUs
 weight: 40
 description: Three KEDA triggers on leading vLLM signals, why minReplicas is never zero, and the GPU and storage foundation underneath.
-lastVerified: 2026-08-27
+lastVerified: 2026-10-20
 aliases:
   - /docs/platform/ai-platform/autoscaling-and-gpu/
 ---
@@ -111,10 +111,31 @@ records why this replaced an init-container sync, and
 [ADR-0003]({{< relref "/docs/decisions/0003-vllm-production-stack-over-kserve.md" >}})
 why vLLM Production Stack was chosen over KServe + llm-d.
 
+## GPU sharing {#gpu-sharing}
+
+Today every model holds a whole L4. The two small always-warm models, the FIM coder
+(`xplane-qwen-coder-fim`) and LlamaGuard (`xplane-llamaguard3-1b`), use a fraction of its 24 GB:
+packing them on one GPU frees a node, about $263 a month on a `g6.xlarge` spot and $325 on a
+`g2-standard-4` spot. The L4 has no MIG, so sharing is done in software. Options checked on
+2026-10-20 ([evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-hami-gpu-sharing-research.md)):
+
+| Option | Isolation | Verdict |
+|---|---|---|
+| **Native time-slicing + vLLM memory fractions** | Memory: each model limits itself with `--gpu-memory-utilization`. Compute: best effort | **Next.** Native on GKE and on Bottlerocket; no new component |
+| MPS | Memory split and thread caps, enforced | Needs `hostIPC` on GKE, which the pod security baseline forbids |
+| [HAMi](https://project-hami.io/) | Memory cap per container; its compute cap misses CUDA graphs, which vLLM decodes with | **Watch.** It replaces the GPU device plugin on both clouds, adds a privileged DaemonSet and a second scheduler, and Karpenter cannot provision for its resources |
+| DRA sharing (NVIDIA DRA driver) | As time-slicing or MPS | **Watch:** alpha; Karpenter support behind a gate on Kubernetes 1.36 |
+| `g6f` fractional L4 | Hard partition | Not offered in `eu-west-3` |
+
+Two traps for any of them: **Karpenter's NodePool limit counts the GPUs a node advertises**, so a
+time-sliced node with 3 replicas counts as 3 against `nvidia.com/gpu: "4"`; and time-slicing makes
+the models on one GPU one fault domain, so their memory fractions must add up to less than 1.
+
 ## Future improvements
 
 [kvcached](https://github.com/ovg-project/kvcached) gives the serving engine virtual memory for its
 KV cache, backed by GPU memory only on demand, so several models can share one GPU elastically; it
 could let the two small always-warm models, the FIM model (`xplane-qwen-coder-fim`) and LlamaGuard
-(`xplane-llamaguard3-1b`), which each hold a whole L4 today, share one. It needs GPU sharing in
-Kubernetes and a change to the `InferenceService` composition.
+(`xplane-llamaguard3-1b`), which each hold a whole L4 today, share one. It needs [GPU sharing](#gpu-sharing)
+first, and a change to the `InferenceService` composition. HAMi's fixed memory caps would defeat its
+elasticity.

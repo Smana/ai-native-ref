@@ -106,8 +106,8 @@ and site. The reference cluster is **paused between releases**: torn down, its s
 databases saved, to be rebuilt from the release pins when work resumes.
 
 **v3 makes the factory land more accepted pull requests per dollar** on the models it may use: an
-eval bench first, then a scoper that turns vague issues into bounded tasks, a stall limit, a
-test-first tester, a splitter for hard issues, an open-weights model bake-off, and more change
+eval bench first, then a scoper that turns vague issues into bounded tasks, a stall limit, the
+repository's own checks run in the sandbox before pushing, a test-first tester, a splitter for hard issues, an open-weights model bake-off, and more change
 classes merging alone. Each is a go/no-go on the bench.
 
 We are **on the road to a dark factory**, one proven lane at a time: today a human writes the issue

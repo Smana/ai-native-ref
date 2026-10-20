@@ -32,6 +32,7 @@ issues.
 |---|---|
 | Most runs finish in 10–40 steps for under $0.20, with about 95% of input read from cache | [harness tuning, real runs](../../../website/content/docs/platform/ai-platform/agents/harness.md#examples) |
 | The expensive runs are vague tasks: one spent its whole $2.55 on 319 `grep` steps and pushed nothing | same |
+| The agent mostly cannot run the repository's own checks before pushing: the harness image holds Python, git and `gh`, and a factory run reaches GitHub only. A red CI starts a new run, which reloads the whole context, to fix it | [harness reference](../../../website/content/docs/platform/ai-platform/agents/harness-reference.md#composition) |
 | On hard issues the model is the bottleneck: 0/15 for GLM-5.3 in either harness, 13/15 for Claude | [cohort](2026-10-12-v2-hard-task-cohort-design.md#results) |
 | At 15 issues, one run each, the standard error is about 13 points: only a gap as large as 13 vs 0 reads | sampling arithmetic |
 
@@ -52,11 +53,12 @@ change can be judged without more runs per issue.
 flowchart LR
   B["0 · Eval bench"]:::base --> S["1 · Scoper"]
   B --> W["2 · Stall limit"]
-  B --> T["3 · Test-first tester"]
-  B --> X["4 · Search as a tool"]
-  S --> P["5 · Splitter"]
-  B --> M["6 · Open-weight bake-off"]
-  S --> A["7 · More auto-merge classes"]
+  B --> C["3 · Repository checks<br/>in the sandbox"]
+  C --> T["4 · Test-first tester"]
+  B --> X["5 · Search as a tool"]
+  S --> P["6 · Splitter"]
+  B --> M["7 · Open-weight bake-off"]
+  S --> A["8 · More auto-merge classes"]
   T --> A
   classDef base fill:#6366f1,stroke:#4f46e5,color:#fff
 ```
@@ -66,14 +68,17 @@ flowchart LR
 | 0 | **Eval bench** | A fixed corpus scored the same way every time: the cohort's 15 hard issues and 15 routine ones from the factory's history, 3 runs each, on pinned releases. Scored on [the metrics below](#how-v3-is-judged). Runs on truthful costs: the price rule discounts cache reads, and daily caps count dollars, not raw tokens | A baseline, with its run-to-run spread measured |
 | 1 | **Scoper** | The `investigate` template grows into the first stage of every non-mechanical class: it rewrites the issue into a bounded task (the files or components, acceptance criteria, the check that proves it) or sends it back to its author with the question it could not answer. The check comes from the class's **steering**: a procedural note per class, three modules at most, on how to verify the change here and which paths to leave alone, read from the intake snapshot and itself a gate path. Focused skills lift smaller models ([SkillsBench](https://arxiv.org/abs/2602.12670)); a repository overview does not ([Not in v3](#not-in-v3)). The harness sets no agent context today, so a run sees nothing of the repository: steering alone is the first bench experiment | Fewer runs past the stall limit; acceptance not lower. Steering alone: fewer review rounds per accepted PR, cost per accepted PR not higher |
 | 2 | **Stall limit** | In the harness: no commit by step N stops the run and posts what it found | Spend on wandering runs drops; acceptance not lower |
-| 3 | **Test-first tester** | Where the change has testable behaviour, the tester runs before the implementer and writes the failing test that becomes its contract | Acceptance rises on routine issues |
-| 4 | **Search as a tool** | Inside the implementer, a read-only search subagent with a fresh context returns a short summary, instead of the implementer reading the repository itself | Steps or cost drop at equal acceptance |
-| 5 | **Splitter** | A hard issue becomes sub-issues, each with its own verifier and each run through the existing templates on its own branch. The parent closes when its children merge | Some hard-set issues land through their sub-issues |
-| 6 | **Open-weight bake-off** | The models Z.ai serves first; another open family only through a second processor the owner approves. The winner per class sets the tier's model; a stalled run may restart on the larger model with a verified handoff. Internal work picks Sonnet or Opus per task and tries Anthropic's advisor tool | One model beats GLM-5.3 on cost per accepted PR |
-| 7 | **More auto-merge classes** | Beyond link fixes (lint fixes, dependency bumps with green CI), as declarative risk tiers, each proven by a drill like the link-fix one | Each class holds the breaker's revert budget over its window |
+| 3 | **Repository checks in the sandbox** | The sandbox gets the repository's toolchain (the versions in its `mise.toml`, fetched over GitHub-only egress, or an image per repository) and the implementer runs the same entrypoint the CI runs, `task check` or its equivalent, before it pushes. The fast subset only: checks that need CI secrets, a diff against `main` or more than the sandbox's size stay CI-only. A feedback loop, never a gate: the CI stays the only judge | Fewer fix runs started by a red CI, acceptance not lower |
+| 4 | **Test-first tester** | Where the change has testable behaviour, the tester runs before the implementer and writes the failing test that becomes its contract | Acceptance rises on routine issues |
+| 5 | **Search as a tool** | Inside the implementer, a read-only search subagent with a fresh context returns a short summary, instead of the implementer reading the repository itself | Steps or cost drop at equal acceptance |
+| 6 | **Splitter** | A hard issue becomes sub-issues, each with its own verifier and each run through the existing templates on its own branch. The parent closes when its children merge | Some hard-set issues land through their sub-issues |
+| 7 | **Open-weight bake-off** | The models Z.ai serves first; another open family only through a second processor the owner approves. The winner per class sets the tier's model; a stalled run may restart on the larger model with a verified handoff. Internal work picks Sonnet or Opus per task and tries Anthropic's advisor tool | One model beats GLM-5.3 on cost per accepted PR |
+| 8 | **More auto-merge classes** | Beyond link fixes (lint fixes, dependency bumps with green CI), as declarative risk tiers, each proven by a drill like the link-fix one | Each class holds the breaker's revert budget over its window |
 
-Features 1–4 and 6 can run in parallel once the bench exists. The splitter needs the scoper's
-bounded-task format; new auto-merge classes need the scoper or the tester to make a change verifiable.
+Features 1–3, 5 and 7 can run in parallel once the bench exists. The test-first tester needs the
+repository's checks in the sandbox, or nobody can run its test before pushing. The splitter needs the
+scoper's bounded-task format; new auto-merge classes need the scoper or the tester to make a change
+verifiable.
 
 ## How v3 is judged
 
@@ -85,6 +90,7 @@ Every feature is a go/no-go on the bench, the way each v2 gate was a go/no-go on
 | Cost per accepted PR | All spend on the issue, failed and wandering runs included, over accepted PRs |
 | Steps | Median and p90 per run |
 | Wandering share | Runs past N steps with no commit |
+| CI round-trips | Fix runs started by a red CI, per accepted PR |
 | Scoper bounce rate | Issues sent back, and acceptance after the author answers |
 | Reviewer yield | Real defects caught per PR, against false alarms, and how many repeat a defect seen on an earlier task |
 
@@ -139,5 +145,6 @@ hardening (an agent that only writes through validated outputs, as GitHub's agen
 |---|---|
 | Where the bench's pull requests go: the real repositories, or a mirror that keeps them out of history | Owner, at the bench's design |
 | The routine half of the corpus: which classes, sampled how | Bench design |
+| How the sandbox gets the repository's toolchain: `mise` from the repository's own pins, or an image per repository | Design of feature 3 |
 | N, the stall limit's step count | Bench data: the step distribution of accepted runs |
 | A second open-weight processor for the bake-off | Owner, only if Z.ai's models are not enough |

@@ -80,8 +80,13 @@ v3 resume there, in the [order below](#before-v3).
 
 ### Before v3 {#before-v3}
 
-1. Rebuild `gcp-0` from the release pins.
-2. Truthful costs: the price rule discounts cache reads, and daily caps count dollars.
+1. Rebuild `gcp-0` from the release pins, after three teardown fixes the last teardown showed: the
+   load-balancer sweep also after an interactive confirmation, DNS records removed before their
+   addresses are released, and a check that the deploy runs the repository's pinned tool versions.
+2. Truthful costs: one price table with every copy generated from it, the metrics price rule first;
+   daily caps in dollars; a nightly check against public price catalogs; the gateway's per-request
+   cost as a cross-check; reconciliation with the provider's usage data
+   ([pricing research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-model-pricing-research.md)).
 3. Per-person caps: a longer shadow record before enforcing.
 4. The breaker's live proof and the revert's unattended merge, at the next link-fix pull request and revert.
 

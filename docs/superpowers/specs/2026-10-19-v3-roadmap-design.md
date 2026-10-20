@@ -134,8 +134,12 @@ hardening (an agent that only writes through validated outputs, as GitHub's agen
 ## Before v3 starts
 
 - **Rebuild `gcp-0` from release pins.** It was torn down on 2026-10-18 after v2.0; the bench runs
-  there.
-- **Truthful costs.** The price recording rule's cache discount, and daily caps counted in dollars.
+  there. First, three teardown fixes: the load-balancer sweep also after an interactive confirmation,
+  external-dns records removed before their addresses are released, and a pinned-tool-version check.
+- **Truthful costs.** One price table, every copy generated from it (the metrics price rule first),
+  daily caps in dollars, a drift check against public catalogs, the gateway's per-request cost as a
+  cross-check, and reconciliation with the provider
+  ([pricing research](2026-10-20-model-pricing-research.md#recommendations)).
 - **v2 carry-overs.** The per-person caps' shadow record, and the breaker's and the revert's live
   proofs at the next link-fix pull request.
 

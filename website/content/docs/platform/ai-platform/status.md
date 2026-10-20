@@ -33,6 +33,7 @@ flowchart LR
   subgraph next["Next: v3"]
     bench["Eval bench"]
     scoper["Scoper and stall limit"]
+    checks["Repository checks in the sandbox"]
     tester["Test-first tester"]
     split["Splitter"]
     bake["Open-weight bake-off"]
@@ -99,6 +100,7 @@ feature is a go/no-go on the eval bench ([design](https://github.com/Smana/ai-na
 | Eval bench | A fixed set of hard and routine issues, three runs each, scored on acceptance and cost per accepted pull request: every change below is judged on it | A baseline, with its run-to-run spread |
 | Scoper | Rewrites a vague issue into a bounded task with acceptance criteria and the check that proves it, taken from a short steering note per class, or asks its author the question it could not answer | Fewer wandering runs, acceptance not lower |
 | Stall limit | A run with no commit by its step limit stops and posts what it found, instead of spending its budget searching | Less spend on wandering runs |
+| Repository checks in the sandbox | The agent runs the same checks as the CI before it pushes, so it fixes a failure without a CI round-trip. A feedback loop, not a second gate: the CI stays the only judge | Fewer fix runs after a red CI, acceptance not lower |
 | Test-first tester | The tester writes the failing test first; it becomes the implementer's contract | Acceptance rises on routine issues |
 | Search as a tool | The implementer asks a read-only search helper with a fresh context, instead of reading the repository itself | Fewer steps at equal acceptance |
 | Splitter | A hard issue becomes sub-issues, each with its own check, built through the usual templates | Hard issues land through their sub-issues |

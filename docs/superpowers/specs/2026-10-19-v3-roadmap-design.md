@@ -1,6 +1,8 @@
 # v3: more accepted pull requests per dollar, on the models we may use
 
-**Date:** 2026-10-19 · **Status:** roadmap approved by the owner 2026-10-19; each feature gets its own
+**Date:** 2026-10-19 · **Status:** roadmap approved by the owner 2026-10-19; **amended 2026-10-21** by the
+[v3 review](2026-10-21-v3-review.md#5-amendments-proposed): features 2, 4, 5, 7 and 8 revised, 9 to 11
+added, the [Later](#later) section now pointing at agent-platform's designs. Each feature gets its own
 design before it is built · **Part of:** the roadmap on the
 [status page](../../../website/content/docs/platform/ai-platform/status.md#roadmap)
 

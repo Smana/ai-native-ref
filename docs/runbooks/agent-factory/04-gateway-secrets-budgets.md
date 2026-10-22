@@ -406,7 +406,8 @@ back on the way to Anthropic ([cache design](../../superpowers/specs/2026-10-21-
 
 Offline, `task check` proves both sides: `test-agent-cache-alerts` evaluates the two metric alerts on
 synthetic series, and `test-agent-gateway-cache-wire` runs the pinned agentgateway against a fake
-Anthropic upstream and fails if the marker or the token series change.
+Anthropic upstream and fails if the marker or the token series change, on a plain or a streamed
+reply.
 `test-agent-cost-rules` fires `AgentMeterInputExcludesCache` on the counter's first increment.
 
 Live, at the next platform session: the share panel on the agent-gateway dashboard reads above 60%

@@ -12,7 +12,10 @@
 # nulls any other name, and 1.6 answers that 400 "model not specified" before
 # any upstream call (llm/mod.rs finalize_request_model; transformations read the
 # decompressed body, so gzip clients are judged too). No `*` alias and no
-# provider `model`: either would give an unlisted name a model. The map is the
+# provider `model`: either would give an unlisted name a model. The name is
+# x-ar-model when the run's identity proxy pinned it (capability profiles P4),
+# else the body's: policy-capabilities.yaml judges the same choice, so nothing
+# may remove that header (AG12). The map is the
 # same on both Z.ai backends and mirrors the internal one (anthropic.yaml):
 #
 #   name            public (Z.ai)    internal (Anthropic)
@@ -58,7 +61,7 @@ spec:
         agent-default: glm-5.3
       transformations:
         - field: model
-          expression: 'llmRequest.model in ["agent-default", "tier-light", "tier-standard", "tier-frontier"] ? llmRequest.model : null'
+          expression: '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : llmRequest.model).with(m, m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"] ? m : null)'
 ---
 # /anthropic goes to Z.ai's own Anthropic-compatible endpoint, Messages in and
 # out, with no conversion: the Messages -> Completions path hits #3835 and #3700.
@@ -94,7 +97,7 @@ spec:
         agent-default: glm-5.3
       transformations:
         - field: model
-          expression: 'llmRequest.model in ["agent-default", "tier-light", "tier-standard", "tier-frontier"] ? llmRequest.model : null'
+          expression: '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : llmRequest.model).with(m, m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"] ? m : null)'
 ---
 # `public` only: Z.ai is a SaaS model, and internal data never reaches it
 # (ADR-0042, ADR-0054; gate AG5).

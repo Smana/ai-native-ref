@@ -64,11 +64,15 @@ names its listeners, audiences, caller namespace and route namespace:
   AG12 An LLM backend has one provider. One the agent router routes to
        refuses every name outside AGENT_MODELS before any upstream call
        (design D8): modelAliases names exactly AGENT_MODELS, with no wildcard;
-       a `model` transformation, MODEL_ALLOWLIST, nulls any other name, which
-       1.6 answers 400 "model not specified" (finalize_request_model); and no
-       fixed provider model, override or default supplies a model, since each
-       maps every name to one. No policy carries aliases or a model mutation:
-       names live on the backend. Any other backend (the PoC) keeps a fixed
+       a `model` transformation, MODEL_ALLOWLIST, takes x-ar-model when the
+       identity proxy pinned it (capability profiles P4), else the body's
+       model, and nulls any name outside AGENT_MODELS, which 1.6 answers 400
+       "model not specified" (finalize_request_model); and no fixed provider
+       model, override or default supplies a model, since each maps every name
+       to one. No policy carries aliases or a model mutation: names live on
+       the backend. No object removes x-ar-model: removed before the backend
+       reads it, the model would follow the body while AG14's rule judged the
+       header (measured on 1.6.0). Any other backend (the PoC) keeps a fixed
        model or a `*` catch-all, so it serves only models we list.
   AG13 A backend that dials GitHub is the read-only route of identity design T4:
        TLS, no credential, no policy aimed at it or its routes, reached from
@@ -130,7 +134,9 @@ def billable_cost(prices):
             f" + double(default(llm.outputTokens, 0)) * r[3]) / {REF_USD_PER_M})) : uint(llm.totalTokens))")
 # Design D8, plan I.1: the agent names, on every agent-router listener.
 AGENT_MODELS = ("agent-default", "tier-light", "tier-standard", "tier-frontier")
-MODEL_ALLOWLIST = f"llmRequest.model in {json.dumps(list(AGENT_MODELS))} ? llmRequest.model : null"
+MODEL_HEADER = "x-ar-model"
+MODEL_ALLOWLIST = (f'("{MODEL_HEADER}" in request.headers ? request.headers["{MODEL_HEADER}"] : llmRequest.model)'
+                   f".with(m, m in {json.dumps(list(AGENT_MODELS))} ? m : null)")
 MODEL_MUTATIONS = ("overrides", "defaults")
 # Identity design T4: the internal listener's GitHub route reads, never writes. Git's
 # smart-HTTP fetch is these two requests; a push is GET ?service=git-receive-pack then
@@ -732,7 +738,19 @@ def check_model_pinning(objs):
         xfm = {t.get("field") for t in ai.get("transformations") or []}
         if ai.get("modelAliases") or "model" in xfm or any("model" in (ai.get(f) or {}) for f in MODEL_MUTATIONS):
             out.append(f"AG12: {ref(p)} maps model names; names live on the backend, where AG12 reads them")
+    for o in objs:
+        if (is_agentgateway(o) or o.get("kind") in ROUTE_KINDS) and removes(o, MODEL_HEADER):
+            out.append(f"AG12: {ref(o)} removes {MODEL_HEADER}: the backend would then take the body's model "
+                       "while AG14's rule judged the header")
     return out
+
+
+def removes(node, header):
+    """Whether any `remove` list under node names the header."""
+    if isinstance(node, dict):
+        return any((k == "remove" and isinstance(v, list) and header in [str(h).lower() for h in v])
+                   or removes(v, header) for k, v in node.items())
+    return isinstance(node, list) and any(removes(v, header) for v in node)
 
 
 def is_github(backend):

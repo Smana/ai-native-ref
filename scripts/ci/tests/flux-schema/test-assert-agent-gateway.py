@@ -616,6 +616,16 @@ def run_main(d):
     return code, out.getvalue() + err.getvalue()
 
 
+print("AG12 the model header (capability profiles P4)")
+expect("the strip removing x-ar-model fails", lambda o: spec_at(
+    o, "AgentgatewayPolicy", "strip-identity-headers", "traffic", "transformation", "request", "remove")
+    .append("X-AR-Model"), "AG12", "removes x-ar-model")
+expect("a route filter removing x-ar-model fails", lambda o: spec_at(o, "HTTPRoute", "agent-models", "rules")[1]
+       .update({"filters": [{"type": "RequestHeaderModifier", "requestHeaderModifier": {"remove": ["x-ar-model"]}}]}),
+       "AG12", "removes x-ar-model")
+expect("a transformation that ignores the header fails", lambda o: zai(o)["policies"]["ai"]["transformations"][0]
+       .update({"expression": 'llmRequest.model in ["agent-default"] ? llmRequest.model : null'}), "AG12", "refuse")
+
 print("main")
 with tempfile.TemporaryDirectory() as d:
     # base and both clusters render the same objects: one world per cluster, so no double count.

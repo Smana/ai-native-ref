@@ -8,7 +8,7 @@ aliases:
 ---
 
 {{< callout type="info" >}}
-**On `main` and running on `gcp-0` (v2.0.1), for two public repositories:** you label, the
+**On `main` (v2.0.1), for two public repositories; paused between releases while `gcp-0` is torn down:** you label, the
 agents work, you review and merge. The merge gate is live for link fixes: it merges them with no human,
 at most once a day. The task below ran on 2026-10-07, before v1's release. What has landed, and what
 comes next, is on the

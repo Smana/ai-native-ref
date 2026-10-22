@@ -74,7 +74,9 @@ Triage picks the template from the class and the tier:
 
 The tier would come from the complexity classifier, which is {{< badge content="design" color="yellow" >}}: every task falls back to
 `standard`, except one in ten (`triage.controlPercent: 10`), the control group, on `frontier`.
-`defaults.template` and `defaults.tier` are read by nothing the deployed factory runs.
+`defaults.template` and `defaults.tier` choose nothing at run time, but the factory still validates
+them at startup, as it requires `triage.classifierURL`: they leave the config only with an
+agent-platform release that drops them.
 
 The reviewer runs on **the other tier**: `frontier` for a `standard` or `light` implementer,
 `standard` for a `frontier` one. It keeps the implementer's `maxTokens`. The tester keeps the

@@ -8,7 +8,7 @@ aliases:
 ---
 
 {{< callout type="info" >}}
-**v1 shipped on 2026-10-08; v2.0 followed on 2026-10-18 (v2.0.1 the same day).** On `main` and running on `gcp-0` (on `aws-0` until 2026-10-16): a labelled issue becomes
+**v1 shipped on 2026-10-08; v2.0 followed on 2026-10-18 (v2.0.1 the same day).** On `main`, proven on `gcp-0` (on `aws-0` until 2026-10-16), and paused between releases while `gcp-0` is torn down: a labelled issue becomes
 a reviewed pull request. A human merges it, except a link fix, which the merge gate merges on its own. Runs are metered, capped, resumed after a reclaim and
 stopped by the kill switch; people follow and approve in rooms, from the browser, a terminal or their
 coding agent. Three factory pull requests have merged end to end. It serves two public repositories,

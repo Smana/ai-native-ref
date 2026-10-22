@@ -121,7 +121,7 @@ where we stand: [status and roadmap](https://airef.ogenki.io/docs/platform/ai-pl
 | Agent loop and model calls in your cluster | No: the vendor's cloud | Yes | Yes | **Yes** |
 | Open source | No | No | Yes | **Yes** |
 | Knows issues, reviews and merges | Yes | Yes | No | **Yes** |
-| Hard spend caps per run and fleet | No | Varies | No | **Yes, in USD** |
+| Spend caps | Per session or per day | Varies | No | **In USD per run, task and fleet, at a gateway you host** |
 | Short-lived identity per run | Varies | Varies | Varies | **Yes** |
 | Auto-merge by risk class, with a revert breaker | No | No | No | **Yes** |
 | Declared in Git, signed releases | No | No | Partly | **Yes** |

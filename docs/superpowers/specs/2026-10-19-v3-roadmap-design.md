@@ -106,7 +106,7 @@ flowchart LR
   subgraph off["Offline track (D4)"]
     direction TB
     o1["Cache alerts and wire test (11)"]
-    o2["Truthful costs · provenance · docs fixes"]
+    o2["Truthful costs · run provenance · docs fixes"]
     o3["Spend per identity (12)"]
     o4["Profiles: spike S0, generator, drift gate (10)"]
     o5["Interfaces (9)"]
@@ -122,6 +122,8 @@ flowchart LR
 Within the offline track: checks in the sandbox (3) precede the tester (4); the profiles' per-run
 model pin (P4) precedes the loop policy's judge, which calls through it; daily caps in dollars precede
 the sponsored principals and the Slack intake.
+
+Run provenance (what every run ran on, review R10) is recorded on every task, always on: [design](2026-10-22-run-provenance-design.md).
 
 ## How v3 is judged
 

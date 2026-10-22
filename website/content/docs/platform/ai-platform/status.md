@@ -89,7 +89,7 @@ v3 resume there, in the [order below](#before-v3).
    ([pricing research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-model-pricing-research.md)).
 3. Per-person caps: a longer shadow record before enforcing; v3's machine callers that start work wait on it.
 4. The breaker's live proof and the revert's unattended merge, at the next link-fix pull request and revert.
-5. The prompt cache's alert and wire test; each run's provenance recorded on its task; the docs
+5. The prompt cache's alert and wire test; each run's provenance recorded on its task ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-run-provenance-design.md)); the docs
    fixes the review lists ([R4, R8 to R10](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-v3-review.md#2-issues-found)).
 
 <span id="v2-roadmap"></span>

@@ -4,7 +4,7 @@
 # The prompt cache marker across the pinned agentgateway (cache design C2). The harness rewrites
 # the SDK's cache_control as prompt_cache_breakpoint (agent-platform#132), the one field 1.6
 # converts from Chat Completions to Messages; an agentgateway bump that drops the conversion
-# re-prices every internal run about 20x and says nothing. This runs the proxy image
+# makes every internal run cost about 4x as much (an input token 20x) and says nothing. This runs the proxy image
 # parameters.yaml pins, standalone, with anthropic.yaml's aliases and routes, against a fake
 # Anthropic upstream, and checks the Messages body it emits and the token series it exports, which
 # the agent-cache alerts read. A control request without the markers proves the check can fail.
@@ -15,7 +15,12 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../.." && pwd)"
 python3 -c 'import yaml' 2>/dev/null || { echo "SKIP: pyyaml not installed"; exit 77; }
-docker info >/dev/null 2>&1 || { echo "SKIP: no docker daemon"; exit 77; }
+if ! docker info >/dev/null 2>&1; then
+  if [ "${CI:-}" = "true" ]; then
+    echo "FAIL  no docker daemon in CI: the wire test is gate 2 of the cache design and must run here"; exit 1
+  fi
+  echo "SKIP: no docker daemon"; exit 77
+fi
 
 tmp="$(mktemp -d)"
 name="agent-gateway-cache-wire-$$"
@@ -115,17 +120,19 @@ print(json.dumps({
 PY
 }
 
-ready=""
+ready=""; code=""
 for _ in $(seq 1 30); do
-  if request marked | curl -fsS "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- >/dev/null 2>&1; then
-    ready=1; break
+  if [ "$(docker inspect -f '{{.State.Running}}' "$name" 2>/dev/null)" != "true" ]; then
+    docker logs "$name" 2>&1 | tail -30 >&2; echo "the gateway container exited before it answered" >&2; exit 1
   fi
+  code="$(request marked | curl -sS --max-time 10 -o /dev/null -w '%{http_code}' "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- 2>"$tmp/curl.err")"
+  if [ "$code" = "200" ]; then ready=1; break; fi
   sleep 1
 done
-[ -n "$ready" ] || { docker logs "$name" 2>&1 | tail -30 >&2; echo "the gateway never answered" >&2; exit 1; }
-request control | curl -fsS "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- >/dev/null \
+[ -n "$ready" ] || { docker logs "$name" 2>&1 | tail -30 >&2; echo "the gateway never answered: last status ${code:-none}, curl: $(cat "$tmp/curl.err")" >&2; exit 1; }
+request control | curl -fsS --max-time 10 "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- >/dev/null \
   || { echo "the control request failed" >&2; exit 1; }
-curl -fsS "http://$stats/metrics" > "$tmp/metrics.txt" || { echo "no metrics on $stats" >&2; exit 1; }
+curl -fsS --max-time 10 "http://$stats/metrics" > "$tmp/metrics.txt" || { echo "no metrics on $stats" >&2; exit 1; }
 
 BODIES="$tmp/bodies.jsonl" METRICS="$tmp/metrics.txt" ROOT="$ROOT" python3 - <<'PY'
 import json
@@ -158,10 +165,13 @@ last = marked["messages"][-1]
 results = [b for b in last.get("content", []) if isinstance(b, dict) and b.get("type") == "tool_result"]
 check(last.get("role") == "user" and results, f"the last message holds the tool result, got {last}")
 if results:
-    # The gateway puts the marker on the tool result's last content block, not on the tool_result itself.
-    inner = results[0].get("content")
-    marker = inner[-1].get("cache_control") if isinstance(inner, list) and inner and isinstance(inner[-1], dict) else None
-    check(marker == EPHEMERAL, f"the tool result's last content block carries cache_control {EPHEMERAL} and no ttl, got {results[0]}")
+    # Either is a valid Anthropic breakpoint: on the tool_result block itself or on its last content block
+    # (1.6 measured: the latter).
+    result = results[-1]
+    inner = result.get("content")
+    on_block = inner[-1].get("cache_control") if isinstance(inner, list) and inner and isinstance(inner[-1], dict) else None
+    check(EPHEMERAL in (result.get("cache_control"), on_block),
+          f"the last tool result carries cache_control {EPHEMERAL} and no ttl, on itself or on its last content block, got {result}")
 check("cache_control" not in json.dumps(control),
       "a request without prompt_cache_breakpoint carries no cache_control: the check can fail")
 

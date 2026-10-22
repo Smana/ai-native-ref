@@ -117,6 +117,6 @@ Alerts in `observability/base/agent-platform/vmrule.yaml`, read on the **Agent g
 | `AgentRateLimitDown` | `agent-ratelimit` is down: budgets B1–B2 count nothing while the router fails open |
 | `AgentBudgetShadowOverrun` (info) | In shadow, a budget admitted calls over its limit: what enforcing would refuse |
 | `AgentBudgetRefused` | Enforcing, a budget refused a run's calls with 429 |
-| `AgentCacheReadZero` | An internal run read nothing from the prompt cache after 100k input tokens: a dropped cache marker, every step at full price |
+| `AgentCacheReadZero` (critical) | An internal run read nothing from the prompt cache after 100k input tokens: a dropped cache marker, every step at full price |
 | `AgentCacheReadShareLow` | An internal run read under 60% of its input from the cache over 15 minutes, with 200k input in the window |
 | `AgentCacheMarkerMissing` | A run's harness logged `prompt cache NOT applied` (a LogsQL rule): the SDK changed under the harness's patch |

@@ -173,8 +173,12 @@ spec:
             description: "The harness logs the 429's agent_budget_exhausted body and the run fails; the meter revokes it on its next tick (budget-run or budget-fleet). The factory's caps should have stopped it first: read the run's cost against its tier."
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets"
             dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
-    # Prompt caching on internal runs (cache design C1): a dropped marker re-prices every step about
-    # 20x and only the harness log would say so. The series carry a run (ar_agent) but no step; the
+    # Prompt caching on internal runs (cache design C1): without the marker an input token costs 20x
+    # a cached one and a run about 4x, and only the harness log would say so. The share assumes
+    # `input` includes cache reads and writes, as agentgateway 1.6's Chat Completions to Messages
+    # translation counts them (measured 2026-10-22); a native Messages path from the harness (cache
+    # design C3's alternative) meters Anthropic's uncached input_tokens, which would push the share
+    # above 1, so the denominator must change with it. The series carry a run (ar_agent) but no step; the
     # per-step view is the harness log's. No rule reads another's output: vmalert's recorded series
     # reach the datasource through remote write, too late for the same evaluation.
     - name: agent-cache
@@ -187,7 +191,7 @@ spec:
             severity: critical
           annotations:
             summary: "{{ $labels.ar_agent }} read nothing from Anthropic's prompt cache in its first {{ $value | humanize }} input tokens"
-            description: "Every step pays the full input price, about 20x a cached one. A gateway or harness bump dropped the cache marker: read the run's log for 'prompt cache NOT applied' and the last change to infrastructure/base/agent-gateway/parameters.yaml. A long run can be stopped: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
+            description: "Every step pays the full input price: an uncached token costs 20x a cached one, an uncached run about 4x. A gateway or harness bump dropped the cache marker: read the run's log for 'prompt cache NOT applied' and the last change to infrastructure/base/agent-gateway/parameters.yaml. A long run can be stopped: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share"
             dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
         - alert: AgentCacheReadShareLow

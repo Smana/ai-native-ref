@@ -23,9 +23,10 @@ log moves to the bench); the drill is replaced by offline proofs now and a live 
 - Work in the worktree `.claude/worktrees/cache-protection`, branch `feat/cache-protection`. Rebase
   onto a freshly fetched `origin/main` before every push.
 - `task check` is the evidence (AGENTS.md). On this machine run it as
-  `bash /tmp/claude-1000/-home-smana-Sources-ai-native-ref/f7ecd18f-b231-4bf4-a0fd-24981234c3cd/scratchpad/check.sh <worktree>`, which puts the system `python3` (it has PyYAML) ahead of
+  `bash $SCRATCH/check.sh <worktree>`, which puts the system `python3` (it has PyYAML) ahead of
   mise's global python.
 - Commits: conventional, English, **no trailers**.
+- `$SCRATCH` is a scratch directory outside the repository.
 - Thresholds, verbatim from C1: `AgentCacheReadShareLow` when "an internal run's share over 15
   minutes is under 60% with at least 200k input tokens in the window"; `AgentCacheReadZero` when "an
   internal run has read nothing after its first 100k input tokens".
@@ -64,7 +65,7 @@ log moves to the bench); the drill is replaced by offline proofs now and a live 
 Establishes five facts the next tasks depend on. Nothing from this task is committed; its findings
 are written into Task 2's rules and Task 3's suite.
 
-**Files:** none in the repository. Work in `/tmp/claude-1000/-home-smana-Sources-ai-native-ref/f7ecd18f-b231-4bf4-a0fd-24981234c3cd/scratchpad/spike-wire/`.
+**Files:** none in the repository. Work in `$SCRATCH/spike-wire/`.
 
 **Prerequisite:** a running Docker daemon. On this machine it is installed but stopped: the owner
 runs `! sudo systemctl start docker`.
@@ -80,7 +81,7 @@ runs `! sudo systemctl start docker`.
 - [ ] **Step 1: Pull the image and read its flags and schema**
 
 ```bash
-mkdir -p /tmp/claude-1000/-home-smana-Sources-ai-native-ref/f7ecd18f-b231-4bf4-a0fd-24981234c3cd/scratchpad/spike-wire && cd /tmp/claude-1000/-home-smana-Sources-ai-native-ref/f7ecd18f-b231-4bf4-a0fd-24981234c3cd/scratchpad/spike-wire
+mkdir -p $SCRATCH/spike-wire && cd $SCRATCH/spike-wire
 IMG=cr.agentgateway.dev/agentgateway:v1.6.0@sha256:9d3e6044ddcdc0878b1787f77bd401252b95e22684203fb5e874c4c42d2ed90c
 docker pull "$IMG"
 docker run --rm "$IMG" --help
@@ -93,7 +94,7 @@ to look up in `schema.json` before Step 3.
 
 - [ ] **Step 2: Write the fake upstream**
 
-`/tmp/claude-1000/-home-smana-Sources-ai-native-ref/f7ecd18f-b231-4bf4-a0fd-24981234c3cd/scratchpad/spike-wire/fake.py` (Task 3 embeds the same file):
+`$SCRATCH/spike-wire/fake.py` (Task 3 embeds the same file):
 
 ```python
 """Stands in for api.anthropic.com: records each request, answers one Messages reply with cache usage."""
@@ -130,7 +131,7 @@ http.server.ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
 
 - [ ] **Step 3: Write the first config attempt**
 
-`/tmp/claude-1000/-home-smana-Sources-ai-native-ref/f7ecd18f-b231-4bf4-a0fd-24981234c3cd/scratchpad/spike-wire/config.yaml`:
+`$SCRATCH/spike-wire/config.yaml`:
 
 ```yaml
 # yaml-language-server: $schema=https://agentgateway.dev/schema/config
@@ -216,6 +217,15 @@ docker rm -f agw-spike; kill "$(cat fake.pid)"
 ```
 
 Write F1 to F5 at the top of the scratchpad directory as `findings.md`. No commit.
+
+Measured 2026-10-22 (Docker was down: the spike ran the checksum-verified v1.6.0 release binary with
+`hostOverride: 127.0.0.1:<port>`):
+
+- F1: plain HTTP to the host override works.
+- F2: the marker lands at `system[0].cache_control` and on the tool result's last content block.
+- F3: `input` includes cache reads and writes, streaming and non-streaming.
+- F4: `gen_ai_system="anthropic"`; the request model is the resolved one.
+- F5: metrics on `:15020`.
 
 ---
 
@@ -461,16 +471,23 @@ below are the expected ones; set them to what Task 1 recorded.
 # The prompt cache marker across the pinned agentgateway (cache design C2). The harness rewrites
 # the SDK's cache_control as prompt_cache_breakpoint (agent-platform#132), the one field 1.6
 # converts from Chat Completions to Messages; an agentgateway bump that drops the conversion
-# re-prices every internal run about 20x and says nothing. This runs the proxy image
+# makes every internal run cost about 4x as much (an input token 20x) and says nothing. This runs the proxy image
 # parameters.yaml pins, standalone, with anthropic.yaml's aliases and routes, against a fake
 # Anthropic upstream, and checks the Messages body it emits and the token series it exports, which
 # the agent-cache alerts read. A control request without the markers proves the check can fail.
 # Standalone proves the conversion code, not the controller's translation of the CRDs.
+# With hostOverride set the upstream request keeps the client's path (/v1/chat/completions) while its
+# body is Messages; the fake answers any path, so nothing here depends on it.
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../.." && pwd)"
 python3 -c 'import yaml' 2>/dev/null || { echo "SKIP: pyyaml not installed"; exit 77; }
-docker info >/dev/null 2>&1 || { echo "SKIP: no docker daemon"; exit 77; }
+if ! docker info >/dev/null 2>&1; then
+  if [ "${CI:-}" = "true" ]; then
+    echo "FAIL  no docker daemon in CI: the wire test is gate 2 of the cache design and must run here"; exit 1
+  fi
+  echo "SKIP: no docker daemon"; exit 77
+fi
 
 tmp="$(mktemp -d)"
 name="agent-gateway-cache-wire-$$"
@@ -532,6 +549,8 @@ config = {
                    "modelAliases": backend["modelAliases"]},
             "backendAuth": {"key": "test-key"},
         },
+        # The gateway resolves this name from the /etc/hosts entry --add-host writes (proven against
+        # the v1.6.0 binary with an /etc/hosts-only name).
         "backends": [{"ai": {"name": "anthropic", "provider": {"anthropic": {}},
                              "hostOverride": "host.docker.internal:%s" % os.environ["PORT"]}}],
     }]}]}],
@@ -568,17 +587,19 @@ print(json.dumps({
 PY
 }
 
-ready=""
+ready=""; code=""
 for _ in $(seq 1 30); do
-  if request marked | curl -fsS "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- >/dev/null 2>&1; then
-    ready=1; break
+  if [ "$(docker inspect -f '{{.State.Running}}' "$name" 2>/dev/null)" != "true" ]; then
+    docker logs "$name" 2>&1 | tail -30 >&2; echo "the gateway container exited before it answered" >&2; exit 1
   fi
+  code="$(request marked | curl -sS --max-time 10 -o /dev/null -w '%{http_code}' "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- 2>"$tmp/curl.err")"
+  if [ "$code" = "200" ]; then ready=1; break; fi
   sleep 1
 done
-[ -n "$ready" ] || { docker logs "$name" 2>&1 | tail -30 >&2; echo "the gateway never answered" >&2; exit 1; }
-request control | curl -fsS "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- >/dev/null \
+[ -n "$ready" ] || { docker logs "$name" 2>&1 | tail -30 >&2; echo "the gateway never answered: last status ${code:-none}, curl: $(cat "$tmp/curl.err")" >&2; exit 1; }
+request control | curl -fsS --max-time 10 "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- >/dev/null \
   || { echo "the control request failed" >&2; exit 1; }
-curl -fsS "http://$stats/metrics" > "$tmp/metrics.txt" || { echo "no metrics on $stats" >&2; exit 1; }
+curl -fsS --max-time 10 "http://$stats/metrics" > "$tmp/metrics.txt" || { echo "no metrics on $stats" >&2; exit 1; }
 
 BODIES="$tmp/bodies.jsonl" METRICS="$tmp/metrics.txt" ROOT="$ROOT" python3 - <<'PY'
 import json
@@ -605,16 +626,19 @@ EPHEMERAL = {"type": "ephemeral"}
 check(marked.get("model") == aliases["agent-default"],
       f"agent-default resolves to {aliases['agent-default']}, got {marked.get('model')}")
 system = marked.get("system")
-check(isinstance(system, list) and system and system[-1].get("cache_control") == EPHEMERAL,
-      f"the system block carries cache_control {EPHEMERAL} and no ttl (C3 changes this), got {system}")
+check(isinstance(system, list) and system and system[0].get("cache_control") == EPHEMERAL,
+      f"system[0] carries cache_control {EPHEMERAL} and no ttl (C3 changes this), got {system}")
 last = marked["messages"][-1]
 results = [b for b in last.get("content", []) if isinstance(b, dict) and b.get("type") == "tool_result"]
 check(last.get("role") == "user" and results, f"the last message holds the tool result, got {last}")
 if results:
-    block = results[-1]
-    inner = block.get("content")
-    marker = block.get("cache_control") or (inner[-1].get("cache_control") if isinstance(inner, list) and inner else None)
-    check(marker == EPHEMERAL, f"the last tool result carries cache_control {EPHEMERAL} and no ttl, got {block}")
+    # Either is a valid Anthropic breakpoint: on the tool_result block itself or on its last content block
+    # (1.6 measured: the latter).
+    result = results[-1]
+    inner = result.get("content")
+    on_block = inner[-1].get("cache_control") if isinstance(inner, list) and inner and isinstance(inner[-1], dict) else None
+    check(EPHEMERAL in (result.get("cache_control"), on_block),
+          f"the last tool result carries cache_control {EPHEMERAL} and no ttl, on itself or on its last content block, got {result}")
 check("cache_control" not in json.dumps(control),
       "a request without prompt_cache_breakpoint carries no cache_control: the check can fail")
 
@@ -655,7 +679,7 @@ Expected: `PASS`, `exit=0` (with the Docker daemon running).
 - [ ] **Step 3: Prove it can fail on the marker**
 
 Temporarily change the `request marked` call's mode to `control` (both requests unmarked) and rerun.
-Expected: `FAIL  the system block carries cache_control …`, `exit=1`. Restore it.
+Expected: `FAIL  system[0] carries cache_control …`, `exit=1`. Restore it.
 
 - [ ] **Step 4: Commit**
 
@@ -818,8 +842,8 @@ git commit -m "feat(observability): the cache-read share on the gateway dashboar
 - [ ] **Step 1: The whole check**
 
 ```bash
-bash /tmp/claude-1000/-home-smana-Sources-ai-native-ref/f7ecd18f-b231-4bf4-a0fd-24981234c3cd/scratchpad/check.sh "$PWD"
-tail -20 /tmp/claude-1000/-home-smana-Sources-ai-native-ref/f7ecd18f-b231-4bf4-a0fd-24981234c3cd/scratchpad/check-cache-protection.log
+bash $SCRATCH/check.sh "$PWD"
+tail -20 $SCRATCH/check-cache-protection.log
 ```
 
 Expected: `exit=0`; `test-agent-cache-alerts` and `test-agent-gateway-cache-wire` both `PASS` (the

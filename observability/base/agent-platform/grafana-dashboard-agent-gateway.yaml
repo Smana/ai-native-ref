@@ -84,7 +84,7 @@ spec:
          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "$${logs_datasource}"},
          "targets": [{"refId": "A", "queryType": "instant", "expr": "kubernetes.pod_namespace:\"agent-gateway\" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:\"agent-router\" AND log.http.status:~\"^[45]\""}]},
         {"id": 12, "type": "timeseries", "title": "Prompt cache: share of input read, per internal run",
-         "description": "Under 60% with 200k input in 15 minutes fires AgentCacheReadShareLow; a run at 0 fires AgentCacheReadZero. One condensation or a resume dips one window.",
+         "description": "Under 60% with 200k input in 15 minutes fires AgentCacheReadShareLow; a run that never read after 100k input fires AgentCacheReadZero. One condensation or a resume dips one window.",
          "gridPos": {"x": 0, "y": 40, "w": 24, "h": 8},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}},

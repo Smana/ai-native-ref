@@ -108,8 +108,10 @@ spec:
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/02-identity-tokens.md"
             dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
         # B6's mirror in USD (ratelimit.yaml: 10M reference tokens = $17/day), before it refuses.
+        # The four counted types, each at its charge (vmrule-llm-gateway.yaml, generated from
+        # meter.prices): cache tokens are counted inside input, so a read adds cacheRead - input.
         - alert: AnthropicFleetNearCap
-          expr: sum(sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_request_model=~"claude-.*", gen_ai_token_type=~"input|output"}[24h])) * on (gen_ai_request_model, gen_ai_token_type) group_left() llm_gateway:price_usd_per_mtoken) / 1e6 > 13.6
+          expr: sum(sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_request_model=~"claude-.*", gen_ai_token_type=~"input|output|cached_input|cache_creation_input"}[24h])) * on (gen_ai_request_model, gen_ai_token_type) group_left() llm_gateway:charge_usd_per_mtoken) / 1e6 > 13.6
           for: 10m
           labels:
             severity: warning

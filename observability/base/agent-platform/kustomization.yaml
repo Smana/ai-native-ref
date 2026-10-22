@@ -12,5 +12,6 @@ resources:
   - grafana-dashboard-agent-fleet.yaml
   - grafana-dashboard-agent-factory.yaml
   - grafana-dashboard-agent-gateway.yaml
+  - grafana-dashboard-agent-identity.yaml
   - agent-traces-collector.yaml
   - referencegrant-agent-traces.yaml

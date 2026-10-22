@@ -1,6 +1,8 @@
 # v3: capability profiles, what a run may call, declared once and enforced at the gateway
 
-**Date:** 2026-10-21 · **Status:** draft; no owner decision pending (O3 and O4 taken 2026-10-21) · **Part of:** the
+**Date:** 2026-10-21 · **Status:** draft; no owner decision pending (O3 and O4 taken 2026-10-21) · **Amended
+2026-10-22**: the migration's first step, the profiles and a generator at parity, is built
+([plan](../plans/2026-10-22-capability-profiles-p1-plan.md)) · **Part of:** the
 [v3 review](2026-10-21-v3-review.md), proposed feature 10 · **Research:**
 [§3](2026-10-21-v3-landscape-research.md#3-fine-grained-permissions-for-tools-and-models) ·
 **Runtime:** the gateway runtime only; the portable runtime has no gateway to compile to
@@ -30,7 +32,7 @@ it was created with.
 |---|---|---|---|
 | P1 | **One profile per role and data class, in Git**, under `infrastructure/base/agent-gateway/profiles/`: `models`, `tools` (per server, with optional argument constraints), `egress`, `readOnly`. A generator renders the `mcpAuthorization` allow lists (for list hiding), a route-level `authorization` policy (for arguments and models), and a ConfigMap `agent-capability-profiles` in `agents` holding each profile's read-only map and requestable egress set, which the AgentRun composition reads at reconcile time (one KCL change, released once through crossplane-configuration and the host's pin). The rendered files are committed and a gate fails on any difference, as AG8 does for the price table | Hand-written CEL; a policy engine (Cerbos, OPA) in the request path; generated KCL committed in crossplane-configuration (every profile change would chain a package release, a host pin and a `HOST_REF` bump) | ToolHive and Cerbos show the dimensions; CEL is enough at four roles and two classes; generated-and-committed keeps the gate paths reviewable and the gateway the only enforcer |
 | P2 | **Per-role model allow-lists**: a route-level `authorization` rule `jwt.aud` → `llm.requestModel in [...]`, answering 403. The first profiles list the aliases each role's loop policy names, which today is `agent-default` everywhere; since every alias resolves to the same model today, the lists bind nothing real until roles move to different sizes ([loops L8](2026-10-21-loops-and-teams-design.md#decisions), decision O3, taken). The mechanism ships now so that day needs a profile edit, not a design | Budgets alone (SP4 R10); the factory's tier change in this design | Available in agentgateway 1.6.0; the router's 403 lacks caller attributes in its log until a release carries [#3996](https://github.com/agentgateway/agentgateway/issues/3989) |
-| P3 | **Argument constraints** in the same route-level policy on `mcp.tool.arguments`. The first one is `get_kubernetes_resources` never with `kind: Secret`; the first profiles otherwise encode today's access exactly (reviewers read every namespace today, and no per-class namespace list exists), so a namespace scope is a later per-repository choice shown by the mechanism, not imposed here. The reviewer's `room_read` scope ([loops L4](2026-10-21-loops-and-teams-design.md#decisions)) waits for the broker to give the tool a `kinds` argument (its schema is `{sinceSeq, limit}` today), an agent-platform change; until then the rule is name-only | An ExtMCP guardrail service now | `mcp.tool.arguments` is request-time in route-level `authorization` and absent in `mcpAuthorization`; a 403 instead of a hidden tool is acceptable **if the SDK's MCP client survives one** (spike S0 below); ExtMCP if it does not, or when CEL outgrows readability |
+| P3 | **Argument constraints** in the same route-level policy on `mcp.tool.arguments`. The first one is `get_kubernetes_resources` never with `kind: Secret`; the first profiles otherwise encode today's access exactly (reviewers read every namespace today, and no per-class namespace list exists), so a namespace scope is a later per-repository choice shown by the mechanism, not imposed here. The reviewer's `room_read` scope ([loops L4](2026-10-21-loops-and-teams-design.md#decisions)) waits for the broker to give the tool a `kinds` argument (its schema is `{sinceSeq, limit}` today), an agent-platform change; until then the rule is name-only | An ExtMCP guardrail service now | `mcp.tool.arguments` is request-time in route-level `authorization` and absent in `mcpAuthorization`; a 403 instead of a hidden tool is acceptable **if the SDK's MCP client survives one** (spike S0 below: it does not, [S0 result](#gate-the-spike-and-the-live-checks)); ExtMCP if it does not, or when CEL outgrows readability |
 | P4 | **The identity proxy pins the model per run**: on `/v1` the sidecar sets `x-ar-model` from its `MODEL` environment (Envoy `%ENVIRONMENT(MODEL)%`, overwriting any client value); on a second prefix, `/judge/v1`, from `JUDGE_MODEL`, the loop policy's judge alias ([loops L2](2026-10-21-loops-and-teams-design.md#decisions)); the gateway strips a client-set copy as it strips `x-ar-agent`, then sets the request's `model` from the header. A role's `models` are exactly the aliases its pinned paths can name | The tier in the token audience; trusting the body; one pinned path (it would force the judge onto the run's model) | The sidecar is the trusted path the harness cannot configure, and the token never leaves it: a call from the harness straight to the gateway fails 401. Whichever path the harness uses, it gets one of the two aliases its profile allows. Audiences per tier would multiply past the provider's eight |
 | P5 | **Tool annotations drive the bridge's classifier through the profile**: `readOnly` replaces `MCP_READ_ONLY_TOOLS`, seeded from each server's `readOnlyHint` and reviewed by a human; an unlisted tool is a write, as today | Trusting annotations | The MCP spec: "clients MUST consider tool annotations to be untrusted"; ToolHive's annotation overrides are the pattern |
 | P6 | **No external policy decision point in v3**; reconsider when a profile outgrows CEL, a third data class appears, or rules become per task | Cerbos or OPA behind `extAuthz` now | One more critical service in the request path; AuthZEN's agent drafts are from June 2026 |
@@ -100,6 +102,14 @@ policy's judge alias, which `agent-run` calls on the run's token through the sid
 MCP client connected for the rest of the run. If the client drops the server, P3 moves to ExtMCP
 or to a JSON-RPC-level denial before anything else is built.
 
+**S0 result, 2026-10-22:** measured against the harness's pinned OpenHands SDK 1.49.6 (mcp 1.30.0),
+with and without the harness's `sitecustomize.py` patches, an HTTP 403 on a `tools/call` POST
+disconnects the SDK's MCP client for the rest of the run: the refused call returns an error
+observation, and every later call on that server fails with "MCP client not connected ...
+Reconnection attempt failed". A JSON-RPC error answered with HTTP 200 leaves it connected. S0 fails
+for a route-level 403, so before P3 is built its argument constraints must deny at the JSON-RPC
+level (an agentgateway capability to check) or move to ExtMCP, as this paragraph foresaw.
+
 1. A run whose test profile excludes an alias is refused 403 when it names it, and the refusal is
    attributed in the access log (or recorded as the known gap until the gateway release that fixes
    it). Today's profiles allow the same model under every name, so the check runs with a test
@@ -126,3 +136,16 @@ HTTPRoute or to the Gateway; the exact CEL for list-valued arguments; how the co
 judge alias is a new claim field the loop policy adds); the migration order (profiles first,
 generated files equal to today's hand-written ones, then the new rules, then the composition's
 ConfigMap read).
+
+Ruled in P1 ([plan](../plans/2026-10-22-capability-profiles-p1-plan.md#this-plans-rulings)):
+
+- **The generator:** Python, unit-tested by `test-gen-capabilities`. It owns only the
+  `matchExpressions` items of `mcp.yaml`'s MCP policies. Roles render in name order, targets in the
+  backend's order and tools in the profile's order, which is how the hand-written lists were
+  ordered, so the first rendering changed no byte. A comment must sit above `matchExpressions:`,
+  never inside the list: the generator refuses a list holding anything it did not render.
+- **The drift gate:** the suite `test-agent-capabilities`. The profiles reach the bundle only with
+  the ConfigMap, so the suite reads the tree and regenerates the lists, as AG8 regenerates its cost
+  string.
+- **The fields:** `models` is carried and checked against the backends' aliases until P2 renders it.
+  `egress`, `readOnly` and `when` are refused until their steps.

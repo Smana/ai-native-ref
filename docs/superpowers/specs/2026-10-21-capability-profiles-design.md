@@ -118,6 +118,11 @@ tool names only today. P3's first rule (`kind: Secret`) is already enforced at t
 flux-operator-mcp service account cannot read Secrets (the scope suite and runbook 06 Step 5), which
 lowers P3's urgency.
 
+**After SDK 1.55 (2026-10-23):** the harness now runs OpenHands SDK 1.56.0, and since 1.55 the SDK's MCP
+client no longer disconnects on an HTTP 403: agent-platform's `test_mcp_session.py` pins that a
+refused `tools/call` keeps the run's session. The measurement above stays true of 1.49.6; whether P3
+uses the 403 is still this design's decision, and the S0 spike should be re-run against 1.56.0 first.
+
 1. A run whose test profile excludes an alias is refused 403 when it names it, and the refusal is
    attributed in the access log (or recorded as the known gap until the gateway release that fixes
    it). Today's profiles allow the same model under every name, so the check runs with a test

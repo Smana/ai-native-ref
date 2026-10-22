@@ -76,8 +76,8 @@ flowchart LR
    switch that skips the marker rewrite, mapped by the composition) fires `AgentCacheReadZero`
    within two scrapes; the annotation rides the loop-policy release of the `AgentRun` composition.
    `AgentCacheMarkerMissing` matches the substring both of the harness's messages carry
-   (`prompt cache NOT applied`); no agent-platform test asserts that message yet, unlike the
-   harness's three other patches, which is a follow-up there.
+   (`prompt cache NOT applied`); agent-platform asserts that message in
+   `test_prompt_cache.py::NotAppliedTest` (SDK 1.56 bump).
 2. The gateway wire test runs here in CI and fails on an agentgateway pin that drops the marker; the
    harness test runs in agent-platform.
 3. The bench reports the cache-read share per class and model, and the share of expected against

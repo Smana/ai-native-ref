@@ -2,7 +2,7 @@
 title: Alternatives considered
 weight: 50
 description: "Work in progress. The alternatives considered for each layer of the agent factory, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
-lastVerified: 2026-10-12
+lastVerified: 2026-10-20
 ---
 
 {{< callout type="warning" >}}
@@ -49,6 +49,7 @@ flowchart TB
   end
   subgraph L3["Gateway: models, tools, per-run identity and budgets"]
     F3["agentgateway (chosen, live since 2026-10-16)"]
+    O3["otari: LLM gateway (watched)"]
   end
   subgraph L2["Harness: the agent loop"]
     F2["OpenHands (chosen)"]
@@ -68,7 +69,7 @@ flowchart TB
 |---|---|---|---|
 | **Runtime** | [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) + [gVisor](https://gvisor.dev), one pod per run | Agent Substrate (with google/ax or kagent), Kata/Firecracker, OpenHands Enterprise, Coder, E2B/Daytona | Open source; runs on EKS and GKE, on spot nodes; each run gets its own ServiceAccount and Cilium policy, so the constitution's rules apply per run. Kata/Firecracker needs bare-metal hosts or nested virtualisation: the smallest AWS metal host has 128 vCPU, about $1.5/h spot or $5.4/h on demand ([Vantage](https://instances.vantage.sh/aws/ec2/c6i.metal)), against a few cents an hour for a run's spot node. An agent step mostly waits on the model (about 11 s a reply), so gVisor's system-call overhead does not show |
 | **Harness** | [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server | Headless Claude Code, kagent's harnesses, ax's Antigravity agent | Open source, headless (an HTTP API), works with any OpenAI-compatible model, supports MCP. Claude Code is proprietary; Antigravity is Gemini-only |
-| **Gateway** | [agentgateway](https://agentgateway.dev) (decided 2026-10-01, live since 2026-10-16) | Agent Router 1.1 on Envoy Gateway | See [gateways]({{< relref "/docs/platform/ai-platform/gateways.md" >}}) |
+| **Gateway** | [agentgateway](https://agentgateway.dev) (decided 2026-10-01, live since 2026-10-16) | Agent Router 1.1 on Envoy Gateway, [otari](#otari) | See [gateways]({{< relref "/docs/platform/ai-platform/gateways.md" >}}). otari has no MCP federation, token exchange, listener per data class or OpenTelemetry export, and no Kubernetes packaging: watched |
 | **Rooms** | A log we own: room-broker on PostgreSQL | OpenHands shared conversations, ACP, A2A through a gateway, Valkey Streams, NATS JetStream, ax or Substrate as the session layer, kagent sessions | Two different questions. **Protocols** (OpenHands shared conversations, ACP, A2A, ax or Substrate, kagent sessions): none records who said what among several people and agents, or who may approve. **Brokers** (Valkey Streams, NATS JetStream): an event is written to Postgres first, which fixes its place in the log, then announced with `LISTEN/NOTIFY`. At a few events per second a second stateful system adds nothing, and delivering live before the write would let watchers see events the audit log never records |
 | **Factory** | A small custom controller + [Kueue](https://kueue.sigs.k8s.io) | Argo Workflows, Tekton, Temporal, a Crossplane `Task` composition, gh-aw, OpenAI's Symphony specification ([below](#openai-symphony)) | The factory's state lives in Kubernetes objects and GitHub. Waiting hours on CI or a review is a periodic re-check of that state, so a restart loses nothing. Budgets and the kill switch are domain logic any engine would still need. Argo has no budget concept and a Crossplane composition has no timers. Temporal suits workflows whose state lives in code, and is the one to watch ([below](#temporal)) |
 | **Merge gate** | [policy-bot](https://github.com/palantir/policy-bot) behind a repository ruleset | Required reviews, rulesets alone, a custom check, Prow/tide, Mergify, Kodiak | The policy lives in the repository and is reviewable, and the right to merge sits with one dedicated App |
@@ -82,6 +83,7 @@ The full records are in the programme's design documents, listed under [Sources]
 | Custom factory controller | [Temporal](#temporal) | The task lifecycle needs multi-step compensation, timed human waits multiply, retry and resume rules grow, or the factory's bugs cluster around timers and retries |
 | Postgres `LISTEN/NOTIFY` for room fan-out | NATS JetStream, for fan-out only: the log stays in Postgres and is written first | Notification latency or database load shows on the room dashboards, or rooms need many broker replicas |
 | gVisor | Kata or Firecracker microVMs | Concurrency reaches about 20 sandboxes, enough to fill a metal host; a gVisor incompatibility blocks a class of task; or nested virtualisation becomes available on our node types |
+| agentgateway (agents), Envoy AI Gateway (people) | [otari](#otari) | It ships declarative Kubernetes packaging, OpenTelemetry gen_ai export, per-run identity without a key per run and MCP federation (agents); or generic OIDC sign-in and prompt-based model choice (people) |
 | agent-sandbox, one pod per run | [Agent Substrate](#agent-substrate) | See [Reconsidering Substrate](#reconsidering-substrate-not-now-deliberately-open) |
 | One cold pod per run, held or ended while it waits | agent-sandbox's own `SandboxWarmPool` and `operatingMode: Suspended`, in the pinned v1.0.5; the composition suspends only finished runs | Now: a run starts in about 90 s on a fresh node ([v1 review, 2026-10-12](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)). A claim that sets `env` or volume templates bypasses the warm pool |
 
@@ -216,6 +218,43 @@ turn's silence (not its length).
 **Reconsider if** the spec gains a non-Codex agent adapter and a sandbox hook; even then it would
 replace polling and slot logic only.
 
+### otari
+
+*Checked on 2026-10-20 in the code at [`e6226a5`](https://github.com/mozilla-ai/otari/tree/e6226a5cdd42945a29c36e6327afa5394241734e)
+(just after v0.30.1) and any-llm [`d6b76fd`](https://github.com/mozilla-ai/any-llm/tree/d6b76fd9e594d308a1932fe5172bc8e37ec4d17d).
+Full evaluation, with a code link per claim: [research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-otari-evaluation-research.md).*
+
+**What it is.** Mozilla.ai's open-source (Apache-2.0) LLM gateway: one Python process serving an
+OpenAI-compatible API and a dashboard, built on its `any-llm` SDK, over PostgreSQL. It runs alone,
+or as a data plane reporting to the hosted control plane otari.ai. First released 2026-06-25, it
+reached v0.30 four months later with 27 breaking changes.
+
+**What it does well.**
+- **Budgets reserved before the call**: the worst case (prompt estimate plus `max_tokens`) is held,
+  then settled. Ours charge after the call, so the call that crosses a budget completes.
+- **Unpriced models refused by default** (402), fallback models included; prices from your own table.
+- Z.ai, Anthropic with prompt caching, vLLM and OpenAI-compatible backends; aliases, failover;
+  budgets in USD, tokens or requests per key, user, workspace or provider.
+
+**Why not.**
+
+| Our need | otari |
+|---|---|
+| A per-run identity checked on every call | A JWT is accepted only once its `sub` is bound to a key by a rule: one key and one rule per run |
+| MCP federation with per-role tool allow-lists | MCP client only: no server agents can connect to |
+| The token exchange with octo-sts | None |
+| A listener per data class | One port; keys and workspaces only approximate it |
+| OpenTelemetry gen_ai metrics and traces, JSON logs | Prometheus `gateway_*` metrics and traces in its own database; no export |
+| Declarative Kubernetes configuration | No Helm chart, operator or CRDs; allow-lists and identity rules are API-only, and the deprecated `providers:` block is copied to the database once, then ignored |
+| No SaaS in the data path | Holds in standalone mode. In hybrid mode otari.ai sees every request's metadata and hands back the provider keys |
+| People's gateway: model picked from the prompt, ZITADEL sign-in | Its kNN router needs labelled examples; sign-in is password, passkeys, Google or GitHub only |
+
+**Worth borrowing:** the pre-call reservation, for our gateway budgets, and its re-check of pricing on
+every fallback model.
+
+**Reconsider** under the conditions in [the table above](#what-would-make-us-reconsider), or once it
+reaches 1.0 with a deprecation policy.
+
 ## Would rebuilding on kagent + Substrate be simpler?
 
 It is the strongest challenge to this design, so it is judged on the work still ahead, not on what
@@ -279,6 +318,7 @@ time with our sandbox pod.
 
 - [Agent factory v1 review, 2026-10-12](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md):
   build-or-adopt per layer, Symphony, agent-sandbox's suspend and warm pools
+- [otari evaluation, 2026-10-20](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-otari-evaluation-research.md)
 - [kagent evaluation, 2026-10-04](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md)
 - [ax and Substrate re-check, 2026-10-04](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-ecosystem-recheck-research.md#2026-10-04-re-check-ax-and-substrate-claims-against-code)
 - [Runtime research, with the first ax and Substrate evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-research.md)

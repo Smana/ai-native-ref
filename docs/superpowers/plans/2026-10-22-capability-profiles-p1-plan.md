@@ -657,6 +657,26 @@ with tree() as t:
     exprs = [e for p in policies for e in p["spec"]["backend"]["mcp"]["authorization"]["policy"]["matchExpressions"]]
     check("the written YAML parses back to the expressions", expr in exprs and len(exprs) == 32, str(len(exprs)))
 
+print("lists the generator does not fully own")
+STRAY = "items the generator does not own (a comment or a multi-line item inside the list?)"
+with tree() as t:
+    text = mcp(t).read_text()
+    first = LISTS.search(text)
+    lines = first.group(0).splitlines(True)
+    commented = text[:first.start()] + "".join(lines[:3]) + f"{first['i']}  # note\n" + "".join(lines[3:]) + text[first.end():]
+    mcp(t).write_text(commented)
+    code, out = run(t)
+    check("a comment inside a list fails the check", code == 1 and STRAY in out, out)
+    code, out = run(t, "--write")
+    check("--write refuses it and leaves the file untouched", code == 1 and STRAY in out
+          and mcp(t).read_text() == commented, out)
+with tree() as t:
+    text = mcp(t).read_text()
+    mcp(t).write_text(text.rstrip("\n"))
+    code, out = run(t, "--write")
+    check("no final newline: refused, never written with a surviving duplicate",
+          code == 1 and STRAY in out and mcp(t).read_text() == text.rstrip("\n"), out)
+
 print("refused profiles")
 for name, change, needle in [
     ("egress waits for the ConfigMap", on("reviewer.internal.yaml", lambda d: d.update(egress=[])),
@@ -862,7 +882,18 @@ def render(root):
         else:
             m, indent = found[0], found[0]["indent"]
             items = "".join(f"{indent}  - '{e}'\n" for e in exprs)
-            chunks[i] = f"{chunks[i][:m.start()]}{indent}matchExpressions:\n{items}{chunks[i][m.end():]}"
+            spliced = f"{chunks[i][:m.start()]}{indent}matchExpressions:\n{items}{chunks[i][m.end():]}"
+            # The splice replaces the run of plain items only: whatever else sits in the list (a comment, a
+            # multi-line item, a last item with no newline) would survive it, so the list must parse back to
+            # exactly the rendering.
+            # Skipped once a profile is refused: its names may not be renderable at all.
+            held = None if errors else ((((yaml.safe_load(spliced) or {}).get("spec") or {}).get("backend") or {}
+                                         ).get("mcp") or {}).get("authorization", {}).get("policy", {}
+                                                                                           ).get("matchExpressions")
+            if not errors and held != exprs:
+                errors.append(f"{MCP}: policy {name}: matchExpressions holds items the generator does not own "
+                              "(a comment or a multi-line item inside the list?): move them above matchExpressions:")
+            chunks[i] = spliced
     for p in profiles:
         if p.data_class not in served:
             errors.append(f"{p.path}: no MCP Allow policy in {MCP} serves the {p.data_class} listener")
@@ -911,7 +942,7 @@ chmod +x scripts/ci/gen-capabilities.py
 bash $SCRATCH/run-suite.sh python3 scripts/ci/tests/test-gen-capabilities.py; echo "exit=$?"
 ```
 
-Expected: 24 `ok` lines (4 parity, 5 drift, 15 refusals), `all passed` and `exit=0`.
+Expected: 27 `ok` lines (4 parity, 5 drift, 3 foreign list content, 15 refusals), `all passed` and `exit=0`.
 
 - [ ] **Step 5: Prove parity on the real tree**
 

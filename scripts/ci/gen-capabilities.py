@@ -155,7 +155,18 @@ def render(root):
         else:
             m, indent = found[0], found[0]["indent"]
             items = "".join(f"{indent}  - '{e}'\n" for e in exprs)
-            chunks[i] = f"{chunks[i][:m.start()]}{indent}matchExpressions:\n{items}{chunks[i][m.end():]}"
+            spliced = f"{chunks[i][:m.start()]}{indent}matchExpressions:\n{items}{chunks[i][m.end():]}"
+            # The splice replaces the run of plain items only: whatever else sits in the list (a comment, a
+            # multi-line item, a last item with no newline) would survive it, so the list must parse back to
+            # exactly the rendering.
+            # Skipped once a profile is refused: its names may not be renderable at all.
+            held = None if errors else ((((yaml.safe_load(spliced) or {}).get("spec") or {}).get("backend") or {}
+                                         ).get("mcp") or {}).get("authorization", {}).get("policy", {}
+                                                                                           ).get("matchExpressions")
+            if not errors and held != exprs:
+                errors.append(f"{MCP}: policy {name}: matchExpressions holds items the generator does not own "
+                              "(a comment or a multi-line item inside the list?): move them above matchExpressions:")
+            chunks[i] = spliced
     for p in profiles:
         if p.data_class not in served:
             errors.append(f"{p.path}: no MCP Allow policy in {MCP} serves the {p.data_class} listener")

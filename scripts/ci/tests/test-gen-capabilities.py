@@ -141,6 +141,26 @@ with tree() as t:
     exprs = [e for p in policies for e in p["spec"]["backend"]["mcp"]["authorization"]["policy"]["matchExpressions"]]
     check("the written YAML parses back to the expressions", expr in exprs and len(exprs) == 32, str(len(exprs)))
 
+print("lists the generator does not fully own")
+STRAY = "items the generator does not own (a comment or a multi-line item inside the list?)"
+with tree() as t:
+    text = mcp(t).read_text()
+    first = LISTS.search(text)
+    lines = first.group(0).splitlines(True)
+    commented = text[:first.start()] + "".join(lines[:3]) + f"{first['i']}  # note\n" + "".join(lines[3:]) + text[first.end():]
+    mcp(t).write_text(commented)
+    code, out = run(t)
+    check("a comment inside a list fails the check", code == 1 and STRAY in out, out)
+    code, out = run(t, "--write")
+    check("--write refuses it and leaves the file untouched", code == 1 and STRAY in out
+          and mcp(t).read_text() == commented, out)
+with tree() as t:
+    text = mcp(t).read_text()
+    mcp(t).write_text(text.rstrip("\n"))
+    code, out = run(t, "--write")
+    check("no final newline: refused, never written with a surviving duplicate",
+          code == 1 and STRAY in out and mcp(t).read_text() == text.rstrip("\n"), out)
+
 print("refused profiles")
 for name, change, needle in [
     ("egress waits for the ConfigMap", on("reviewer.internal.yaml", lambda d: d.update(egress=[])),

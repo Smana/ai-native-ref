@@ -2,8 +2,10 @@
 
 **Date:** 2026-10-19 · **Status:** roadmap approved by the owner 2026-10-19; **amended 2026-10-21** by the
 [v3 review](2026-10-21-v3-review.md#5-amendments-proposed): features 2, 4, 5, 7 and 8 revised, 9 to 11
-added, the [Later](#later) section now pointing at agent-platform's designs. Each feature gets its own
-design before it is built · **Part of:** the roadmap on the
+added, the [Later](#later) section now pointing at agent-platform's designs; **amended 2026-10-22**:
+feature 12 (spend per identity) added and the work ordered offline first
+([D4, D5](#owner-decisions-2026-10-22)). Each feature gets its own design before it is built ·
+**Part of:** the roadmap on the
 [status page](../../../website/content/docs/platform/ai-platform/status.md#roadmap)
 
 ## Outcome
@@ -25,6 +27,13 @@ issues.
 | D1 | **Outcomes first.** v3 is for a factory that works better, not for adoption | Installing on any Kubernetes moves to a later release ([Later](#later)) |
 | D2 | **Public work stays on open weights.** [ADR-0058](../../../website/content/docs/decisions/0058-reviewer-on-another-model.md) holds: no public content to Anthropic | Routing cannot buy capability from a frontier model on public tasks; it picks among open models |
 | D3 | **Fit the task to the model** (approach A), over finding a better open model first (B) or bigger self-hosted models (C) | Scoping and splitting come before the model bake-off; the bake-off is a gated step, not the plan |
+
+## Owner decisions, 2026-10-22 {#owner-decisions-2026-10-22}
+
+| # | Decision | Consequence |
+|---|---|---|
+| D4 | **Offline first.** Everything that can be built and proven without a cluster is, before a platform runs: unit, golden and container suites in CI, rule unit tests, drift gates. The live gates then run together in platform sessions on `gcp-0` | Each feature's gate splits into an offline proof, merged first, and a live proof on a session's checklist. Each feature ships behind a per-class switch, off by default, so one session measures the bench's baseline and its variants. `gcp-0` is rebuilt when the offline track is done, not first ([order](#order-of-work)) |
+| D5 | **Spend per identity** becomes feature 12: one dashboard per charged principal, the person or the sponsored service account | Needs truthful costs (dollars, cache reads discounted) and the factory's charge per run, since a label-started run's pod carries `system:factory`, not the person |
 
 ## Why these features
 
@@ -82,6 +91,37 @@ repository's checks in the sandbox, or nobody can run its test before pushing. T
 scoper's bounded-task format; new auto-merge classes need the scoper or the tester to make a change
 verifiable.
 
+Features 9 to 11 come from the [v3 review](2026-10-21-v3-review.md#5-amendments-proposed); feature
+12 from D5:
+
+| # | Feature | What changes | Gate |
+|---|---|---|---|
+| 12 | **Spend per identity** | A dashboard per charged principal (`github:<login>` for a person, `system:<name>` for a sponsored principal, with its sponsor): dollars against its daily cap and the fleet's day, tokens by type and the cache-read share, runs, rooms and tasks, pull requests opened, merged and reverted, cost per accepted PR, refusals and revocations, the time runs waited on that person, and a sponsored principal's `max_cost` against its spend. The factory exports spend and runs per charged principal (its `chargedTo`), which the gateway's per-run series cannot give | Offline: the factory's per-principal series sum to the meter's run costs. Live: for a day, each principal's spend on the dashboard matches the meter's ledger |
+
+### Order of work {#order-of-work}
+
+```mermaid
+flowchart LR
+  subgraph off["Offline track (D4)"]
+    direction TB
+    o1["Cache alerts and wire test (11)"]
+    o2["Truthful costs · provenance · docs fixes"]
+    o3["Spend per identity (12)"]
+    o4["Profiles: spike S0, generator, drift gate (10)"]
+    o5["Interfaces (9)"]
+    o6["Bench runner · loop policy · scoper ·<br/>checks in the sandbox · tester · search<br/>behind per-class switches"]
+  end
+  off --> gcp["gcp-0 rebuilt<br/>from release pins"]
+  gcp --> live["Platform sessions: every live gate,<br/>then the bench's baseline and variants"]
+  live --> gated["Bench go/no-go per feature ·<br/>bake-off (7) · auto-merge classes (8)"]
+  classDef base fill:#6366f1,stroke:#4f46e5,color:#fff
+  class gcp,live base
+```
+
+Within the offline track: checks in the sandbox (3) precede the tester (4); the profiles' per-run
+model pin (P4) precedes the loop policy's judge, which calls through it; daily caps in dollars precede
+the sponsored principals and the Slack intake.
+
 ## How v3 is judged
 
 Every feature is a go/no-go on the bench, the way each v2 gate was a go/no-go on live evidence.
@@ -135,8 +175,8 @@ hardening (an agent that only writes through validated outputs, as GitHub's agen
 
 ## Before v3 starts
 
-- **Rebuild `gcp-0` from release pins.** It was torn down on 2026-10-18 after v2.0; the bench runs
-  there. First, three teardown fixes: the load-balancer sweep also after an interactive confirmation,
+- **Rebuild `gcp-0` from release pins**, once the offline track is done (D4). It was torn down on
+  2026-10-18 after v2.0; the bench runs there. First, three teardown fixes: the load-balancer sweep also after an interactive confirmation,
   external-dns records removed before their addresses are released, and a pinned-tool-version check.
 - **Truthful costs.** One price table, every copy generated from it (the metrics price rule first),
   daily caps in dollars, a drift check against public catalogs, the gateway's per-request cost as a

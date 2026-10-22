@@ -29,7 +29,7 @@ generated files equal to today's hand-written ones, then the new rules, then the
 ConfigMap read".
 
 **Out of P1** (later plans): the per-role model allow-lists (P2). The argument constraints (P3),
-which wait for spike S0, now running. The per-run model pin (P4). The `agent-capability-profiles`
+which wait for spike S0 (it has run: the result is in the spec, and a route-level 403 is ruled out). The per-run model pin (P4). The `agent-capability-profiles`
 ConfigMap and the AgentRun composition's read of it, a crossplane-configuration change. The bridge's
 read-only map. Gate items 1 to 3.
 
@@ -43,6 +43,8 @@ read-only map. Gate items 1 to 3.
 | R4 | **Fields.** `role`, `dataClass` and `tools` are rendered. `models` is **carried but not rendered**: it must name exactly the aliases the LLM backends serve, since today any role may ask for any of the four. P2 will narrow it and render it. `egress` and `readOnly` are **refused** until the ConfigMap step: their current values live outside this repository (`MCP_READ_ONLY_TOOLS` in crossplane-configuration's AgentRun composition, and the run API's egress profiles), so a copy here would be checked by nothing. A tool's `when` is refused until P3 | A field that nothing enforces must not look like a rule. `models` can be checked here, against the backends' `modelAliases`, so it is carried. It also makes P2's change a reviewable narrowing of each profile |
 | R5 | **The drift gate is a suite, not a new gate id in `assert-agent-gateway.py`.** (1) The profiles are not Kubernetes objects and reach no bundle until the ConfigMap step. (2) The property being checked is the committed file's bytes, which a render loses. (3) No overlay patches these policies: both clusters' `agent-gateway` kustomizations are bare `resources: [../../base/agent-gateway]`. The suite follows AG8's pattern: it regenerates the expected value from its source on every run, and its failure prints the fix. AG6 keeps checking the rendered expressions on the bundle | A gate id would have to read the source tree, which no AG check does today, and its fixtures would need the profiles. Once the ConfigMap carries the profiles into the bundle, a bundle gate can take this suite's place |
 | R6 | **`test-agent-mcp-scope` keeps its frozen expected sets**, the guard from external review M2/M3. It checks the profiles against those sets, parsing the profiles itself rather than through the generator. Its existing check of `mcp.yaml` stays | If expectations were derived from the profiles, editing a profile would update its own test. Parsing independently means a bug in the generator's loader cannot hide a grant |
+
+**Note:** Task 2's code changed in its review fix round (the parse-back verification of each spliced list) and in the final fix pass (profiles directory entries, valueless targets).
 
 **Measured 2026-10-22** on a prototype in `$SCRATCH/capprof/` (the code below is that prototype's):
 
@@ -609,6 +611,19 @@ def restricted(t):
     edit(t, "reviewer.restricted.yaml", lambda d: d.update(dataClass="restricted"))
 
 
+def stray_yml(t):
+    shutil.copy(t / gen.PROFILES / "reviewer.public.yaml", t / gen.PROFILES / "reviewer.public.yml")
+
+
+def stray_dir(t):
+    (t / gen.PROFILES / "extra").mkdir()
+    shutil.copy(t / gen.PROFILES / "reviewer.public.yaml", t / gen.PROFILES / "extra" / "reviewer.public.yaml")
+
+
+def valueless_target(d):
+    d["tools"]["room-broker"] = None
+
+
 def no_public(t):
     for p in (t / gen.PROFILES).glob("*.public.yaml"):
         p.unlink()
@@ -699,6 +714,12 @@ for name, change, needle in [
     ("a role that disagrees with its file name", on("reviewer.public.yaml", lambda d: d.update(role="tester")),
      "reviewer.public.yaml: a profile is named <role>.<dataClass>.yaml"),
     ("a profile without tools", on("reviewer.public.yaml", lambda d: d.pop("tools")), "missing tools"),
+    ("a .yml file reads like a rule but grants nothing", stray_yml,
+     "profiles/reviewer.public.yml: only <role>.<dataClass>.yaml files are profiles"),
+    ("a subdirectory reads like a rule but grants nothing", stray_dir,
+     "profiles/extra: only <role>.<dataClass>.yaml files are profiles"),
+    ("a target with no value ends in the refusal, not a traceback",
+     on("triager.internal.yaml", valueless_target), "room-broker lists no tool"),
     ("a class no listener serves", restricted, "reviewer.restricted.yaml: no MCP Allow policy"),
     ("a listener with no profile", no_public, "no profile of class public"),
     ("no profiles at all", lambda t: shutil.rmtree(t / gen.PROFILES), "profiles: no profile"),
@@ -852,7 +873,13 @@ def render(root):
     aliases = served_aliases(root)
     if not aliases:
         errors.append(f"{GATEWAY}: no LLM backend serves a model alias")
-    files = sorted((root / PROFILES).glob("*.yaml"))
+    entries = sorted((root / PROFILES).iterdir()) if (root / PROFILES).is_dir() else []
+    # Anything else in the directory (a .yml copy, a subdirectory) reads like a rule but grants nothing.
+    for e in entries:
+        if not (e.is_file() and FILE.match(e.name)):
+            errors.append(f"{PROFILES}/{e.name}: only <role>.<dataClass>.yaml files are profiles; this one grants "
+                          "nothing, so rename or remove it")
+    files = [e for e in entries if e.is_file() and FILE.match(e.name)]
     if not files:
         errors.append(f"{PROFILES}: no profile")
     profiles = [p for p in (load_profile(root, f, targets, aliases, errors) for f in files) if p]
@@ -873,7 +900,7 @@ def render(root):
         served.add(cls)
         exprs = [expression(p.role, cls, t, p.tools[t])
                  for p in sorted((p for p in profiles if p.data_class == cls), key=lambda p: p.role)
-                 for t in targets if t in p.tools]
+                 for t in targets if isinstance(p.tools.get(t), list)]
         found = list(LIST.finditer(chunks[i]))
         if not exprs:
             errors.append(f"{MCP}: no profile of class {cls} for {name}")

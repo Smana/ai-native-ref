@@ -125,7 +125,13 @@ def render(root):
     aliases = served_aliases(root)
     if not aliases:
         errors.append(f"{GATEWAY}: no LLM backend serves a model alias")
-    files = sorted((root / PROFILES).glob("*.yaml"))
+    entries = sorted((root / PROFILES).iterdir()) if (root / PROFILES).is_dir() else []
+    # Anything else in the directory (a .yml copy, a subdirectory) reads like a rule but grants nothing.
+    for e in entries:
+        if not (e.is_file() and FILE.match(e.name)):
+            errors.append(f"{PROFILES}/{e.name}: only <role>.<dataClass>.yaml files are profiles; this one grants "
+                          "nothing, so rename or remove it")
+    files = [e for e in entries if e.is_file() and FILE.match(e.name)]
     if not files:
         errors.append(f"{PROFILES}: no profile")
     profiles = [p for p in (load_profile(root, f, targets, aliases, errors) for f in files) if p]
@@ -146,7 +152,7 @@ def render(root):
         served.add(cls)
         exprs = [expression(p.role, cls, t, p.tools[t])
                  for p in sorted((p for p in profiles if p.data_class == cls), key=lambda p: p.role)
-                 for t in targets if t in p.tools]
+                 for t in targets if isinstance(p.tools.get(t), list)]
         found = list(LIST.finditer(chunks[i]))
         if not exprs:
             errors.append(f"{MCP}: no profile of class {cls} for {name}")

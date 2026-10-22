@@ -93,6 +93,19 @@ def restricted(t):
     edit(t, "reviewer.restricted.yaml", lambda d: d.update(dataClass="restricted"))
 
 
+def stray_yml(t):
+    shutil.copy(t / gen.PROFILES / "reviewer.public.yaml", t / gen.PROFILES / "reviewer.public.yml")
+
+
+def stray_dir(t):
+    (t / gen.PROFILES / "extra").mkdir()
+    shutil.copy(t / gen.PROFILES / "reviewer.public.yaml", t / gen.PROFILES / "extra" / "reviewer.public.yaml")
+
+
+def valueless_target(d):
+    d["tools"]["room-broker"] = None
+
+
 def no_public(t):
     for p in (t / gen.PROFILES).glob("*.public.yaml"):
         p.unlink()
@@ -183,6 +196,12 @@ for name, change, needle in [
     ("a role that disagrees with its file name", on("reviewer.public.yaml", lambda d: d.update(role="tester")),
      "reviewer.public.yaml: a profile is named <role>.<dataClass>.yaml"),
     ("a profile without tools", on("reviewer.public.yaml", lambda d: d.pop("tools")), "missing tools"),
+    ("a .yml file reads like a rule but grants nothing", stray_yml,
+     "profiles/reviewer.public.yml: only <role>.<dataClass>.yaml files are profiles"),
+    ("a subdirectory reads like a rule but grants nothing", stray_dir,
+     "profiles/extra: only <role>.<dataClass>.yaml files are profiles"),
+    ("a target with no value ends in the refusal, not a traceback",
+     on("triager.internal.yaml", valueless_target), "room-broker lists no tool"),
     ("a class no listener serves", restricted, "reviewer.restricted.yaml: no MCP Allow policy"),
     ("a listener with no profile", no_public, "no profile of class public"),
     ("no profiles at all", lambda t: shutil.rmtree(t / gen.PROFILES), "profiles: no profile"),

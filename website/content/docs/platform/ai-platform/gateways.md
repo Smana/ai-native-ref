@@ -228,7 +228,7 @@ answers `Unknown tool`. A target that fails is dropped from the list rather than
 The lists are generated. One profile per role and data class in
 `infrastructure/base/agent-gateway/profiles/` names its tools, `scripts/ci/gen-capabilities.py` with `--write`
 renders them into `mcp.yaml`, and `task check` fails when the two differ: adding a tool is a line in a
-profile.
+profile and its expected set in `test-agent-mcp-scope` (then `--write`).
 
 | Role | `public` | `internal` adds |
 |---|---|---|

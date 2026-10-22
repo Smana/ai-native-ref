@@ -1,7 +1,7 @@
 # v3: the prompt cache, protected first and tuned second
 
 **Date:** 2026-10-21 · **Status:** draft; decisions O5, O6 taken 2026-10-21 (the
-[review](2026-10-21-v3-review.md#decisions-for-the-owner)) · **Part of:** the v3 review, proposed
+[review](2026-10-21-v3-review.md#decisions-for-the-owner)) · **Amended 2026-10-22**: C1 and C2 built offline ([plan](../plans/2026-10-22-cache-protection-plan.md)); gate 1's drill moves to the loop-policy composition release · **Part of:** the v3 review, proposed
 feature 11; its first two decisions belong to the "before v3" step · **Research:**
 [§4](2026-10-21-v3-landscape-research.md#4-prompt-and-kv-caching) · **Runtime:** the gateway
 runtime: the markers cross it and the alert reads its series; only the harness's per-step log line
@@ -69,10 +69,15 @@ flowchart LR
 
 ## Gate
 
-1. A drill: a run started with the harness's drill switch (`AGENT_CACHE_DRILL=off`, an agent-platform
-   change that skips the marker rewrite) fires `AgentCacheReadZero` within two scrapes and
-   `AgentCacheReadShareLow` within 15 minutes; `AgentCacheMarkerMissing` is drilled by its own unit
-   test, since removing the shim prints nothing.
+1. Offline, in `task check`: `test-agent-cache-alerts` shows `AgentCacheReadZero` firing within two
+   scrapes of a run's first 100k input tokens with no reads and `AgentCacheReadShareLow` at 50% on
+   600k input but not on 90k; `test-agent-gateway-cache-wire` shows the pinned gateway's series and
+   marker. Live, later: a run started with the `agents.ogenki.io/cache-drill` annotation (a harness
+   switch that skips the marker rewrite, mapped by the composition) fires `AgentCacheReadZero`
+   within two scrapes; the annotation rides the loop-policy release of the `AgentRun` composition.
+   `AgentCacheMarkerMissing` matches the substring both of the harness's messages carry
+   (`prompt cache NOT applied`); no agent-platform test asserts that message yet, unlike the
+   harness's three other patches, which is a follow-up there.
 2. The gateway wire test runs here in CI and fails on an agentgateway pin that drops the marker; the
    harness test runs in agent-platform.
 3. The bench reports the cache-read share per class and model, and the share of expected against

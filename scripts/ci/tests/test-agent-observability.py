@@ -421,7 +421,8 @@ def check_agentgateway_dashboards():
     check(board.get("uid") == "agent-gateway", "uid agent-gateway: the agent-gateway alerts link to it")
     targets = json.dumps([t for p in board.get("panels", []) for t in p.get("targets", [])])
     for needle in ("agentgateway_requests_total", 'status=~\\"5..\\"', "error_type", "gen_ai_server_request_duration_seconds_bucket",
-                   "gen_ai_client_token_usage_sum", "ratelimit_service_rate_limit_shadow_mode", "agentgateway_mcp_requests_total"):
+                   "gen_ai_client_token_usage_sum", "ratelimit_service_rate_limit_shadow_mode", "agentgateway_mcp_requests_total",
+                   "agent_run:cache_read_share:ratio15m"):
         check(needle in targets, f"the agent-gateway dashboard reads {needle}")
     check(targets.count('namespace=\\"agent-gateway\\"') >= 10, "every metric panel stays in namespace agent-gateway")
     resources = yaml.safe_load((ROOT / PLATFORM / "kustomization.yaml").read_text()).get("resources", [])

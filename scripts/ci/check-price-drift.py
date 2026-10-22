@@ -11,9 +11,14 @@ Exit 0: the issue now matches the night's findings (opened, updated, closed or l
 Exit 1: the table or a catalog could not be read; the issue is left alone and the failed run
 notifies. --dry-run fetches and compares, prints the body, and calls no gh.
 """
+import argparse
+import http.client
 import json
 import pathlib
-from datetime import date
+import subprocess
+import sys
+import urllib.request
+from datetime import date, datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from typing import NamedTuple
 
@@ -21,6 +26,9 @@ import yaml
 
 VALUES = pathlib.PurePosixPath("tooling/base/agent-factory/helm-values-configmap.yaml")
 FIELDS = ("input", "cacheRead", "cacheWrite", "output")
+LABEL = "prices-drift"
+TITLE = "Price drift: a public catalog disagrees with meter.prices"
+CLOSING = "The nightly price drift check found no disagreement: every row matches its catalogs."
 CATALOGS = {
     # v2 is genai-prices' live feed; prices/data.json is a v1 snapshot frozen since 2026-07-25.
     "genai-prices": "https://raw.githubusercontent.com/pydantic/genai-prices/main/prices/new_data/v2/data.json",
@@ -225,3 +233,91 @@ def compare(prices, catalogs, today, mapping=MAPPING, absent=ABSENT, tiers=TIERS
     if blind:  # a moved or reshaped feed, not every row gone
         raise CatalogError(f"{blind[0]}: lists none of meter.prices' rows")
     return out
+
+
+def issue_body(findings):
+    lines = [
+        "The nightly price drift check (`.github/workflows/price-drift.yaml`) found public catalogs that "
+        "disagree with `meter.prices` in `tooling/base/agent-factory/helm-values-configmap.yaml`.",
+        "",
+        "Catalogs copy the providers' page mistakes: confirm each finding on the provider's page "
+        "(Source) before changing anything. Then correct the row, or record the deviation in "
+        "`scripts/ci/check-price-drift.py` (`MAPPING`, `ABSENT`, `TIERS` or `ACCEPTED`). This check "
+        "never edits the table; the first clean run closes this issue.",
+        "",
+        "| Model | Field | Ours | Theirs | Catalog | Source |",
+        "|---|---|---|---|---|---|",
+    ]
+    for f in findings:
+        cat = f"[{f.catalog}]({CATALOGS[f.catalog]})" + (f" `{f.key}`" if f.key else "")
+        lines.append(f"| `{f.model}` | {f.field} | {f.ours} | {f.theirs} | {cat} | {f.source or '—'} |")
+    lines += ["", "USD per million tokens; equal when both round to the same 4 decimals."]
+    return "\n".join(lines) + "\n"
+
+
+def issue_action(findings, issue):
+    """(action, body): open, update, close or nothing, given the open issue ({number, body}) or None."""
+    if not findings:
+        return ("close", None) if issue else ("nothing", None)
+    body = issue_body(findings)
+    if issue is None:
+        return "open", body
+    if issue.get("body", "").replace("\r\n", "\n").strip() == body.strip():
+        return "nothing", None
+    return "update", body
+
+
+def fetch(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "ai-native-ref price drift check"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return r.read().decode()
+
+
+def gh(*args, stdin=None):
+    return subprocess.run(["gh", *args], input=stdin, check=True, capture_output=True, encoding="utf-8").stdout
+
+
+def open_issue():
+    issues = json.loads(gh("issue", "list", "--state", "open", "--label", LABEL,
+                           "--json", "number,body", "--limit", "100"))
+    return min(issues, key=lambda i: i["number"]) if issues else None
+
+
+def apply(action, body, issue):
+    if action == "open":
+        gh("label", "create", LABEL, "--color", "fbca04", "--force",
+           "--description", "A public price catalog disagrees with meter.prices")
+        gh("issue", "create", "--title", TITLE, "--label", LABEL, "--body-file", "-", stdin=body)
+    elif action == "update":
+        gh("issue", "edit", str(issue["number"]), "--body-file", "-", stdin=body)
+    elif action == "close":
+        gh("issue", "close", str(issue["number"]), "--comment", CLOSING)
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument("--dry-run", action="store_true", help="print the body; call no gh")
+    p.add_argument("root", nargs="?", default=str(pathlib.Path(__file__).resolve().parents[2]))
+    a = p.parse_args(argv)
+    try:
+        prices = load_prices((pathlib.Path(a.root) / VALUES).read_text())
+        catalogs = {name: parse_catalog(name, fetch(url)) for name, url in CATALOGS.items()}
+        findings = compare(prices, catalogs, datetime.now(timezone.utc).date())
+    except (OSError, ValueError, http.client.HTTPException) as e:
+        print(f"FAIL {e}: the {LABEL} issue is left alone", file=sys.stderr)
+        return 1
+    for f in findings:
+        print(f"finding: {f.model} {f.field} ours {f.ours}, {f.catalog} {f.key or '-'} {f.theirs}")
+    issue = None if a.dry_run else open_issue()
+    action, body = issue_action(findings, issue)
+    print(f"check-price-drift: {len(prices)} rows, {len(catalogs)} catalogs, {len(findings)} finding(s);"
+          f" issue: {action}" + (f" #{issue['number']}" if issue else ""))
+    if a.dry_run:
+        print(body or "", end="")
+    else:
+        apply(action, body, issue)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

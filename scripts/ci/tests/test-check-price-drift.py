@@ -9,9 +9,13 @@ the machine.
 
 Run: python3 scripts/ci/tests/test-check-price-drift.py
 """
+import contextlib
 import importlib.util
+import io
 import pathlib
 import sys
+import tempfile
+import urllib.error
 from datetime import date
 from decimal import Decimal
 
@@ -172,6 +176,63 @@ except gen.CatalogError as e:
 real = gen.load_prices((ROOT / gen.VALUES).read_text())
 check("the real tree's meter.prices loads, every row with an input and an output",
       bool(real) and all(r.get("input", 0) > 0 and r.get("output", 0) > 0 for r in real.values()), str(real))
+
+# --- The issue ---
+body = gen.issue_body(SONNET)
+row = (f"| `claude-sonnet-5-5` | cacheRead | 0.10 | 0.20 | [LiteLLM]({gen.CATALOGS['LiteLLM']}) "
+       f"`claude-sonnet-5-5` | {ANTHROPIC} |")
+check("the body names model, field, ours, theirs, catalog and source", row in body.splitlines(), body)
+check("the same findings twice give the same body", gen.issue_body(list(SONNET)) == body)
+check("clean, no issue: nothing", gen.issue_action([], None) == ("nothing", None))
+check("clean, an open issue: close", gen.issue_action([], {"number": 7, "body": body}) == ("close", None))
+check("findings, no issue: open", gen.issue_action(SONNET, None) == ("open", body))
+check("findings, the same body: nothing",
+      gen.issue_action(SONNET, {"number": 7, "body": body.replace("\n", "\r\n")}) == ("nothing", None))
+check("findings, another body: update", gen.issue_action(SONNET, {"number": 7, "body": "old"}) == ("update", body))
+
+
+# --- main(), with the network and gh stubbed ---
+def run_main(table, fetched, open_issues):
+    calls = []
+
+    def fetch(url):
+        name = next(n for n, u in gen.CATALOGS.items() if u == url)
+        v = fetched[name]
+        if isinstance(v, Exception):
+            raise v
+        return v
+
+    def gh(*args, stdin=None):
+        calls.append((args, stdin))
+        return open_issues if args[:2] == ("issue", "list") else ""
+
+    with tempfile.TemporaryDirectory() as tmp:
+        values = pathlib.Path(tmp) / gen.VALUES
+        values.parent.mkdir(parents=True)
+        values.write_text(configmap(table))
+        gen.fetch, gen.gh = fetch, gh
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            code = gen.main([tmp])
+    return code, calls, out.getvalue()
+
+
+texts = {name: (FIX / f).read_text() for name, f in FILES.items()}
+code, calls, out = run_main(TABLE, {**texts, "models.dev": urllib.error.URLError("timed out")}, "[]")
+check("an unreachable catalog fails the run and calls no gh", code == 1 and calls == [] and "left alone" in out, out)
+code, calls, out = run_main(TABLE, {**texts, "LiteLLM": "<html>"}, "[]")
+check("an unparseable catalog fails the run and calls no gh", code == 1 and calls == [], out)
+
+drift = {**TABLE, "claude-sonnet-5-5": {**TABLE["claude-sonnet-5-5"], "cacheRead": 0.20}}
+code, calls, out = run_main(drift, texts, "[]")
+verbs = [a[:2] for a, _ in calls]
+check("drift with no open issue: list, label, create",
+      code == 0 and verbs == [("issue", "list"), ("label", "create"), ("issue", "create")]
+      and "--label" in calls[2][0] and gen.LABEL in calls[2][0] and "| cacheRead | 0.20 | 0.10 |" in calls[2][1],
+      f"{code} {calls}")
+code, calls, out = run_main(TABLE, texts, '[{"number": 9, "body": "x"}, {"number": 7, "body": "y"}]')
+check("clean with an open issue: the oldest is closed",
+      code == 0 and [a for a, _ in calls][1:] == [("issue", "close", "7", "--comment", gen.CLOSING)], f"{code} {calls}")
 
 print("all passed" if not FAILURES else f"{len(FAILURES)} failed: {FAILURES}")
 sys.exit(1 if FAILURES else 0)

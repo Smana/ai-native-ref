@@ -681,10 +681,10 @@ expect("an alternative for a foreign audience fails", lambda o: caps(o, "interna
        .__setitem__(1, model_rule(None, "internal", sorted(gate.audiences(gate.PROFILES[REAL], "internal")) + ["x.y"])),
        "AG14", "one model Require")
 expect("a non-literal entry in a model list fails cleanly", lambda o: caps(o, "public")["policy"]["matchExpressions"]
-       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1].replace('"tier-frontier"]', 'm]', 1)),
+       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1].replace('["agent-default"]', '["agent-default", m]', 1)),
        "AG14", "one model Require")
 expect("an unknown alias in a model list fails", lambda o: caps(o, "public")["policy"]["matchExpressions"]
-       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1].replace('"tier-frontier"]', '"gpt-9"]', 1)),
+       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1].replace('["agent-default"]', '["gpt-9"]', 1)),
        "AG14", "one model Require")
 expect("no tier pinning a model fails", lambda o: find(o, "ConfigMap", gate.FACTORY_VALUES)["data"].update(
     {"values.yaml": yaml.safe_dump({"config": {"tiers": {}}})}), "AG14", "pins a model")

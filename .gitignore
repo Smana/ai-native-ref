@@ -10,3 +10,4 @@ dist/
 .claude/scheduled_tasks.lock
 .superpowers/
 .vscode
+__pycache__/

@@ -225,6 +225,11 @@ answers `Unknown tool`. A target that fails is dropped from the list rather than
 (`failureMode: FailOpen`). No run bearer reaches a server; the room-broker gets its own key in
 `x-room-mcp-key`.
 
+The lists are generated. One profile per role and data class in
+`infrastructure/base/agent-gateway/profiles/` names its tools, `scripts/ci/gen-capabilities.py` with `--write`
+renders them into `mcp.yaml`, and `task check` fails when the two differ: adding a tool is a line in a
+profile and its expected set in `test-agent-mcp-scope` (then `--write`).
+
 | Role | `public` | `internal` adds |
 |---|---|---|
 | implementer | documentation tools; `room_read`, `room_post`, `room_progress`, `room_handoff` | Flux instance, API versions and metrics; every VictoriaMetrics read tool |

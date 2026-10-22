@@ -5,6 +5,9 @@
 # introspection, an internal implementer gets no arbitrary-kind resource read, and the Flux
 # MCP server reads ConfigMaps and pod logs in flux-system only. The real tree.
 #
+# The capability profiles (infrastructure/base/agent-gateway/profiles/) must grant the same sets
+# as mcp.yaml's Allow lists (capability profiles design, gate 4).
+#
 # Allowlists, not denylists (review round 1): a set that must equal an exact expectation
 # catches an addition denylisting three tool names never could -- `flags`/`export` sneaking
 # onto a backend's toolSelector, `get_kubernetes_logs` sneaking onto the implementer's grant,
@@ -149,6 +152,24 @@ for pol in (d for d in agw_docs if d["kind"] == "AgentgatewayPolicy"):
                 errors.append(f"{name}: {aud} grants {got.get(aud)}, expected {want.get(aud)}")
 if seen_policies != set(AGW_ROUTES):
     errors.append(f"agent-gateway/mcp.yaml: missing Allow list(s) {sorted(set(AGW_ROUTES) - seen_policies)}")
+
+# --- The capability profiles grant exactly these sets too, read here without the generator so a
+#     loader bug cannot hide a grant. A {name, when} entry (P3) still grants its name. ---
+PROFILE_DIR = os.path.join(root, "infrastructure/base/agent-gateway/profiles")
+want = {aud: grants for per_route in EXPECTED_ROLE_TOOLS.values() for aud, grants in per_route.items()}
+got = {}
+for fname in sorted(os.listdir(PROFILE_DIR)) if os.path.isdir(PROFILE_DIR) else []:
+    if not fname.endswith(".yaml"):
+        continue
+    prof = yaml.safe_load(open(os.path.join(PROFILE_DIR, fname))) or {}
+    aud = f"agent-router.{prof.get('role')}.{prof.get('dataClass')}"
+    if aud in got:
+        errors.append(f"profiles/{fname}: a second profile for {aud}")
+    got[aud] = {target: {n if isinstance(n, str) else n.get("name") for n in names}
+                for target, names in (prof.get("tools") or {}).items()}
+for aud in sorted(set(got) | set(want)):
+    if got.get(aud) != want.get(aud):
+        errors.append(f"profiles: {aud} grants {got.get(aud)}, expected {want.get(aud)}")
 
 # --- flux-operator-mcp RBAC: allowlist the flux-system Role, deny secrets/* anywhere the
 #     ServiceAccount is bound, and require exactly one well-formed RoleBinding for it ---

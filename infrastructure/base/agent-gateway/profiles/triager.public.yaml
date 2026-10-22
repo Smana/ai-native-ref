@@ -1,0 +1,17 @@
+# Rendered into mcp.yaml by scripts/ci/gen-capabilities.py --write (capability profiles design).
+# models is checked against the backends' aliases, not rendered, until P2.
+role: triager
+dataClass: public
+models: [agent-default, tier-light, tier-standard, tier-frontier]
+tools:
+  flux-operator-mcp:
+    - search_flux_docs
+  mcp-victoriametrics:
+    - documentation
+  mcp-victorialogs:
+    - documentation
+  room-broker:
+    - room_read
+    - room_post
+    - room_progress
+    - room_handoff

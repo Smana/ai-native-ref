@@ -1,0 +1,34 @@
+# Rendered into mcp.yaml by scripts/ci/gen-capabilities.py --write (capability profiles design).
+# models is checked against the backends' aliases, not rendered, until P2.
+# No get_kubernetes_resources or get_kubernetes_logs, and VictoriaLogs' documentation only
+# (external review M2, M3); no role gets VictoriaMetrics' tsdb_status, active_queries or top_queries.
+role: implementer
+dataClass: internal
+models: [agent-default, tier-light, tier-standard, tier-frontier]
+tools:
+  flux-operator-mcp:
+    - search_flux_docs
+    - get_flux_instance
+    - get_kubernetes_api_versions
+    - get_kubernetes_metrics
+  mcp-victoriametrics:
+    - documentation
+    - query
+    - query_range
+    - metrics
+    - metrics_metadata
+    - labels
+    - label_values
+    - series
+    - alerts
+    - rules
+    - explain_query
+    - prettify_query
+    - metric_statistics
+  mcp-victorialogs:
+    - documentation
+  room-broker:
+    - room_read
+    - room_post
+    - room_progress
+    - room_handoff

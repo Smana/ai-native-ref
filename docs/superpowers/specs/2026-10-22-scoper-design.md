@@ -1,7 +1,6 @@
 # v3 feature 1: the scoper and per-class steering, a bounded task or one question before any code
 
-**Date:** 2026-10-22 · **Status:** draft; owner decisions SO1–SO4 open ([below](#owner-decisions)), each
-with a recommended default · **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features),
+**Date:** 2026-10-22 · **Status:** approved by the owner 2026-10-22 with every recommended default; SO1–SO4 (SO4, the bench's answer keys, is moot while the bench is deferred) decided as recommended · **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features),
 feature 1, as amended by the [review](2026-10-21-v3-review.md#5-amendments-proposed) ("a bounded task, a
 plan, explicit assumptions and the acceptance checks the judge reads; re-injected each round") ·
 **Research:** [§2.1](2026-10-21-v3-landscape-research.md#21-patterns) (Ask or Assume, SWE-chat,

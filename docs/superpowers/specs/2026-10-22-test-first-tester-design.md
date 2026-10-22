@@ -1,7 +1,6 @@
 # v3: the test-first tester, a failing test as the implementer's contract, and holdout checks
 
-**Date:** 2026-10-22 · **Status:** draft; owner decisions [TO1–TO5](#owner-decisions) open, each
-with a recommended default · **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features),
+**Date:** 2026-10-22 · **Status:** approved by the owner 2026-10-22 with every recommended default; TO1–TO5 decided as recommended · **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features),
 feature 4, as the [v3 review](2026-10-21-v3-review.md#5-amendments-proposed) amended it; the
 holdouts are [loops L7](2026-10-21-loops-and-teams-design.md#decisions) · **Research:**
 [§2.1](2026-10-21-v3-landscape-research.md#21-patterns),

@@ -1,7 +1,6 @@
 # v3 feature 0: the eval bench, a fixed corpus scored the same way every time
 
-**Date:** 2026-10-22 · **Status:** draft; owner decisions OB1–OB4 open, each with a recommended
-default ([below](#owner-decisions)) · **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features),
+**Date:** 2026-10-22 · **Status:** parked 2026-10-22: the owner deferred the bench to Later, no sponsor for its session cost (~$400 a session, $600 budget) yet; it resumes if a sponsor funds it. This stays the design to pick up then; owner decisions OB1–OB4 stay open · **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features),
 feature 0, as amended by the [v3 review](2026-10-21-v3-review.md#5-amendments-proposed) (R10 and the
 added metrics) and by D4 (offline first, per-class switches) · **Research:** the
 [hard-task cohort](2026-10-12-v2-hard-task-cohort-design.md#results) and its

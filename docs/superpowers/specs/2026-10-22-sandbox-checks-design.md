@@ -1,7 +1,6 @@
 # v3: repository checks in the sandbox, the CI's fast subset before every push
 
-**Date:** 2026-10-22 · **Status:** draft; owner decisions [Q1–Q4](#owner-decisions) open, each with a
-recommended default · **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features),
+**Date:** 2026-10-22 · **Status:** approved by the owner 2026-10-22 with every recommended default; Q1–Q4 decided as recommended · **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features),
 feature 3. It answers the roadmap's open question on the toolchain, gives the
 [loop policy](2026-10-21-loops-and-teams-design.md#decisions)'s judge (L2) and verdict evidence (L5)
 the checks' output they wait for, and is what the test-first tester (feature 4) builds on · **Research:**

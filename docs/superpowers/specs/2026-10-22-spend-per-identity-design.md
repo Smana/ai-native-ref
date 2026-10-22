@@ -1,8 +1,6 @@
 # v3 feature 12: spend per identity, one page per charged principal
 
-**Date:** 2026-10-22 · **Status:** draft; the owner chose the breakdown by charged principal
-(2026-10-22); three owner decisions are open ([OD-A to OD-C](#owner-decisions)), each with a
-recommended default · **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-22),
+**Date:** 2026-10-22 · **Status:** approved by the owner 2026-10-22 with every recommended default; OD-A to OD-C decided as recommended · **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-22),
 feature 12 (D5) · **Research:** none new; it builds on [truthful costs](2026-10-22-truthful-costs-design.md#decisions)
 (TC6 to TC8), [per-person caps](2026-10-16-v2-per-person-caps-design.md#decisions) (D1, D2),
 [factory interfaces](2026-10-21-factory-interfaces-design.md#identity-and-budgets) (F4) ·

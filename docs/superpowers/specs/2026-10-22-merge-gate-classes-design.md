@@ -1,7 +1,6 @@
 # v3: more auto-merge classes, the merge gate's vocabulary, monitor and calibration
 
-**Date:** 2026-10-22 · **Status:** draft; owner decisions M1–M6 pending, each with a recommended
-default ([below](#decisions-for-the-owner)) · **Part of:** the
+**Date:** 2026-10-22 · **Status:** approved by the owner 2026-10-22 with every recommended default; M1–M6 decided as recommended · **Part of:** the
 [v3 roadmap](2026-10-19-v3-roadmap-design.md), feature 8, as amended by the
 [v3 review](2026-10-21-v3-review.md#5-amendments-proposed) and its decision O8 ("the oracle-backed
 class first; dependency bumps after, patch versions only") · **Research:**

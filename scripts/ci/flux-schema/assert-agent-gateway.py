@@ -773,8 +773,14 @@ ALTERNATIVE = re.compile(r'\("(?P<aud>[^"]+)" in jwt\.aud && m in (?P<models>\[[
 
 
 def model_rule_ok(expr, auds):
-    """One model Require: EFFECTIVE_MODEL bound to m, an alternative per audience."""
-    return expr.startswith(f"{EFFECTIVE_MODEL}.with(m, ") and all(f'("{a}" in jwt.aud && m in [' in expr for a in auds)
+    """One model Require, exactly as gen-capabilities.py renders it: EFFECTIVE_MODEL bound to m, one
+    `(aud in jwt.aud && m in [...])` alternative per audience, joined by ||, nothing before or after."""
+    head, tail = f"{EFFECTIVE_MODEL}.with(m, ", ")"
+    if not (expr.startswith(head) and expr.endswith(tail)):
+        return False
+    parts = expr[len(head):-len(tail)].split(" || ")
+    found = [ALTERNATIVE.fullmatch(p) for p in parts]
+    return all(found) and sorted(m["aud"] for m in found) == sorted(auds)
 
 
 def check_model_authz(objs):
@@ -785,6 +791,9 @@ def check_model_authz(objs):
     for g, prof in profiled(objs):
         if not prof.required:
             continue
+        if not pinned:
+            out.append(f"AG14: no {FACTORY_NS}/{FACTORY_VALUES} tier pins a model: the rule on {ref(g)} cannot be "
+                       "checked to hold every model the factory's tiers pin")
         if not any(None in gateway_targets(p, g) and ((spec_of(p).get("frontend") or {}).get("http") or {})
                    .get("maxBufferSize") for p in policies(objs)):
             out.append(f"AG14: no Gateway-scoped frontend policy on {ref(g)} sets http.maxBufferSize: the model rule "

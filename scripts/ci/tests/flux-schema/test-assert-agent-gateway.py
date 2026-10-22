@@ -661,6 +661,10 @@ def tier_model(model):
 
 
 print("AG14 model authorization (capability profiles P2)")
+gen_spec = importlib.util.spec_from_file_location("gen_capabilities", HERE.parent.parent / "gen-capabilities.py")
+gen = importlib.util.module_from_spec(gen_spec)
+gen_spec.loader.exec_module(gen)
+check("EFFECTIVE_MODEL equals the generator's", gate.EFFECTIVE_MODEL == gen.EFFECTIVE_MODEL)
 expect("an LLM rule with no authorization fails", lambda o: o.remove(find(o, "AgentgatewayPolicy", "capabilities-internal")),
        "AG14", "has 0 route-level")
 expect("two authorizations on one rule fail", second_policy, "AG14", "has 2 route-level")
@@ -669,6 +673,15 @@ expect("no repeated sub prefix fails", lambda o: caps(o, "internal")["policy"]["
 expect("Allow instead of Require fails", lambda o: caps(o, "public").update({"action": "Allow"}), "AG14", "must Require")
 expect("a model rule missing an audience fails", lambda o: caps(o, "internal")["policy"]["matchExpressions"]
        .__setitem__(1, model_rule(None, "internal", ["agent-router.implementer.internal"])), "AG14", "an alternative")
+expect("an appended || true fails", lambda o: caps(o, "public")["policy"]["matchExpressions"]
+       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1][:-1] + " || true)"), "AG14", "one model Require")
+expect("&& between alternatives fails", lambda o: caps(o, "public")["policy"]["matchExpressions"]
+       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1].replace(" || ", " && ")), "AG14", "one model Require")
+expect("an alternative for a foreign audience fails", lambda o: caps(o, "internal")["policy"]["matchExpressions"]
+       .__setitem__(1, model_rule(None, "internal", sorted(gate.audiences(gate.PROFILES[REAL], "internal")) + ["x.y"])),
+       "AG14", "one model Require")
+expect("no tier pinning a model fails", lambda o: find(o, "ConfigMap", gate.FACTORY_VALUES)["data"].update(
+    {"values.yaml": yaml.safe_dump({"config": {"tiers": {}}})}), "AG14", "pins a model")
 expect("llm.requestModel, which 1.6 lacks there, fails", lambda o: caps(o, "public")["policy"]["matchExpressions"]
        .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1]
                     .replace(gate.EFFECTIVE_MODEL, "llm.requestModel")), "AG14", "one model Require")

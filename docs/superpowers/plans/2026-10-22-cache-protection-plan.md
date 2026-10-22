@@ -765,7 +765,9 @@ and gate 1 becomes:
    marker. Live, later: a run started with the `agents.ogenki.io/cache-drill` annotation (a harness
    switch that skips the marker rewrite, mapped by the composition) fires `AgentCacheReadZero`
    within two scrapes; the annotation rides the loop-policy release of the `AgentRun` composition.
-   `AgentCacheMarkerMissing` is drilled by its own unit test, since removing the shim prints nothing.
+   `AgentCacheMarkerMissing` matches the substring both of the harness's messages carry
+   (`prompt cache NOT applied`); no agent-platform test asserts that message yet, unlike the
+   harness's three other patches, which is a follow-up there.
 ```
 
 - [ ] **Step 7: Run the affected suites, then commit**

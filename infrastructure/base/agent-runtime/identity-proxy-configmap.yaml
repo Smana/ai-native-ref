@@ -11,6 +11,13 @@
 #                   (the listener pins this cluster's issuer; octo-sts matches a pattern)
 # A run's audience names its data class, so the other class's port earns a 403,
 # and the run's CNP does not open it anyway.
+# Model pin (capability profiles P4): /v1 and /anthropic carry x-ar-model from
+# MODEL, the run's alias, and /judge/v1 (sent on as /v1) from JUDGE_MODEL, the
+# completion judge's, over any value the harness sends; the gateway takes the
+# model from it. The AgentRun composition sets both, JUDGE_MODEL `none` when
+# the claim names no judge, which the gateway refuses. Envoy sends `-` for an
+# unset variable, refused too: this file must not reach a cluster before the
+# composition that sets them (plan R11).
 # Admin is a unix socket (not a TCP port) and 0.0.0.0:9902 is a dedicated health
 # listener (review CC-1): the harness shares this pod's network namespace and
 # could otherwise reach an exposed admin API (e.g. POST /logging?level=debug)
@@ -76,8 +83,21 @@ data:
                         - name: agent-router
                           domains: ["*"]
                           routes:
-                            - {match: {prefix: /v1/}, route: {cluster: agent_router_public, timeout: 0s}}
-                            - {match: {prefix: /anthropic/}, route: {cluster: agent_router_public, timeout: 0s}}
+                            - match: {prefix: /v1/}
+                              route: {cluster: agent_router_public, timeout: 0s}
+                              request_headers_to_add:
+                                - header: {key: x-ar-model, value: "%ENVIRONMENT(MODEL)%"}
+                                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
+                            - match: {prefix: /anthropic/}
+                              route: {cluster: agent_router_public, timeout: 0s}
+                              request_headers_to_add:
+                                - header: {key: x-ar-model, value: "%ENVIRONMENT(MODEL)%"}
+                                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
+                            - match: {prefix: /judge/v1/}
+                              route: {cluster: agent_router_public, prefix_rewrite: /v1/, timeout: 0s}
+                              request_headers_to_add:
+                                - header: {key: x-ar-model, value: "%ENVIRONMENT(JUDGE_MODEL)%"}
+                                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
                             - {match: {prefix: /mcp}, route: {cluster: agent_router_public, timeout: 0s}}
                             - {match: {prefix: /}, direct_response: {status: 404}}
                     http_filters:
@@ -120,8 +140,21 @@ data:
                         - name: agent-router
                           domains: ["*"]
                           routes:
-                            - {match: {prefix: /v1/}, route: {cluster: agent_router_internal, timeout: 0s}}
-                            - {match: {prefix: /anthropic/}, route: {cluster: agent_router_internal, timeout: 0s}}
+                            - match: {prefix: /v1/}
+                              route: {cluster: agent_router_internal, timeout: 0s}
+                              request_headers_to_add:
+                                - header: {key: x-ar-model, value: "%ENVIRONMENT(MODEL)%"}
+                                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
+                            - match: {prefix: /anthropic/}
+                              route: {cluster: agent_router_internal, timeout: 0s}
+                              request_headers_to_add:
+                                - header: {key: x-ar-model, value: "%ENVIRONMENT(MODEL)%"}
+                                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
+                            - match: {prefix: /judge/v1/}
+                              route: {cluster: agent_router_internal, prefix_rewrite: /v1/, timeout: 0s}
+                              request_headers_to_add:
+                                - header: {key: x-ar-model, value: "%ENVIRONMENT(JUDGE_MODEL)%"}
+                                  append_action: OVERWRITE_IF_EXISTS_OR_ADD
                             - {match: {prefix: /mcp}, route: {cluster: agent_router_internal, timeout: 0s}}
                             - {match: {prefix: /github/}, route: {cluster: agent_router_internal, prefix_rewrite: /, timeout: 0s}}
                             - {match: {prefix: /}, direct_response: {status: 404}}

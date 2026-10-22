@@ -260,6 +260,11 @@ read `classifier: static, fallback: static`.
 Haiku is at its over-100K-prompt rate, which an agent's context soon reaches. Over-counting is the
 safe direction for a cap.
 
+A nightly workflow, `.github/workflows/price-drift.yaml`, compares every row with genai-prices,
+LiteLLM and models.dev. A disagreement, or a row a catalog stops listing, opens or updates one issue
+labelled `prices-drift`, and the first clean run closes it. The check never edits the table: catalogs
+copy the providers' page mistakes, so a person confirms each finding on the provider's page first.
+
 {{< callout type="warning" >}}
 **The dashboard's cost panel and `AnthropicFleetNearCap` overstate spend.** They multiply `input`,
 cache reads included, by the full input price. At the measured mix that is about 4× the meter's

@@ -266,3 +266,15 @@ Whether the generator splices the group's rules into the file or renders the who
 profiles P1 splices), and how it prints numbers without float noise; the suites' names; the Go names
 and the warning's wording; the catalogs' exact URLs and field names, and the fixtures; the cron
 minute and the issue body's layout; whether the values-parse check of offline proof 12 becomes a suite.
+
+Ruled in PR 4 ([plan](../plans/2026-10-22-price-drift-check-plan.md#this-plans-rulings)):
+
+- **The catalogs:** genai-prices' live feed is `prices/new_data/v2/data.json`. Its `prices/data.json`
+  is a v1 snapshot, frozen since 2026-07-25, that lists no 5.5 model and no `zai` provider.
+- **The mapping:** four tables in `scripts/ci/check-price-drift.py`. `MAPPING` holds each row's key
+  in each catalog. `ABSENT` holds the rows a catalog lacks (LiteLLM has no `zai/glm-5.3-flashx`).
+  `TIERS` holds the tier a row is priced at (Haiku 5.5's over-100K rate). `ACCEPTED` holds accepted
+  deviations (none yet).
+- **The issue:** its body depends only on the findings, so a night with the same findings leaves the
+  issue alone. A catalog that lists none of the rows fails the run, as one that cannot be parsed does.
+- **The cron:** 04:17 UTC.

@@ -198,7 +198,9 @@ data:
         # Z.ai https://docs.z.ai/guides/overview/pricing (cache writes not billed, so no
         # cacheWrite) and https://platform.claude.com/docs/en/about-claude/pricing (5-minute
         # cache writes). Haiku 5.5 is at its over-100K-prompt rate, which an agent's context
-        # soon reaches: over-counting is the safe direction for a cap.
+        # soon reaches: over-counting is the safe direction for a cap. A nightly workflow compares
+        # every row with three public catalogs: a new row needs its entry in the MAPPING of
+        # scripts/ci/check-price-drift.py, or the check reports it.
         prices:
           glm-5.3: {input: 1.40, cacheRead: 0.26, output: 4.40}
           glm-5.3-flashx: {input: 0.37, cacheRead: 0.075, output: 1.25}

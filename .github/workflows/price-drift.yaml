@@ -1,0 +1,37 @@
+name: price-drift
+
+# Truthful costs design, TC10: compares meter.prices with genai-prices, LiteLLM and models.dev
+# and keeps one issue labelled prices-drift. It never edits the table: a human confirms each
+# finding on the provider's page. A catalog that cannot be fetched or parsed fails the run, which
+# notifies, and leaves the issue alone.
+on:
+  schedule:
+    # 04:17 UTC: off the hour, when GitHub delays or drops scheduled runs under load.
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+# A dispatched run and the scheduled one must not both open the issue.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - run: python3 -m pip install --quiet --disable-pip-version-check pyyaml
+      - name: Compare meter.prices with the catalogs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Every gh call names this repository, whatever the checkout's remote says.
+          GH_REPO: ${{ github.repository }}
+        run: python3 scripts/ci/check-price-drift.py

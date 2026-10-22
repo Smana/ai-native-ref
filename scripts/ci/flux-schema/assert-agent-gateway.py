@@ -780,7 +780,17 @@ def model_rule_ok(expr, auds):
         return False
     parts = expr[len(head):-len(tail)].split(" || ")
     found = [ALTERNATIVE.fullmatch(p) for p in parts]
-    return all(found) and sorted(m["aud"] for m in found) == sorted(auds)
+    if not all(found) or sorted(m["aud"] for m in found) != sorted(auds):
+        return False
+    for alt in found:
+        try:
+            models = json.loads(alt["models"])
+        except ValueError:  # a non-literal entry such as `m`, which would open the rule
+            return False
+        if not (isinstance(models, list) and models and all(isinstance(x, str) for x in models)
+                and len(set(models)) == len(models) and set(models) <= set(AGENT_MODELS)):
+            return False
+    return True
 
 
 def check_model_authz(objs):

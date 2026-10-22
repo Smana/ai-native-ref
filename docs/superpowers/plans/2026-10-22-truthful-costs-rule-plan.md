@@ -69,13 +69,13 @@ The nightly drift check. The raw-token alerts and the sizes of B1, B2 and B6 sta
 
 ## Global Constraints
 
-- **Branch:** `feat/truthful-costs-rule`, created from `feat/truthful-costs` (the approved spec,
-  commit `c7b4102`), in its own worktree. It carries the spec commit and this plan. In a new
-  worktree, run `mise trust mise.toml` once.
+- **Branch:** `feat/truthful-costs-rule`, in its own worktree, carrying this plan on top of
+  `origin/main`. The spec landed on main with #98 (rebased 2026-10-22: the branch's own spec commit
+  was dropped). In a new worktree, run `mise trust mise.toml` once.
 - **#95 first.** Tasks 3 and 4 extend #95's content: the wire test
-  `scripts/ci/tests/test-agent-gateway-cache-wire.sh` and runbook 04's Part E. Tasks 1 and 2 may run
-  before #95 merges. Task 3 begins by rebasing the branch onto `origin/main` after #95 has merged,
-  and stops if it has not. Rebase onto a freshly fetched `origin/main` before every push as well.
+  `scripts/ci/tests/test-agent-gateway-cache-wire.sh` and runbook 04's Part E. #95 merged on
+  2026-10-22 and the branch is rebased onto it, so Task 3's rebase step is already done. Rebase onto
+  a freshly fetched `origin/main` before every push.
 - **`$SCRATCH`** is a scratch directory outside the repository. It holds two helpers:
   - `check.sh <worktree>` runs `task check` with a `python3` that has PyYAML ahead of mise's. It
     logs to `$SCRATCH/check-<worktree directory name>.log` and ends the log with `exit=N`.
@@ -85,8 +85,8 @@ The nightly drift check. The raw-token alerts and the sizes of B1, B2 and B6 sta
 - **`task check` is the evidence** (AGENTS.md). Never claim done without its log.
 - **Docker suites SKIP locally** when no daemon runs. CI sets `CI=true`, where the wire test fails
   without Docker instead of skipping, so CI is where it must pass.
-- **`__pycache__/` is not ignored here.** Run `export PYTHONDONTWRITEBYTECODE=1` in the shell first,
-  and `git add` named paths only, never `-A`.
+- **`__pycache__/` is ignored since #97.** Still run `export PYTHONDONTWRITEBYTECODE=1` in the shell
+  first, and `git add` named paths only, never `-A`.
 - **The suite contract:** line 1 is the shebang and line 2 is `# requires: <tools>`. Exit 77 is a
   SKIP. Suites read the real tree. `run-tests.sh` runs them inside `.composite/` and finds them with
   `git ls-files`, so a new suite counts only once it is committed.

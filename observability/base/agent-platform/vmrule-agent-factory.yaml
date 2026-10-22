@@ -128,3 +128,17 @@ spec:
             description: "Add its row to meter.prices in tooling/base/agent-factory/helm-values-configmap.yaml, from the provider's list price (input, cacheRead, output, and cacheWrite where the provider bills it). Until then its runs are capped in tokens. The leader's log names each run: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep 'without a price'"
             runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#budget-signals"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentMeterInputExcludesCache
+          # Truthful costs TC4. Every gateway counts cache tokens inside `input`: the charge rule
+          # (vmrule-llm-gateway.yaml), the agent-cache share and the gateway budgets' CEL rest on it.
+          # The meter counts each run whose input reads below its cache tokens, once per model, and
+          # prices it right. The counter is born at its first increment, which promtool's increase()
+          # reads as 0: compare with an hour ago, absence read as 0 (as agent_router:budget_*).
+          expr: sum by (model) (clamp_min(agent_factory_meter_input_excludes_cache_runs_total - (agent_factory_meter_input_excludes_cache_runs_total offset 1h or agent_factory_meter_input_excludes_cache_runs_total * 0), 0)) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "A gateway counted {{ $labels.model }}'s input without its cache tokens"
+            description: "The meter priced those runs right, as fresh input. Every cost read through llm_gateway:charge_usd_per_mtoken under-counts them, down to a negative figure: the agent-run Cost panel and AnthropicFleetNearCap. A gateway path or the provider changed its usage shape: run test-agent-gateway-cache-wire against the deployed agentgateway digest. The leader's log names each run: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep 'without its cache tokens'"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"

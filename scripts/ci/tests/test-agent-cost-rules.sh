@@ -4,11 +4,13 @@
 # Truthful costs, offline proof 3: the costs read through llm_gateway:charge_usd_per_mtoken, evaluated
 # by promtool on synthetic series shaped as the agent router's scrape leaves them (vmpodscrape.yaml:
 # cache tokens counted inside input). The rules are the committed ones: the generated
-# llm-gateway-prices group, AnthropicFleetNearCap and the agent-run dashboard's Cost panel query.
+# llm-gateway-prices group, AnthropicFleetNearCap, AgentMeterInputExcludesCache, and the agent-run
+# dashboard's Cost panel query.
 # - The measured reply (input 1050 with 900 read and 50 written, output 10, on Opus) costs $0.00103
 #   on the Cost panel.
 # - A cache-heavy Opus day of $5 ($20 at list prices) does not fire AnthropicFleetNearCap; $14 does.
 #   GLM spend never counts toward it.
+# - The meter's input-excludes-cache counter, born at 1, fires AgentMeterInputExcludesCache.
 # Annotations are stripped from the copy promtool reads: it compares them exactly, and
 # test-agent-alert-annotations owns them.
 set -uo pipefail
@@ -48,6 +50,8 @@ def alert(rel, group_name, name):
 
 prices = group("infrastructure/base/llm-gateway/vmrule-llm-gateway.yaml", "llm-gateway-prices")
 near = alert("observability/base/agent-platform/vmrule.yaml", "agent-gateway", "AnthropicFleetNearCap")
+excludes = alert("observability/base/agent-platform/vmrule-agent-factory.yaml", "agent-factory",
+                 "AgentMeterInputExcludesCache")
 THRESHOLD = " > 13.6"
 if not near["expr"].endswith(THRESHOLD):
     sys.exit(f"AnthropicFleetNearCap no longer ends with{THRESHOLD}: update this test's days")
@@ -60,13 +64,14 @@ panel = next(p for p in json.loads(dashboard["spec"]["json"])["panels"] if p.get
 query = panel["targets"][0]["expr"].replace("$${run}", "wire").replace("$__range", "1h")
 if "$" in query or "'" in query:
     sys.exit(f"the Cost panel's query holds a variable this test does not set: {query}")
-yaml.safe_dump({"groups": [prices, {"name": "cost-alerts", "rules": [near, fleet]}]},
+yaml.safe_dump({"groups": [prices, {"name": "cost-alerts", "rules": [near, excludes, fleet]}]},
                open(os.path.join(out, "rules.yaml"), "w"), sort_keys=False)
 open(os.path.join(out, "panel.promql"), "w").write(query)
 PY
 
 PANEL="$(cat "$tmp/panel.promql")"
 G='gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent="system:serviceaccount:agents:xplane-run-'
+M='agent_factory_meter_input_excludes_cache_runs_total{namespace="agent-system", pod="agent-factory-0"'
 cat > "$tmp/tests.yaml" <<EOF
 rule_files: [rules.yaml]
 evaluation_interval: 1m
@@ -122,6 +127,30 @@ tests:
         alertname: AnthropicFleetNearCap
         exp_alerts:
           - exp_labels: {severity: warning}
+  # The meter counts a run whose input came without its cache tokens. A new series is born at 1
+  # (its first increment) and fires at once, until it is an hour old. An hour-old series fires when
+  # it moves, and not while it stands still.
+  - interval: 1m
+    input_series:
+      - {series: '${M}, model="claude-opus-5-5"}', values: '_x65 1x135'}
+      - {series: '${M}, model="glm-5.3"}', values: '2x200'}
+      - {series: '${M}, model="glm-5.3-flash"}', values: '2x100 3x100'}
+    alert_rule_test:
+      - {eval_time: 64m, alertname: AgentMeterInputExcludesCache, exp_alerts: []}
+      - eval_time: 70m
+        alertname: AgentMeterInputExcludesCache
+        exp_alerts:
+          - exp_labels: {severity: warning, model: claude-opus-5-5}
+      - eval_time: 110m
+        alertname: AgentMeterInputExcludesCache
+        exp_alerts:
+          - exp_labels: {severity: warning, model: claude-opus-5-5}
+          - exp_labels: {severity: warning, model: glm-5.3-flash}
+      - eval_time: 130m
+        alertname: AgentMeterInputExcludesCache
+        exp_alerts:
+          - exp_labels: {severity: warning, model: glm-5.3-flash}
+      - {eval_time: 170m, alertname: AgentMeterInputExcludesCache, exp_alerts: []}
 EOF
 
 cd "$tmp" && promtool test rules tests.yaml

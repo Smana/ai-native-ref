@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-21 · **Status:** draft; no owner decision pending (O3 and O4 taken 2026-10-21) · **Amended
 2026-10-22**: the migration's first step, the profiles and a generator at parity, is built
-([plan](../plans/2026-10-22-capability-profiles-p1-plan.md)); P2 and the gateway's half of P4 are
+([plan](../plans/2026-10-22-capability-profiles-p1-plan.md)); P2 and P4 are
 built ([plan](../plans/2026-10-22-capability-profiles-p2-p4-plan.md)); **2026-10-27**: P3, the
 argument constraints, is built ([plan](../plans/2026-10-27-capability-profiles-p3-plan.md)) ·
 **Part of:** the

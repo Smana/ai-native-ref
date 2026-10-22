@@ -61,8 +61,7 @@ read-only map. Gate items 1 to 3.
 - **Branch:** work on `feat/capability-profiles-p1`, which carries this plan, in its own worktree.
   In a new worktree, run `mise trust mise.toml` once. Rebase onto a freshly fetched `origin/main`
   before every push.
-- **`$SCRATCH`** is `/tmp/claude-1000/-home-smana-Sources-ai-native-ref/f7ecd18f-b231-4bf4-a0fd-24981234c3cd/scratchpad`,
-  the scratch directory outside the repository. It holds two helpers:
+- **`$SCRATCH`** is a scratch directory outside the repository. It holds two helpers:
   - `check.sh <worktree>` runs `task check` with a `python3` that has PyYAML ahead of mise's. It
     logs to `$SCRATCH/check-<worktree directory name>.log` and ends the log with `exit=N`.
   - `run-suite.sh <command…>` runs one command with that `python3`.

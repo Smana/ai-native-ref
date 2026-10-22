@@ -389,6 +389,27 @@ fires for `key1="agent_system_serviceaccount_agents_agent-probe"`. With the flag
 **What this proves:** the flag refuses a call over budget with a reason the harness logs, and
 only that `sub`'s bucket is touched.
 
+## Part E — the cache-read share
+
+Internal runs read about 85% of their input from Anthropic's prompt cache; a step that reads
+nothing costs about 20× one that does. The marker that makes it work crosses two repositories: the
+harness rewrites the SDK's `cache_control` as `prompt_cache_breakpoint`, and agentgateway converts it
+back on the way to Anthropic ([cache design](../../superpowers/specs/2026-10-21-prompt-cache-design.md)).
+
+| Alert | Means | Do |
+|---|---|---|
+| `AgentCacheReadZero` (critical) | An internal run read nothing after 100k input tokens | Read the run's log for `prompt cache NOT applied`. None: the gateway dropped the marker; check the last change to `infrastructure/base/agent-gateway/parameters.yaml` and roll it back. Stop a long run: `kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run` |
+| `AgentCacheReadShareLow` | Under 60% over 15 minutes, with 200k input in the window | One window after a condensation or a resume is expected. If it stays low, read the run's MCP tool lists: a federated target that fails is dropped from the list and re-added, and each change rewrites the cache |
+| `AgentCacheMarkerMissing` | The harness could not patch the SDK | Roll the harness pin back; the patch in agent-platform's `sitecustomize.py` needs the SDK's new method |
+
+Offline, `task check` proves both sides: `test-agent-cache-alerts` evaluates the two metric alerts on
+synthetic series, and `test-agent-gateway-cache-wire` runs the pinned agentgateway against a fake
+Anthropic upstream and fails if the marker or the token series change.
+
+Live, at the next platform session: the share panel on the agent-gateway dashboard reads above 60%
+for internal runs and neither alert fires. The drill (a run that sends no marker, through an
+`agents.ogenki.io/cache-drill` annotation) waits for the loop-policy composition release.
+
 ## Results
 
 > Every round below predates phase H (#2429): the agent rows ran on Envoy's agent-router in

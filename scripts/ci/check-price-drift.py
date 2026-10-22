@@ -124,11 +124,16 @@ def _number(name, key, field, v):
     return Decimal(v)
 
 
-def _in_force(constraint, today):
+def _in_force(key, constraint, today):
     """A genai-prices constraint: none, a start_date, or a time of day (off-peak, never the list price)."""
     if not constraint:
         return True
-    return "start_date" in constraint and date.fromisoformat(str(constraint["start_date"])) <= today
+    if "start_date" not in constraint:
+        return False
+    try:
+        return date.fromisoformat(str(constraint["start_date"])) <= today
+    except ValueError:
+        raise CatalogError(f"genai-prices: {key} has start_date {constraint['start_date']!r}, not a date") from None
 
 
 def _genai(data, key, tier, today):
@@ -141,7 +146,7 @@ def _genai(data, key, tier, today):
         return None
     prices = m.get("prices")
     if isinstance(prices, list):  # dated prices: the last one in force today wins
-        live = [c for c in prices if _in_force(c.get("constraint"), today)]
+        live = [c for c in prices if _in_force(key, c.get("constraint"), today)]
         prices = live[-1]["prices"] if live else {}
     if not isinstance(prices, dict):
         raise CatalogError(f"genai-prices: {key} prices is {type(prices).__name__}")
@@ -244,7 +249,9 @@ def issue_body(findings):
         "Catalogs copy the providers' page mistakes: confirm each finding on the provider's page "
         "(Source) before changing anything. Then correct the row, or record the deviation in "
         "`scripts/ci/check-price-drift.py` (`MAPPING`, `ABSENT`, `TIERS` or `ACCEPTED`). This check "
-        "never edits the table; the first clean run closes this issue.",
+        "never edits the table; the first clean run closes this issue. Closing it by hand silences "
+        "nothing: a finding stops only when it is recorded in `ACCEPTED` (a deliberate deviation) or "
+        "`ABSENT` (a row a catalog lacks).",
         "",
         "| Model | Field | Ours | Theirs | Catalog | Source |",
         "|---|---|---|---|---|---|",
@@ -272,6 +279,14 @@ def fetch(url):
     req = urllib.request.Request(url, headers={"User-Agent": "ai-native-ref price drift check"})
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read().decode()
+
+
+def read(name, url):
+    """One catalog, fetched and parsed; any failure names the catalog and its URL."""
+    try:
+        return parse_catalog(name, fetch(url))
+    except (OSError, http.client.HTTPException, UnicodeDecodeError) as e:
+        raise CatalogError(f"{name} ({url}): {e}") from None
 
 
 def gh(*args, stdin=None):
@@ -302,7 +317,7 @@ def main(argv=None):
     a = p.parse_args(argv)
     try:
         prices = load_prices((pathlib.Path(a.root) / VALUES).read_text())
-        catalogs = {name: parse_catalog(name, fetch(url)) for name, url in CATALOGS.items()}
+        catalogs = {name: read(name, url) for name, url in CATALOGS.items()}
         findings = compare(prices, catalogs, datetime.now(timezone.utc).date())
     except (OSError, ValueError, http.client.HTTPException) as e:
         print(f"FAIL {e}: the {LABEL} issue is left alone", file=sys.stderr)

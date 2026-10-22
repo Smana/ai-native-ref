@@ -156,6 +156,9 @@ for name, what, mutate in [
      lambda c: c.__setitem__("genai-prices", {"providers": []})),
     ("LiteLLM", "a LiteLLM price that is a string",
      lambda c: c["LiteLLM"]["zai/glm-5.3"].__setitem__("input_cost_per_token", "1.4e-06")),
+    ("genai-prices", "a genai-prices dated price with a malformed start_date",
+     lambda c: genai_model(c, "zai", "GLM-5.3-Flash")["prices"][1]["constraint"].__setitem__(
+         "start_date", "soon")),
     ("models.dev", "a models.dev that is not an object", lambda c: c.__setitem__("models.dev", [])),
     # genai-prices' frozen v1 file would read so: no 5.5 model, no zai provider.
     ("models.dev", "a catalog listing none of the rows",
@@ -184,6 +187,8 @@ body = gen.issue_body(SONNET)
 row = (f"| `claude-sonnet-5-5` | cacheRead | 0.10 | 0.20 | [LiteLLM]({gen.CATALOGS['LiteLLM']}) "
        f"`claude-sonnet-5-5` | {ANTHROPIC} |")
 check("the body names model, field, ours, theirs, catalog and source", row in body.splitlines(), body)
+check("the body says closing the issue by hand silences nothing; ACCEPTED or ABSENT does",
+      "Closing it by hand silences nothing" in body and "`ACCEPTED`" in body and "`ABSENT`" in body, body)
 check("the same findings twice give the same body", gen.issue_body(list(SONNET)) == body)
 check("clean, no issue: nothing", gen.issue_action([], None) == ("nothing", None))
 check("clean, an open issue: close", gen.issue_action([], {"number": 7, "body": body}) == ("close", None))
@@ -246,7 +251,13 @@ def run_main(table, fetched, open_issues):
 
 texts = {name: (FIX / f).read_text() for name, f in FILES.items()}
 code, calls, out = run_main(TABLE, {**texts, "models.dev": urllib.error.URLError("timed out")}, "[]")
-check("an unreachable catalog fails the run and calls no gh", code == 1 and calls == [] and "left alone" in out, out)
+check("an unreachable catalog fails the run, names it and its URL, and calls no gh",
+      code == 1 and calls == [] and "left alone" in out
+      and f"models.dev ({gen.CATALOGS['models.dev']}): " in out, out)
+code, calls, out = run_main(TABLE, {**texts, "genai-prices": urllib.error.HTTPError(
+    gen.CATALOGS["genai-prices"], 429, "Too Many Requests", {}, None)}, "[]")
+check("a rate-limited catalog is named too", code == 1 and calls == [] and "genai-prices (" in out
+      and "429" in out, out)
 code, calls, out = run_main(TABLE, {**texts, "LiteLLM": "<html>"}, "[]")
 check("an unparseable catalog fails the run and calls no gh", code == 1 and calls == [], out)
 

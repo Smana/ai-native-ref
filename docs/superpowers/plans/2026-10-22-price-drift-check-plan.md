@@ -46,7 +46,7 @@ prototype ran into.
 | R9 | **Fetching and `gh` are thin layers in the script.** Every fetch and parse comes before the first `gh` call. There is no retry. The workflow sets `GH_REPO` | This gives the spec's "a catalog that cannot be fetched or parsed fails the run … and leaves the issue alone" by construction, and one unit test covers it. A failed night notifies the owner, and the next night tries again. `GH_REPO` is the host's lesson from `notify-main-broken` |
 | R10 | **The workflow** runs at `17 4 * * *` (04:17 UTC). It has a concurrency group, installs PyYAML the way `ci.yaml` does, and pins `actions/checkout` by SHA, as `ci.yaml` does | Off the hour, because GitHub delays scheduled runs at busy times. The concurrency group stops a dispatched run and the scheduled run from both opening an issue |
 | R11 | **No suite checks the workflow's shape.** actionlint checks it when it is written, and the first `workflow_dispatch` run after merge proves it (live proof 6) | Suites run inside `.composite/`, whose `.github/` is the host's (`host-profile.sh` copies `scripts/`, not `.github/`), so a suite cannot read this repository's workflow there |
-| R12 | **Fixtures** live in `scripts/ci/tests/price-drift-fixtures/`. They are excerpts of the 2026-10-22 catalogs, one model per line, and include entries the mapping must not read: `zhipuai`, `zai-coding-plan` and `tencent/glm-5.3-flashx`. The suite compares against its own copy of the table. On the real tree it checks only that `meter.prices` loads | The host names test data `<name>-fixtures` (`alertmanager-fixtures`). A price edit in a later pull request must not break this suite; the nightly run is where the real table meets the real catalogs |
+| R12 | **Fixtures** live in `scripts/ci/tests/price-drift-fixtures/`. They are excerpts of the 2026-10-22 catalogs, one model per line, and include entries the mapping must not read: `zhipuai`, `zai-coding-plan`, `tencent/glm-5.3-flashx`, and two Anthropic decoys listed before the real rows (genai-prices `quicksilverpro`'s `claude-opus-5-5`, LiteLLM `us-gov.anthropic.claude-opus-5-5`), so a reader matching by model id alone fails the "all agree" case. The suite compares against its own copy of the table. On the real tree it checks only that `meter.prices` loads | The host names test data `<name>-fixtures` (`alertmanager-fixtures`). A price edit in a later pull request must not break this suite; the nightly run is where the real table meets the real catalogs |
 | R13 | **A row with no mapping entry** is a nightly finding, one per catalog. It does not fail anything at pull-request time | The spec lists "a row the mapping lacks" as a finding. The comment above `prices:` now tells whoever adds a row to add its entry in the same pull request |
 
 **Measured 2026-10-22** with a prototype in `$SCRATCH/drift/` (the code below is that prototype's):
@@ -88,7 +88,7 @@ prototype ran into.
   The `python3` on `PATH` lacks PyYAML, so every Python command below goes through one of the two
   helpers.
 - **`task check` is the evidence** (AGENTS.md). Never claim done without its log.
-- **`__pycache__/` is not ignored here.** Run `export PYTHONDONTWRITEBYTECODE=1` in the shell first,
+- **`__pycache__/` is ignored on main since #97, not on this branch until it rebases.** Run `export PYTHONDONTWRITEBYTECODE=1` in the shell first,
   and `git add` named paths only, never `-A`.
 - **The suite contract:** line 1 is the shebang and line 2 is `# requires: <tools>`. Exit 77 is a
   SKIP. Suites read the real tree and never the network. `run-tests.sh` runs them inside
@@ -128,7 +128,7 @@ prototype ran into.
 |---|---|---|
 | `scripts/ci/check-price-drift.py` | create | Reads `meter.prices`, fetches the three catalogs, compares them through the mapping, keeps the issue |
 | `scripts/ci/tests/price-drift-fixtures/genai-prices.json`, `litellm.json`, `models-dev.json` | create | Excerpts of each catalog as of 2026-10-22 |
-| `scripts/ci/tests/test-check-price-drift.py` | create | The suite: 30 checks with no network access (offline proof 14) |
+| `scripts/ci/tests/test-check-price-drift.py` | create | The suite: 35 checks with no network access (offline proof 14) |
 | `.github/workflows/price-drift.yaml` | create | Nightly and on dispatch; `contents: read`, `issues: write` |
 | `tooling/base/agent-factory/helm-values-configmap.yaml` | modify: the comment above `prices:` | A new row needs its mapping entry |
 | `website/content/docs/platform/ai-platform/routing.md` | modify: one paragraph | Tells readers of the price table about the check |
@@ -172,6 +172,9 @@ prototype ran into.
 
 ```json
 [
+  {"id": "quicksilverpro", "name": "QuickSilver Pro", "models": [
+    {"id": "claude-opus-5-5", "name": "Claude Opus 5.5", "match": {"equals": "claude-opus-5-5"}, "context_window": 1000000, "prices": {"input_mtok": 1, "cache_write_mtok": 1.25, "cache_read_mtok": 0.05, "output_mtok": 5}}
+  ]},
   {"id": "anthropic", "name": "Anthropic", "pricing_urls": ["https://www.anthropic.com/pricing#api"], "models": [
     {"id": "claude-haiku-5-5", "name": "Claude Haiku 5.5", "prices": {"input_mtok": {"base": 0.1, "tiers": [{"start": 100000, "price": 0.5}]}, "cache_write_mtok": {"base": 0.125, "tiers": [{"start": 100000, "price": 0.625}]}, "cache_read_mtok": {"base": 0.01, "tiers": [{"start": 100000, "price": 0.05}]}, "output_mtok": {"base": 0.5, "tiers": [{"start": 100000, "price": 2.5}]}, "cache_write_1h_mtok": {"base": 0.2, "tiers": [{"start": 100000, "price": 1}]}, "web_searches_kcount": 10}},
     {"id": "claude-opus-5-5", "name": "Claude Opus 5.5", "prices": {"input_mtok": 4, "cache_write_mtok": 5, "cache_read_mtok": 0.2, "output_mtok": 20, "cache_write_1h_mtok": 8, "web_searches_kcount": 10}, "price_variants": [{"when": {"processing": "batch"}, "prices": {"input_mtok": 2, "cache_write_mtok": 2.5, "cache_read_mtok": 0.1, "output_mtok": 10, "cache_write_1h_mtok": 4}, "constraint": {"start_date": "2026-10-14"}}]},
@@ -193,6 +196,7 @@ prototype ran into.
 
 ```json
 {
+  "us-gov.anthropic.claude-opus-5-5": {"input_cost_per_token": 4.8e-06, "cache_read_input_token_cost": 2.4e-07, "cache_creation_input_token_cost": 6e-06, "output_cost_per_token": 2.4e-05, "litellm_provider": "bedrock_converse", "mode": "chat"},
   "claude-opus-5-5": {"input_cost_per_token": 4e-06, "cache_read_input_token_cost": 2e-07, "cache_creation_input_token_cost": 5e-06, "output_cost_per_token": 2e-05, "cache_creation_input_token_cost_above_1hr": 8e-06, "litellm_provider": "anthropic", "mode": "chat"},
   "claude-sonnet-5-5": {"input_cost_per_token": 2e-06, "cache_read_input_token_cost": 1e-07, "cache_creation_input_token_cost": 2.5e-06, "output_cost_per_token": 1e-05, "cache_creation_input_token_cost_above_1hr": 4e-06, "litellm_provider": "anthropic", "mode": "chat"},
   "claude-haiku-5-5": {"input_cost_per_token": 1e-07, "cache_read_input_token_cost": 1e-08, "cache_creation_input_token_cost": 1.25e-07, "output_cost_per_token": 5e-07, "cache_creation_input_token_cost_above_1hr": 2e-07, "input_cost_per_token_above_100k_tokens": 5e-07, "cache_read_input_token_cost_above_100k_tokens": 5e-08, "cache_creation_input_token_cost_above_100k_tokens": 6.25e-07, "output_cost_per_token_above_100k_tokens": 2.5e-06, "litellm_provider": "anthropic", "mode": "chat"},
@@ -377,6 +381,9 @@ for name, what, mutate in [
      lambda c: c.__setitem__("genai-prices", {"providers": []})),
     ("LiteLLM", "a LiteLLM price that is a string",
      lambda c: c["LiteLLM"]["zai/glm-5.3"].__setitem__("input_cost_per_token", "1.4e-06")),
+    ("genai-prices", "a genai-prices dated price with a malformed start_date",
+     lambda c: genai_model(c, "zai", "GLM-5.3-Flash")["prices"][1]["constraint"].__setitem__(
+         "start_date", "soon")),
     ("models.dev", "a models.dev that is not an object", lambda c: c.__setitem__("models.dev", [])),
     # genai-prices' frozen v1 file would read so: no 5.5 model, no zai provider.
     ("models.dev", "a catalog listing none of the rows",
@@ -537,11 +544,16 @@ def _number(name, key, field, v):
     return Decimal(v)
 
 
-def _in_force(constraint, today):
+def _in_force(key, constraint, today):
     """A genai-prices constraint: none, a start_date, or a time of day (off-peak, never the list price)."""
     if not constraint:
         return True
-    return "start_date" in constraint and date.fromisoformat(str(constraint["start_date"])) <= today
+    if "start_date" not in constraint:
+        return False
+    try:
+        return date.fromisoformat(str(constraint["start_date"])) <= today
+    except ValueError:
+        raise CatalogError(f"genai-prices: {key} has start_date {constraint['start_date']!r}, not a date") from None
 
 
 def _genai(data, key, tier, today):
@@ -554,7 +566,7 @@ def _genai(data, key, tier, today):
         return None
     prices = m.get("prices")
     if isinstance(prices, list):  # dated prices: the last one in force today wins
-        live = [c for c in prices if _in_force(c.get("constraint"), today)]
+        live = [c for c in prices if _in_force(key, c.get("constraint"), today)]
         prices = live[-1]["prices"] if live else {}
     if not isinstance(prices, dict):
         raise CatalogError(f"genai-prices: {key} prices is {type(prices).__name__}")
@@ -691,7 +703,8 @@ git commit -m "feat(ci): check-price-drift compares meter.prices with three publ
 - Produces (Task 3 relies on these):
   - The command line `python3 scripts/ci/check-price-drift.py [--dry-run] [ROOT]`. `ROOT` defaults
     to the repository the script is in. Exit 0 means the issue matches the findings; exit 1 means
-    the table or a catalog could not be read, and no `gh` call was made. It needs `GH_TOKEN` and
+    the table or a catalog could not be read (no `gh` call was made), or a `gh` call failed (its
+    error is in the job log). It needs `GH_TOKEN` and
     reads `GH_REPO`.
   - `LABEL = "prices-drift"`, `TITLE`, `CLOSING`.
   - `issue_body(findings) -> str`.
@@ -737,6 +750,8 @@ body = gen.issue_body(SONNET)
 row = (f"| `claude-sonnet-5-5` | cacheRead | 0.10 | 0.20 | [LiteLLM]({gen.CATALOGS['LiteLLM']}) "
        f"`claude-sonnet-5-5` | {ANTHROPIC} |")
 check("the body names model, field, ours, theirs, catalog and source", row in body.splitlines(), body)
+check("the body says closing the issue by hand silences nothing; ACCEPTED or ABSENT does",
+      "Closing it by hand silences nothing" in body and "`ACCEPTED`" in body and "`ABSENT`" in body, body)
 check("the same findings twice give the same body", gen.issue_body(list(SONNET)) == body)
 check("clean, no issue: nothing", gen.issue_action([], None) == ("nothing", None))
 check("clean, an open issue: close", gen.issue_action([], {"number": 7, "body": body}) == ("close", None))
@@ -799,7 +814,13 @@ def run_main(table, fetched, open_issues):
 
 texts = {name: (FIX / f).read_text() for name, f in FILES.items()}
 code, calls, out = run_main(TABLE, {**texts, "models.dev": urllib.error.URLError("timed out")}, "[]")
-check("an unreachable catalog fails the run and calls no gh", code == 1 and calls == [] and "left alone" in out, out)
+check("an unreachable catalog fails the run, names it and its URL, and calls no gh",
+      code == 1 and calls == [] and "left alone" in out
+      and f"models.dev ({gen.CATALOGS['models.dev']}): " in out, out)
+code, calls, out = run_main(TABLE, {**texts, "genai-prices": urllib.error.HTTPError(
+    gen.CATALOGS["genai-prices"], 429, "Too Many Requests", {}, None)}, "[]")
+check("a rate-limited catalog is named too", code == 1 and calls == [] and "genai-prices (" in out
+      and "429" in out, out)
 code, calls, out = run_main(TABLE, {**texts, "LiteLLM": "<html>"}, "[]")
 check("an unparseable catalog fails the run and calls no gh", code == 1 and calls == [], out)
 
@@ -880,7 +901,9 @@ def issue_body(findings):
         "Catalogs copy the providers' page mistakes: confirm each finding on the provider's page "
         "(Source) before changing anything. Then correct the row, or record the deviation in "
         "`scripts/ci/check-price-drift.py` (`MAPPING`, `ABSENT`, `TIERS` or `ACCEPTED`). This check "
-        "never edits the table; the first clean run closes this issue.",
+        "never edits the table; the first clean run closes this issue. Closing it by hand silences "
+        "nothing: a finding stops only when it is recorded in `ACCEPTED` (a deliberate deviation) or "
+        "`ABSENT` (a row a catalog lacks).",
         "",
         "| Model | Field | Ours | Theirs | Catalog | Source |",
         "|---|---|---|---|---|---|",
@@ -908,6 +931,14 @@ def fetch(url):
     req = urllib.request.Request(url, headers={"User-Agent": "ai-native-ref price drift check"})
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read().decode()
+
+
+def read(name, url):
+    """One catalog, fetched and parsed; any failure names the catalog and its URL."""
+    try:
+        return parse_catalog(name, fetch(url))
+    except (OSError, http.client.HTTPException, UnicodeDecodeError) as e:
+        raise CatalogError(f"{name} ({url}): {e}") from None
 
 
 def gh(*args, stdin=None):
@@ -938,7 +969,7 @@ def main(argv=None):
     a = p.parse_args(argv)
     try:
         prices = load_prices((pathlib.Path(a.root) / VALUES).read_text())
-        catalogs = {name: parse_catalog(name, fetch(url)) for name, url in CATALOGS.items()}
+        catalogs = {name: read(name, url) for name, url in CATALOGS.items()}
         findings = compare(prices, catalogs, datetime.now(timezone.utc).date())
     except (OSError, ValueError, http.client.HTTPException) as e:
         print(f"FAIL {e}: the {LABEL} issue is left alone", file=sys.stderr)
@@ -1187,7 +1218,7 @@ The body is in English and covers:
   `zai/glm-5.3-flashx`, which is declared in `ABSENT`. Haiku agrees at the 100K tier. Quote Task 2
   Step 5's line, with any findings it printed.
 - **The rulings:** R1 to R13. Name R1 (the v2 feed) and R6 (a catalog listing no row fails the run).
-- **The suite:** `test-check-price-drift`, 30 checks, offline proof 14 case by case.
+- **The suite:** `test-check-price-drift`, 35 checks, offline proof 14 case by case.
 - **The `task check` summary.**
 - **What waits for merge:** live proof 6. Once merged, the owner dispatches the workflow once and
   reads the first two scheduled runs.

@@ -9,7 +9,8 @@ the table and never opens a pull request.
 
 Exit 0: the issue now matches the night's findings (opened, updated, closed or left as it was).
 Exit 1: the table or a catalog could not be read; the issue is left alone and the failed run
-notifies. --dry-run fetches and compares, prints the body, and calls no gh.
+notifies. A failed gh call also exits 1 (gh's error goes to the job log), possibly after the
+label was created. --dry-run fetches and compares, prints the body, and calls no gh.
 """
 import argparse
 import http.client
@@ -274,7 +275,7 @@ def fetch(url):
 
 
 def gh(*args, stdin=None):
-    return subprocess.run(["gh", *args], input=stdin, check=True, capture_output=True, encoding="utf-8").stdout
+    return subprocess.run(["gh", *args], input=stdin, check=True, stdout=subprocess.PIPE, encoding="utf-8").stdout
 
 
 def open_issue():

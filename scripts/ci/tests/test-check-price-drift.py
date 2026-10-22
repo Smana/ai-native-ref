@@ -12,7 +12,9 @@ Run: python3 scripts/ci/tests/test-check-price-drift.py
 import contextlib
 import importlib.util
 import io
+import os
 import pathlib
+import subprocess
 import sys
 import tempfile
 import urllib.error
@@ -189,6 +191,31 @@ check("findings, no issue: open", gen.issue_action(SONNET, None) == ("open", bod
 check("findings, the same body: nothing",
       gen.issue_action(SONNET, {"number": 7, "body": body.replace("\n", "\r\n")}) == ("nothing", None))
 check("findings, another body: update", gen.issue_action(SONNET, {"number": 7, "body": "old"}) == ("update", body))
+
+
+# --- gh's own error reaches the job log ---
+# A fake gh on PATH fails the way gh does. The real gh() must neither swallow its stderr nor hide the exit.
+real_gh = gen.gh
+with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryFile() as err:
+    fake = pathlib.Path(tmp) / "gh"
+    fake.write_text("#!/bin/sh\necho 'HTTP 403: Resource not accessible by integration' >&2\necho out\nexit 1\n")
+    fake.chmod(0o755)
+    old_path, saved = os.environ["PATH"], os.dup(2)
+    os.environ["PATH"] = f"{tmp}:{old_path}"
+    os.dup2(err.fileno(), 2)
+    try:
+        real_gh("issue", "create")
+        failed = False
+    except subprocess.CalledProcessError:
+        failed = True
+    finally:
+        os.dup2(saved, 2)
+        os.close(saved)
+        os.environ["PATH"] = old_path
+    err.seek(0)
+    shown = err.read().decode()
+check("a failing gh call still raises", failed)
+check("a failing gh call's stderr reaches the job log", "HTTP 403: Resource not accessible" in shown, shown)
 
 
 # --- main(), with the network and gh stubbed ---

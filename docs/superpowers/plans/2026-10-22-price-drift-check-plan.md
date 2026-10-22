@@ -430,7 +430,8 @@ the table and never opens a pull request.
 
 Exit 0: the issue now matches the night's findings (opened, updated, closed or left as it was).
 Exit 1: the table or a catalog could not be read; the issue is left alone and the failed run
-notifies. --dry-run fetches and compares, prints the body, and calls no gh.
+notifies. A failed gh call also exits 1 (gh's error goes to the job log), possibly after the
+label was created. --dry-run fetches and compares, prints the body, and calls no gh.
 """
 import json
 import pathlib
@@ -718,7 +719,9 @@ with:
 import contextlib
 import importlib.util
 import io
+import os
 import pathlib
+import subprocess
 import sys
 import tempfile
 import urllib.error
@@ -741,6 +744,31 @@ check("findings, no issue: open", gen.issue_action(SONNET, None) == ("open", bod
 check("findings, the same body: nothing",
       gen.issue_action(SONNET, {"number": 7, "body": body.replace("\n", "\r\n")}) == ("nothing", None))
 check("findings, another body: update", gen.issue_action(SONNET, {"number": 7, "body": "old"}) == ("update", body))
+
+
+# --- gh's own error reaches the job log ---
+# A fake gh on PATH fails the way gh does. The real gh() must neither swallow its stderr nor hide the exit.
+real_gh = gen.gh
+with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryFile() as err:
+    fake = pathlib.Path(tmp) / "gh"
+    fake.write_text("#!/bin/sh\necho 'HTTP 403: Resource not accessible by integration' >&2\necho out\nexit 1\n")
+    fake.chmod(0o755)
+    old_path, saved = os.environ["PATH"], os.dup(2)
+    os.environ["PATH"] = f"{tmp}:{old_path}"
+    os.dup2(err.fileno(), 2)
+    try:
+        real_gh("issue", "create")
+        failed = False
+    except subprocess.CalledProcessError:
+        failed = True
+    finally:
+        os.dup2(saved, 2)
+        os.close(saved)
+        os.environ["PATH"] = old_path
+    err.seek(0)
+    shown = err.read().decode()
+check("a failing gh call still raises", failed)
+check("a failing gh call's stderr reaches the job log", "HTTP 403: Resource not accessible" in shown, shown)
 
 
 # --- main(), with the network and gh stubbed ---
@@ -883,7 +911,7 @@ def fetch(url):
 
 
 def gh(*args, stdin=None):
-    return subprocess.run(["gh", *args], input=stdin, check=True, capture_output=True, encoding="utf-8").stdout
+    return subprocess.run(["gh", *args], input=stdin, check=True, stdout=subprocess.PIPE, encoding="utf-8").stdout
 
 
 def open_issue():
@@ -942,7 +970,7 @@ The `except` catches every way a fetch, a parse or the table can fail. `urllib.e
 bash $SCRATCH/run-suite.sh python3 scripts/ci/tests/test-check-price-drift.py; echo "exit=$?"
 ```
 
-Expected: 30 `ok` lines, the last `clean with an open issue: the oldest is closed`, then `all passed`
+Expected: 32 `ok` lines, the last `clean with an open issue: the oldest is closed`, then `all passed`
 and `exit=0`.
 
 - [ ] **Step 5: Run it against the real catalogs, with no issue touched**

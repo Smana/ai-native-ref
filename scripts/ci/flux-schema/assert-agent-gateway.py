@@ -79,6 +79,18 @@ names its listeners, audiences, caller namespace and route namespace:
        `internal` only, and every match one of GITHUB_READ_MATCHES (a fetch
        of the opted-in repositories) on a rule that strips GITHUB_STRIPPED.
        Anything else, git-receive-pack included, matches no route: 404.
+  AG14 Every rule of the agent router that sends to an LLM backend, except
+       one a directResponse answers, is targeted by exactly one route-level
+       authorization (capability profiles P2): a Require holding the
+       listener's sub prefix, repeated, and one model rule over
+       EFFECTIVE_MODEL naming each of the listener's audiences. A rule a
+       directResponse answers (/v1/models, AG7) carries no authorization that
+       reads the body: its GET would be refused 403 before its 404. Every
+       model the factory's tiers pin is in every alternative: a run of that
+       tier would otherwise be refused at its first call. A Gateway-scoped
+       policy sets frontend.http.maxBufferSize: the rule reads the body within
+       it, and without it 1.6 buffers 2 MiB there and 32 MiB for the backend,
+       so a long run's call would be refused that the backend could take.
 
 1.6 CRDs store no defaults, so every check reads explicit fields: an absent
 field fails rather than being assumed. The bundle holds base and per-cluster
@@ -137,6 +149,10 @@ AGENT_MODELS = ("agent-default", "tier-light", "tier-standard", "tier-frontier")
 MODEL_HEADER = "x-ar-model"
 MODEL_ALLOWLIST = (f'("{MODEL_HEADER}" in request.headers ? request.headers["{MODEL_HEADER}"] : llmRequest.model)'
                    f".with(m, m in {json.dumps(list(AGENT_MODELS))} ? m : null)")
+# AG14: the model a call reaches, read where the route's authorization runs, before the backend parses
+# the body (1.6 has no llm.requestModel there): the header MODEL_ALLOWLIST reads, else the body's.
+EFFECTIVE_MODEL = (f'("{MODEL_HEADER}" in request.headers ? request.headers["{MODEL_HEADER}"] '
+                   f": json(request.body).model)")
 MODEL_MUTATIONS = ("overrides", "defaults")
 # Identity design T4: the internal listener's GitHub route reads, never writes. Git's
 # smart-HTTP fetch is these two requests; a push is GET ?service=git-receive-pack then
@@ -753,6 +769,72 @@ def removes(node, header):
     return isinstance(node, list) and any(removes(v, header) for v in node)
 
 
+ALTERNATIVE = re.compile(r'\("(?P<aud>[^"]+)" in jwt\.aud && m in (?P<models>\[[^\]]*\])\)')
+
+
+def model_rule_ok(expr, auds):
+    """One model Require: EFFECTIVE_MODEL bound to m, an alternative per audience."""
+    return expr.startswith(f"{EFFECTIVE_MODEL}.with(m, ") and all(f'("{a}" in jwt.aud && m in [' in expr for a in auds)
+
+
+def check_model_authz(objs):
+    out = []
+    llm = {key(b) for b in kind(objs, "AgentgatewayBackend") if providers(b)}
+    tiers = ((factory_values(objs) or {}).get("tiers") or {}).values()
+    pinned = sorted({t["model"] for t in tiers if isinstance(t, dict) and t.get("model")})
+    for g, prof in profiled(objs):
+        if not prof.required:
+            continue
+        if not any(None in gateway_targets(p, g) and ((spec_of(p).get("frontend") or {}).get("http") or {})
+                   .get("maxBufferSize") for p in policies(objs)):
+            out.append(f"AG14: no Gateway-scoped frontend policy on {ref(g)} sets http.maxBufferSize: the model rule "
+                       "would read 2 MiB of a body the backend reads up to 32 MiB of")
+        for r in routes_on(objs, g):
+            covering = {}
+            for p in policies(objs):
+                authz = (spec_of(p).get("traffic") or {}).get("authorization")
+                if authz is None or meta(p).get("namespace") != meta(r).get("namespace"):
+                    continue
+                for t in spec_of(p).get("targetRefs") or []:
+                    if t.get("kind") == r.get("kind") and t.get("name") == meta(r).get("name"):
+                        covering.setdefault(t.get("sectionName"), []).append((p, authz))
+            answered = {t.get("sectionName") for p in policies(objs)
+                        if "directResponse" in (spec_of(p).get("traffic") or {})
+                        for t in spec_of(p).get("targetRefs") or []
+                        if t.get("kind") == r.get("kind") and t.get("name") == meta(r).get("name")}
+            for rule in spec_of(r).get("rules") or []:
+                name = rule.get("name")
+                if not backend_refs(r, {name}) & llm:
+                    continue
+                found = covering.get(name, []) + covering.get(None, [])
+                if name in answered or None in answered:
+                    for p, authz in found:
+                        if "request.body" in json.dumps(authz):
+                            out.append(f"AG14: {ref(p)} reads the body on {ref(r)} rule {name}, which a directResponse "
+                                       "answers: its GET would be refused 403 before its 404")
+                    continue
+                for listener in sorted(listeners_of(r, g)):
+                    if len(found) != 1:
+                        out.append(f"AG14: {ref(r)} rule {name} on {listener} has {len(found)} route-level "
+                                   "authorization policies, expected 1 (gen-capabilities.py renders it)")
+                        continue
+                    p, authz = found[0]
+                    exprs = (authz.get("policy") or {}).get("matchExpressions") or []
+                    if authz.get("action") != "Require" or sub_prefix(prof) not in exprs:
+                        out.append(f"AG14: {ref(p)} must Require {sub_prefix(prof)}: the listener's rule, repeated")
+                    rules = [e for e in exprs if e.startswith(EFFECTIVE_MODEL)]
+                    if len(rules) != 1 or not model_rule_ok(rules[0], sorted(audiences(prof, listener))):
+                        out.append(f"AG14: {ref(p)} needs one model Require over {EFFECTIVE_MODEL} with an alternative "
+                                   f"for each of {sorted(audiences(prof, listener))}")
+                        continue
+                    for alt in ALTERNATIVE.finditer(rules[0]):
+                        missing = [x for x in pinned if x not in json.loads(alt["models"])]
+                        if missing:
+                            out.append(f"AG14: {ref(p)} refuses {missing} to {alt['aud']}, which the factory's tiers "
+                                       "pin: every such run would be refused at its first call")
+    return out
+
+
 def is_github(backend):
     host = str((spec_of(backend).get("static") or {}).get("host", "")).lower()
     return host == "github.com" or host.endswith((".github.com", ".githubusercontent.com"))
@@ -827,7 +909,7 @@ def check_meter_prices(objs):
 
 CHECKS = (check_gateway, check_listener_identity, check_strip, check_token_isolation, check_routes,
           check_zai_provider, check_mcp_authz, check_models_list, check_budgets, check_parameters,
-          check_meter_prices, check_provider_paths, check_model_pinning, check_github_route)
+          check_meter_prices, check_provider_paths, check_model_pinning, check_github_route, check_model_authz)
 
 
 def run(objs):

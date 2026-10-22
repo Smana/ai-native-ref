@@ -8,9 +8,9 @@ aliases:
 ---
 
 {{< callout type="info" >}}
-**v1, pilot scope.** On `main` and running on `gcp-0`, for one public repository: you label, the
-agents work, you review and merge. The merge gate runs in shadow: it says what it would merge, and
-merges nothing. The task below ran on 2026-10-07, before v1's release. What v1 proves, and what
+**On `main` (v2.0.1), for two public repositories; paused between releases while `gcp-0` is torn down:** you label, the
+agents work, you review and merge. The merge gate is live for link fixes: it merges them with no human,
+at most once a day. The task below ran on 2026-10-07, before v1's release. What has landed, and what
 comes next, is on the
 [status page]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}).
 {{< /callout >}}

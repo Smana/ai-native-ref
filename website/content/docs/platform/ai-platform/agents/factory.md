@@ -22,7 +22,7 @@ every run has a task and a budget. This page describes the design; what runs tod
 | **Triage** | Once per task: which class it is (for example `docs-links`), which team of roles works it, and how big a budget it gets. A refusal is explained in a comment. What triage predicts only chooses the team and the budget; risk is enforced on the diff at merge time |
 | **Teams** | Roles run as sequential `AgentRun`s in one room, on one `agent/<task>` branch: an implementer, then a reviewer, with a tester in larger teams. Only the implementer writes |
 | **Revise** | A GitHub review with "Request changes" becomes the input of a new run on the same branch. `/factory retry` tries again after a failure |
-| **Merge gate** | Only low-risk classes, and only with green CI and the policy agreeing: `docs-links` and `revert` (the factory's revert of an auto-merged `docs-links` change). Everything else waits for a human. In v1 the gate runs in shadow mode: it says what it *would* merge, and merges nothing |
+| **Merge gate** | Only low-risk classes, and only with green CI and the policy agreeing: `docs-links` and `revert` (the factory's revert of an auto-merged `docs-links` change). Everything else waits for a human. Since v2.0 the gate is live: link fixes merge with no human, at most once a day, and a revert breaker demotes the class to human review |
 | **Kill switch** | One task: the label `factory/stop`. Every task: the stop ConfigMap, or a label on a pinned control issue |
 
 The developer's view of the same journey is in the
@@ -43,7 +43,7 @@ The developer's view of the same journey is in the
 | Boundary | Mechanism |
 |---|---|
 | Spend | Per-run deadline; the factory's run meter revokes a run at its token cap; token budgets at the gateway; at most 20 tasks a day |
-| Merge | Only low-risk classes (`docs-links`, `revert`) merge themselves, through policy-bot and a separate merger App, and only once the gate leaves shadow mode (a v2 gate); everything else waits for a human |
+| Merge | Only low-risk classes (`docs-links`, `revert`) merge themselves, through policy-bot and a separate merger App, live since v2.0, with a revert breaker; everything else waits for a human |
 | Stop | `kubectl -n agent-system create configmap agent-factory-stop` pauses intake and stops every task; one label on a pinned control issue also refuses new runs and revokes every running one |
 
 The sandbox, identity and GitHub boundaries are on

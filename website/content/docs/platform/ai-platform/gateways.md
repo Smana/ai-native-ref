@@ -253,7 +253,7 @@ the factory allows (34M tokens of Opus cache reads for $6.80), sized so that
 only a runaway the run meter failed to revoke reaches it.
 
 The token-exchange listener names each repository's audiences, at most eight per listener; adding
-a repository is described on the [agents overview]({{< relref "/docs/platform/ai-platform/agents/_index.md#one-repository-at-first" >}}).
+a repository is described on the [agents overview]({{< relref "/docs/platform/ai-platform/agents/_index.md#more-than-one-repository" >}}).
 
 ## What the two share, and what they keep apart
 

@@ -8,12 +8,12 @@ aliases:
 ---
 
 {{< callout type="info" >}}
-**v1 shipped on 2026-10-08, pilot scope.** On `main` and running on `gcp-0` (on `aws-0` until 2026-10-16): a labelled issue becomes
-a reviewed pull request, and a human merges it. Runs are metered, capped, resumed after a reclaim and
+**v1 shipped on 2026-10-08; v2.0 followed on 2026-10-18 (v2.0.1 the same day).** On `main`, proven on `gcp-0` (on `aws-0` until 2026-10-16), and paused between releases while `gcp-0` is torn down: a labelled issue becomes
+a reviewed pull request. A human merges it, except a link fix, which the merge gate merges on its own. Runs are metered, capped, resumed after a reclaim and
 stopped by the kill switch; people follow and approve in rooms, from the browser, a terminal or their
-coding agent. Three factory pull requests have merged end to end. v1 covers one public repository,
-one active cloud and `public` work, with the merge gate in shadow. It is not production-ready: the
-hardening list, then each v2 expansion and the gate it must pass, are on the
+coding agent. Three factory pull requests have merged end to end. It serves two public repositories,
+on one active cloud, with the merge gate live for link fixes. The
+hardening list and what comes next are on the
 [status page]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}).
 {{< /callout >}}
 
@@ -89,12 +89,11 @@ deployed, or planned.
 Everything that runs on the cluster is open source. The external services are GitHub and the model
 providers.
 
-## One repository at first
+## More than one repository
 
-The design targets one repository at first. Nothing in it is tied to that repository: the agents'
+The factory serves two repositories since v2.0. Nothing in it is tied to one repository: the agents'
 App, the trust policies and the rulesets live in the repository they protect, and every
-token audience names its repository. A second repository is a planned extension, not a step you
-can take today. It would need:
+token audience names its repository. Adding another needs:
 
 1. The agents' GitHub App installed on it, and the factory's App for narration.
 2. The octo-sts trust policies for the roles it allows, in that repository.

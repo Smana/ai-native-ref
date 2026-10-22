@@ -199,8 +199,8 @@ The aliases, identical on both Z.ai backends and mirrored on Anthropic's
 | `tier-frontier` | `glm-5.3` | `claude-opus-5-5` |
 | `agent-default` | `glm-5.3` | `claude-opus-5-5` |
 
-Any other name is set to null by a CEL transformation and refused 400 before an upstream call (gate
-AG12). A run can still ask for any of the four names in its class (SP4 R10): the budgets bound what
+Any other name is refused 403 by the profile's model rule (`policy-capabilities.yaml`) before an
+upstream call; the transformation's 400 stays behind it (gate AG12). A run can still ask for any of the four names in its class (SP4 R10): the budgets bound what
 that costs.
 
 ### Why every tier still asks for `agent-default`

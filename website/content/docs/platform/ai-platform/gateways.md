@@ -209,6 +209,7 @@ flowchart LR
 |---|---|---|
 | Signature, issuer, the listener's own audiences, `exp` and `sub` present | `jwtAuthentication`, `mode: Strict`, one policy per listener | 401 |
 | `sub` starts with `system:serviceaccount:agents:` | the listener's `authorization` rule | 403 |
+| The model the call reaches is one the caller's profile names | `capabilities-<listener>` on the model routes (`policy-capabilities.yaml`) | 403 |
 | No client-set `x-ar-agent`, `x-ar-human`, `x-ai-gateway-client-id` or `agent-session-id` | `strip-identity-headers`, before routing | — (removed) |
 
 Each listener then sets `x-ar-agent` from the verified `jwt.sub`, and the same `sub` labels every
@@ -229,6 +230,16 @@ The lists are generated. One profile per role and data class in
 `infrastructure/base/agent-gateway/profiles/` names its tools, `scripts/ci/gen-capabilities.py` with `--write`
 renders them into `mcp.yaml`, and `task check` fails when the two differ: adding a tool is a line in a
 profile and its expected set in `test-agent-mcp-scope` (then `--write`).
+
+The models are generated the same way. A profile's `models` lists the aliases its role may call, and
+the generator renders one route-level `authorization` per listener into `policy-capabilities.yaml`,
+on the model routes but not `/v1/models`. A call whose model the caller's profile does not name is
+refused 403 before any upstream call, and the access log names the run. The model is `x-ar-model`
+when the run's identity proxy set it, else the body's, the same choice the backends' `model`
+transformation makes. The rule reads the raw body, so a gzip request with no `x-ar-model` is refused
+403 too. Every profile lists the four aliases today, so the rule binds nothing until a
+role moves to its own size: narrowing a profile is the switch, and gate AG14 refuses one that would
+refuse a model the factory's tiers pin.
 
 | Role | `public` | `internal` adds |
 |---|---|---|

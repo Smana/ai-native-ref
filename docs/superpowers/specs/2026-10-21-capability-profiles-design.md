@@ -2,7 +2,8 @@
 
 **Date:** 2026-10-21 · **Status:** draft; no owner decision pending (O3 and O4 taken 2026-10-21) · **Amended
 2026-10-22**: the migration's first step, the profiles and a generator at parity, is built
-([plan](../plans/2026-10-22-capability-profiles-p1-plan.md)) · **Part of:** the
+([plan](../plans/2026-10-22-capability-profiles-p1-plan.md)); P2 and the gateway's half of P4 are
+built ([plan](../plans/2026-10-22-capability-profiles-p2-p4-plan.md)) · **Part of:** the
 [v3 review](2026-10-21-v3-review.md), proposed feature 10 · **Research:**
 [§3](2026-10-21-v3-landscape-research.md#3-fine-grained-permissions-for-tools-and-models) ·
 **Runtime:** the gateway runtime only; the portable runtime has no gateway to compile to
@@ -162,3 +163,28 @@ Ruled in P1 ([plan](../plans/2026-10-22-capability-profiles-p1-plan.md#this-plan
   string.
 - **The fields:** `models` is carried and checked against the backends' aliases until P2 renders it.
   `egress`, `readOnly` and `when` are refused until their steps.
+
+Ruled in P2 and P4 ([plan](../plans/2026-10-22-capability-profiles-p2-p4-plan.md#this-plans-rulings)):
+
+- **The rule reads the model itself.** agentgateway 1.6 has no `llm.requestModel` where a route's
+  `authorization` runs (the backend parses the body later): a Require on it refused every call. The
+  rule binds `("x-ar-model" in request.headers ? request.headers["x-ar-model"] :
+  json(request.body).model)` and requires, for the caller's audience, that it is in the profile's
+  `models`: one Require per listener, the roles OR-ed. The backends' `model` transformation makes the
+  same choice, header first, and gate AG12 refuses any object that removes the header, since the
+  two would then disagree.
+- **Authorization adds up in 1.6**: a route's rules join the listener's rather than replacing them.
+  The listener's Require is repeated anyway, and gate AG14 asserts it with the rest of the rule.
+- **The gateway does not strip `x-ar-model`.** It would strip the proxy's value too; the proxy
+  overwrites the harness's, and only the proxy holds a run token.
+- **A gzip request with no `x-ar-model` header, served before, is now refused 403**: the rule reads the
+  raw body. Accepted: the harness does not compress requests, and the proxy pins the header on every call.
+- **A 403 on a model call is acceptable**: it is a single stateless request, which the harness does
+  not retry, and it ends the conversation as today's 400 for an unknown name does. The refusal's
+  access log names the run's `sub`, so gate item 1's attribution holds in 1.6.0; #3996 concerns the
+  model router's own 403.
+- **The judge path refuses until the claim names a judge**: the composition sets `JUDGE_MODEL` to
+  `spec.loop.judgeModel`, else `none`, which no profile names.
+- **P3 and S0:** OpenHands SDK 1.55 fixes the disconnect S0 measured (measured 2026-10-22 against
+  1.56.0 by the SDK upgrade plan): a route-level 403 for P3's argument constraints becomes possible
+  once the harness ships an SDK at 1.55 or later, which P3 then depends on.

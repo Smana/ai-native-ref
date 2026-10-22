@@ -48,6 +48,13 @@ def agent_aliases(model):
     return {name: model for name in gate.AGENT_MODELS}
 
 
+def model_rule(prof, listener, auds=None):
+    """A P2 model rule as gen-capabilities.py renders it: one alternative per audience."""
+    alts = " || ".join(f'("{a}" in jwt.aud && m in ["agent-default"])'
+                       for a in (auds if auds is not None else sorted(gate.audiences(prof, listener))))
+    return f"{gate.EFFECTIVE_MODEL}.with(m, {alts})"
+
+
 def compliant(key=REAL):
     gw_ns, gw_name = key
     prof = gate.PROFILES[key]
@@ -95,6 +102,8 @@ def compliant(key=REAL):
                 "containers": [{"name": "agentgateway",
                                 "securityContext": {"seccompProfile": {"type": "RuntimeDefault"}},
                                 "livenessProbe": {"httpGet": {"path": "/healthz/ready", "port": 15021}}}]}}}}}),
+        obj("AgentgatewayPolicy", gw_ns, "frontend", {
+            "targetRefs": [gw_ref], "frontend": {"http": {"maxBufferSize": "8Mi"}}}),
         obj("AgentgatewayPolicy", gw_ns, "strip-identity-headers", {
             "targetRefs": [gw_ref],
             "traffic": {"phase": "PreRouting",
@@ -131,6 +140,12 @@ def compliant(key=REAL):
             "targetRefs": [{"group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "name": "agent-models",
                             "sectionName": "models"}],
             "traffic": {"directResponse": {"status": 404, "body": '{"error":"model listing is not served"}'}}}),
+        *[obj("AgentgatewayPolicy", rns, f"capabilities-{section}", {
+            "targetRefs": [{"group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "name": route_name,
+                            "sectionName": "openai"}],
+            "traffic": {"authorization": {"action": "Require", "policy": {"matchExpressions": [
+                gate.sub_prefix(prof), model_rule(prof, section)]}}}})
+          for section, route_name in (("internal", "agent-models-internal"), ("public", "agent-models"))],
         obj("AgentgatewayBackend", rns, "agent-mcp", {"mcp": {"sessionRouting": "Stateless", "targets": [
             {"name": "room-broker", "static": {
                 "host": "room-broker.agent-system.svc.cluster.local", "port": 8090, "path": "/mcp",
@@ -221,7 +236,7 @@ got = gate.run(compliant(REAL))
 check("compliant agent-gateway/agent-router passes", got == [], f"got {got}")
 got = gate.run(compliant(REAL) + compliant(POC))
 check("the PoC beside the real Gateway passes", got == [], f"got {got}")
-check("fourteen checks", len(gate.CHECKS) == 14, f"got {len(gate.CHECKS)}")
+check("fifteen checks", len(gate.CHECKS) == 15, f"got {len(gate.CHECKS)}")
 
 print("AG1 gateway")
 expect("no Gateway fails", lambda o: o.remove(find(o, "Gateway", "agent-router")), "AG1")
@@ -616,6 +631,75 @@ def run_main(d):
     return code, out.getvalue() + err.getvalue()
 
 
+print("AG12 the model header (capability profiles P4)")
+expect("the strip removing x-ar-model fails", lambda o: spec_at(
+    o, "AgentgatewayPolicy", "strip-identity-headers", "traffic", "transformation", "request", "remove")
+    .append("X-AR-Model"), "AG12", "removes x-ar-model")
+expect("a route filter removing x-ar-model fails", lambda o: spec_at(o, "HTTPRoute", "agent-models", "rules")[1]
+       .update({"filters": [{"type": "RequestHeaderModifier", "requestHeaderModifier": {"remove": ["x-ar-model"]}}]}),
+       "AG12", "removes x-ar-model")
+expect("a transformation that ignores the header fails", lambda o: zai(o)["policies"]["ai"]["transformations"][0]
+       .update({"expression": 'llmRequest.model in ["agent-default"] ? llmRequest.model : null'}), "AG12", "refuse")
+
+def caps(o, listener):
+    return spec_at(o, "AgentgatewayPolicy", f"capabilities-{listener}", "traffic", "authorization")
+
+
+def second_policy(o):
+    extra = copy.deepcopy(find(o, "AgentgatewayPolicy", "capabilities-public"))
+    extra["metadata"]["name"] = "capabilities-public-copy"
+    o.append(extra)
+
+
+def tier_model(model):
+    def change(o):
+        cm = find(o, "ConfigMap", gate.FACTORY_VALUES)
+        values = yaml.safe_load(cm["data"]["values.yaml"])
+        values["config"]["tiers"]["frontier"]["model"] = model
+        cm["data"]["values.yaml"] = yaml.safe_dump(values)
+    return change
+
+
+print("AG14 model authorization (capability profiles P2)")
+gen_spec = importlib.util.spec_from_file_location("gen_capabilities", HERE.parent.parent / "gen-capabilities.py")
+gen = importlib.util.module_from_spec(gen_spec)
+gen_spec.loader.exec_module(gen)
+check("EFFECTIVE_MODEL equals the generator's", gate.EFFECTIVE_MODEL == gen.EFFECTIVE_MODEL)
+expect("an LLM rule with no authorization fails", lambda o: o.remove(find(o, "AgentgatewayPolicy", "capabilities-internal")),
+       "AG14", "has 0 route-level")
+expect("two authorizations on one rule fail", second_policy, "AG14", "has 2 route-level")
+expect("no repeated sub prefix fails", lambda o: caps(o, "internal")["policy"]["matchExpressions"].pop(0),
+       "AG14", "must Require")
+expect("Allow instead of Require fails", lambda o: caps(o, "public").update({"action": "Allow"}), "AG14", "must Require")
+expect("a model rule missing an audience fails", lambda o: caps(o, "internal")["policy"]["matchExpressions"]
+       .__setitem__(1, model_rule(None, "internal", ["agent-router.implementer.internal"])), "AG14", "an alternative")
+expect("an appended || true fails", lambda o: caps(o, "public")["policy"]["matchExpressions"]
+       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1][:-1] + " || true)"), "AG14", "one model Require")
+expect("&& between alternatives fails", lambda o: caps(o, "public")["policy"]["matchExpressions"]
+       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1].replace(" || ", " && ")), "AG14", "one model Require")
+expect("an alternative for a foreign audience fails", lambda o: caps(o, "internal")["policy"]["matchExpressions"]
+       .__setitem__(1, model_rule(None, "internal", sorted(gate.audiences(gate.PROFILES[REAL], "internal")) + ["x.y"])),
+       "AG14", "one model Require")
+expect("a non-literal entry in a model list fails cleanly", lambda o: caps(o, "public")["policy"]["matchExpressions"]
+       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1].replace('["agent-default"]', '["agent-default", m]', 1)),
+       "AG14", "one model Require")
+expect("an unknown alias in a model list fails", lambda o: caps(o, "public")["policy"]["matchExpressions"]
+       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1].replace('["agent-default"]', '["gpt-9"]', 1)),
+       "AG14", "one model Require")
+expect("no tier pinning a model fails", lambda o: find(o, "ConfigMap", gate.FACTORY_VALUES)["data"].update(
+    {"values.yaml": yaml.safe_dump({"config": {"tiers": {}}})}), "AG14", "pins a model")
+expect("llm.requestModel, which 1.6 lacks there, fails", lambda o: caps(o, "public")["policy"]["matchExpressions"]
+       .__setitem__(1, caps(o, "public")["policy"]["matchExpressions"][1]
+                    .replace(gate.EFFECTIVE_MODEL, "llm.requestModel")), "AG14", "one model Require")
+expect("a body read on /v1/models fails", lambda o: spec_at(o, "AgentgatewayPolicy", "capabilities-internal",
+                                                            "targetRefs").append(
+    {"group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "name": "agent-models-internal",
+     "sectionName": "models"}), "AG14", "403 before its 404")
+expect("a tier pinning a model a role refuses fails", tier_model("tier-frontier"), "AG14", "which the factory's tiers pin")
+expect("no frontend buffer fails", lambda o: o.remove(find(o, "AgentgatewayPolicy", "frontend")), "AG14", "maxBufferSize")
+expect("a whole-route authorization reaches /v1/models and fails", lambda o: spec_at(
+    o, "AgentgatewayPolicy", "capabilities-public", "targetRefs")[0].pop("sectionName"), "AG14", "403 before its 404")
+
 print("main")
 with tempfile.TemporaryDirectory() as d:
     # base and both clusters render the same objects: one world per cluster, so no double count.
@@ -624,7 +708,7 @@ with tempfile.TemporaryDirectory() as d:
         pathlib.Path(d, name).write_text(yaml.safe_dump_all(compliant()))
     code, out = run_main(d)
     check("main exits 0 on per-cluster duplicates", code == 0, out)
-    check("main prints 14 checks", "assert-agent-gateway: 14 checks, 0 violations" in out, out)
+    check("main prints 15 checks", "assert-agent-gateway: 15 checks, 0 violations" in out, out)
     pathlib.Path(d, "overlay-infrastructure-gcp-0-agent-gateway.yaml").write_text(
         yaml.safe_dump_all([o for o in compliant() if o["kind"] != "Gateway"]))
     code, out = run_main(d)

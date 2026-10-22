@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # requires: python3
-"""Tests for scripts/ci/gen-capabilities.py, which renders mcp.yaml's MCP Allow lists from the profiles.
+"""Tests for scripts/ci/gen-capabilities.py, which renders mcp.yaml's MCP Allow lists (P1) and
+policy-capabilities.yaml's model rules (P2) from the profiles.
 
 Each case copies the real infrastructure/base/agent-gateway/ into a temporary root, changes one
-thing and runs the generator there: the profiles rebuild every list byte for byte, a profile edit
-moves its own expression only, and each malformed profile is refused, by name, without a write.
+thing and runs the generator there: the profiles rebuild every list and the policy file byte for
+byte, a profile edit moves its own expression only, and each malformed profile is refused, by name,
+without a write.
 
 Run: python3 scripts/ci/tests/test-gen-capabilities.py
 """
@@ -58,6 +60,17 @@ def mcp(root):
     return root / gen.MCP
 
 
+def caps(root):
+    return root / gen.CAPABILITIES
+
+
+def rules(root):
+    """{policy name: (its targetRefs' sectionNames, its expressions)} from policy-capabilities.yaml."""
+    return {d["metadata"]["name"]: ([t["sectionName"] for t in d["spec"]["targetRefs"]],
+                                    d["spec"]["traffic"]["authorization"]["policy"]["matchExpressions"])
+            for d in yaml.safe_load_all(caps(root).read_text()) if d}
+
+
 def edit(root, name, change):
     path = root / gen.PROFILES / name
     doc = yaml.safe_load(path.read_text())
@@ -66,12 +79,12 @@ def edit(root, name, change):
 
 
 def refused(name, change, needle):
-    """The changed tree fails the check, names the problem, and --write leaves mcp.yaml alone."""
+    """The changed tree fails the check, names the problem, and --write leaves both files alone."""
     with tree() as t:
-        before = mcp(t).read_text()
+        before = mcp(t).read_text(), caps(t).read_text()
         change(t)
         code, out = run(t, "--write")
-        check(name, code == 1 and needle in out and mcp(t).read_text() == before, out)
+        check(name, code == 1 and needle in out and (mcp(t).read_text(), caps(t).read_text()) == before, out)
 
 
 def on(name, change):
@@ -111,10 +124,21 @@ def no_public(t):
         p.unlink()
 
 
+def no_listener_require(t):
+    path = t / gen.IDENTITY
+    path.write_text(path.read_text().replace("    authorization:\n      action: Require\n", "    x-authorization:\n      action: Require\n", 1))
+
+
 print("parity")
 with tree() as t:
     code, out = run(t)
-    check("today's profiles render today's mcp.yaml", code == 0 and "is its profiles' rendering" in out, out)
+    check("today's profiles render today's mcp.yaml and policy-capabilities.yaml",
+          code == 0 and out.count("is its profiles' rendering") == 2, out)
+with tree() as t:
+    caps(t).unlink()
+    code, out = run(t, "--write")
+    check("--write rebuilds policy-capabilities.yaml from the profiles alone, byte for byte",
+          code == 0 and caps(t).read_bytes() == (GW / "policy-capabilities.yaml").read_bytes(), out)
 with tree() as t:
     blank = LISTS.sub(lambda m: f"{m['i']}matchExpressions:\n{m['i']}  - 'placeholder'\n", mcp(t).read_text())
     mcp(t).write_text(blank)
@@ -130,7 +154,44 @@ with tree() as t:
     code, out = run(t)
     check("targets render in the backend's order, not the profile's", code == 0, out)
 
+print("model rules (P2)")
+P = gen.Profile
+pair = [P("x", "reviewer", "internal", ["tier-frontier"], {}), P("x", "implementer", "internal", ["agent-default", "tier-light"], {}),
+        P("x", "tester", "public", ["agent-default"], {})]
+check("a model rule binds the effective model once, one alternative per role of the class, roles in name order",
+      gen.model_rule("internal", pair) ==
+      '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : json(request.body).model).with(m, '
+      '("agent-router.implementer.internal" in jwt.aud && m in ["agent-default", "tier-light"]) || '
+      '("agent-router.reviewer.internal" in jwt.aud && m in ["tier-frontier"]))')
+with tree() as t:
+    got = rules(t)
+    check("one policy per listener with LLM routes, public first", list(got) == ["capabilities-public", "capabilities-internal"],
+          str(list(got)))
+    check("each targets its LLM rules but never the /v1/models one",
+          all(sections == ["openai", "anthropic"] for sections, _ in got.values()), str(got))
+    check("each repeats its listener's Require first",
+          all(exprs[0] == 'jwt.sub.startsWith("system:serviceaccount:agents:")' and len(exprs) == 2
+              for _, exprs in got.values()), str(got))
+with tree() as t:
+    before = caps(t).read_text().splitlines()
+    edit(t, "reviewer.internal.yaml", lambda d: d.update(models=["tier-frontier", "agent-default"]))
+    code, out = run(t)
+    check("a profile narrowed without --write fails", code == 1 and "policy-capabilities.yaml differs" in out, out)
+    code, out = run(t, "--write")
+    after = caps(t).read_text().splitlines()
+    changed = [(a, b) for a, b in zip(before, after) if a != b]
+    check("--write moves exactly the internal model rule", code == 0 and len(before) == len(after)
+          and len(changed) == 1 and '"agent-router.reviewer.internal" in jwt.aud && m in ["tier-frontier", "agent-default"]'
+          in changed[0][1] and "public" not in changed[0][1], str(changed))
+    check("mcp.yaml is untouched by a model change", mcp(t).read_bytes() == (GW / "mcp.yaml").read_bytes())
+
 print("drift (design gate 5)")
+with tree() as t:
+    text = caps(t).read_text()
+    caps(t).write_text(text.replace(', "tier-frontier"]) || ("agent-router.reviewer.public"', ']) || ("agent-router.reviewer.public"', 1))
+    code, out = run(t)
+    check("policy-capabilities.yaml edited by hand fails, with the diff and the fix",
+          caps(t).read_text() != text and code == 1 and "policy-capabilities.yaml (rendered from" in out and "--write" in out, out)
 with tree() as t:
     text = mcp(t).read_text()
     mcp(t).write_text(text.replace(', "get_kubernetes_logs"]', "]", 1))
@@ -183,9 +244,13 @@ for name, change, needle in [
     ("an unknown key", on("reviewer.internal.yaml", lambda d: d.update(namespaces=["x"])), "unknown key namespaces"),
     ("an argument constraint waits for P3", on("reviewer.internal.yaml", constrained),
      "get_kubernetes_resources: argument constraints (when) arrive with P3"),
-    ("a narrower model list waits for P2", on("tester.public.yaml", lambda d: d.update(models=["agent-default"])),
-     "until P2"),
-    ("an alias no backend serves", on("tester.public.yaml", lambda d: d["models"].append("tier-huge")), "until P2"),
+    ("an alias no backend serves", on("tester.public.yaml", lambda d: d["models"].append("tier-huge")),
+     "models names tier-huge, which no LLM backend serves"),
+    ("no model at all", on("tester.public.yaml", lambda d: d.update(models=[])), "at least one"),
+    ("a model listed twice", on("tester.public.yaml", lambda d: d["models"].append("agent-default")),
+     "models lists agent-default twice"),
+    ("a listener with LLM routes and no Require to repeat", no_listener_require,
+     "no Require authorization on the public listener to repeat"),
     ("an unknown target", on("triager.internal.yaml", renamed_target), "mcp-victoria-logs is not a target"),
     ("a target with no tool", on("triager.internal.yaml", lambda d: d["tools"].update({"room-broker": []})),
      "room-broker lists no tool"),

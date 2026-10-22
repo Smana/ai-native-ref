@@ -4,9 +4,11 @@
 # llm/anthropic_tests.rs), so auth names no location. The key comes from
 # OpenBao agents/anthropic (../agent-router/externalsecret-anthropic.yaml).
 #
-# Names as on public (llm.yaml's table): four aliases, other names refused 400
-# by the `model` transformation, no fixed model (gate AG12). Budgets charge
-# each model at the meter's price (policy-budgets.yaml), not the built-in catalog.
+# Names as on public (llm.yaml's table): four aliases, other names refused 403 by
+# policy-capabilities.yaml, with the `model` transformation's 400 behind it. The
+# transformation takes x-ar-model first (P4), no fixed model (gate AG12). Budgets
+# charge each model at the meter's price (policy-budgets.yaml), not the built-in
+# catalog.
 #
 # Typed routes: without them every path is Completions. Chat Completions convert
 # to Messages; Messages pass through.
@@ -35,7 +37,7 @@ spec:
         agent-default: claude-opus-5-5
       transformations:
         - field: model
-          expression: 'llmRequest.model in ["agent-default", "tier-light", "tier-standard", "tier-frontier"] ? llmRequest.model : null'
+          expression: '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : llmRequest.model).with(m, m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"] ? m : null)'
 ---
 # `internal` only (gate AG5): Anthropic is internal's provider, and B6 counts
 # internal calls as Anthropic's (policy-budgets.yaml).

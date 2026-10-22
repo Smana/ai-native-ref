@@ -22,3 +22,4 @@ resources:
   - kvstore.yaml
   - ratelimit.yaml
   - policy-budgets.yaml
+  - policy-capabilities.yaml

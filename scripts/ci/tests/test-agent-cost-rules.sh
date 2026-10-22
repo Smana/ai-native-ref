@@ -62,6 +62,10 @@ dashboard = next(d for d in docs("observability/base/agent-platform/grafana-dash
 panel = next(p for p in json.loads(dashboard["spec"]["json"])["panels"] if p.get("title") == "Cost (USD)")
 # The panel as Grafana runs it on run "wire" over a 1h range ($${run} is Flux's escape for ${run}).
 query = panel["targets"][0]["expr"].replace("$${run}", "wire").replace("$__range", "1h")
+# The panel runs on VictoriaMetrics, where increase_pure counts a series from 0 (increase() skips a large
+# first value, which a run's new series always have). promtool has no increase_pure: it agrees with
+# increase() on series that start at 0, as these synthetic ones do.
+query = query.replace("increase_pure(", "increase(")
 if "$" in query or "'" in query:
     sys.exit(f"the Cost panel's query holds a variable this test does not set: {query}")
 yaml.safe_dump({"groups": [prices, {"name": "cost-alerts", "rules": [near, excludes, fleet]}]},

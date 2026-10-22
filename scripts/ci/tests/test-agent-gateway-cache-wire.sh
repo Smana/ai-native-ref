@@ -160,12 +160,12 @@ request control | curl -fsS --max-time 10 "http://$gw/v1/chat/completions" -H 'c
 curl -fsS --max-time 10 "http://$stats/metrics" > "$tmp/metrics.txt" || { echo "no metrics on $stats" >&2; exit 1; }
 request streamed | curl -fsS -N --max-time 10 "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- > "$tmp/stream.txt" \
   || { echo "the streamed request failed" >&2; exit 1; }
-# The gateway records a stream's usage as it ends: scrape until the series move, at most 5 seconds.
+# The gateway records a stream's usage as it ends: scrape until the output tokens have moved (the other types may land at another moment), at most 5 seconds.
 for _ in $(seq 1 10); do
   curl -fsS --max-time 10 "http://$stats/metrics" > "$tmp/metrics-stream.txt" || { echo "no metrics on $stats" >&2; exit 1; }
   grep '^agentgateway_gen_ai_client_token_usage_sum{' "$tmp/metrics.txt" > "$tmp/before.txt"
   grep '^agentgateway_gen_ai_client_token_usage_sum{' "$tmp/metrics-stream.txt" > "$tmp/after.txt"
-  cmp -s "$tmp/before.txt" "$tmp/after.txt" || break
+  cmp -s <(grep 'gen_ai_token_type="output"' "$tmp/before.txt") <(grep 'gen_ai_token_type="output"' "$tmp/after.txt") || break
   sleep 0.5
 done
 

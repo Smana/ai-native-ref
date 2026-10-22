@@ -226,10 +226,12 @@ run together in one gcp-0 session after PR 3.
 **Live proofs** (gcp-0; the drift check needs no cluster)
 
 1. `llm_gateway:charge_usd_per_mtoken` holds 24 series. A finished internal run's Cost panel is within
-   1% of the cost the meter reported for it.
+   1% of the cost the meter reported for it. Read it with `increase_pure`, as the panel does: VictoriaMetrics'
+   `increase()` skips a large first value, which a run's new series always have. The meter's
+   `agent_factory_model_cost_usd_total` is the exact reference.
 2. With only factory runs in the window, `AnthropicFleetNearCap`'s expression without its threshold is
    within 1% of the increase of the meter's `agent_factory_model_cost_usd_total` for the Claude models
-   over the same 24 hours.
+   over the same 24 hours. The alert's `increase()` form may read a few percent low on short runs (see 1).
 3. The factory starts on the USD keys with no deprecation warning. Today's
    `agent-factory-ledger-usd-<YYYYMMDD>` holds `spent`, `reserved` and `settled` in micro-USD, and per
    key `spent` equals the sum of its runs' `settled`.
@@ -289,4 +291,4 @@ Ruled in PR 1 ([plan](../plans/2026-10-22-truthful-costs-rule-plan.md#this-plans
   the drift check (offline proof 1); `test-agent-cost-rules`, promtool on the readers (offline proof 3).
 - **`AgentMeterInputExcludesCache`** compares the counter with an hour ago, absence read as 0, as the
   `agent_router:budget_*` rules do. The counter is born at its first increment, which promtool's
-  `increase()` reads as 0, so the expression first written in the table above could not be proven to fire.
+  `increase()` reads as 0, so the `increase(X[1h])` form the table first held could not be proven to fire.

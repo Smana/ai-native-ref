@@ -68,7 +68,8 @@ HEADER = """\
 # a call reaches is x-ar-model when the identity proxy pinned it (P4), else the body's, as in the
 # backends' `model` transformation. A refusal answers 403 and the access log names the run's sub.
 # 1.6 has no llm.requestModel before the backend parses the body, so the rule parses it: a body above
-# the frontend's 8Mi buffer, which the backend could not take either, is refused 403 rather than 413.
+# the frontend's 8Mi buffer, which the backend could not take either, is refused 403 rather than 413,
+# and so is a gzip body with no x-ar-model, which the rule reads raw.
 # 1.6 adds route rules to the listener's; the listener's Require is repeated in case that changes.
 """
 

@@ -177,6 +177,8 @@ Ruled in P2 and P4 ([plan](../plans/2026-10-22-capability-profiles-p2-p4-plan.md
   The listener's Require is repeated anyway, and gate AG14 asserts it with the rest of the rule.
 - **The gateway does not strip `x-ar-model`.** It would strip the proxy's value too; the proxy
   overwrites the harness's, and only the proxy holds a run token.
+- **A gzip request with no `x-ar-model` header, served before, is now refused 403**: the rule reads the
+  raw body. Accepted: the harness does not compress requests, and the proxy pins the header on every call.
 - **A 403 on a model call is acceptable**: it is a single stateless request, which the harness does
   not retry, and it ends the conversation as today's 400 for an unknown name does. The refusal's
   access log names the run's `sub`, so gate item 1's attribution holds in 1.6.0; #3996 concerns the

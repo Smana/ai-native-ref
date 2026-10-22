@@ -236,7 +236,8 @@ the generator renders one route-level `authorization` per listener into `policy-
 on the model routes but not `/v1/models`. A call whose model the caller's profile does not name is
 refused 403 before any upstream call, and the access log names the run. The model is `x-ar-model`
 when the run's identity proxy set it, else the body's, the same choice the backends' `model`
-transformation makes. Every profile lists the four aliases today, so the rule binds nothing until a
+transformation makes. The rule reads the raw body, so a gzip request with no `x-ar-model` is refused
+403 too. Every profile lists the four aliases today, so the rule binds nothing until a
 role moves to its own size: narrowing a profile is the switch, and gate AG14 refuses one that would
 refuse a model the factory's tiers pin.
 

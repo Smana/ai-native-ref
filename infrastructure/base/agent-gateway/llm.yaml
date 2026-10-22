@@ -8,15 +8,16 @@
 # ExternalSecret here before it deletes the Envoy files.
 #
 # Agent names (phase I, SP4 C5) are modelAliases on each backend, and only those
-# four names reach a model (design D8; gate AG12). The `model` transformation
-# nulls any other name, and 1.6 answers that 400 "model not specified" before
-# any upstream call (llm/mod.rs finalize_request_model; transformations read the
-# decompressed body, so gzip clients are judged too). No `*` alias and no
-# provider `model`: either would give an unlisted name a model. The name is
-# x-ar-model when the run's identity proxy pinned it (capability profiles P4),
-# else the body's: policy-capabilities.yaml judges the same choice, so nothing
-# may remove that header (AG12). The map is the
-# same on both Z.ai backends and mirrors the internal one (anthropic.yaml):
+# four names reach a model (design D8; gate AG12). On these routes
+# policy-capabilities.yaml refuses an unlisted name 403 first; behind it the
+# `model` transformation nulls any other name, which 1.6 answers 400 "model not
+# specified" before any upstream call (llm/mod.rs finalize_request_model). No
+# `*` alias and no provider `model`: either would give an unlisted name a model.
+# The name is x-ar-model when the run's identity proxy pinned it (capability
+# profiles P4), else the body's: the rule judges the same choice, so nothing may
+# remove that header (AG12). The rule reads the raw body, so a gzip request with
+# no x-ar-model is refused 403. The map is the same on both Z.ai backends and
+# mirrors the internal one (anthropic.yaml):
 #
 #   name            public (Z.ai)    internal (Anthropic)
 #   tier-light      glm-5.3-flash    claude-haiku-5-5

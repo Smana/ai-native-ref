@@ -103,6 +103,10 @@ model: shape it to fit, measure every change, let the best open model win on our
 feature is a go/no-go on the eval bench ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md), [how v3 is judged](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#how-v3-is-judged)).
 Reviewed against the field on 2026-10-21: the amendments and the owner's eight decisions are in the
 [review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-v3-review.md#decisions-for-the-owner), and the rows below carry them.
+Since 2026-10-22, v3 is built **offline first**: whatever can be proven without a cluster (unit,
+golden and container tests in CI, alert rule tests, drift gates) is built and merged before a
+platform runs, and the live gates then run together in sessions on `gcp-0`, each feature behind a
+switch that is off by default ([order of work](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#order-of-work)).
 
 | Feature | What it does for you | Gate |
 |---|---|---|
@@ -119,6 +123,7 @@ Reviewed against the field on 2026-10-21: the amendments and the owner's eight d
 | Slack intake | `@factory` in a thread drafts the issue; a ✅ from a maintainer files it and starts the work; the thread follows the room. Approvals stay in the rooms web UI | Live proof: a ✅ from someone who is not a maintainer is refused |
 | Capability profiles | What each role may call, declared once per role and data class and compiled into the gateway's rules: the models a role may name, the tools and arguments it may use (the reviewer cannot read the implementer's transcript, no tool reads a Secret), and one model pinned per run ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-capability-profiles-design.md)) | Live checks, and a gate that fails when the compiled rules drift from the profiles |
 | Prompt cache | The cache that cuts internal run costs by about three quarters, protected before it is tuned: an alert when the cache-read share drops, a wire test on the gateway's conversion of the harness's markers; then rarer condensation, and the 1-hour cache for attended runs once agentgateway carries the TTL ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-prompt-cache-design.md)) | An alert drill; the bench's cache-read share per step |
+| Spend per identity | One dashboard per person and per sponsored service account: dollars against its daily cap, tokens and cache-read share, runs and rooms, pull requests opened, merged and reverted, cost per accepted pull request, refusals, and how long runs waited on that person. A run started by a label counts for the person who labelled it ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-22)) | For a day, each identity's spend on the dashboard matches the meter's ledger |
 
 Not in v3: public work on Claude, a doc-writer or standalone architect agent, memory across tasks,
 parallel writers on one branch, switching models in the middle of a run ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#not-in-v3)), and

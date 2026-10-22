@@ -1,5 +1,5 @@
 # Rendered into mcp.yaml by scripts/ci/gen-capabilities.py --write (capability profiles design).
-# models is checked against the backends' aliases, not rendered, until P2.
+# models is rendered into policy-capabilities.yaml (P2): the aliases this role may call.
 role: triager
 dataClass: public
 models: [agent-default, tier-light, tier-standard, tier-frontier]

@@ -12,7 +12,12 @@
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../.." && pwd)"
-python3 -c 'import yaml' 2>/dev/null || { echo "SKIP: pyyaml not installed"; exit 77; }
+if ! python3 -c 'import yaml' 2>/dev/null; then
+  if [ "${CI:-}" = "true" ]; then
+    echo "FAIL  no PyYAML in CI: this is the capability profiles' offline proof and must run here"; exit 1
+  fi
+  echo "SKIP: pyyaml not installed"; exit 77
+fi
 if ! docker info >/dev/null 2>&1; then
   if [ "${CI:-}" = "true" ]; then
     echo "FAIL  no docker daemon in CI: this is the capability profiles' offline proof and must run here"; exit 1
@@ -174,7 +179,8 @@ expect "an unknown name is refused before the transformation's 400" "403 -" "$(c
 expect "no token is still 401" "401 -" "$(call "$gw_port" /v1/chat/completions "" tier-standard)"
 models="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://127.0.0.1:$gw_port/v1/models" -H "authorization: Bearer $(cat "$tmp/$R.jwt")")"
 expect "/v1/models keeps its 404: the rule does not target it" "404" "$models"
-docker logs "$gw" 2>&1 | grep 'http.status=403' | grep -q 'jwt.sub=system:serviceaccount:agents:xplane-run-wiretest' \
+gwlog="$(docker logs "$gw" 2>&1)"
+grep 'http.status=403' <<<"$gwlog" | grep -q 'jwt.sub=system:serviceaccount:agents:xplane-run-wiretest' \
   && echo "ok    a refusal's access log names the run (gate 1)" || fail "no 403 access log line names jwt.sub"
 
 [ "$fails" -eq 0 ] || { echo "$fails failure(s)"; exit 1; }

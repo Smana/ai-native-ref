@@ -9,6 +9,8 @@
 # Anthropic upstream, and checks the Messages body it emits and the token series it exports, which
 # the agent-cache alerts read. A control request without the markers proves the check can fail.
 # Standalone proves the conversion code, not the controller's translation of the CRDs.
+# A last request streams (truthful costs TC4): its reply must be counted as the others are, input
+# including the cache reads and writes, which llm_gateway:charge_usd_per_mtoken's join rests on.
 # With hostOverride set the upstream request keeps the client's path (/v1/chat/completions) while its
 # body is Messages; the fake answers any path, so nothing here depends on it.
 set -uo pipefail
@@ -30,7 +32,8 @@ trap 'docker rm -f "$name" >/dev/null 2>&1; [ -n "$fake_pid" ] && kill "$fake_pi
 port="$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1])')"
 
 cat > "$tmp/fake.py" <<'PY'
-"""Stands in for api.anthropic.com: records each request, answers one Messages reply with cache usage."""
+"""Stands in for api.anthropic.com: records each request, answers one Messages reply with cache usage,
+as events when the request streams."""
 import http.server
 import json
 import sys
@@ -44,16 +47,38 @@ REPLY = json.dumps({
 }).encode()
 
 
+def event(name, data):
+    return ("event: %s\ndata: %s\n\n" % (name, json.dumps(data))).encode()
+
+
+# The same usage as REPLY, split as Anthropic streams it: input and cache tokens in message_start,
+# the output count in message_delta.
+STREAM = b"".join([
+    event("message_start", {"type": "message_start", "message": {
+        "id": "msg_test", "type": "message", "role": "assistant", "model": "claude-opus-5-5",
+        "content": [], "stop_reason": None, "stop_sequence": None,
+        "usage": {"input_tokens": 100, "output_tokens": 1,
+                  "cache_read_input_tokens": 900, "cache_creation_input_tokens": 50}}}),
+    event("content_block_start", {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}}),
+    event("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "ok"}}),
+    event("content_block_stop", {"type": "content_block_stop", "index": 0}),
+    event("message_delta", {"type": "message_delta", "delta": {"stop_reason": "end_turn", "stop_sequence": None},
+                            "usage": {"output_tokens": 10}}),
+    event("message_stop", {"type": "message_stop"}),
+])
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
-        body = self.rfile.read(int(self.headers.get("content-length", 0)))
+        body = json.loads(self.rfile.read(int(self.headers.get("content-length", 0))))
         with open(OUT, "a") as f:
-            f.write(json.dumps({"path": self.path, "body": json.loads(body)}) + "\n")
+            f.write(json.dumps({"path": self.path, "body": body}) + "\n")
+        reply, kind = (STREAM, "text/event-stream") if body.get("stream") else (REPLY, "application/json")
         self.send_response(200)
-        self.send_header("content-type", "application/json")
-        self.send_header("content-length", str(len(REPLY)))
+        self.send_header("content-type", kind)
+        self.send_header("content-length", str(len(reply)))
         self.end_headers()
-        self.wfile.write(REPLY)
+        self.wfile.write(reply)
 
     def log_message(self, *args):
         pass
@@ -99,14 +124,14 @@ docker run -d --name "$name" --add-host=host.docker.internal:host-gateway \
 gw="$(docker port "$name" 3000/tcp | head -1)"
 stats="$(docker port "$name" 15020/tcp | head -1)"
 
-request() {  # $1: "marked" or "control"
+request() {  # $1: "marked", "control" or "streamed" (marked, and streamed)
   MODE="$1" python3 - <<'PY'
 import json
 import os
 
-bp = {"prompt_cache_breakpoint": {"mode": "explicit"}} if os.environ["MODE"] == "marked" else {}
+bp = {"prompt_cache_breakpoint": {"mode": "explicit"}} if os.environ["MODE"] != "control" else {}
 print(json.dumps({
-    "model": "agent-default", "max_tokens": 64,
+    "model": "agent-default", "max_tokens": 64, **({"stream": True} if os.environ["MODE"] == "streamed" else {}),
     "messages": [
         {"role": "system", "content": [{"type": "text", "text": "You are a test.", **bp}]},
         {"role": "user", "content": "list the files"},
@@ -133,8 +158,18 @@ done
 request control | curl -fsS --max-time 10 "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- >/dev/null \
   || { echo "the control request failed" >&2; exit 1; }
 curl -fsS --max-time 10 "http://$stats/metrics" > "$tmp/metrics.txt" || { echo "no metrics on $stats" >&2; exit 1; }
+request streamed | curl -fsS -N --max-time 10 "http://$gw/v1/chat/completions" -H 'content-type: application/json' -d @- > "$tmp/stream.txt" \
+  || { echo "the streamed request failed" >&2; exit 1; }
+# The gateway records a stream's usage as it ends: scrape until the output tokens have moved (the other types may land at another moment), at most 5 seconds.
+for _ in $(seq 1 10); do
+  curl -fsS --max-time 10 "http://$stats/metrics" > "$tmp/metrics-stream.txt" || { echo "no metrics on $stats" >&2; exit 1; }
+  grep '^agentgateway_gen_ai_client_token_usage_sum{' "$tmp/metrics.txt" > "$tmp/before.txt"
+  grep '^agentgateway_gen_ai_client_token_usage_sum{' "$tmp/metrics-stream.txt" > "$tmp/after.txt"
+  cmp -s <(grep 'gen_ai_token_type="output"' "$tmp/before.txt") <(grep 'gen_ai_token_type="output"' "$tmp/after.txt") || break
+  sleep 0.5
+done
 
-BODIES="$tmp/bodies.jsonl" METRICS="$tmp/metrics.txt" ROOT="$ROOT" python3 - <<'PY'
+BODIES="$tmp/bodies.jsonl" METRICS="$tmp/metrics.txt" STREAMED="$tmp/metrics-stream.txt" ROOT="$ROOT" python3 - <<'PY'
 import json
 import os
 import re
@@ -150,10 +185,11 @@ def check(ok, message):
 aliases = next(d for d in yaml.safe_load_all(open(os.path.join(os.environ["ROOT"], "infrastructure/base/agent-gateway/anthropic.yaml")))
                if d and d["kind"] == "AgentgatewayBackend")["spec"]["policies"]["ai"]["modelAliases"]
 bodies = [json.loads(line)["body"] for line in open(os.environ["BODIES"])]
-# The readiness loop resends the marked request until the gateway answers: the control is last.
-check(len(bodies) >= 2, f"the fake upstream received {len(bodies)} requests, want at least 2 (marked, control)")
-marked, control = bodies[-2], bodies[-1]
-n = len(bodies)
+# The readiness loop resends the marked request until the gateway answers: the control and the
+# streamed request come last, and the first scrape counts every reply before the streamed one.
+check(len(bodies) >= 3, f"the fake upstream received {len(bodies)} requests, want at least 3 (marked, control, streamed)")
+marked, control, streamed = bodies[-3], bodies[-2], bodies[-1]
+n = len(bodies) - 1
 EPHEMERAL = {"type": "ephemeral"}
 
 check(marked.get("model") == aliases["agent-default"],
@@ -175,19 +211,33 @@ if results:
 check("cache_control" not in json.dumps(control),
       "a request without prompt_cache_breakpoint carries no cache_control: the check can fail")
 
-usage = {}
-for line in open(os.environ["METRICS"]):
-    if line.startswith("agentgateway_gen_ai_client_token_usage_sum{"):
-        labels = dict(re.findall(r'(\w+)="([^"]*)"', line.split("}")[0]))
-        usage[labels.get("gen_ai_token_type")] = usage.get(labels.get("gen_ai_token_type"), 0) + float(line.rsplit(" ", 1)[1])
-        check(labels.get("gen_ai_system") == "anthropic",
-              f"the token series name the provider gen_ai_system=anthropic, which the alerts select after the relabel, got {labels}")
+def token_usage(path):
+    """{gen_ai_token_type: tokens} summed over the gateway's token series in one scrape."""
+    usage = {}
+    for line in open(path):
+        if line.startswith("agentgateway_gen_ai_client_token_usage_sum{"):
+            labels = dict(re.findall(r'(\w+)="([^"]*)"', line.split("}")[0]))
+            usage[labels.get("gen_ai_token_type")] = usage.get(labels.get("gen_ai_token_type"), 0) + float(line.rsplit(" ", 1)[1])
+            check(labels.get("gen_ai_system") == "anthropic",
+                  f"the token series name the provider gen_ai_system=anthropic, which the alerts select after the relabel, got {labels}")
+    return usage
+
+
+usage = token_usage(os.environ["METRICS"])
 check({"input", "output", "input_cache_read", "input_cache_write"} <= set(usage),
       f"the token types vmpodscrape.yaml relabels exist, got {sorted(usage)}")
 # Each reply reports input 100, cache read 900, cache write 50: the agent-cache rules divide reads by
 # input, which holds only while input counts the cached tokens too.
 check(usage.get("input_cache_read") == 900 * n and usage.get("input") == 1050 * n,
       f"over {n} replies, input includes cache reads and writes ({n} x 1050) and reads are {n} x 900, as agent-cache's share assumes, got {usage}")
+
+# Truthful costs TC4: the streamed reply is counted as the others, which the charge join and the
+# meter's cost() both read as input including cache tokens.
+check(streamed.get("stream") is True, f"the last request reached the upstream as a stream, got stream={streamed.get('stream')}")
+after = token_usage(os.environ["STREAMED"])
+delta = {t: after.get(t, 0) - usage.get(t, 0) for t in ("input", "input_cache_read", "input_cache_write", "output")}
+check(delta == {"input": 1050, "input_cache_read": 900, "input_cache_write": 50, "output": 10},
+      f"a streamed reply counts input 1050 (cache reads and writes included), reads 900, writes 50, output 10, got {delta}")
 
 if fails:
     print("\n".join("FAIL  " + f for f in fails), file=sys.stderr)

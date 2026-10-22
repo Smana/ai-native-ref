@@ -2,6 +2,7 @@
 
 **Date:** 2026-10-22 · **Status:** approved design 2026-10-22; TC1–TC10 record the owner's
 decisions, and the details they left open are ruled where they appear, each with its reason ·
+**PR 1 built** ([plan](../plans/2026-10-22-truthful-costs-rule-plan.md)) ·
 **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#before-v3-starts), "Before v3 starts",
 truthful costs; this is its first part, B-2 holds the rest ([Not in this design](#not-in-this-design)) ·
 **Research:** [model pricing](2026-10-20-model-pricing-research.md#recommendations), recommendations 1,
@@ -155,7 +156,7 @@ warning naming each; the next release removes them, and the strict decoder then 
 |---|---|---|---|
 | `AnthropicFleetNearCap` | `input\|output` × the price, > 13.6 | the four types × the charge, > 13.6 | 1 |
 | `agent-run` Cost panel | the same | the same | 1 |
-| `AgentMeterInputExcludesCache` (new, `vmrule-agent-factory.yaml`) | — | `sum by (model) (increase(agent_factory_meter_input_excludes_cache_runs_total[1h])) > 0` | 1 |
+| `AgentMeterInputExcludesCache` (new, `vmrule-agent-factory.yaml`) | — | `sum by (model) (clamp_min(X - (X offset 1h or X * 0), 0)) > 0`, X being `agent_factory_meter_input_excludes_cache_runs_total` (promtool's `increase()` reads a counter born at 1 as 0) | 1 |
 | `AgentFactoryDailyBudgetHigh` | `1 − remaining_tokens / cap_tokens > 0.8` | `agent_factory_budget_spent_usd / agent_factory_budget_cap_usd > 0.8` | 3 |
 | `agent-factory` dashboard, budget panel | `remaining_tokens / cap_tokens` | `remaining_usd / cap_usd` | 3 |
 | `AgentPersonCapShadowRefusal` description | names `agent-factory-ledger-<YYYYMMDD>` | names the USD ledger | 3 |
@@ -225,10 +226,12 @@ run together in one gcp-0 session after PR 3.
 **Live proofs** (gcp-0; the drift check needs no cluster)
 
 1. `llm_gateway:charge_usd_per_mtoken` holds 24 series. A finished internal run's Cost panel is within
-   1% of the cost the meter reported for it.
+   1% of the cost the meter reported for it. Read it with `increase_pure`, as the panel does: VictoriaMetrics'
+   `increase()` skips a large first value, which a run's new series always have. The meter's
+   `agent_factory_model_cost_usd_total` is the exact reference.
 2. With only factory runs in the window, `AnthropicFleetNearCap`'s expression without its threshold is
    within 1% of the increase of the meter's `agent_factory_model_cost_usd_total` for the Claude models
-   over the same 24 hours.
+   over the same 24 hours. The alert's `increase()` form may read a few percent low on short runs (see 1).
 3. The factory starts on the USD keys with no deprecation warning. Today's
    `agent-factory-ledger-usd-<YYYYMMDD>` holds `spent`, `reserved` and `settled` in micro-USD, and per
    key `spent` equals the sum of its runs' `settled`.
@@ -278,3 +281,14 @@ Ruled in PR 4 ([plan](../plans/2026-10-22-price-drift-check-plan.md#this-plans-r
 - **The issue:** its body depends only on the findings, so a night with the same findings leaves the
   issue alone. A catalog that lists none of the rows fails the run, as one that cannot be parsed does.
 - **The cron:** 04:17 UTC.
+
+Ruled in PR 1 ([plan](../plans/2026-10-22-truthful-costs-rule-plan.md#this-plans-rulings)):
+
+- **The generator** renders the whole `llm-gateway-prices` group and splices it in place: the comment
+  above it and the other group stay hand-written. Charges are exact decimals with at least two places
+  (`-1.14`, `0.125`, `0.00`), and the written file must parse back to the rendering.
+- **The suites:** `test-gen-prices`, the generator's unit tests (offline proof 2); `test-agent-prices`,
+  the drift check (offline proof 1); `test-agent-cost-rules`, promtool on the readers (offline proof 3).
+- **`AgentMeterInputExcludesCache`** compares the counter with an hour ago, absence read as 0, as the
+  `agent_router:budget_*` rules do. The counter is born at its first increment, which promtool's
+  `increase()` reads as 0, so the `increase(X[1h])` form the table first held could not be proven to fire.

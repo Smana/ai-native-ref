@@ -176,6 +176,14 @@ expect "x-ar-model wins over the body" "200 claude-haiku-5-5" "$(call "$gw_port"
 expect "a pinned model the profile does not name is refused" "403 -" "$(call "$gw_port" /v1/chat/completions $R tier-standard tier-frontier)"
 expect "another role keeps its own list" "200 claude-opus-5-5" "$(call "$gw_port" /v1/chat/completions agent-router.implementer.internal tier-frontier)"
 expect "an unknown name is refused before the transformation's 400" "403 -" "$(call "$gw_port" /v1/chat/completions $R gpt-9)"
+# A body with no model, and an empty pin: the rule's CEL errors or finds no alias, and either must refuse.
+nomodel() {  # nomodel <aud> [x-ar-model header value]: status of a body with no model
+  curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://127.0.0.1:$gw_port/v1/chat/completions" \
+    -H "authorization: Bearer $(cat "$tmp/$1.jwt")" -H 'content-type: application/json' "${@:2}" \
+    -d '{"max_tokens": 8, "messages": [{"role": "user", "content": "hi"}]}'
+}
+expect "a body with no model is refused 403" "403" "$(nomodel $R)"
+expect "an empty x-ar-model is refused 403" "403" "$(nomodel $R -H 'x-ar-model;')"
 expect "no token is still 401" "401 -" "$(call "$gw_port" /v1/chat/completions "" tier-standard)"
 models="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://127.0.0.1:$gw_port/v1/models" -H "authorization: Bearer $(cat "$tmp/$R.jwt")")"
 expect "/v1/models keeps its 404: the rule does not target it" "404" "$models"

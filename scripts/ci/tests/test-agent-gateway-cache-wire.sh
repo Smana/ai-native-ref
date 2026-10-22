@@ -77,6 +77,8 @@ config = {
                    "modelAliases": backend["modelAliases"]},
             "backendAuth": {"key": "test-key"},
         },
+        # The gateway resolves this name from the /etc/hosts entry --add-host writes (proven against
+        # the v1.6.0 binary with an /etc/hosts-only name).
         "backends": [{"ai": {"name": "anthropic", "provider": {"anthropic": {}},
                              "hostOverride": "host.docker.internal:%s" % os.environ["PORT"]}}],
     }]}]}],

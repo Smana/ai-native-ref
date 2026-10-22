@@ -293,6 +293,36 @@ tests:
         alertname: AgentCacheReadShareLow
         exp_alerts:
           - exp_labels: {severity: warning, ar_agent: "system:serviceaccount:agents:xplane-run-zero"}
+  # A dropped marker whose cached_input series exists at zero (Anthropic answers
+  # cache_read_input_tokens: 0 on every reply): the same alerts fire as for an absent series.
+  - interval: 30s
+    input_series:
+      - series: '${S}zeroseries", gen_ai_token_type="input"}'
+        values: '0+20000x40'
+      - series: '${S}zeroseries", gen_ai_token_type="cached_input"}'
+        values: '0x40'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: AgentCacheReadZero
+        exp_alerts:
+          - exp_labels: {severity: critical, ar_agent: "system:serviceaccount:agents:xplane-run-zeroseries"}
+      - eval_time: 16m
+        alertname: AgentCacheReadShareLow
+        exp_alerts:
+          - exp_labels: {severity: warning, ar_agent: "system:serviceaccount:agents:xplane-run-zeroseries"}
+  # A run that dropped its marker and then ended: input reaches 120k and stays flat (the gateway
+  # keeps exporting the series). It fires at 3m; at 20m the 15m window (5m-20m) holds no increase,
+  # so the alert has resolved.
+  - interval: 30s
+    input_series:
+      - series: '${S}ended", gen_ai_token_type="input"}'
+        values: '0+20000x6 120000x40'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: AgentCacheReadZero
+        exp_alerts:
+          - exp_labels: {severity: critical, ar_agent: "system:serviceaccount:agents:xplane-run-ended"}
+      - {eval_time: 20m, alertname: AgentCacheReadZero, exp_alerts: []}
   # A healthy run: 90% read. Neither fires.
   - interval: 30s
     input_series:
@@ -367,7 +397,7 @@ At the end of the file, at the indentation of `- name: agent-gateway`:
         - record: agent_run:cache_read_share:ratio15m
           expr: (sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="cached_input"}[15m])) or sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}[15m])) * 0) / sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}[15m]))
         - alert: AgentCacheReadZero
-          expr: sum by (ar_agent) (gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}) >= 100000 unless on (ar_agent) sum by (ar_agent) (gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="cached_input"}) > 0
+          expr: sum by (ar_agent) (gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}) >= 100000 unless on (ar_agent) sum by (ar_agent) (gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="cached_input"}) > 0 and on (ar_agent) sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}[15m])) > 0
           labels:
             severity: critical
           annotations:

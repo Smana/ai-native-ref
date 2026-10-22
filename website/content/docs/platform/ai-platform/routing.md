@@ -239,12 +239,19 @@ read `classifier: static, fallback: static`.
 
 ## What a call costs {#costs}
 
-### Two price tables, and which one counts
+### One price table
 
-| Table | Where | Cache-aware | Used by |
-|---|---|---|---|
-| `meter.prices` | `tooling/base/agent-factory/helm-values-configmap.yaml` | **yes**: `input`, `cacheRead`, `cacheWrite`, `output` | The run meter's USD caps, and the gateway budgets B1, B2, B6, whose CEL cost string gate AG8 regenerates from it. **This is the price that counts** |
-| `llm_gateway:price_usd_per_mtoken` | `infrastructure/base/llm-gateway/vmrule-llm-gateway.yaml` | no: input and output only | The `agent-run` dashboard's *Cost (USD)* panel and the `AnthropicFleetNearCap` alert |
+`meter.prices`, in `tooling/base/agent-factory/helm-values-configmap.yaml`, is the only place a
+price is edited. Every dollar figure on this page comes from it, and `task check` fails when a copy
+drifts:
+
+| Reader | Its copy of the table | Held by |
+|---|---|---|
+| The run meter: USD run and task caps, `agent_factory_run_cost_usd`, the `Task`'s `costMicroUSD` | The factory's config itself | — |
+| Gateway budgets B1, B2, B6 | A CEL cost string in `infrastructure/base/agent-gateway/policy-budgets.yaml` | Gate AG8 regenerates it |
+| The `agent-run` dashboard's *Cost (USD)* panel, `AnthropicFleetNearCap` | `llm_gateway:charge_usd_per_mtoken`, the `llm-gateway-prices` group of `infrastructure/base/llm-gateway/vmrule-llm-gateway.yaml` | `test-agent-prices`: the group is what `scripts/ci/gen-prices.py` renders |
+
+A price change is the row's edit and `python3 scripts/ci/gen-prices.py --write`, in one commit.
 
 `meter.prices`, USD per million tokens, list prices read 2026-10-16:
 
@@ -265,13 +272,35 @@ LiteLLM and models.dev. A disagreement, or a row a catalog stops listing, opens 
 labelled `prices-drift`, and the first clean run closes it. The check never edits the table: catalogs
 copy the providers' page mistakes, so a person confirms each finding on the provider's page first.
 
-{{< callout type="warning" >}}
-**The dashboard's cost panel and `AnthropicFleetNearCap` overstate spend.** They multiply `input`,
-cache reads included, by the full input price. At the measured mix that is about 4× the meter's
-figure (see [caching](#caching)). The recording rule also lists `claude-haiku-5-5` at 0.10 / 0.50,
-where `meter.prices` has 0.50 / 2.50. For money, read `agent_factory_run_cost_usd` or the `Task`'s
+### The charge series
+
+The gateways count cache tokens inside `input` (see the meter's formula below), so the recording
+rule holds a charge, not a price: what one counted token of each type adds to the cost.
+
+| `gen_ai_token_type` | Charge | `claude-opus-5-5` |
+|---|---|---|
+| `input` | `input` | 4.00 |
+| `output` | `output` | 20.00 |
+| `cached_input` | `cacheRead` − `input` | −3.80 |
+| `cache_creation_input` | `cacheWrite` − `input`; 0 where no write is billed (Z.ai) | 1.00 |
+
+A cost over a window is one join, to which each reader adds its own selector:
+
+```promql
+sum(
+  sum by (gen_ai_request_model, gen_ai_token_type) (
+    increase(gen_ai_client_token_usage_sum{gen_ai_token_type=~"input|output|cached_input|cache_creation_input"}[24h])
+  )
+  * on (gen_ai_request_model, gen_ai_token_type) group_left() llm_gateway:charge_usd_per_mtoken
+) / 1e6
+```
+
+The reply the wire test sends on Opus, 1,050 input of which 900 read and 50 written, and 10 output,
+reads 1050 × 4.00 − 900 × 3.80 + 50 × 1.00 + 10 × 20.00 = 1,030 per million, **$0.00103**: the
+meter's 100 × 4.00 + 900 × 0.20 + 50 × 5.00 + 10 × 20.00. The list-price rule it replaced read 4.3×
+that. `reasoning` is inside `output` and has no charge. The join prices the whole window at today's
+charges; what each run was charged stays in `agent_factory_run_cost_usd` and the `Task`'s
 `costMicroUSD`.
-{{< /callout >}}
 
 ### The meter's formula
 
@@ -291,10 +320,14 @@ flowchart LR
 - **Keyed by the served model**, not the logical name: `agent-default` is GLM-5.3 on one listener
   and Opus on the other. A model with no price row is never treated as free: its run falls back to
   its token caps and `AgentModelUnpriced` fires.
-- **The `input` series includes cache tokens** on Z.ai and on the non-streaming Chat Completions to
-  Messages path, and excludes them on a streamed call or native Messages. The meter subtracts the
-  cache tokens unless `input` is smaller than them, in which case it prices all of `input` as fresh
-  (`inputExcludesCache`, agent-platform `internal/factory/meter/meter.go`).
+- **The `input` series includes cache tokens** on every path this platform runs: Z.ai's OpenAI
+  usage, and agentgateway's Chat Completions to Messages translation, streamed or not.
+  `test-agent-gateway-cache-wire` asserts both at every agentgateway pin; the meter's comment that a
+  stream leaves them out predates the measurement. The meter subtracts the cache tokens unless
+  `input` is smaller than them, in which case it prices all of `input` as fresh
+  (`inputExcludesCache`, agent-platform `internal/factory/meter/meter.go`) and counts the run in
+  `agent_factory_meter_input_excludes_cache_runs_total`. `AgentMeterInputExcludesCache` fires on it:
+  the charge series would under-count such a run, down to a negative cost.
 - **Overshoot is one scrape plus one response.** The run is revoked on the meter's next tick, and
   calls already in flight complete.
 
@@ -506,7 +539,7 @@ to the 0.2 config with the documented 0.70–0.75 threshold: it never fires.
 | `agent-gateway` | Tokens by type as the meter reads them, tokens per agent, B1–B2 counted and would-refuse, model latency |
 | `agent-factory` | Tokens per finished task p90, budget left today, budget fit by classifier, class mismatches |
 | `agent-fleet` | Tokens per run, tier against tokens and steps, tokens by tier |
-| `agent-run` | One run: tokens against budget, model calls. Its *Cost (USD)* panel overstates; see [costs](#costs) |
+| `agent-run` | One run: tokens against budget, model calls. Its *Cost (USD)* panel prices the run from `llm_gateway:charge_usd_per_mtoken`; see [costs](#costs) |
 | *LLM Gateway — Envoy AI Gateway GenAI Telemetry*, *LLM Platform — Self-hosted vLLM Fleet* | Serving: tokens per model, base against canary, TTFT, queue and KV cache. Folder `llm`, present only while `llm-platform` runs |
 
 Signal definitions and alerts are on
@@ -519,7 +552,6 @@ Signal definitions and alerts are on
 | No triage classifier | Every task is `standard`; the tier never reflects difficulty | SP4 PR 5 |
 | Every tier is `agent-default` | Tiers change caps, not models; the reviewer shares the implementer's model | A measured tier move |
 | Daily budgets in raw tokens | The fleet's day runs out after about $10 at today's cache mix | A USD daily cap |
-| Two price tables disagree | Dashboard cost and `AnthropicFleetNearCap` overstate; Haiku is mispriced in the recording rule | One table, from `meter.prices` |
 | The router fails closed, on one replica | A router outage fails every `ai-gateway` request, `tier-frontier` included | SP4 PR 4 |
 | PII classifier loaded, read by no decision | No data-class protection on `MoM` today. Harmless while every `MoM` target is local | SP4 PR 4 (`NOT pii_any` on the frontier decision) |
 | No Semantic Router series in VictoriaMetrics on `gcp-0` | The router's decisions cannot be read from metrics today | Not investigated |

@@ -21,8 +21,7 @@ COLUMNS = ["issue", "arm", "pr", "tokens_in", "tokens_cached", "tokens_out", "us
 VERDICTS = {"merged-as-is", "merged-after-edits", "rejected-fixable", "rejected-wrong", ""}
 ENDED = {"pr", "escalated", "timeout", "budget-exhausted", "no-pr"}
 ARM_LABEL = {"A": "factory/ready", "B": "cohort/arm-b", "C": "cohort/arm-c"}
-# USD per 1M. 1.40 in, 4.40 out: vmrule-llm-gateway.yaml. 0.26 cached: Z.ai list price; the gateway's
-# VMRule prices input and output only.
+# USD per 1M: glm-5.3's row in meter.prices (tooling/base/agent-factory/helm-values-configmap.yaml).
 GLM = {"in": 1.40, "cached": 0.26, "out": 4.40}
 REPO = "Smana/cloud-native-ref"
 MAINTAINER = "Smana"

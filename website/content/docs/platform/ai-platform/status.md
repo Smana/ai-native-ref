@@ -31,12 +31,10 @@ flowchart LR
     caps["Per-person caps"]
   end
   subgraph next["Next: v3"]
-    bench["Eval bench"]
     scoper["Scoper and stall limit"]
     checks["Repository checks in the sandbox"]
     tester["Test-first tester"]
     split["Splitter"]
-    bake["Open-weight bake-off"]
     classes["More auto-merge classes"]
   end
   landed --> progress --> next
@@ -89,7 +87,7 @@ v3 resume there, in the [order below](#before-v3).
    ([pricing research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-model-pricing-research.md)).
 3. Per-person caps: a longer shadow record before enforcing; v3's machine callers that start work wait on it.
 4. The breaker's live proof and the revert's unattended merge, at the next link-fix pull request and revert.
-5. The prompt cache's alert and wire test; each run's provenance recorded on its task; the docs
+5. The prompt cache's alert and wire test; each run's provenance recorded on its task ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-run-provenance-design.md)); the docs
    fixes the review lists ([R4, R8 to R10](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-v3-review.md#2-issues-found)).
 
 <span id="v2-roadmap"></span>
@@ -100,30 +98,28 @@ v3 makes the factory **land more accepted pull requests per dollar on the models
 work stays on open-weight models and internal work on Claude, so the lever is the task, not the
 model: shape it to fit, measure every change, let the best open model win on our own issues. We are
 [on the road to a dark factory](#dark-factory), one proven lane at a time. Each
-feature is a go/no-go on the eval bench ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md), [how v3 is judged](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#how-v3-is-judged)).
+feature is a go/no-go (the eval bench is [deferred](#later)) ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md), [how v3 is judged](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#how-v3-is-judged)).
 Reviewed against the field on 2026-10-21: the amendments and the owner's eight decisions are in the
 [review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-v3-review.md#decisions-for-the-owner), and the rows below carry them.
 Since 2026-10-22, v3 is built **offline first**: whatever can be proven without a cluster (unit,
 golden and container tests in CI, alert rule tests, drift gates) is built and merged before a
 platform runs, and the live gates then run together in sessions on `gcp-0`, each feature behind a
-switch that is off by default ([order of work](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#order-of-work)).
+switch that is off by default. Since the same day the eval bench is deferred to [Later](#later) until a sponsor funds its sessions: a class is switched on after its offline proofs pass and a live proof on real issues in a platform session, with acceptance and cost per accepted pull request read from the meter and the factory's outcomes, per identity with spend per identity ([order of work](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#order-of-work)).
 
 | Feature | What it does for you | Gate |
 |---|---|---|
-| Eval bench | A fixed set of hard and routine issues, three runs each, scored on acceptance and cost per accepted pull request: every change below is judged on it. Each run records the harness, composition and factory versions it ran on, the model served and its cache-read share | A baseline, with its run-to-run spread |
-| Scoper | Rewrites a vague issue into a bounded task with acceptance criteria and the check that proves it, taken from a short steering note per class, or asks its author the question it could not answer. Its acceptance checks are what the judge below reads | Fewer wandering runs, acceptance not lower |
+| Scoper ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-scoper-design.md)) | Rewrites a vague issue into a bounded task with acceptance criteria and the check that proves it, taken from a short steering note per class, or asks its author the question it could not answer. Its acceptance checks are what the judge below reads | Fewer wandering runs, acceptance not lower |
 | Loop policy | A run with no commit by its step limit stops and posts what it found. After each run an independent judge with a fresh context says met, not yet or impossible against the scoper's checks; a not-yet continues the same conversation at most twice, so the prompt cache survives; an impossible goes to a human. The reviewer never reads the implementer's transcript, and its verdict carries the evidence it ran ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-loops-and-teams-design.md)) | Less spend on wandering runs, cost per accepted pull request not higher |
-| Repository checks in the sandbox | The agent runs the same checks as the CI before it pushes, so it fixes a failure without a CI round-trip. A feedback loop, not a second gate: the CI stays the only judge | Fewer fix runs after a red CI, acceptance not lower |
-| Test-first tester | The tester writes the failing test first; it becomes the implementer's contract. A test counts only if it fails on the base and passes on the head, and every live class keeps holdout checks the implementer cannot read | Acceptance rises on routine issues |
+| Repository checks in the sandbox ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-sandbox-checks-design.md)) | The agent runs the same checks as the CI before it pushes, so it fixes a failure without a CI round-trip. A feedback loop, not a second gate: the CI stays the only judge | Fewer fix runs after a red CI, acceptance not lower |
+| Test-first tester ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-test-first-tester-design.md)) | The tester writes the failing test first; it becomes the implementer's contract. A test counts only if it fails on the base and passes on the head, and every live class keeps holdout checks the implementer cannot read | Acceptance rises on routine issues |
 | Search as a tool | The implementer asks a read-only search helper with a fresh context, a child conversation on the run's own token with a hard budget, instead of reading the repository itself | Fewer steps at equal acceptance |
 | Splitter | A hard issue becomes sub-issues, each with its own check, built through the usual templates | Hard issues land through their sub-issues |
-| Open-weight bake-off | Six open models compete on our issues and on Terminal-Bench-shaped tasks; the winner per class becomes the implementer's model. The scoper and the reviewer may run on a stronger model of the same provider and the judge on the cheapest, chosen per role and never changed inside a run; internal work stays on Claude | A model beats GLM-5.3 on cost per accepted pull request |
-| More auto-merge classes | Beyond link fixes and reverts: first a class with a machine oracle (a scanner's alert starts the fix, the scanner's re-run is the proof), then dependency bumps limited to patch versions with a green CI. Each class is a declared risk tier, proven by a live drill, widened only on its own revert and follow-up-fix rates, and watched by a post-merge monitor that feeds the breaker | Each class stays within the breaker's revert budget |
+| More auto-merge classes ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-merge-gate-classes-design.md)) | Beyond link fixes and reverts: first a class with a machine oracle (a scanner's alert starts the fix, the scanner's re-run is the proof), then dependency bumps limited to patch versions with a green CI. Each class is a declared risk tier, proven by a live drill, widened only on its own revert and follow-up-fix rates, and watched by a post-merge monitor that feeds the breaker | Each class stays within the breaker's revert budget |
 | Factory interfaces | An MCP server on the rooms: your coding agent, a CI job or another agent lists rooms, reads a summary, follows a run, queues a note for its next run, forks a room and drafts an issue, with the standing roomctl has. A service account sponsored by a maintainer may also start work, under a mandatory cost ceiling and the maintainer's name. Signed webhooks, declared in the factory's config, tell your systems when a room needs you ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-factory-interfaces-design.md)) | Live proofs: a forged or replayed webhook is rejected, a start without a ceiling is refused |
 | Slack intake | `@factory` in a thread drafts the issue; a ✅ from a maintainer files it and starts the work; the thread follows the room. Approvals stay in the rooms web UI | Live proof: a ✅ from someone who is not a maintainer is refused |
 | Capability profiles | What each role may call, declared once per role and data class and compiled into the gateway's rules: the models a role may name, the tools and arguments it may use (the reviewer cannot read the implementer's transcript, no tool reads a Secret), and one model pinned per run ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-capability-profiles-design.md)) | Live checks, and a gate that fails when the compiled rules drift from the profiles |
-| Prompt cache | The cache that cuts internal run costs by about three quarters, protected before it is tuned: an alert when the cache-read share drops, a wire test on the gateway's conversion of the harness's markers; then rarer condensation, and the 1-hour cache for attended runs once agentgateway carries the TTL ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-prompt-cache-design.md)) | An alert drill; the bench's cache-read share per step |
-| Spend per identity | One dashboard per person and per sponsored service account: dollars against its daily cap, tokens and cache-read share, runs and rooms, pull requests opened, merged and reverted, cost per accepted pull request, refusals, and how long runs waited on that person. A run started by a label counts for the person who labelled it ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-22)) | For a day, each identity's spend on the dashboard matches the meter's ledger |
+| Prompt cache | The cache that cuts internal run costs by about three quarters, protected before it is tuned: an alert when the cache-read share drops, a wire test on the gateway's conversion of the harness's markers; then rarer condensation, and the 1-hour cache for attended runs once agentgateway carries the TTL ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-prompt-cache-design.md)) | An alert drill; the meter's cache-read share per step |
+| Spend per identity ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-spend-per-identity-design.md)) | One dashboard per person and per sponsored service account: dollars against its daily cap, tokens and cache-read share, runs and rooms, pull requests opened, merged and reverted, cost per accepted pull request, refusals, and how long runs waited on that person. A run started by a label counts for the person who labelled it ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-22)) | For a day, each identity's spend on the dashboard matches the meter's ledger |
 
 Not in v3: public work on Claude, a doc-writer or standalone architect agent, memory across tasks,
 parallel writers on one branch, switching models in the middle of a run ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#not-in-v3)), and
@@ -153,13 +149,15 @@ which is why each lane is reversible by one label.
 
 | Feature | When |
 |---|---|
+| Eval bench: a fixed set of hard and routine issues, three runs each, scored on acceptance and cost per accepted pull request, each run recording the harness, composition and factory versions, the model served and its cache-read share ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-eval-bench-design.md)). Parked by the owner on 2026-10-22: a session costs about $400 against a $600 budget | If a sponsor funds the bench sessions |
+| Open-weight bake-off: six open models compete on our issues and on Terminal-Bench-shaped tasks; the winner per class becomes the implementer's model. Needs the bench | If a sponsor funds the bench sessions, with the bench |
 | Install on any Kubernetes, and a run runtime without the gateway | Designed in agent-platform ([portable run runtime](https://github.com/Smana/agent-platform/blob/main/docs/superpowers/specs/2026-10-18-portable-run-runtime-design.md), [install anywhere](https://github.com/Smana/agent-platform/blob/main/docs/superpowers/specs/2026-10-18-install-anywhere-design.md)). v3 targets the gateway runtime this platform runs: the loop policy, the scoper and the splitter work on both, while profiles, budgets, model pins and the cache markers exist only behind the gateway |
 | Agent-to-agent protocols and trackers: an A2A card over the same task states; Jira or Linear as delegates | When a consumer speaks A2A or a tracker is in use; the state vocabulary is kept ready for it |
 | Webhook subscribers registered through an API, limited to hosts already declared in the config | When subscribers outgrow a reviewed list |
 | Finer permissions: an external policy decision point; a token exchanged per backend | When a policy outgrows the compiled gateway rules, or a backend needs its own audience |
 | Substrate as the sandbox runtime | Spike passed on `gcp-0` 2026-10-18: a run restores on another node with its conversation intact, and warm-starts in 2.9 s. Not adopted now (beta kubelet gates, a second control plane, no published images); next look 2026-12-15, or sooner if those costs shrink upstream ([spike](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-17-substrate-spike.md#conclusion)) |
 | The warm pool: pre-warmed sandboxes handed to a run (binder W1) | Needs the owner's acceptance of the binder's token-minting authority, unless agent-sandbox's warm pools replace it ([results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)) |
-| A continuation loop that picks a PR's next step from its state | Only if the bench shows tasks abandoned on PRs that could still have been fixed |
+| A continuation loop that picks a PR's next step from its state | Only if the factory's outcomes show tasks abandoned on PRs that could still have been fixed |
 | Untrusted-input hardening: an agent that writes only through validated outputs | When a repository takes issues from people outside its maintainers |
 
 ### Serving {#serving-roadmap}

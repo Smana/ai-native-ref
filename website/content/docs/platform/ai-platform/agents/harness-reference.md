@@ -95,6 +95,7 @@ implementer's tier.
 | `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
 | `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since agent-platform v0.16.0, pinned here at v0.19.0). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
 | `loops.<class>` | only `default: {scope: off}`: **no class has a row (D4)** | The loop policy and the scope, off for every class. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
+| `loops.<class>.search` | absent: **off for every class (D4)** | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/harness.md#search" >}}) |
 
 ## Factory: what a brief holds {#brief}
 
@@ -143,6 +144,7 @@ Only `budget.maxTokens` can change on a live run. The factory always writes `siz
 | `roomRef` | — | Adds the room-bridge sidecar and the room rules |
 | `suspendable` | — | `/workspace` on a PVC, so the run can be suspended |
 | `loop.checks` | — | Runs the repository's checks in the sandbox: `AGENT_CHECKS=1`, refused on `internal` |
+| `loop.search` | — | The `search` tool for an implementer: `AGENT_SEARCH=1`. Alone, no loop policy |
 
 ## Composition {#composition}
 
@@ -152,7 +154,7 @@ turns the claim into the pod. Nothing here is set per run.
 | Setting | Value |
 |---|---|
 | Harness image | `ghcr.io/smana/agent-harness:v0.15.2@sha256:c49c…`: a harness change reaches runs only through this digest |
-| Environment | `MODEL`, `DATA_CLASS`, `ROLE`, `LLM_BASE_URL`, `MCP_URL`, `TASK_FILE`, `RULES_FILE`, tracing; `AGENT_CHECKS` and `AGENT_RUN_SECONDS` with `loop.checks`. `LLM_REASONING_EFFORT` is not set |
+| Environment | `MODEL`, `DATA_CLASS`, `ROLE`, `LLM_BASE_URL`, `MCP_URL`, `TASK_FILE`, `RULES_FILE`, tracing; `AGENT_CHECKS` and `AGENT_RUN_SECONDS` with `loop.checks`; `AGENT_SEARCH` with `loop.search`. `LLM_REASONING_EFFORT` is not set |
 | `rules.md` | One branch, one PR, never `.github/workflows/`, "a 429 means the budget is spent: stop". Each rule is also enforced outside the sandbox |
 | `task.md` | The task text: the biggest driver of a run's length |
 | Egress | `github.com` and its API, codeload, content and release-asset hosts, plus each profile's registries (`golang` includes `dl.google.com`) |
@@ -176,6 +178,7 @@ None is a claim field.
 | Condenser | 80 events, keep first 4 | Summarises history with the same model, on the run's budget | {{< badge content="deployed" color="blue" >}} |
 | Event size | 30,000 chars | A huge output is truncated, not refused | {{< badge content="deployed" color="blue" >}} |
 | Tools | terminal, file editor, task tracker, MCP | No browser; MCP tools filtered per role by the gateway | {{< badge content="live" color="green" >}} |
+| `search` | 40 iterations, 300k tokens, 300 s, 6 a run, effort `low`, 8,000 characters back | A read-only child (`grep`, `glob`, `read_file`, `list_directory`) on the run's token; its steps are the run's; ledger `/workspace/.agent-search.jsonl` | {{< badge content="deployed" color="blue" >}} |
 | Prompt caching | on for `internal` | 85% of input from cache: $0.48 instead of $2.13 | {{< badge content="live" color="green" >}} |
 | `autotitle` | off | Saves a model call per title | {{< badge content="live" color="green" >}} |
 | `agent-checks` | the CI's fast subset from `.github/agent-checks.yaml` | Before every push; the harness re-runs it on a finished implementer's head and notes the result | {{< badge content="deployed" color="blue" >}} |

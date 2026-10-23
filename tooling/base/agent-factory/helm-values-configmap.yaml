@@ -228,6 +228,9 @@ data:
       # session sets steering, then scoper, on one class at a time.
       loops:
         default: {scope: off}
+      # loops.<class>.search: true offers that class's implementer runs the search tool (agent-platform
+      # v3 feature 5): a read-only child on the run's token, 40 iterations, 300k tokens, 300 s, six a
+      # run. No class has it (D4): a gcp-0 session switches one on for the paired live gate (SQ5).
       # SP4 PR 2's agent_router:run_tokens:total expression over the raw series (R12).
       meter:
         url: http://vmsingle-victoria-metrics-k8s-stack.observability.svc:8428

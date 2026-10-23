@@ -1,0 +1,26 @@
+# The thread map and nothing else (R25): get and update on one named ConfigMap. No create: Flux
+# creates it once (configmap-threads.yaml).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: factory-slack-app
+  namespace: agent-system
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["factory-slack-threads"]
+    verbs: ["get", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: factory-slack-app
+  namespace: agent-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: factory-slack-app
+subjects:
+  - kind: ServiceAccount
+    name: factory-slack-app
+    namespace: agent-system

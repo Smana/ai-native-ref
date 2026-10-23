@@ -155,10 +155,15 @@ bao kv put -mount=agents anthropic api_key=-
 bao kv put -mount=agents github-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem>
+bao kv put -mount=agents factory-slack-app bot-token=- signing-secret=- bot-user-id=<U…>
 # runlore-intake + platform/runlore/factory-intake: README action 4d
 ```
 
 Without `merger-app` or `runlore-intake` the factory pod never starts.
+
+`agents/factory-slack-app` is written by the owner from the Slack App's console (the bot token, the
+signing secret and the bot's `U…` user id) and read by the ExternalSecret `factory-slack-app`. It is
+optional until the App is switched on ([runbook 18](18-factory-interfaces.md)).
 
 ## 6. [OWNER] Go-live commit
 

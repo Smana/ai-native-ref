@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.19.0, the chart's appVersion.
+      # agent-platform v0.20.0, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.19.0@sha256:43e8063c4887bfb2b76e534b8d802c0e0cc08722744ea20e4db1a2dba330cd23"
+      tag: "v0.20.0@sha256:6518e943a9b57a744b45845350de6d847c078e295bd80af76d3e696ce5b50e9f"
     # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
     githubSecret: agent-factory-github
     brokerCASecret: openbao-ca
@@ -175,6 +175,20 @@ data:
         access:
           readerFile: /etc/agent-factory-zitadel-reader/reader.json
           ttl: 5m
+        # Sponsored principals (factory interfaces part 2), none declared (D4): a gcp-0 session declares
+        # the Slack App in gcp-0's copy (runbook 18). It needs meter.prices, and projectIDFile beside it;
+        # the chart mounts both files from sponsoredSecret (agent-factory-sponsored, optional). The name
+        # and the client id file are the broker's human.mcp.sponsored entry's.
+        # projectIDFile: /etc/agent-factory-sponsored/project-id
+        # sponsored:
+        #   - name: slack-app
+        #     clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
+        #     sponsor: <a maintainer's GitHub login>
+        #     repositories: [Smana/cloud-native-ref]
+        #     dailyUSD: <in (0, budgets.factoryDailyUSD]>
+        #     maxCostUSD: <in (0, dailyUSD]>
+        #     onBehalfOf:
+        #       slack: {"<team id>/<user id>": <maintainer login>}
       # The RunLore intake (FR-9, §1). The strict parser requires every key below; the token
       # is mounted from the agent-factory-intake ExternalSecret. OD-9 filters findings here.
       runlore:
@@ -215,7 +229,7 @@ data:
         # The days in USD (TC5): the old 25M and 5M at the reference $1.70 per M, now counted at
         # meter.prices, cache reads at their own rate. AG8 holds B2 at or above factoryDailyUSD
         # plus caps.concurrentRuns frontier runs, and fails a token key (factoryDaily, humanDaily,
-        # perPerson.dailyTokens): v0.19.0 ignores one, a later release refuses it.
+        # perPerson.dailyTokens): v0.20.0 ignores one, a later release refuses it.
         factoryDailyUSD: 42.50
         humanDailyUSD: 8.50
         # Per-person caps in shadow (D8): counted as budget-principal-shadow{principal}, never refused.

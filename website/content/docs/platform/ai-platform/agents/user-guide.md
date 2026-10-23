@@ -281,6 +281,21 @@ a pull request through `pair` and the class's merge gate. The next part opens wh
 merged, and the parent closes on the last merge. A part that stops waits for a re-label or a close; a
 part closed without landing ends the family and the remaining parts are never created.
 
+## From Slack {#from-slack}
+
+With the factory's Slack App on (off today, and one workspace's), a thread can hand work to the factory
+without leaving Slack. Approvals and steering stay on the room page.
+
+| You want to… | Do this |
+|---|---|
+| Draft an issue | Mention **`@factory`** in a served channel: line 1 is `<owner/repo> <title>`, the rest is the body. The App replies with the draft, or with the template's refusal |
+| File it and start the work | A linked maintainer adds a check mark (`✅`) to the **bot's draft**. A second check mark files nothing; a check mark from a user who is not linked answers `Not filed: not_linked` |
+| Follow it | The thread receives short state lines: `Triaged`, `A run started`, `Pull request #… opened`, `Ended`, with the room's link. Never what the agents wrote |
+| Answer a question, approve or steer | On the **room page**: the thread only links it |
+
+The task is filed by the factory App, with no label and a footer naming its sponsor; its Task names the
+App and you. Its budget is the channel's `maxCostUSD`.
+
 ## What the factory never does
 
 | Never | What enforces it |

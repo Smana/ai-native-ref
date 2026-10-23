@@ -31,7 +31,7 @@ spec:
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#64-rollback"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryDailyBudgetHigh
-          # Truthful costs TC8: the day in USD (the USD gauges since agent-platform v0.16.0, pinned here at v0.19.0). spent is unclamped, so a day
+          # Truthful costs TC8: the day in USD (the USD gauges since agent-platform v0.16.0, pinned here at v0.20.0). spent is unclamped, so a day
           # past its cap keeps firing; the meter records yesterday's principals at 0 on a day's first tick.
           expr: agent_factory_budget_spent_usd / agent_factory_budget_cap_usd > 0.8
           for: 5m
@@ -64,6 +64,18 @@ spec:
             summary: "Agent factory task {{ $labels.task }} has been {{ $labels.phase }} for over 2 hours"
             description: "kubectl get task -n agent-system {{ $labels.task }} -o yaml; the factory's logs carry task.id={{ $labels.task }}."
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#4-orchestrator"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: RoomWebhookDisabled
+          # Factory interfaces F6: three given-up deliveries disable a subscriber until its generation is
+          # bumped. The series exists only while the broker's config declares a webhook (none today, D4).
+          expr: max by (subscriber) (rooms_webhook_disabled) == 1
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "The broker disabled its webhook subscriber {{ $labels.subscriber }}: its events are not delivered"
+            description: "Three deliveries were given up. Fix the receiver (its key, or the service behind it), bump generation on the webhooks entry in the broker's config and restart the broker: a webhooks change applies only at restart. The events of the disabled window are not replayed."
+            runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#webhooks"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: PolicyBotUnavailable
           expr: kube_deployment_status_replicas_available{namespace="merge-gate", deployment="policy-bot"} == 0

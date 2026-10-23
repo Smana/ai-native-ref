@@ -1,0 +1,59 @@
+# factory-slack-app. Default deny; one allow per flow. The egress order matters: gcp-0's overlay
+# patches the ZITADEL rule by index (and a `test` pins it).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: factory-slack-app
+  namespace: agent-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: factory-slack-app
+  ingress:
+    - fromEntities: [ingress]  # the public Gateway's identity: Slack's events
+      toPorts:
+        - ports: [{port: "8080", protocol: TCP}]
+    - fromEndpoints:  # the broker's signed webhooks
+        - matchLabels:
+            io.kubernetes.pod.namespace: agent-system
+            app.kubernetes.io/name: room-broker
+      toPorts:
+        - ports: [{port: "8081", protocol: TCP}]
+    - fromEntities: [host]  # kubelet probes
+      toPorts:
+        - ports: [{port: "9090", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: observability
+            app.kubernetes.io/name: vmagent
+      toPorts:
+        - ports: [{port: "9090", protocol: TCP}]
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEntities: [kube-apiserver]  # the thread map
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+    - toEndpoints:  # the broker's /mcp, on its human listener
+        - matchLabels:
+            io.kubernetes.pod.namespace: agent-system
+            app.kubernetes.io/name: room-broker
+      toPorts:
+        - ports: [{port: "8080", protocol: TCP}]
+    - toFQDNs:  # Slack's Web API
+        - matchName: slack.com
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+    - toFQDNs:  # ZITADEL: the client-credentials token
+        - matchName: "auth.${public_domain_name}"
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]

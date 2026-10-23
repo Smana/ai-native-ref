@@ -39,8 +39,10 @@ DESIGN = {
     "claude-sonnet-5-5": ("2.00", "10.00", "-1.90", "0.50"),
     "claude-haiku-5-5": ("0.50", "2.50", "-0.45", "0.125"),
 }
-HAIKU = "claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50}"
-FLASH = "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}"
+PROVENANCE_Z = 'source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"'
+PROVENANCE_A = 'source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"'
+HAIKU = f"claude-haiku-5-5: {{input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50, {PROVENANCE_A}}}"
+FLASH = f"glm-5.3-flash: {{input: 0.15, cacheRead: 0.03, output: 0.50, {PROVENANCE_Z}}}"
 
 
 def check(name, condition, detail=""):
@@ -197,9 +199,9 @@ for name, change, needle in [
 ]:
     refused(name, change, needle)
 with tree() as t:
-    replace(t, gen.VALUES, FLASH, 'glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}')
+    replace(t, gen.VALUES, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}")
     code, out = run(t)
-    check("TC1's source and checkedAt are accepted and not rendered", code == 0, out)
+    check("TC1's source and checkedAt are optional, and never rendered", code == 0, out)
 
 if FAILURES:
     print(f"\n{len(FAILURES)} failure(s)")

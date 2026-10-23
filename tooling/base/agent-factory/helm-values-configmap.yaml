@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.15.6, the chart's appVersion.
+      # agent-platform v0.17.1, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.15.6@sha256:e571b0cc7d227bc0278f1892da169d38eb5e130626a825677ca529b14e521c9b"
+      tag: "v0.17.1@sha256:7cfd0a9570874ac9c64a2c477d947cd034883f4593ce26b65f879a2c2dbd132b"
     # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
     githubSecret: agent-factory-github
     brokerCASecret: openbao-ca
@@ -172,13 +172,17 @@ data:
         # OD-10: only the principal cap keeps its shadow week (R3); the task cap is enforced
         # since a shadow one let a task reach 3.35 M of its 3 M. The meter always enforces the run cap.
         enforceTask: true
-        # Still shadow (owner, 2026-10-18): daily budgets count cache reads as full tokens, so 5M
-        # ends a maintainer's day at ~$2 of real spend. Enforce once they count priced units
-        # (agent-platform#155).
+        # Still shadow, the fleet's day and each person's alike (truthful costs TC9): the days count
+        # dollars since agent-platform v0.16.0 (#155), and enforcing waits on their shadow record.
         enforcePrincipal: false
-        factoryDaily: 25000000
-        humanDaily: 5000000
+        # The days in USD (TC5): the old 25M and 5M at the reference $1.70 per M, now counted at
+        # meter.prices, cache reads at their own rate. AG8 holds B2 at or above factoryDailyUSD
+        # plus caps.concurrentRuns frontier runs, and fails a token key (factoryDaily, humanDaily,
+        # perPerson.dailyTokens): v0.17.1 ignores one, the next release refuses it.
+        factoryDailyUSD: 42.50
+        humanDailyUSD: 8.50
         # Per-person caps in shadow (D8): counted as budget-principal-shadow{principal}, never refused.
+        # Each person's day is humanDailyUSD: perPerson.dailyUSD is unset.
         perPerson: {enabled: true}
       # Disruption design §4: a run lost to a reclaim or an eviction resumes on its own, twice per task
       # at most, and only with a RunTokens left under the task's TaskTokens (enforced on that path).
@@ -202,12 +206,12 @@ data:
         # every row with three public catalogs: a new row needs its entry in the MAPPING of
         # scripts/ci/check-price-drift.py, or the check reports it.
         prices:
-          glm-5.3: {input: 1.40, cacheRead: 0.26, output: 4.40}
-          glm-5.3-flashx: {input: 0.37, cacheRead: 0.075, output: 1.25}
-          glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}
-          claude-opus-5-5: {input: 4.00, cacheRead: 0.20, cacheWrite: 5.00, output: 20.00}
-          claude-sonnet-5-5: {input: 2.00, cacheRead: 0.10, cacheWrite: 2.50, output: 10.00}
-          claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50}
+          glm-5.3: {input: 1.40, cacheRead: 0.26, output: 4.40, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+          glm-5.3-flashx: {input: 0.37, cacheRead: 0.075, output: 1.25, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+          glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+          claude-opus-5-5: {input: 4.00, cacheRead: 0.20, cacheWrite: 5.00, output: 20.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
+          claude-sonnet-5-5: {input: 2.00, cacheRead: 0.10, cacheWrite: 2.50, output: 10.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
+          claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
         # The 429 lookup (R13): throttle hits per agent over the gateway's access logs.
         # agentgateway's agent router (ADR-0053, plan F.4): a rate-limit refusal logs http.status 429, reason RateLimit.
         logsURL: http://victoria-logs-victoria-logs-single-server.observability.svc:9428

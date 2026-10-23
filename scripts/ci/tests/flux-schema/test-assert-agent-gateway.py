@@ -8,6 +8,7 @@ Run: python3 scripts/ci/tests/flux-schema/test-assert-agent-gateway.py
 """
 import contextlib
 import copy
+import datetime
 import importlib.util
 import io
 import pathlib
@@ -27,10 +28,12 @@ FAILURES = []
 REAL = ("agent-gateway", "agent-router")
 POC = ("agw-poc", "agent-router-agw")
 B6 = 'jwt.aud.exists(a, a.endsWith(".internal")) ? "anthropic" : "none"'
-PRICES = {"glm-5.3": {"input": 1.40, "cacheRead": 0.26, "output": 4.40},
-          "glm-5.3-flash": {"input": 0.15, "cacheRead": 0.03, "output": 0.50},
-          "claude-opus-5-5": {"input": 4, "cacheRead": 0.20, "cacheWrite": 5, "output": 20},
-          "claude-haiku-5-5": {"input": 0.50, "cacheRead": 0.05, "cacheWrite": 0.625, "output": 2.50}}
+ZAI_PAGE = {"source": "https://docs.z.ai/guides/overview/pricing", "checkedAt": "2026-10-16"}
+CLAUDE_PAGE = {"source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-10-16"}
+PRICES = {"glm-5.3": {"input": 1.40, "cacheRead": 0.26, "output": 4.40, **ZAI_PAGE},
+          "glm-5.3-flash": {"input": 0.15, "cacheRead": 0.03, "output": 0.50, **ZAI_PAGE},
+          "claude-opus-5-5": {"input": 4, "cacheRead": 0.20, "cacheWrite": 5, "output": 20, **CLAUDE_PAGE},
+          "claude-haiku-5-5": {"input": 0.50, "cacheRead": 0.05, "cacheWrite": 0.625, "output": 2.50, **CLAUDE_PAGE}}
 COST = gate.billable_cost(PRICES)
 
 
@@ -193,7 +196,7 @@ def compliant(key=REAL):
              "prices": PRICES},
              "tiers": {"light": {"model": "agent-default", "runTokens": 300000, "runUSD": 0.51},
                        "frontier": {"model": "agent-default", "runTokens": 4000000, "runUSD": 6.80}},
-             "budgets": {"factoryDaily": 25000000}, "caps": {"concurrentRuns": 4}}})}},
+             "budgets": {"factoryDailyUSD": 42.50}, "caps": {"concurrentRuns": 4}}})}},
         {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"namespace": gw_ns, "name": "agent-ratelimit"},
          "spec": {"template": {"spec": {
              "containers": [{"name": "ratelimit", "env": [{"name": "SHADOW_MODE", "value": "true"}]}],
@@ -380,7 +383,7 @@ check("an enforcing server passes", gate.run(got) == [], f"got {gate.run(got)}")
 print("AG8 buckets at or above the factory's caps (the gateway never refuses first)")
 expect("B1 below the frontier run cap fails",
        edit_rl(lambda ds: ds[0]["rate_limit"].update({"requests_per_unit": 3999999})), "AG8", "refuse first")
-expect("B2 below factoryDaily plus the in-flight runs fails",
+expect("B2 below factoryDailyUSD plus the in-flight runs fails",
        edit_rl(lambda ds: ds[1]["rate_limit"].update({"requests_per_unit": 40999999})), "AG8", "fleet")
 
 print("AG8 reference tokens (design D11, OD-6)")
@@ -572,8 +575,27 @@ def edit_meter(edit):
 print("AG8 the gateway follows the factory's values (J-AC2, never refusing first)")
 expect("a meter price change the gateway's cost misses fails",
        edit_meter(lambda m: m["prices"]["glm-5.3"].update({"input": 1.50})), "AG8", "meter.prices")
-expect("a raised factoryDaily without B2 fails",
-       edit_config(lambda c: c["budgets"].update({"factoryDaily": 26000000})), "AG8", "fleet")
+fixture = yaml.safe_load(find(compliant(), "ConfigMap", gate.FACTORY_VALUES)["data"]["values.yaml"])["config"]
+check("the fleet floor from factoryDailyUSD $42.50 is B2's 41M: 25M plus 4 frontier runs at 4M",
+      gate.factory_floors(fixture) == (4000000, 41000000), f"got {gate.factory_floors(fixture)}")
+expect("a raised factoryDailyUSD without B2 fails ($1.70 more is 1M more)",
+       edit_config(lambda c: c["budgets"].update({"factoryDailyUSD": 44.20})), "AG8", "fleet")
+expect("no factoryDailyUSD fails: the release's default is not in the values",
+       edit_config(lambda c: c["budgets"].pop("factoryDailyUSD")), "AG8", "budgets.factoryDailyUSD")
+expect("a zero factoryDailyUSD fails", edit_config(lambda c: c["budgets"].update({"factoryDailyUSD": 0})),
+       "AG8", "budgets.factoryDailyUSD")
+expect("an infinite factoryDailyUSD fails, not an OverflowError", edit_config(lambda c: c["budgets"].update({"factoryDailyUSD": float("inf")})),
+       "AG8", "budgets.factoryDailyUSD")
+expect("factoryDaily in tokens fails, naming its USD key",
+       edit_config(lambda c: c["budgets"].update({"factoryDaily": 25000000})), "AG8", "Use budgets.factoryDailyUSD")
+expect("humanDaily in tokens fails, naming its USD key",
+       edit_config(lambda c: c["budgets"].update({"humanDaily": 5000000})), "AG8", "Use budgets.humanDailyUSD")
+expect("perPerson.dailyTokens fails, naming its USD key",
+       edit_config(lambda c: c["budgets"].update({"perPerson": {"enabled": True, "dailyTokens": 5000000}})),
+       "AG8", "Use budgets.perPerson.dailyUSD")
+got = copy.deepcopy(compliant())
+edit_config(lambda c: c["budgets"].update({"humanDailyUSD": 8.50, "perPerson": {"enabled": True, "dailyUSD": 4.25}}))(got)
+check("the USD person keys pass", gate.run(got) == [], f"got {gate.run(got)}")
 expect("a local limit below an all-cache-read Opus run fails (34M)",
        lambda o: local(o)[0].update({"tokens": 30000000}), "AG8", "34000000")
 poc = compliant(REAL) + compliant(POC)
@@ -604,6 +626,25 @@ expect("a fixed provider model without a price fails", lambda o: (
     anthropic_spec(o)["ai"]["provider"]["anthropic"].update({"model": "claude-sonnet-5-5"})), "AG10", "claude-sonnet-5-5")
 expect("no factory values beside the backends fails",
        lambda o: o.remove(find(o, "ConfigMap", gate.FACTORY_VALUES)), "AG10", gate.FACTORY_VALUES)
+print("AG10 every row says where and when it was read (truthful costs TC1)")
+for name, value in (("an http source", "http://docs.z.ai/guides/overview/pricing"),
+                    ("a source without a host", "https:///pricing"),
+                    ("a source with credentials", "https://u:p@docs.z.ai/guides/overview/pricing"),
+                    ("a source that is not a URL", "docs.z.ai pricing")):
+    expect(f"{name} fails", edit_meter(lambda m, v=value: m["prices"]["glm-5.3"].update({"source": v})),
+           "AG10", "meter.prices.glm-5.3 needs source")
+for name, value in (("no such month", "2026-13-01"), ("another layout", "16/10/2026"),
+                    ("no dashes", "20261016"), ("a timestamp", "2026-10-16T00:00:00Z"),
+                    ("an unquoted date, which YAML reads as a date", datetime.date(2026, 10, 16))):
+    expect(f"checkedAt as {name} fails", edit_meter(lambda m, v=value: m["prices"]["glm-5.3"].update({"checkedAt": v})),
+           "AG10", "meter.prices.glm-5.3 needs checkedAt")
+expect("a row without source fails", edit_meter(lambda m: m["prices"]["claude-opus-5-5"].pop("source")),
+       "AG10", "claude-opus-5-5 needs source")
+expect("a row without checkedAt fails", edit_meter(lambda m: m["prices"]["claude-opus-5-5"].pop("checkedAt")),
+       "AG10", "claude-opus-5-5 needs checkedAt")
+expect("a row no backend pins needs them too: every row",
+       edit_meter(lambda m: m["prices"].update({"glm-5.3-flashx": {"input": 0.37, "cacheRead": 0.075, "output": 1.25}})),
+       "AG10", "glm-5.3-flashx needs source")
 got = gate.run([o for o in compliant() if o["kind"] not in ("AgentgatewayBackend", "ConfigMap")
                 or o["metadata"]["name"] != gate.FACTORY_VALUES and o["kind"] == "ConfigMap"])
 check("no LLM backend, no factory values: AG10 has nothing to judge", not any(v.startswith("AG10") for v in got),

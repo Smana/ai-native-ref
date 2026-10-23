@@ -6,8 +6,8 @@
 # gateway never refuses before the factory would (agent-factory values, gate AG8):
 # B1 5M per run per day ($8.50) is above every tier's run cap (frontier: runUSD
 # $6.80, runTokens 4M); B2 41M for the fleet per day ($69.70) is
-# budgets.factoryDaily plus caps.concurrentRuns runs at the frontier cap
-# (25M + 4 x 4M). B6 is a provider cap the factory does not know.
+# budgets.factoryDailyUSD ($42.50, 25M) plus caps.concurrentRuns runs at the
+# frontier cap (4 x 4M). B6 is a provider cap the factory does not know.
 #
 # The flag is SHADOW_MODE on the Deployment below: "true" counts and admits,
 # "false" refuses with 429. It is the only switch: no descriptor sets

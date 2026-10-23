@@ -1,5 +1,5 @@
-# B1-B2 (ADR-0050's limits, ADR-0053's mechanism), counted on agent-ratelimit,
-# in shadow until its SHADOW_MODE flag is flipped (ratelimit.yaml). Gateway-wide,
+# B1, B2 and B6 (ADR-0050's limits, ADR-0053's mechanism), charged on agent-ratelimit,
+# which refuses past a bucket while its SHADOW_MODE flag is "false" (ratelimit.yaml). Gateway-wide,
 # so one bucket per principal across every listener and route: entries name the verified sub
 # (B1) or a constant (B2), never a route, and read no claim the listener
 # policies do not require (#3523: a descriptor whose CEL fails is dropped,

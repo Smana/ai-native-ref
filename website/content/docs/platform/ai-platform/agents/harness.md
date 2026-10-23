@@ -248,6 +248,47 @@ flowchart LR
 4. The room transcript for the model's reasoning; the trace for timings.
 5. If it burns money, stop it: `factory/stop` on the issue.
 
+## Loop policy {#loop-policy}
+
+The loop policy stops wandering runs and checks a finished run against the task's acceptance checks.
+{{< badge content="built, off" color="yellow" >}} The code ships (agent-platform v0.17.1,
+crossplane-configuration v0.9.18); **no class has a row**, so every run behaves as before.
+
+| Piece | What it does |
+|---|---|
+| Stall rule | An implementer run with no commit by `stallSteps` steps, or two continuations in a row that add none, stops and posts what it found |
+| Completion judge | After the run ends on its own, a fresh-context judge reads the acceptance checks and says `met`, `not_yet` or `impossible` |
+| Continuation | A `not_yet` continues the same conversation, so the prompt cache survives, at most `continuations` times |
+
+**The switch** is the factory's `loops` key, one row per class (`default`, `review`, or a class a
+repository declares). A row that sets any of its three keys switches that class on. No row, or a row
+without them, is today's run (D4). **No row ships here**, and the values carry no `loops` key.
+
+| Key | Default once a row exists | Bounds |
+|---|---|---|
+| `stallSteps` | 80 | 1 … 500 |
+| `continuations` | 2 | 0 … 5 |
+| `judge` | `tier-light` | one of the four model aliases, or `none` for no judge |
+
+The factory copies the row into the claim as `spec.loop`, on every implementer claim of the task:
+the first run, revisions, CI fixes, retries and resumes. Reviewers, testers and triagers never carry
+it. The composition (crossplane-configuration v0.9.18) hands it to `agent-run` as `AGENT_LOOP`, a
+JSON object with `stallSteps`, `continuations` and `judgeModel`. A cluster whose composition is older
+refuses the claim, and the task escalates with `loop_unsupported`.
+
+**The three ends.** `met` is not an end: the run finishes and the task goes to the next role.
+
+| End | Room | Task | Issue | Counter |
+|---|---|---|---|---|
+| `judge_impossible` | `harness_end` event, then the judge's text as a run note | `Escalated`, reason `judge_impossible` | Fixed narration with the reason category only, no judge text | `agent_factory_loop_runs_total{end="judge_impossible"}` |
+| `stalled` | `harness_end` event, then the run's findings as a note | `Escalated`, reason `stalled` | The same | `end="stalled"` |
+| `not_met` | `harness_end` event, then the last `not_yet` reason as a note | `Escalated`, reason `not_met` | The same | `end="not_met"` |
+
+The counter also reads `finished` for a run under the policy that ended normally, and `other` for any end not listed above, by `class`.
+
+Switching a class on is last: add its row only after the platform session's live check passes. The
+meter and the factory's outcomes then say whether cost per accepted pull request fell.
+
 ## Not tunable today {#limits}
 
 | Wanted | What it takes |

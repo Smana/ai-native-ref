@@ -438,8 +438,19 @@ def check_factory_resumes():
           "the factory page counts automatic resumes by reason (disruption design §6)")
 
 
+def check_factory_budget():
+    panel = titled(dashboard(f"{DASHBOARDS}/grafana-dashboard-agent-factory.yaml", "agent-factory")).get("Budget left today", {})
+    exprs = [t.get("expr", "") for t in panel.get("targets", [])]
+    check(exprs == ["agent_factory_budget_remaining_usd / agent_factory_budget_cap_usd"],
+          f"the factory page's budget panel reads the day in USD (truthful costs TC8), got {exprs}")
+    # agent-platform v0.17.1 has no token gauges: a reader left on them reads nothing, silently.
+    for path in sorted((ROOT / PLATFORM).glob("*.yaml")):
+        check(not re.search(r"agent_factory_budget_\w+_tokens", path.read_text()),
+              f"{path.relative_to(ROOT)} reads a removed agent_factory_budget_*_tokens gauge")
+
+
 CHECKS = [check_collector, check_reference_grant, check_ksm, check_run_dashboard, check_run_trace_link, check_fleet_dashboard, check_fleet_tier,
-          check_task_runs, check_factory_resumes, check_agent_gateway, check_agentgateway_dashboards]
+          check_task_runs, check_factory_resumes, check_factory_budget, check_agent_gateway, check_agentgateway_dashboards]
 
 for run in CHECKS:
     run()

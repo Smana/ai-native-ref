@@ -237,9 +237,10 @@ run together in one gcp-0 session after PR 3.
    key `spent` equals the sum of its runs' `settled`.
 4. Deleting the meter's leader mid-run leaves the run's `settled` equal to the cost the meter reports
    at its end.
-5. A drill commit lowering `factoryDailyUSD` to $0.01 makes the next task wait `waiting_daily_budget`
-   and fires `AgentFactoryDailyBudgetHigh`; `agent_factory_budget_spent_usd{principal="system:factory"}`
-   equals `spent` ÷ 1e6. The commit is reverted.
+5. A drill lowering `factoryDailyUSD` to $0.01, with `enforcePrincipal: true` (ruled in PR 3, below),
+   makes the next task wait `waiting_daily_budget` and fires `AgentFactoryDailyBudgetHigh`;
+   `agent_factory_budget_spent_usd{principal="system:factory"}` equals `spent` ÷ 1e6. The values are
+   put back.
 6. The first two scheduled drift runs leave at most one `prices-drift` issue, and the owner confirms
    each finding against the provider's page.
 
@@ -292,3 +293,20 @@ Ruled in PR 1 ([plan](../plans/2026-10-22-truthful-costs-rule-plan.md#this-plans
 - **`AgentMeterInputExcludesCache`** compares the counter with an hour ago, absence read as 0, as the
   `agent_router:budget_*` rules do. The counter is born at its first increment, which promtool's
   `increase()` reads as 0, so the `increase(X[1h])` form the table first held could not be proven to fire.
+
+Ruled in PR 3 ([plan](../plans/2026-10-22-truthful-costs-adopt-plan.md#this-plans-rulings)):
+
+- **The pin:** the whole release, as every agent-platform pin moves: the factory's chart and image,
+  the room-broker's image, its `crd-rooms.yaml` asset and its schema ref. The values move to the
+  USD keys in the same commit: v0.15.6's strict decoder refuses `factoryDailyUSD`.
+- **The rows:** `source` is the provider's page the table's comment names, and `checkedAt` the day
+  the row was read (2026-10-16), quoted, on the same single line as the row (the flow mapping), not a second one: that keeps test-gen-prices' row anchors.
+- **The gates:** AG8 also fails values without a positive `factoryDailyUSD`. AG10 requires `source`
+  and `checkedAt` on every row, in the release's format. Offline proof 12's parse is a one-off step
+  of the plan, not a suite: it needs Go and the release's source.
+- **The alert's suite:** `test-agent-factory-budget-alerts`, its own, so PR 3 does not wait on
+  PR 1's `test-agent-cost-rules`.
+- **Live proof 5:** the drill also sets `enforcePrincipal: true`. While it is `false` the fleet's
+  day is shadow too, and the task would run. It edits the values in place under a suspended
+  Kustomization ([runbook 04, Part F](../../runbooks/agent-factory/04-gateway-secrets-budgets.md#part-f--daily-caps-in-dollars-the-switch-day)),
+  as Part D's refusal drill does, instead of a commit.

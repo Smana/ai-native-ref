@@ -4,12 +4,13 @@ Two independent gateways are in scope here. **Part A (SP1)** proves that no prov
 in namespace `agents`, and that the `agents-secrets` OpenBao role reads the `agents` mount and
 nothing else — plus the `internal`-listener half of SC-17 (an `internal` run has no route to Z.ai
 at all), and that the agents' budgets B1–B2 count on agentgateway's own rate-limit server.
-**Part D** turns those budgets from counting to refusing, behind one flag that defaults to shadow.
+**Part D** turns those budgets from counting to refusing, behind one flag, refusing since 2026-10-18.
 **Part B (SP4 PR 1)** proves the human/system Gateway's frontier route answers real chat
 requests, its token usage is counted (in shadow mode, nothing is rejected on the real route), and a
 route-level rate-limit policy actually fires a 429 when its bucket is exhausted — the mechanism
 SP4's real budgets (still shadow-only) will use once enforcement ships. **Part E** covers the
-cache-read share alerts and the offline proofs behind them. See [README.md](README.md)
+cache-read share alerts and the offline proofs behind them. **Part F** is the live check of the
+factory's daily caps in dollars, on the first day they run. See [README.md](README.md)
 for prerequisites; run [00](README.md#runbook-00-one-time-cluster-setup) first.
 
 ## Prerequisites
@@ -265,16 +266,17 @@ kubectl delete btp -n llm-gateway zz-budget-marker-probe --ignore-not-found
 as `agent_factory_run_revocations_total{reason="budget-principal-shadow", principal}`
 ([agent-platform: per-person caps](https://github.com/Smana/agent-platform/blob/main/docs/factory.md#per-person-caps)).
 `AgentPersonCapShadowRefusal` (info) fires on each one. Turning on `enforcePrincipal` refuses on
-the person's day **and** on the fleet's, so both count.
+the person's day **and** on the fleet's, so both count. Since agent-platform v0.16.0 (#168), pinned here at v0.17.1, the days are in
+USD (`budgets.humanDailyUSD`, $8.50 a person), so the week's record starts again, in dollars.
 
 ### Step 1 — attribution is on
 
 ```bash
-kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=agent_factory_budget_remaining_tokens%7Bprincipal%3D~%22github%3A.%2B%22%7D" | jq -c '.data.result[] | [.metric.principal, .value[1]]'
+kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=agent_factory_budget_spent_usd%7Bprincipal%3D~%22github%3A.%2B%22%7D" | jq -c '.data.result[] | [.metric.principal, .value[1]]'
 ```
 
-Expected, once a labelled task has run: a `github:<login>` row. None means no run was charged to a
-person, and an empty Step 2 proves nothing.
+Expected, once a labelled task has run: a `github:<login>` row, that person's spend today in USD.
+None means no run was charged to a person, and an empty Step 2 proves nothing.
 
 ### Step 2 — after 7 days
 
@@ -288,20 +290,21 @@ The query, decoded: `sum by (principal) (increase(agent_factory_run_revocations_
 |---|---|
 | 7 days since the release went live, Step 1 shows a person, and every Step 2 row is a run that *should* have been refused | Set `enforcePrincipal: true` |
 | A row is a false refusal: the wrong person charged, or a day filled by reservations the meter later released | Fix in agent-platform; the week restarts |
-| Rows are correct but frequent for one person | Raise `perPerson.dailyTokens` (default `humanDaily`) before enforcing; the week restarts |
+| Rows are correct but frequent for one person | Raise `perPerson.dailyUSD` (default `humanDailyUSD`) before enforcing; the week restarts |
 
 ## Part D — enforcing the agents' budgets
 
 The gateway's budgets are a backstop under the factory's own caps: they hold if the factory
 misbehaves, and they never refuse a call the factory would admit. One flag turns them from
 counting to refusing: `SHADOW_MODE` on the `agent-ratelimit` Deployment
-(`infrastructure/base/agent-gateway/ratelimit.yaml`). It is `"true"` in the source, so a rebuild
-changes nothing. No descriptor sets its own `shadow_mode` (gate AG8), so the flip is one line.
+(`infrastructure/base/agent-gateway/ratelimit.yaml`). It is `"false"` in the source since
+2026-10-18 ([#65](https://github.com/Smana/ai-native-ref/pull/65)), so a rebuild refuses too. No
+descriptor sets its own `shadow_mode` (gate AG8), so the flip is one line.
 
 | Bucket | Key | Limit per day (reference tokens, $1.70/M) | The factory's cap it sits above |
 |---|---|---|---|
 | B1 | `agent`, the verified `sub`: one run | 5M ($8.50) | the dearest tier's run cap: `frontier` `runUSD` $6.80 (4M) and `runTokens` 4M |
-| B2 | `fleet_agents` | 41M ($69.70) | `budgets.factoryDaily` 25M plus `caps.concurrentRuns` 4 runs at 4M |
+| B2 | `fleet_agents` | 41M ($69.70) | `budgets.factoryDailyUSD` $42.50 (25M) plus `caps.concurrentRuns` 4 runs at 4M |
 | B6 | `provider_anthropic`, the `internal` listener | 10M ($17) | none: a provider cap the factory does not know |
 
 Each call is charged at completion at the run meter's own price (`meter.prices`, the same table and
@@ -340,7 +343,7 @@ always refuses and uses the same body). A provider's own `429` keeps its body an
 kubectl get deploy -n agent-gateway agent-ratelimit -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="SHADOW_MODE")].value}{"\n"}'
 ```
 
-Expected: `true` until the owner flips it.
+Expected: `false`, since 2026-10-18.
 
 ### Step 2 — the shadow record
 
@@ -413,6 +416,92 @@ reply.
 Live, at the next platform session: the share panel on the agent-gateway dashboard reads above 60%
 for internal runs and neither alert fires. The drill (a run that sends no marker, through an
 `agents.ogenki.io/cache-drill` annotation) waits for the loop-policy composition release.
+
+## Part F — daily caps in dollars, the switch day
+
+From agent-platform v0.16.0 (#168), pinned here at v0.17.1, the factory's daily caps count dollars at `meter.prices`
+([truthful costs](../../superpowers/specs/2026-10-22-truthful-costs-design.md), TC5 to TC9). One
+ConfigMap per UTC day, `agent-factory-ledger-usd-<YYYYMMDD>`, holds `spent` (principal → micro-USD),
+`reserved.<runId>` (`maxMicroUSD`) and `settled.<runId>` (the micro-USD charged to that run that
+day). The first day starts at $0: nothing is carried over from the token ledger. Offline, `task
+check` holds the values, gates AG8 and AG10 and the alert (`test-agent-factory-budget-alerts`).
+These steps are the live half, for the first platform session on the release. Not run yet.
+
+### Step 1 — the factory reads the USD keys
+
+```bash
+kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix --tail=-1 | grep 'config key ignored'
+```
+
+Expected: nothing. A line names a token key the values still set, which AG8 should have failed.
+
+### Step 2 — the day's ledger is in micro-USD and adds up
+
+After at least one task run has ended today:
+
+```bash
+day=$(date -u +%Y%m%d)
+kubectl get cm -n agent-system "agent-factory-ledger-usd-$day" -o json | jq '.data
+  | {spent: (.spent | fromjson),
+     settled: ([to_entries[] | select(.key | startswith("settled.")) | .value | tonumber] | add),
+     reserved: [to_entries[] | select(.key | startswith("reserved.")) | .value | fromjson]}'
+```
+
+Expected: `spent` maps `system:factory`, and each `github:<login>` charged, to an integer; every
+`reserved` entry carries `maxMicroUSD`. With only factory task runs that day, `spent["system:factory"]`
+equals `settled`, the sum over the runs.
+
+### Step 3 — a failover neither loses nor re-charges a run
+
+While a task's run is running, delete the meter's leader:
+
+```bash
+holder=$(kubectl get lease -n agent-system agent-factory.agents.ogenki.io -o jsonpath='{.spec.holderIdentity}')
+kubectl delete pod -n agent-system "${holder%%_*}"
+```
+
+When the run has ended, on the same UTC day:
+
+```bash
+task=<the task's name>; day=$(date -u +%Y%m%d)
+kubectl get task -n agent-system "$task" -o json | jq -c '.status.runs[] | [.id, .costMicroUSD]'
+kubectl get cm -n agent-system "agent-factory-ledger-usd-$day" -o json \
+  | jq -c '.data | to_entries[] | select(.key | startswith("settled.")) | [.key, .value]'
+```
+
+Expected: the run's `settled.<id>` equals its `costMicroUSD`.
+
+### Step 4 — the cap holds a task in dollars, and its alert fires
+
+With no run in flight (an enforced day revokes a running run past it) and at least one run settled
+today (the alert needs a spend above 80% of the drill's cap), lower the fleet's day to $0.01 and
+enforce it, in place, as Part D Step 4 edits its ConfigMap:
+
+```bash
+flux suspend kustomization agent-factory -n flux-system
+kubectl get cm -n agent-system agent-factory-helm-values -o jsonpath='{.data.values\.yaml}' > /tmp/values.yaml
+sed -i 's/factoryDailyUSD: 42.50/factoryDailyUSD: 0.01/; s/enforcePrincipal: false/enforcePrincipal: true/' /tmp/values.yaml
+kubectl patch cm -n agent-system agent-factory-helm-values --type merge \
+  -p "$(jq -n --rawfile v /tmp/values.yaml '{data: {"values.yaml": $v}}')"
+```
+
+helm-controller upgrades the release on the change (the ConfigMap's watch label). Then label one
+small issue `factory/ready`, and read:
+
+```bash
+kubectl get task -n agent-system -o custom-columns=NAME:.metadata.name,PHASE:.status.phase,REASON:.status.reason
+kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=agent_factory_budget_spent_usd%7Bprincipal%3D%22system%3Afactory%22%7D" | jq -c '.data.result[] | [.metric.pod, .value[1]]'
+```
+
+Expected: the new task is `Queued` with reason `waiting_daily_budget`; `AgentFactoryDailyBudgetHigh`
+fires for `principal="system:factory"` within 6 minutes; the leader's
+`agent_factory_budget_spent_usd{principal="system:factory"}` is Step 2's `spent["system:factory"]`
+÷ 1e6. `enforcePrincipal: true` is part of the drill: while it is `false` the fleet's day is shadow
+too, and the task would run and count `budget-principal-shadow`. Put the values back:
+
+```bash
+flux resume kustomization agent-factory -n flux-system   # restores the ConfigMap; the release upgrades again
+```
 
 ## Results
 

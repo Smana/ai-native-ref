@@ -7,6 +7,8 @@ and the "Before v3" row of its amendments; the eval bench (roadmap feature 0) re
 runtime's native `AgentRun` (agent-platform #160) has neither composition nor meter, and is not covered ·
 **Plan:** agent-platform `docs/superpowers/plans/2026-10-22-run-provenance-plan.md`
 
+**Shipped:** agent-platform v0.17.1, pinned here (R10 done). Live proofs 1 to 3 wait for the next `gcp-0` session.
+
 ## Outcome
 
 Every factory run records four facts on its `Task`: the factory build that created it, the

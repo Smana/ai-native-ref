@@ -1,0 +1,19 @@
+# .github/agent-checks.yaml: what an agent runs before it pushes, the CI's fast subset.
+# A gate path. The harness reads it from the base branch, never from the agent's branch.
+version: 1
+timeoutMinutes: 8
+tools: [task, promtool, kustomize, hugo-extended, go, pre-commit]
+definedBy: [taskfile.yaml, scripts/ci/, .pre-commit-config.yaml, mise.toml, HOST_REF]
+steps:
+  - {name: composite, run: task host-profile, ci: validate, stopOnFailure: true, timeoutMinutes: 3}
+  - {name: vmrules, run: task vmrules, ci: validate}
+  - {name: suites, run: task test, ci: validate}
+  - {name: links, run: task links, ci: validate}
+  - {name: site, run: task docs, ci: validate}
+  - {name: sources, run: task sources, ci: validate}
+  - {name: pre-commit, run: pre-commit run --all-files --show-diff-on-failure, ci: lint}
+ciOnly:
+  - {check: validate, part: "task validate, task gates", why: "renders every HelmRelease: about 20 chart hosts beyond the egress"}
+  - {check: validate, part: "the two Docker suites", why: "no Docker daemon under gVisor"}
+  - {check: lint, part: TruffleHog, why: "an Action over the pushed range"}
+  - {check: prerelease, part: all, why: "signs and pushes with the workflow's identity"}

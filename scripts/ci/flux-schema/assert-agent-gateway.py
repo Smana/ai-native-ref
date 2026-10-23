@@ -105,6 +105,7 @@ Exit:  0 clean, 1 violations (each printed), 2 bundle missing.
 """
 import datetime
 import json
+import math
 import pathlib
 import re
 import sys
@@ -581,7 +582,7 @@ def factory_floors(cfg):
 
 
 def positive(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and v > 0
 
 
 def daily_cap_problems(cfg):

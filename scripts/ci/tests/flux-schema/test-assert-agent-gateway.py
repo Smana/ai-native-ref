@@ -584,6 +584,8 @@ expect("no factoryDailyUSD fails: the release's default is not in the values",
        edit_config(lambda c: c["budgets"].pop("factoryDailyUSD")), "AG8", "budgets.factoryDailyUSD")
 expect("a zero factoryDailyUSD fails", edit_config(lambda c: c["budgets"].update({"factoryDailyUSD": 0})),
        "AG8", "budgets.factoryDailyUSD")
+expect("an infinite factoryDailyUSD fails, not an OverflowError", edit_config(lambda c: c["budgets"].update({"factoryDailyUSD": float("inf")})),
+       "AG8", "budgets.factoryDailyUSD")
 expect("factoryDaily in tokens fails, naming its USD key",
        edit_config(lambda c: c["budgets"].update({"factoryDaily": 25000000})), "AG8", "Use budgets.factoryDailyUSD")
 expect("humanDaily in tokens fails, naming its USD key",

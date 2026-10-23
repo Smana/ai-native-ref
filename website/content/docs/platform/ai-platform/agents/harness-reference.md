@@ -94,6 +94,7 @@ implementer's tier.
 | `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="live" color="green" >}} aws-0 |
 | `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
 | `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (agent-platform v0.17.1). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
+| `loops.<class>` | none: **no row ships (D4)** | The loop policy, off for every class. A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (`tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
 
 ## Run API: runs started by hand {#run-api}
 

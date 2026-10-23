@@ -7,6 +7,15 @@ cd "$(dirname "${BASH_SOURCE[0]}")/../.." || exit 1
 OUT="${COMPOSITE_DIR:-.composite}"
 [ -d "$OUT" ] || { echo "error: no $OUT/; run scripts/ci/host-profile.sh first" >&2; exit 1; }
 
+# Suites stub binaries into mktemp/tempfile directories and execute them. Where the temp directory is
+# mounted noexec (the agent sandbox's /tmp tmpfs) every stub fails with "permission denied", so
+# fall back to the cache directory, which the sandbox keeps on an executable filesystem.
+probe="$(mktemp)"; printf '#!/bin/sh\n' >"$probe"; chmod +x "$probe"
+if ! "$probe" 2>/dev/null; then
+  TMPDIR="${XDG_CACHE_HOME:-$HOME/.cache}/tmp"; mkdir -p "$TMPDIR"; export TMPDIR
+fi
+rm -f "$probe"
+
 pass=0 skip=0 fail=0 rc=0
 while IFS= read -r rel; do
   case "$rel" in

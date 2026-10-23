@@ -9,6 +9,7 @@ A switch-on lands in a gcp-0 session's copy (runbook 18), never here.
 """
 import pathlib
 import sys
+from urllib.parse import urlparse
 
 try:
     import yaml
@@ -52,16 +53,41 @@ for cfg in sorted(ROOT.glob("infrastructure/*/room-broker/config.yaml")):
             problems.append(f"{rel} declares webhooks (D4)")
         if "sponsored" in ((doc.get("human") or {}).get("mcp") or {}):
             problems.append(f"{rel} declares human.mcp.sponsored (D4)")
-for rel in ("tooling/base/agent-factory/helm-values-configmap.yaml",
-            "tooling/gcp-0/agent-factory/helm-values-suspend.yaml"):
-    for doc in load(rel):
-        if doc.get("kind") != "ConfigMap":
-            continue
-        for body in doc["data"].values():
-            values = yaml.safe_load(body) or {}
-            if "sponsored" in ((values.get("config") or {}).get("api") or {}):
-                problems.append(f"{rel} declares config.api.sponsored (D4)")
 
+
+def sponsored_in(node, parent=None):
+    """True when an `api` mapping holds `sponsored`, or a JSON patch path names api/sponsored, at any depth,
+    through ConfigMap data and kustomize patch strings (themselves YAML) alike."""
+    if isinstance(node, str):
+        if "api/sponsored" in node:
+            return True
+        try:
+            inner = yaml.safe_load(node)
+        except yaml.YAMLError:
+            return False
+        return isinstance(inner, (dict, list)) and sponsored_in(inner, parent)
+    if isinstance(node, dict):
+        if parent == "api" and "sponsored" in node:
+            return True
+        return any(sponsored_in(v, k) for k, v in node.items())
+    if isinstance(node, list):
+        return any(sponsored_in(v, parent) for v in node)
+    return False
+
+
+# Every values source that reaches the factory, found by glob: a values ConfigMap, a HelmRelease's inline
+# values, a kustomize patch in any overlay. The Slack App's own directories hold none.
+for path in sorted(ROOT.glob("tooling/*/agent-factory/**/*.yaml")):
+    rel = path.relative_to(ROOT)
+    if any(str(rel).startswith(d) for d in SLACK_DIRS):
+        continue
+    if sponsored_in(load(str(rel))):
+        problems.append(f"{rel} declares api.sponsored (D4)")
+
+# The App appends /mcp itself: a brokerURL with a path would call /mcp/mcp.
+app_cfg = yaml.safe_load((ROOT / "tooling/base/agent-factory/slack-app/config.yaml").read_text())
+if urlparse(app_cfg["brokerURL"]).path not in ("", "/"):
+    problems.append(f"slack-app config.yaml brokerURL {app_cfg['brokerURL']!r} has a path: the App appends /mcp")
 
 # 3 and 4. One route, one match, exact path, POST.
 def one_match(rel, path):

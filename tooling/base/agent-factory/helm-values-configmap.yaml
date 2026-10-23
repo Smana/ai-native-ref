@@ -179,10 +179,10 @@ data:
         # the Slack App in gcp-0's copy (runbook 18). It needs meter.prices, and projectIDFile beside it;
         # the chart mounts both files from sponsoredSecret (agent-factory-sponsored, optional). The name
         # and the client id file are the broker's human.mcp.sponsored entry's.
-        # projectIDFile: /etc/agent-factory/sponsored/project-id
+        # projectIDFile: /etc/agent-factory-sponsored/project-id
         # sponsored:
         #   - name: slack-app
-        #     clientIDFile: /etc/agent-factory/sponsored/slack-app-client-id
+        #     clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
         #     sponsor: <a maintainer's GitHub login>
         #     repositories: [Smana/cloud-native-ref]
         #     dailyUSD: <in (0, budgets.factoryDailyUSD]>

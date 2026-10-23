@@ -1,12 +1,12 @@
 # Host contract
 
 **Contract version 3**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
-at the commit in [`HOST_REF`](HOST_REF). Copied from the design on 2026-10-23. Changes from 2: H5 ZITADEL names the `factory-slack-app` machine
-user (client credentials, no project role) and where its client id, secret and project id are; H4 is
-unchanged, the `factory-slack` listener arrives with the Slack App's switch-on (version 4, runbook 18).
-Changes from 1: H1
-Source names both signing identities, the aws-0 un-suspend patch and the children's sources; H1
-Feature branches is a pin edit on the branch, not a variable; H3 drops `ai_native_ref_tag`.
+at the commit in [`HOST_REF`](HOST_REF). Copied from the design on 2026-10-23. Changes from 2: H5
+ZITADEL names the `factory-slack-app` machine user (client credentials, no project role) and where
+its client id, secret and project id are; H4 is unchanged, the `factory-slack` listener arrives with
+the Slack App's switch-on (version 4, runbook 18). Changes from 1: H1 Source names both signing
+identities, the aws-0 un-suspend patch and the children's sources; H1 Feature branches is a pin edit
+on the branch, not a variable; H3 drops `ai_native_ref_tag`.
 
 What `cloud-native-ref` guarantees, and `ai-native-ref` may rely on. Copied from the AI platform
 split design, §2 (ADR-0057). Changing an item is a breaking change for both repositories: it lands

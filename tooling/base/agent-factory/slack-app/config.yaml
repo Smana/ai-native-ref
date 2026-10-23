@@ -8,12 +8,14 @@ webhookKeyFile: /etc/factory-slack-app/webhook/signing-key
 clientIDFile: /etc/factory-slack-app/principal/client-id
 clientSecretFile: /etc/factory-slack-app/principal/client-secret
 projectIDFile: /etc/factory-slack-app/principal/project-id
-issuerURL: https://auth.${public_domain_name}
-# The broker's human listener, plaintext inside the mesh (:8443 is its TLS listener for bridges).
-brokerURL: http://room-broker.agent-system.svc.cluster.local:8080/mcp
+issuerURL: ${identity_provider_url}
+# The broker's human listener, plaintext inside the mesh (:8443 is its TLS listener for bridges). No path:
+# the App appends /mcp itself.
+brokerURL: http://room-broker.agent-system.svc.cluster.local:8080
 roomsURL: https://rooms.${private_domain_name}
 namespace: agent-system
-# The switch-on fills both (runbook 18): an empty teamID drops every event, and no channel is served
-# until one is listed as <channel id>: {repositories: [owner/name], maxCostUSD: <at least 0.01>}.
+# The App refuses to start until the switch-on fills both (runbook 18): an empty teamID or no channel
+# fails its config load. Fill them as teamID: <T...> and channels as
+# <channel id>: {repositories: [owner/name], maxCostUSD: <at least 0.01>}.
 teamID: ""
 channels: {}

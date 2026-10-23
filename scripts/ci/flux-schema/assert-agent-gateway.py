@@ -38,9 +38,11 @@ names its listeners, audiences, caller namespace and route namespace:
        descriptor sets shadow_mode: SHADOW_MODE is the one switch (runbook 04,
        Part D), which a descriptor's own shadow_mode would override. The per-run
        bucket is at least every tier's run cap (runUSD in reference tokens, and
-       runTokens), the fleet bucket at least budgets.factoryDaily plus
-       caps.concurrentRuns runs at that cap: the gateway never refuses before
-       the factory would. A local limit on the real router, which refuses in either mode, allows
+       runTokens), the fleet bucket at least budgets.factoryDailyUSD in
+       reference tokens plus caps.concurrentRuns runs at that cap: the gateway
+       never refuses before the factory would. The day must be set, and a day
+       in tokens (factoryDaily, humanDaily, perPerson.dailyTokens) fails: the
+       release ignores it (truthful costs TC5). A local limit on the real router, which refuses in either mode, allows
        at least the raw tokens of the largest run the factory admits: its
        USD cap spent entirely on cache reads at the cheapest rate among the
        models its tier's name reaches, or its runTokens. Every descriptor
@@ -57,7 +59,9 @@ names its listeners, audiences, caller namespace and route namespace:
        provider bills cache writes (Anthropic). meter.query groups by
        gen_ai_request_model, so each run is priced by the model that served it,
        not by its claim's agent name. An unpriced model is never free (J-AC4),
-       but its runs would escape the USD caps.
+       but its runs would escape the USD caps. Every row names its source,
+       the https:// page it was read from, and checkedAt, the YYYY-MM-DD day
+       (truthful costs TC1).
   AG11 A provider with a host override names its path (1.6 sends `/` when the
        base has none), and a Z.ai backend routes typed formats only: Detect
        and Passthrough join the path wrongly (#3853).
@@ -99,10 +103,12 @@ renders of the same objects, so the checks run once per cluster.
 Usage: assert-agent-gateway.py [BUNDLE_DIR]    (default .bundle)
 Exit:  0 clean, 1 violations (each printed), 2 bundle missing.
 """
+import datetime
 import json
 import pathlib
 import re
 import sys
+import urllib.parse
 from typing import NamedTuple
 
 import yaml
@@ -173,6 +179,13 @@ CLUSTER = re.compile(r"-((?:aws|gcp)-\d+)-")
 # The factory's Helm values, which carry the run meter's query and price overlay (AG10).
 FACTORY_NS, FACTORY_VALUES = "agent-system", "agent-factory-helm-values"
 PRICE_FIELDS = ("input", "cacheRead", "output")
+# Truthful costs TC5: the daily caps are in USD since agent-platform v0.16.0, which ignores these
+# token keys with a warning; its next release refuses them. Each names the key that replaced it.
+TOKEN_DAYS = {("budgets", "factoryDaily"): "budgets.factoryDailyUSD",
+              ("budgets", "humanDaily"): "budgets.humanDailyUSD",
+              ("budgets", "perPerson", "dailyTokens"): "budgets.perPerson.dailyUSD"}
+# TC1: where and when a price row was read, as config.Parse accepts them.
+CHECKED_AT = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 class Profile(NamedTuple):
@@ -561,8 +574,31 @@ def factory_floors(cfg):
     """The smallest B1 and B2 that never refuse before the factory: (run, fleet) in reference tokens."""
     tiers = [t for t in (cfg.get("tiers") or {}).values() if isinstance(t, dict)]
     run = max((max(round(t.get("runUSD", 0) * 1e6 / REF_USD_PER_M), t.get("runTokens", 0)) for t in tiers), default=0)
-    fleet = (cfg.get("budgets") or {}).get("factoryDaily", 0) + (cfg.get("caps") or {}).get("concurrentRuns", 0) * run
+    day = (cfg.get("budgets") or {}).get("factoryDailyUSD")
+    day = round(day * 1e6 / REF_USD_PER_M) if positive(day) else 0
+    fleet = day + (cfg.get("caps") or {}).get("concurrentRuns", 0) * run
     return run, fleet
+
+
+def positive(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
+
+
+def daily_cap_problems(cfg):
+    """The fleet's day B2 is sized from, and the token-day keys the release no longer reads (TC5)."""
+    where = f"{FACTORY_NS}/{FACTORY_VALUES}"
+    out = []
+    if not positive((cfg.get("budgets") or {}).get("factoryDailyUSD")):
+        out.append(f"AG8: {where} needs a positive budgets.factoryDailyUSD: B2's floor is the fleet's day "
+                   "plus the runs in flight, and the release's default is invisible here")
+    for path, use in TOKEN_DAYS.items():
+        node = cfg
+        for key in path[:-1]:
+            node = node.get(key) if isinstance(node, dict) else None
+        if isinstance(node, dict) and path[-1] in node:
+            out.append(f"AG8: {where} sets {'.'.join(path)}, a day in tokens: agent-platform ignores it "
+                       f"and its next release refuses it. Use {use}")
+    return out
 
 
 def raw_run_ceiling(objs, cfg):
@@ -589,6 +625,8 @@ def raw_run_ceiling(objs, cfg):
 
 def check_budgets(objs):
     out = []
+    if (factory := factory_values(objs)) is not None:
+        out += daily_cap_problems(factory)
     configs = ratelimit_configs(objs)
     for p in policies(objs):
         rate_limit = (spec_of(p).get("traffic") or {}).get("rateLimit") or {}
@@ -923,7 +961,25 @@ def check_meter_prices(objs):
             v = row.get(f)
             if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
                 out.append(f"AG10: meter.prices.{model} ({ref(b)}) needs a positive {f}")
+    for model, row in sorted(prices.items()):
+        if not isinstance(row, dict):
+            continue
+        src = urllib.parse.urlsplit(row["source"]) if isinstance(row.get("source"), str) else None
+        if src is None or src.scheme != "https" or not src.hostname or src.username is not None:
+            out.append(f"AG10: meter.prices.{model} needs source, the https:// page its prices were read from")
+        day = row.get("checkedAt")
+        if not (isinstance(day, str) and CHECKED_AT.match(day) and valid_day(day)):
+            out.append(f"AG10: meter.prices.{model} needs checkedAt, the day they were read, "
+                       "as a quoted YYYY-MM-DD")
     return out
+
+
+def valid_day(day):
+    try:
+        datetime.date.fromisoformat(day)
+    except ValueError:
+        return False
+    return True
 
 
 CHECKS = (check_gateway, check_listener_identity, check_strip, check_token_isolation, check_routes,

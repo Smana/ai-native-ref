@@ -21,7 +21,10 @@ spec:
       "uid": "agent-fleet",
       "schemaVersion": 39,
       "time": {"from": "now-7d", "to": "now"},
-      "links": [{"title": "Agent platform", "type": "link", "url": "/d/agent-platform/agent-platform", "keepTime": true}],
+      "links": [
+        {"title": "Agent platform", "type": "link", "url": "/d/agent-platform/agent-platform", "keepTime": true},
+        {"title": "Spend per identity", "type": "link", "url": "/d/agent-identity/agent-identity", "keepTime": true}
+      ],
       "templating": {"list": [
         {"name": "datasource", "type": "datasource", "query": "prometheus"},
         {"name": "logs_datasource", "type": "datasource", "query": "victoriametrics-logs-datasource"}

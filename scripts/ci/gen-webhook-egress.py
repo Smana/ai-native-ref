@@ -64,7 +64,7 @@ class ConfigError(Exception):
 def rule(subscriber):
     """One egress rule for one subscriber, or ConfigError."""
     at = f"webhooks {subscriber.get('name')}"
-    if not isinstance(subscriber.get("name"), str) or not DNS_LABEL.match(subscriber["name"]):
+    if not isinstance(subscriber.get("name"), str) or not DNS_LABEL.fullmatch(subscriber["name"]):
         raise ConfigError(f"webhooks {subscriber.get('name')!r}: name must be a DNS label")
     network, url = subscriber.get("network"), str(subscriber.get("url"))
     if network == "cluster":
@@ -73,7 +73,7 @@ def rule(subscriber):
             raise ConfigError(f"{at}: a cluster subscriber's url is http(s)://<svc>.<ns>.svc.cluster.local:<port>/…")
         svc, ns, port = m.groups()
         return {"toEndpoints": [{"matchLabels": {"io.kubernetes.pod.namespace": ns, "app.kubernetes.io/name": svc}}],
-                "toPorts": [{"ports": [{"port": port, "protocol": "TCP"}]}]}
+                "toPorts": [{"ports": [{"port": str(int(port)), "protocol": "TCP"}]}]}
     if network != "internet":
         raise ConfigError(f"{at}: network is cluster or internet")
     try:
@@ -90,7 +90,7 @@ def rule(subscriber):
         var = re.fullmatch(r"\$\{([a-z_]+)\}", label)
         if var and var[1] not in HOST_VARS:
             raise ConfigError(f"{at}: ${{{var[1]}}} is not an allowed variable in an internet host ({', '.join(HOST_VARS)})")
-        if not var and not HOST_LABEL.match(label):
+        if not var and not HOST_LABEL.fullmatch(label):
             raise ConfigError(f"{at}: host label {label!r} holds more than a-z, 0-9 and -")
     if port == 0:
         raise ConfigError(f"{at}: port 0")

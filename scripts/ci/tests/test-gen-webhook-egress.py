@@ -94,7 +94,7 @@ for url in ("https://ho_ok.example.io/x", "https://*.example.io/x", "https://Hoo
             "https://hooks.${private_domain_name}/x", "https://hooks.${other}/x", "https://ho${public_domain_name}.io/x",
             "https://hooks.example.io:0/x"):
     check(f"refused {url}", refused(net(url)))
-for name in (None, "", "Bad_Name", "-a", "a-", "x" * 64):
+for name in (None, "", "Bad_Name", "-a", "a-", "x" * 64, "a\n"):
     check(f"refused name {name!r}", refused(dict(net("https://hooks.example.io/x"), name=name)))
 check("a one-letter name is a DNS label", not refused(net("https://hooks.example.io/x", name="a")))
 check("a nameless subscriber is a ConfigError, not a KeyError", refused({"network": "internet", "url": "https://hooks.example.io/x"}))
@@ -158,9 +158,11 @@ def service(ports, ns="ns", name="svc", selector=None):
 
 try:
     import yaml  # noqa: F401
+    have_yaml = True
 except ImportError:
+    have_yaml = False
     print("note: PyYAML missing, main() branches skipped", file=sys.stderr)
-else:
+if have_yaml:
     ci = {"name": "ci", "network": "internet", "url": "https://hooks.example.io/x",
           "events": ["room.created"], "secretFile": "/s", "repositories": ["a/b"]}
     for label, kw, want, text in (
@@ -207,5 +209,5 @@ else:
         rc, _ = run(root)
         check("main: base subscriber on a good Service, and the patch not listed, still fails once", rc == 1)
 
-print("\n".join(failures) or "PASS")
-sys.exit(1 if failures else 0)
+print("\n".join(failures) or ("PASS" if have_yaml else "SKIP: PyYAML missing"))
+sys.exit(1 if failures else (0 if have_yaml else 77))  # 77: run-tests.sh shows SKIP

@@ -10,8 +10,8 @@ session writes one, it has no intake and takes no decision. See [README.md](READ
 - [ ] agent-platform v0.19.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`): the
   vocabulary (`allowedFiles`, `protectedFiles`, `modifyOnly`, `maxModifiedLines`, `diffShape`,
   `holdoutChecks`, `oracle`) and the `dead-links` probe.
-- [ ] The host's `dead-links` workflow has run on `main` twice, each run holding a `findings`
-  artifact:
+- [ ] The host's `dead-links` workflow (`.github/workflows/dead-links.yaml`) has run on `main` twice,
+  each run holding a `findings` artifact (written by `.github/scripts/dead-links/findings.py`):
 
   ```bash
   gh run list -R Smana/cloud-native-ref --workflow dead-links.yaml --branch main

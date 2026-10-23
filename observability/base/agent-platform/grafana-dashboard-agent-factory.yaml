@@ -38,7 +38,7 @@ spec:
          "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1,
            "links": [{"title": "Spend per identity", "url": "/d/agent-identity/agent-identity?var-principal=$${__field.labels.principal}&$${__url_time_range}"}]}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
-         "targets": [{"refId": "A", "expr": "agent_factory_budget_remaining_tokens / agent_factory_budget_cap_tokens", "legendFormat": "{{principal}}"}]},
+         "targets": [{"refId": "A", "expr": "agent_factory_budget_remaining_usd / agent_factory_budget_cap_usd", "legendFormat": "{{principal}}"}]},
         {"id": 7, "type": "timeseries", "title": "Human interventions (how dark is it?)", "gridPos": {"x": 8, "y": 16, "w": 8, "h": 8},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "expr": "sum by (kind) (increase(agent_factory_human_interventions_total[1d]))", "legendFormat": "{{kind}}"}]},

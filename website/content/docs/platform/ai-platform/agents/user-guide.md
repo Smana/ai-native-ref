@@ -242,6 +242,26 @@ From top to bottom:
 4. **Progress notes**, the agents' own claims, labelled as such.
 5. **The raw event stream**, folded.
 
+## When the factory asks a question {#scoper-question}
+
+With the scoper on for a class (off everywhere today), the factory reads an issue before it writes any
+code. When the issue leaves a question open, it comments on the issue with the question, the
+assumption it would make otherwise, and the label `factory/needs-author`; no run starts.
+
+| You want to… | Do this |
+|---|---|
+| Answer it | Edit the issue's title or body, then a maintainer re-applies `factory/ready`. The factory reads the issue as it was labelled, never its comments |
+| Proceed on its assumption | A maintainer comments `/factory retry` |
+| Do nothing | The task stops after 7 days |
+
+Comments are never read as an answer: a reply posted under the question changes nothing.
+
+**Steering notes.** A maintainer writes one short note per class in the target repository's default
+branch, `.github/agent-factory/steering/<class>.md`: at most 2 KiB, at most three `##` modules, one of
+them `## Verify` with at least one item (the checks that prove the work). The factory reads it at triage
+and puts it in the implementer's brief. This repository's [suite](https://github.com/Smana/ai-native-ref/blob/main/scripts/ci/tests/test-agent-steering.py)
+applies the factory's own rule to every note.
+
 ## What the factory never does
 
 | Never | What enforces it |

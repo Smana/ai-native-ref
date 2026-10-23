@@ -193,6 +193,10 @@ data:
       # Disruption design §4: a run lost to a reclaim or an eviction resumes on its own, twice per task
       # at most, and only with a RunTokens left under the task's TaskTokens (enforced on that path).
       resume: {maxPerTask: 2}
+      # Per-class loop policy and scope (scoper design SC2). Every class is off (D4): a platform
+      # session sets steering, then scoper, on one class at a time.
+      loops:
+        default: {scope: off}
       # SP4 PR 2's agent_router:run_tokens:total expression over the raw series (R12).
       meter:
         url: http://vmsingle-victoria-metrics-k8s-stack.observability.svc:8428

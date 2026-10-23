@@ -23,6 +23,7 @@ every run has a task and a budget. This page describes the design; what runs tod
 | **Teams** | Roles run as sequential `AgentRun`s in one room, on one `agent/<task>` branch: an implementer, then a reviewer, with a tester in larger teams. Only the implementer writes |
 | **Revise** | A GitHub review with "Request changes" becomes the input of a new run on the same branch. `/factory retry` tries again after a failure |
 | **Merge gate** | Only low-risk classes, and only with green CI and the policy agreeing: `docs-links` and `revert` (the factory's revert of an auto-merged `docs-links` change). Everything else waits for a human. Since v2.0 the gate is live: link fixes merge with no human, at most once a day, and a revert breaker demotes the class to human review |
+| **Scope** | `loops.<class>.scope` is `off`, `steering` or `scoper`, and every class is `off`. `steering` adds the class's note (`.github/agent-factory/steering/<class>.md`) to the implementer's brief. `scoper` first runs a read-only triager that turns the issue into a bounded task with acceptance checks, or asks the author the question it could not answer (the [user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#scoper-question" >}})). Three counters by repository and class: scoper outcomes, steering reads (`used`, `absent`, `invalid`) and bounce exits (`relabel`, `retry`, `expired`) |
 | **Kill switch** | One task: the label `factory/stop`. Every task: the stop ConfigMap, or a label on a pinned control issue |
 
 The developer's view of the same journey is in the

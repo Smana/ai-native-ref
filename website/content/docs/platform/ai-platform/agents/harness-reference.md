@@ -94,7 +94,25 @@ implementer's tier.
 | `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="live" color="green" >}} aws-0 |
 | `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
 | `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since agent-platform v0.16.0, pinned here at v0.19.0). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
-| `loops.<class>` | none: **no row ships (D4)** | The loop policy, off for every class. A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
+| `loops.<class>` | only `default: {scope: off}`: **no class has a row (D4)** | The loop policy and the scope, off for every class. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
+
+## Factory: what a brief holds {#brief}
+
+`loops.<class>.scope` picks the mode per class; `loops.default` covers a class with no row and
+`review`. Every class is `off` here (D4).
+
+| Brief | `off` | `steering` | `scoper` |
+|---|---|---|---|
+| Scoper (a triager run) | — | — | preamble · steering · snapshot · how to scope, ask or assume, and hand off |
+| First implementer | preamble · snapshot (today) | preamble · steering · snapshot | preamble · steering · scope · snapshot |
+| Revision, CI fix, retry, resume (≤ 13 KiB) | today | steering before the room log | steering and scope before the room log |
+| Judge's continuation | the issue's acceptance section | the same | the scope's acceptance checks |
+| Reviewer | the room | the room; steering once the reviewer's brief carries it | the room (the scope is a handoff); steering and scope once it does |
+
+The steering note and the scope are never clipped. The snapshot is inlined whole while the brief stays
+within 16 KiB, else the brief tells the implementer to read it with `room_read`. The scope is an
+agent's text drawn from an untrusted issue: sanitised and fenced as the snapshot is. The steering note
+is fenced as trusted. {{< badge content="off" color="gray" >}}
 
 ## Run API: runs started by hand {#run-api}
 

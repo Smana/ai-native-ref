@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.17.1, the chart's appVersion.
+      # agent-platform v0.19.0, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.17.1@sha256:7cfd0a9570874ac9c64a2c477d947cd034883f4593ce26b65f879a2c2dbd132b"
+      tag: "v0.19.0@sha256:43e8063c4887bfb2b76e534b8d802c0e0cc08722744ea20e4db1a2dba330cd23"
     # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
     githubSecret: agent-factory-github
     brokerCASecret: openbao-ca
@@ -30,6 +30,9 @@ data:
         - name: Smana/cloud-native-ref
           maintainers: [Smana]
           triggerLabel: factory/ready
+          # v3 feature 3: what a check-enabled run requests beyond github. No class has checks: true
+          # until the gcp-0 session's live proofs (D4).
+          checks: {egress: [pypi]}
           classes:
             # LIVE for the drill (runbook 12, design D4): revert with it, or an auto-merge waits on a
             # human to merge its own revert (D5). Back to {shadow: true} once the drill is over.
@@ -87,6 +90,9 @@ data:
         - name: Smana/ai-native-ref
           maintainers: [Smana]
           triggerLabel: factory/ready
+          # v3 feature 3: what a check-enabled run requests beyond github. No class has checks: true
+          # until the gcp-0 session's live proofs (D4).
+          checks: {egress: [golang, pypi]}
           classes:
             docs-links: {shadow: true}
             revert: {shadow: true}
@@ -178,7 +184,7 @@ data:
         # The days in USD (TC5): the old 25M and 5M at the reference $1.70 per M, now counted at
         # meter.prices, cache reads at their own rate. AG8 holds B2 at or above factoryDailyUSD
         # plus caps.concurrentRuns frontier runs, and fails a token key (factoryDaily, humanDaily,
-        # perPerson.dailyTokens): v0.17.1 ignores one, a later release refuses it.
+        # perPerson.dailyTokens): v0.19.0 ignores one, a later release refuses it.
         factoryDailyUSD: 42.50
         humanDailyUSD: 8.50
         # Per-person caps in shadow (D8): counted as budget-principal-shadow{principal}, never refused.

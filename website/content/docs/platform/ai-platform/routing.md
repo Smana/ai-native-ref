@@ -248,6 +248,7 @@ drifts:
 | Reader | Its copy of the table | Held by |
 |---|---|---|
 | The run meter: USD run and task caps, `agent_factory_run_cost_usd`, the `Task`'s `costMicroUSD` | The factory's config itself | — |
+| The *Spend per identity* dashboard (`agent-identity`): `agent_factory_charged_usd_total` and the day gauges | The factory's meter: no copy of the table | — |
 | Gateway budgets B1, B2, B6 | A CEL cost string in `infrastructure/base/agent-gateway/policy-budgets.yaml` | Gate AG8 regenerates it |
 | The `agent-run` dashboard's *Cost (USD)* panel, `AnthropicFleetNearCap` | `llm_gateway:charge_usd_per_mtoken`, the `llm-gateway-prices` group of `infrastructure/base/llm-gateway/vmrule-llm-gateway.yaml` | `test-agent-prices`: the group is what `scripts/ci/gen-prices.py` renders |
 

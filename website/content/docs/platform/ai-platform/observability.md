@@ -67,7 +67,7 @@ it stands, what it did, what it cost and where its time went.
 | Logs | [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/) | Every run's step log and every gateway call, attributed to the run |
 | Metrics | [VictoriaMetrics](https://victoriametrics.com) | Tokens, cost, latency and errors per run, and each `AgentRun`'s state through kube-state-metrics |
 | Traces | [VictoriaTraces](https://docs.victoriametrics.com/victoriatraces/), behind an OpenTelemetry Collector that keeps only allowlisted metadata | One trace per run: steps, model calls and tool calls. Metadata only: no prompts or outputs |
-| Dashboards | [Grafana](https://grafana.com) | `agent-run`, one page per run, and `agent-fleet`, the overview |
+| Dashboards | [Grafana](https://grafana.com) | `agent-run`, one page per run, `agent-fleet`, the overview, and `agent-identity`, spend per charged principal |
 
 The full transcript (prompts and outputs) stays in the
 [room]({{< relref "/docs/platform/ai-platform/agents/rooms.md" >}}), behind room access. Alerting
@@ -75,6 +75,28 @@ on runs belongs to the factory's rules, per the
 [observability design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-27-agent-observability-design.md).
 Which question each signal answers, from a developer's seat, is in the
 [user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#observability-what-you-can-inspect" >}}).
+
+### Spend per identity {#spend-per-identity}
+
+The `agent-identity` dashboard (*Spend per identity*) shows one charged principal at a time, never
+All: a person or a sponsored service account. It attributes cost to the work a principal caused. It
+does not score the person: no panel groups, sorts or ranks by principal.
+
+| Section | Reads |
+|---|---|
+| Spend | Today against the principal's daily cap and against the fleet's, by kind, per day |
+| Tokens | By type, and the cache-read share |
+| Work | Runs, rooms and tasks, each linked |
+| Outcomes | Pull requests opened, merged and reverted, and cost per accepted pull request |
+| Limits | Refusals and revocations |
+| Waits | Tasks waiting for a human now, and how long its tasks waited |
+| Sponsored | The sponsor, and ceilings against spend |
+
+Every figure is in UTC, the ledger's day. The sources are the factory's per-payer series
+(`agent_factory_charged_usd_total`, the `agent_factory_budget_*_usd` gauges) and
+`agent_factory_run_charge_info{run, principal, task, room}`, which joins the gateway's per-run
+tokens to the payer. The panels are held by `test-agent-identity-dashboard` and
+`test-agent-identity-queries`.
 
 ### The agent gateway's signals
 

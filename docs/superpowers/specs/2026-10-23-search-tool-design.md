@@ -1,6 +1,6 @@
 # v3 feature 5: search as a tool, a read-only child that answers one question
 
-**Date:** 2026-10-23 · **Status:** draft; owner decisions SQ1–SQ5 open, each with a recommended default ·
+**Date:** 2026-10-23 · **Status:** approved 2026-10-23, SQ1–SQ5 at their recommended defaults ·
 **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features), feature 5 ("inside the
 implementer, a read-only search subagent with a fresh context returns a short summary"), as amended by
 the [review](2026-10-21-v3-review.md#5-amendments-proposed) ("a child conversation on the run's own

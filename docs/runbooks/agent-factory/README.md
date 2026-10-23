@@ -73,6 +73,7 @@ Mixes rounds 4 to 6 (from `580042e6` on). Round 6 took issue #2112 to PR #2114 (
 | [14-gcp-0-session.md](14-gcp-0-session.md) | The ordered gcp-0 session: gcp-0 up alone, the v2.1 blockers live, runbook 11 as the full test, v2 on gcp-0, the Substrate spike | Yes — Google auth, the quota request, the identity-provider topology, the agents keys, the go-live commit | a day, plus the spike's two |
 | [15-dead-links.md](15-dead-links.md) | Merge gate classes: the `dead-links` class in shadow (an oracle-backed intake, a would-arm decision) and, on the owner's go, one live drill with its revert | Shadow: no. The drill: the owner's go, the merger App's `actions` permission, a host `.policy.yml` rule | shadow: a day; drill: ~1 h |
 | [17-splitter.md](17-splitter.md) | Splitter design, live proofs 1–4: a hard issue proposed as a split, approved, landed part by part as sub-issues, stopped, and charged to the approver within the family's cap | Yes — the owner's go, a maintainer's `factory/ready` and `/factory split`, the scoper's live proofs first | ~2 h |
+| [18-factory-interfaces.md](18-factory-interfaces.md) | Factory interfaces, the switch-on: a sponsored principal filing through intake `api`, the broker's signed webhooks and the Slack App; live proofs 2 to 5, then off again | Yes — the owner's go, the Slack App's console, a host PR for the public listener | ~3 h |
 
 **Out of scope:** SC-15/SC-16 (gVisor overhead ratio and `validate-manifests.sh`/`task check`
 exit codes) are already closed by the phase-0 spike and by CI — no live step adds evidence.

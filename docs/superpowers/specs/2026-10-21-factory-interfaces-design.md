@@ -175,6 +175,7 @@ map); whether the App answers a mention or a slash command.
 
 Settled in agent-platform's part 2 plan (`docs/superpowers/plans/2026-10-23-factory-interfaces-part2-plan.md`):
 
+- The sponsor claim's shape: no ZITADEL claim; the sponsor is declared in the factory's config, per principal (R1, O-A).
 - How a sponsored token is identified: by its client, as `roomctl`'s is, the client id read at each use from a file the host's sync writes (R2).
 - How a Slack user is linked: a map in the factory's config, Slack id to maintainer login (R9).
 - How a webhook is signed: Standard Webhooks headers, one signature per key (R15).

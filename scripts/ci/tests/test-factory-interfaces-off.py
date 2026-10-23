@@ -89,6 +89,16 @@ app_cfg = yaml.safe_load((ROOT / "tooling/base/agent-factory/slack-app/config.ya
 if urlparse(app_cfg["brokerURL"]).path not in ("", "/"):
     problems.append(f"slack-app config.yaml brokerURL {app_cfg['brokerURL']!r} has a path: the App appends /mcp")
 
+# gen-webhook-egress.py refuses a named targetPort for a cluster subscriber: every port of the App's Service
+# has a numeric targetPort equal to its port.
+for doc in load("tooling/base/agent-factory/slack-app/service.yaml"):
+    if doc.get("kind") != "Service":
+        continue
+    for port in doc["spec"]["ports"]:
+        if port.get("targetPort") != port["port"]:
+            problems.append(f"slack-app service.yaml: port {port['name']} has targetPort {port.get('targetPort')!r}, "
+                            f"want the number {port['port']}")
+
 # 3 and 4. One route, one match, exact path, POST.
 def one_match(rel, path):
     routes = [d for d in load(rel) if d.get("kind") == "HTTPRoute"]

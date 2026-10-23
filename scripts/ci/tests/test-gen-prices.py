@@ -161,6 +161,10 @@ with tree() as t:
     check("its charges", got["claude-mythos-5"] == ("25.00", "125.00", "-22.50", "6.25"), str(got["claude-mythos-5"]))
     check("the result is in sync", run(t)[0] == 0)
 with tree() as t:
+    text = rules(t).read_text()
+    check("provenance is never rendered: no source, no checkedAt in the rules",
+          "source" not in text and "checkedAt" not in text)
+with tree() as t:
     replace(t, gen.VALUES, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.60}")
     code, out = run(t, "--write")
     check("a price change moves its own rule only",
@@ -198,6 +202,10 @@ for name, change, needle in [
      f"expected one group `- name: {gen.GROUP}`, found 2"),
 ]:
     refused(name, change, needle)
+with tree() as t:
+    text = rules(t).read_text()
+    check("provenance is never rendered: no source, no checkedAt in the rules",
+          "source" not in text and "checkedAt" not in text)
 with tree() as t:
     replace(t, gen.VALUES, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}")
     code, out = run(t)

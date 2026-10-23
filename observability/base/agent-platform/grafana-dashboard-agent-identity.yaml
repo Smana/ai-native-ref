@@ -155,6 +155,7 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "instant": true, "legendFormat": "{{sponsor}}", "expr": "max by (sponsor) (agent_factory_principal_sponsor_info{principal=\"$${principal}\"})"}]},
         {"id": 24, "type": "stat", "title": "Ceilings against spend", "gridPos": {"x": 8, "y": 50, "w": 8, "h": 5},
+         "description": "The cost ceilings admitted for this principal's tasks (F4) against what its tasks spent. Ceilings read No data until F4 ships.",
          "fieldConfig": {"defaults": {"unit": "currencyUSD", "decimals": 2}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [
@@ -162,6 +163,7 @@ spec:
            {"refId": "B", "instant": true, "legendFormat": "task spend", "expr": "sum(increase_pure(agent_factory_charged_usd_total{principal=\"$${principal}\", kind=\"task\"}[$__range]))"}
          ]},
         {"id": 25, "type": "stat", "title": "Stopped at the ceiling", "gridPos": {"x": 16, "y": 50, "w": 8, "h": 5},
+         "description": "Tasks of this principal stopped at their cost ceiling (F4). No data until F4 ships.",
          "fieldConfig": {"defaults": {"unit": "short", "decimals": 0}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "instant": true, "expr": "sum(increase_pure(agent_factory_run_revocations_total{principal=\"$${principal}\", reason=\"budget-task\", limit=\"task-usd\"}[$__range]))"}]}

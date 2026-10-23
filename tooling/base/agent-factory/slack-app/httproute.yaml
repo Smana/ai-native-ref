@@ -1,0 +1,22 @@
+# The Slack App's one public endpoint: Slack posts its events here, each signature-verified. One
+# exact path, one method; the rest of the host is the gateway's 404 (policy-bot's precedent). The
+# `factory-slack` listener on platform-public does not exist until the switch-on (L3', host H4
+# version 4): until then the route has nothing to attach to, and nothing applies it anyway.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: factory-slack-app
+  namespace: agent-system
+spec:
+  parentRefs:
+    - name: platform-public
+      namespace: infrastructure
+      sectionName: factory-slack
+  hostnames:
+    - "factory-slack.${public_domain_name}"
+  rules:
+    - matches:
+        - path: {type: Exact, value: /slack/events}
+          method: POST
+      backendRefs:
+        - {name: factory-slack-app, port: 8080}

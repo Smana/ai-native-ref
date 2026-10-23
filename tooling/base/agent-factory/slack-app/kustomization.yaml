@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The factory's Slack App (factory interfaces part 2), NOT WIRED (D4, R30, L3'): no kustomization
+# lists this directory and no clusters/* file names it. A gcp-0 session points a cluster Kustomization
+# at tooling/gcp-0/agent-factory/slack-app (runbook 18), after the Slack App exists, its Secrets are
+# in the store, the broker declares its webhook and the factory its sponsored principal. Every file
+# here is a gate path (.policy.yml): agents never change it.
+resources:
+  - serviceaccount.yaml
+  - rbac.yaml
+  - configmap-threads.yaml
+  - deployment.yaml
+  - service.yaml
+  - vmservicescrape.yaml
+  - network-policy.yaml
+  - httproute.yaml
+  - externalsecret-principal.yaml
+  - externalsecret-slack.yaml
+  - externalsecret-sponsored.yaml
+  - externalsecret-broker-sponsored.yaml
+  - password-generator-webhook.yaml
+  - externalsecret-webhook.yaml
+
+# The App reads its config once at start: a change moves the content-hash suffix and rolls the pod,
+# as the broker's does.
+configMapGenerator:
+  - name: factory-slack-app-config
+    namespace: agent-system
+    files:
+      - config.yaml

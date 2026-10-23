@@ -1,0 +1,9 @@
+# The Slack thread to room map. IfNotPresent: Flux creates it once and never contests the App's
+# writes, so the App needs no create verb.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: factory-slack-threads
+  namespace: agent-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent

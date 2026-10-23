@@ -42,6 +42,16 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
+    # The Slack App's /mcp calls as a sponsored principal (R13). Dormant: no pod carries the label
+    # until a gcp-0 session applies tooling/*/agent-factory/slack-app (runbook 18).
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: agent-system
+            app.kubernetes.io/name: factory-slack-app
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
     # agent-router's MCP proxy, only (§3): identity is the verified x-ar-agent.
     - fromEndpoints:
         # agentgateway's agent router (ADR-0053), by Gateway name in its own namespace.

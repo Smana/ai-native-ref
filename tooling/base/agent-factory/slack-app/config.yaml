@@ -1,0 +1,19 @@
+# factory-slack-app's config (agent-platform docs/slack.md), strictly decoded, Flux-substituted.
+# Every file is a whole-Secret mount of deployment.yaml, re-read at use except botUserIDFile.
+signingSecretFile: /etc/factory-slack-app/slack/signing-secret
+botTokenFile: /etc/factory-slack-app/slack/bot-token
+botUserIDFile: /etc/factory-slack-app/slack/bot-user-id
+webhookKeyFile: /etc/factory-slack-app/webhook/signing-key
+# The ZITADEL machine user's client credentials (the host's script writes the Secret's source).
+clientIDFile: /etc/factory-slack-app/principal/client-id
+clientSecretFile: /etc/factory-slack-app/principal/client-secret
+projectIDFile: /etc/factory-slack-app/principal/project-id
+issuerURL: https://auth.${public_domain_name}
+# The broker's human listener, plaintext inside the mesh (:8443 is its TLS listener for bridges).
+brokerURL: http://room-broker.agent-system.svc.cluster.local:8080/mcp
+roomsURL: https://rooms.${private_domain_name}
+namespace: agent-system
+# The switch-on fills both (runbook 18): an empty teamID drops every event, and no channel is served
+# until one is listed as <channel id>: {repositories: [owner/name], maxCostUSD: <at least 0.01>}.
+teamID: ""
+channels: {}

@@ -10,9 +10,9 @@ metadata:
 spec:
   image:
     repository: ghcr.io/smana/room-broker
-    # agent-platform v0.19.0, by digest. Move it with the retention CronJob's,
+    # agent-platform v0.20.0, by digest. Move it with the retention CronJob's,
     # crd-rooms.yaml and atlasSchema.ref together.
-    tag: "v0.19.0@sha256:c8f178e2cccf650e6d8d375ae1b7671100879ae6f8a9a5d3b6a823ed9764132e"
+    tag: "v0.20.0@sha256:e8ab62932e98f82b48b3bb83cc7b59b8b534dbd6dde4e64e5f7f66103ea1b093"
   # Two from phase 2 (§9): the leader lease picks the controller, and every
   # replica serves humans through the LISTEN/NOTIFY hub (ruling AT).
   replicas: 2
@@ -110,6 +110,19 @@ spec:
         secretName: room-broker-zitadel-reader  # pragma: allowlist secret
         optional: true
         defaultMode: 0440
+    # The sponsored principals' client ids (human.mcp.sponsored[].clientIDFile), and the Slack App's
+    # webhook signing key (webhooks[].secretFile). Whole-Secret mounts, optional: inert until the
+    # Secrets exist, which the Slack App's switch-on creates (runbook 18). 0440, read through fsGroup.
+    - name: sponsored
+      secret:
+        secretName: room-broker-sponsored  # pragma: allowlist secret
+        optional: true
+        defaultMode: 0440
+    - name: webhook-slack-app
+      secret:
+        secretName: room-broker-webhook-slack-app  # pragma: allowlist secret
+        optional: true
+        defaultMode: 0440
   extraVolumeMounts:
     - name: config
       mountPath: /etc/room-broker/config
@@ -128,6 +141,12 @@ spec:
       readOnly: true
     - name: zitadel-reader
       mountPath: /etc/room-broker/zitadel-reader
+      readOnly: true
+    - name: sponsored
+      mountPath: /etc/room-broker/sponsored
+      readOnly: true
+    - name: webhook-slack-app
+      mountPath: /etc/room-broker/webhooks/slack-app
       readOnly: true
   networkPolicies:
     enabled: false

@@ -5,7 +5,8 @@ kind: Kustomization
 # agent-router: the Gateway and its data plane in agent-gateway; routes and
 # backends in agent-system (llm, anthropic, mcp, sts, github), the only namespace its listeners
 # admit. Nothing reaches it until the cutover (phase F): no run CNP names it yet.
-# Budgets B1-B2 count on its own rate-limit server and Valkey, in shadow.
+# Budgets B1, B2 and B6 are charged on its own rate-limit server and Valkey, and refuse
+# since 2026-10-18 (ratelimit.yaml's SHADOW_MODE "false").
 # Telemetry (phase E): policy-frontend.yaml and the proxy scrape.
 resources:
   - gateway.yaml

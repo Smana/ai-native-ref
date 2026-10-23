@@ -35,7 +35,7 @@ repository pins, read on 2026-10-16.
 | Triage classifier (`complexity-classifier`, C7) | **Design only**. The URL is configured and nothing answers it, so every task falls back to `standard` with `classifier: static` | factory values, live `Task` status |
 | 10% control group at `frontier` (`triage.controlPercent`) | **Deployed, live**: 2 of 12 tasks | live `Task` status |
 | Run meter priced in USD, cache reads at their own rate | **Deployed, proven live** | [plan, internal run](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/plans/2026-10-15-agent-router-agentgateway-plan.md#live-evidence-internal-run-2026-10-16) |
-| Gateway budgets B1, B2, B6 | **Deployed, in shadow**: counted, never refused | [runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets) |
+| Gateway budgets B1, B2, B6 | **Deployed, enforced** since 2026-10-18: a call over its bucket is refused `429` | [runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets) |
 | `ai-gateway` with `tier-frontier` (GLM-5.3) | **Deployed**, CPU only | `aigatewayroute.yaml` |
 | Semantic Router `MoM` cascade | **Deployed but idle**: the router pod runs, and `llm-platform` is suspended, so no vLLM model exists to route to | `kubectl get ks llm-platform`: no status, suspended |
 | SR `complexity` signal, PII-gated frontier escalation, SR fail-open | **Design only** (SP4 PR 4: SR 0.3.0) | [SP4 design §2](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#2-complexity-signal-for-chat-mom) |
@@ -368,11 +368,11 @@ measured internal run, `wfeiraim` (triager, Opus 5.5), cost **$0.477** for 303,4
 
 ```mermaid
 flowchart TB
-  subgraph factory["Factory: exact, enforced"]
-    R["run cap: runUSD<br/>0.51 · 2.55 · 6.80"] --> TK["task cap: taskUSD<br/>1.02 · 5.10 · 13.60"]
-    TK --> D["daily: factoryDaily 25M, humanDaily 5M<br/>RAW tokens"]
+  subgraph factory["Factory: exact, in USD at meter.prices"]
+    R["run cap: runUSD<br/>0.51 · 2.55 · 6.80<br/>enforced"] --> TK["task cap: taskUSD<br/>1.02 · 5.10 · 13.60<br/>enforced"]
+    TK --> D["daily: factoryDailyUSD 42.50, humanDailyUSD 8.50<br/>shadow while enforcePrincipal is false"]
   end
-  subgraph gateway["agentgateway: backstop, in shadow"]
+  subgraph gateway["agentgateway: backstop, enforced"]
     B1["B1 per run: 5M ref tokens, $8.50"]
     B2["B2 fleet: 41M ref tokens, $69.70"]
     B6["B6 Anthropic: 10M ref tokens, $17"]
@@ -384,18 +384,18 @@ flowchart TB
 | Layer | Unit | Enforced | Note |
 |---|---|---|---|
 | `runUSD`, `taskUSD` | USD, cache-aware | **yes** | The cap that decides a run's fate |
-| `factoryDaily`, `humanDaily` | **raw tokens**: a cache read counts as a full token | the fleet's day: tasks wait `waiting_daily_budget`. Per person: shadow | See the warning below |
-| B1, B2, B6 | reference tokens: USD ÷ $1.70 per million | shadow (`SHADOW_MODE: "true"`, `infrastructure/base/agent-gateway/ratelimit.yaml`) | Sized above the factory's caps, so the gateway never refuses what the factory admits |
+| `factoryDailyUSD`, `humanDailyUSD` | USD, cache-aware: the same `meter.prices`, since agent-platform v0.17.1 | **shadow**, the fleet's day and each person's: with `enforcePrincipal: false` a run past its day is admitted and counted as `budget-principal-shadow` | `AgentFactoryDailyBudgetHigh` fires at 80%. The day's ledger is `agent-factory-ledger-usd-<YYYYMMDD>`, in micro-USD |
+| B1, B2, B6 | reference tokens: USD ÷ $1.70 per million, at `meter.prices` | **yes**, since 2026-10-18 (`SHADOW_MODE: "false"`, `infrastructure/base/agent-gateway/ratelimit.yaml`): `429 agent_budget_exhausted` | Sized above the factory's caps, so the gateway never refuses what the factory admits. Gate AG8 holds B2 at or above `factoryDailyUSD` plus four frontier runs |
 | local limit | raw tokens per hour, per replica | always | Above the largest admitted run: $6.80 of Opus cache reads is 34M tokens |
 
-{{< callout type="warning" >}}
-**The daily budgets run out long before the money does.** `factoryDaily` (25M) and `humanDaily`
-(5M) still count raw tokens. On 2026-10-18 both read **0 remaining**
-(`agent_factory_budget_remaining_tokens`), and `AgentFactoryDailyBudgetHigh` was firing, after about
-$10 of real spend (29.1M raw tokens at a blended $0.357 per million). The raw-token alerts
-`AgentRunTokenSpendHigh` (5M in 8 h) and `AgentFleetTokenSpendHigh` fire on cache-heavy runs well
-inside their USD caps, as they did for `d3jacb5z` and `kk2egjta` that day. A USD (or
-reference-token) daily budget is the open fix.
+{{< callout type="info" >}}
+**The daily caps count dollars.** Until agent-platform v0.17.1 they counted raw tokens, a cache read
+as a full token: on 2026-10-18 the fleet's 25M and a person's 5M both read 0 remaining after about
+$10 of real spend. `factoryDailyUSD` ($42.50) and `humanDailyUSD` ($8.50) are the same days at the
+reference $1.70 per million, now priced as the run caps are. They stay in shadow until a record in
+dollars shows that enforcing would refuse only what it should. The raw-token alerts
+`AgentRunTokenSpendHigh` (5M in 8 h) and `AgentFleetTokenSpendHigh` are unchanged: they still fire
+on cache-heavy runs well inside their USD caps.
 {{< /callout >}}
 
 ## Efficiency {#efficiency}
@@ -474,8 +474,8 @@ Every knob, what it trades and how to see the effect. Factory values live in
 | A reviewer independent of the implementer | `templates.pair.reviewerModel` | Another *size* only on `public`: ADR-0058 rejected a Claude reviewer on data class and cost, and no other open-weight family has a route | review verdicts against maintainer rejections |
 | Measure model fit, not only budget fit | `triage.controlPercent` (10) | More control tasks run `frontier` with `trio`, at about 2.7× the run cap | `agent_factory_tier_fit_total{fit}` |
 | Fewer runs revoked mid-work | `tiers.<tier>.runUSD`, `taskUSD` | A run cap above $6.80 also needs B1 and the local limit raised: AG8 checks it | `agent_factory_run_revocations_total`, `budget-run` reasons |
-| Daily budget not spent by cache reads | `budgets.factoryDaily`, `humanDaily` (raw tokens) | Raising them loosens the only daily stop until a USD daily cap exists | `agent_factory_budget_remaining_tokens` |
-| Gateway budgets that refuse | `SHADOW_MODE: "false"` in `ratelimit.yaml` | 429 `agent_budget_exhausted`; wait for a longer shadow record (status) | `agent_router:budget_shadow_overrun_tokens:increase10m` |
+| A longer or shorter day | `budgets.factoryDailyUSD`, `humanDailyUSD` | Above $42.50, `factoryDailyUSD` also needs B2 raised: AG8 fails otherwise. Both count in shadow until `enforcePrincipal` | `agent_factory_budget_spent_usd` against `agent_factory_budget_cap_usd` |
+| Gateway budgets that only count | `SHADOW_MODE: "true"` in `ratelimit.yaml` | Nothing past a bucket is refused: the backstop under the factory's caps is gone | `agent_router:budget_shadow_overrun_tokens:increase10m` |
 | Lower chat latency | Clients name the model instead of `MoM` | Loses automatic choice; saves 250–300 ms | gateway TTFT on *LLM Gateway* |
 | Less chain-of-thought spend in chat | Trim `reasoning_keywords`, raise `long_query.min_tokens` | Fewer `use_reasoning: true` decisions; weaker answers on multi-step prompts | output tokens per model, promptfoo pass rate |
 | Better coding answers in chat | Widen `code_keywords` or the `code` categories | More traffic, and more KEDA pressure, on the coder | `vllm:num_requests_running` per model |
@@ -530,8 +530,8 @@ to the 0.2 config with the documented 0.70–0.75 threshold: it never fires.
 | One run's cost, exactly | `kubectl get task <id> -n agent-system -o jsonpath='{.status.runs[*].costMicroUSD}'` |
 | Did the tier fit? | `agent_factory_tier_fit_total{classifier, tier, fit}`: `under`, `fit`, `over` |
 | Model latency | `histogram_quantile(0.95, sum by (le, gen_ai_request_model) (rate(gen_ai_server_request_duration_seconds_bucket{namespace="agent-gateway"}[1h])))`: p50 2.8 s, p95 18.4 s on `glm-5.3`, 2026-10-18 |
-| What enforcing B1–B2 would refuse | `agent_router:budget_shadow_overrun_tokens:increase10m` |
-| Daily budget left | `agent_factory_budget_remaining_tokens / agent_factory_budget_cap_tokens` by `principal` |
+| What B1, B2 and B6 refused | `agent_router:budget_refused_tokens:increase10m` by `key1` (`AgentBudgetRefused`) |
+| Daily budget left, in USD | `agent_factory_budget_remaining_usd / agent_factory_budget_cap_usd` by `principal`; `agent_factory_budget_spent_usd` is today's spend, unclamped |
 | Serving: which model is hot | `vllm:num_requests_running`, `vllm:kv_cache_usage_perc`, `vllm:num_requests_waiting` by `model_name` |
 
 | Dashboard (`uid`) | Read it for |
@@ -551,7 +551,6 @@ Signal definitions and alerts are on
 |---|---|---|
 | No triage classifier | Every task is `standard`; the tier never reflects difficulty | SP4 PR 5 |
 | Every tier is `agent-default` | Tiers change caps, not models; the reviewer shares the implementer's model | A measured tier move |
-| Daily budgets in raw tokens | The fleet's day runs out after about $10 at today's cache mix | A USD daily cap |
 | The router fails closed, on one replica | A router outage fails every `ai-gateway` request, `tier-frontier` included | SP4 PR 4 |
 | PII classifier loaded, read by no decision | No data-class protection on `MoM` today. Harmless while every `MoM` target is local | SP4 PR 4 (`NOT pii_any` on the frontier decision) |
 | No Semantic Router series in VictoriaMetrics on `gcp-0` | The router's decisions cannot be read from metrics today | Not investigated |

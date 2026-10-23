@@ -93,7 +93,7 @@ implementer's tier.
 | `caps.maxPendingMinutes` | 30 (5 … 480) | A run still `Pending` escalates as `run_unschedulable` |
 | `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="live" color="green" >}} aws-0 |
 | `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
-| `budgets.*` | `factoryDaily` 25 M, `humanDaily` 5 M | Daily caps; the per-person one counts in shadow |
+| `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (agent-platform v0.17.1). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
 
 ## Run API: runs started by hand {#run-api}
 

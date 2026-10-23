@@ -26,7 +26,7 @@ SENTINELS = [
     "tooling/aws-0/agent-factory/x", "infrastructure/base/agent-gateway/x",
     "infrastructure/aws-0/agent-gateway/x", "observability/base/agent-platform/x",
     "scripts/ci/flux-schema/assert-agent-gateway.py", "HOST_REF", "taskfile.yaml",
-    ".pre-commit-config.yaml", ".secrets.baseline",
+    ".pre-commit-config.yaml", ".secrets.baseline", ".github/agent-checks.yaml",
 ]
 fails = []
 

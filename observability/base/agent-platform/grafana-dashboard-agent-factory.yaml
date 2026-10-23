@@ -53,6 +53,9 @@ spec:
          "targets": [{"refId": "A", "expr": "max(agent_factory_kill_switch_engaged)"}]},
         {"id": 11, "type": "timeseries", "title": "Automatic resumes by reason", "gridPos": {"x": 0, "y": 32, "w": 12, "h": 8},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
-         "targets": [{"refId": "A", "expr": "sum by (reason) (increase(agent_factory_resumes_total[1d]))", "legendFormat": "{{reason}}"}]}
+         "targets": [{"refId": "A", "expr": "sum by (reason) (increase(agent_factory_resumes_total[1d]))", "legendFormat": "{{reason}}"}]},
+        {"id": 12, "type": "table", "title": "Merge decisions by class and reason (7 days)", "gridPos": {"x": 12, "y": 32, "w": 12, "h": 8},
+         "datasource": {"type": "prometheus", "uid": "$${datasource}"},
+         "targets": [{"refId": "A", "expr": "sum by (class, verdict, reason) (increase(agent_factory_merge_decisions_total[7d])) > 0", "format": "table", "instant": true}]}
       ]
     }

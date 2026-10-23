@@ -42,6 +42,19 @@ data:
             tests: {}
             dashboards: {}
             scripts: {}
+            # Declared off (merge gate classes MC14): no switch, so no intake and no decision. A
+            # session's first commit sets shadow: true (runbook 15). Its fence repeats the host's
+            # `low-risk: docs-links` rule, which approves its pull requests until `low-risk:
+            # dead-links` lands with the live switch; test-agent-merge-gate-parity.py holds the two.
+            dead-links:
+              allowedFiles: ['^(docs|website/content)/.+\.md$']
+              protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
+              modifyOnly: true
+              maxModifiedLines: 20
+              diffShape: links-only
+              holdoutChecks: ["External links 🔗"]
+              oracle: {probe: dead-links, workflow: dead-links.yaml, maxFindings: 10}
+              maxPerDay: 1
           merge:
             # Classic protection's 8 contexts (app 15368), read with `gh api repos/Smana/cloud-native-ref/branches/main/protection`.
             requiredChecks:
@@ -85,6 +98,13 @@ data:
                 host, changing only the link target: leave code blocks, prose and link text alone,
                 change fewer than 21 lines in total and add or delete no file. If none is broken,
                 change nothing and open no pull request.
+            # dead-links' intake (MC6): the findings two consecutive nightly runs of the host's
+            # dead-links.yaml agree on become one task. Inert while the class is off.
+            - name: dead-links
+              cron: "0 7 * * *"  # daily, after the 04:23 UTC scan
+              class: dead-links
+              probe: dead-links
+              text: Fix the dead external links listed below.
         # The second repository (v2 design D9): every class review or shadow, nothing arms until
         # its own 20 shadow decisions. Its .policy.yml has no low-risk rule to match a live class.
         - name: Smana/ai-native-ref
@@ -100,6 +120,17 @@ data:
             tests: {}
             dashboards: {}
             scripts: {}
+            # Declared off (MC14). No schedule here yet: this repository has no dead-links.yaml, and
+            # its .policy.yml no low-risk rule, so a shadow decision could not reach would-arm.
+            dead-links:
+              allowedFiles: ['^(docs|website/content)/.+\.md$']
+              protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
+              modifyOnly: true
+              maxModifiedLines: 20
+              diffShape: links-only
+              holdoutChecks: ["External links 🔗"]
+              oracle: {probe: dead-links, workflow: dead-links.yaml, maxFindings: 10}
+              maxPerDay: 1
           merge:
             # The `main` ruleset's 2 contexts (app 15368): `gh api repos/Smana/ai-native-ref/rulesets/25225244`.
             # ci.yaml runs both on push to main too; TruffleHog is a step of `lint`.

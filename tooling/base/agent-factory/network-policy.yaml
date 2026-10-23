@@ -82,6 +82,11 @@ spec:
         - matchName: auth.${public_domain_name}
       toPorts:
         - ports: [{port: "443", protocol: TCP}]
+    # After ZITADEL's rule, whose index (7) the gcp-0 overlay pins.
+    - toFQDNs:  # dead-links' probe: GitHub redirects an artifact's download to its storage (R19)
+        - matchPattern: "productionresultssa*.blob.core.windows.net"
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
     - toEndpoints:  # the 429 lookup (R13)
         - matchLabels:
             io.kubernetes.pod.namespace: observability

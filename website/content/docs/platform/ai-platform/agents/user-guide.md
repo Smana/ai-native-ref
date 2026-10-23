@@ -242,6 +242,45 @@ From top to bottom:
 4. **Progress notes**, the agents' own claims, labelled as such.
 5. **The raw event stream**, folded.
 
+## When the factory asks a question {#scoper-question}
+
+With the scoper on for a class (off everywhere today), the factory reads an issue before it writes any
+code. When the issue leaves a question open, it comments on the issue with the question, the
+assumption it would make otherwise, and the label `factory/needs-author`; no run starts.
+
+| You want to… | Do this |
+|---|---|
+| Answer it | Edit the issue's title or body, then a maintainer re-applies `factory/ready`. The factory reads the issue as it was labelled, never its comments |
+| Proceed on its assumption | A maintainer comments `/factory retry` |
+| Do nothing | The task stops after 7 days |
+
+Comments are never read as an answer: a reply posted under the question changes nothing.
+
+**Steering notes.** A maintainer writes one short note per class in the target repository's default
+branch, `.github/agent-factory/steering/<class>.md`: at most 2 KiB, at most three `##` modules, one of
+them `## Verify` with at least one item (the checks that prove the work). The factory reads it at triage
+and puts it in the implementer's brief. This repository's [suite](https://github.com/Smana/ai-native-ref/blob/main/scripts/ci/tests/test-agent-steering.py)
+applies the factory's own rule to every note.
+
+## When the factory proposes a split {#split}
+
+With the splitter on for a class (off everywhere today, and only beside the scoper), a hard issue may
+come back with a plan instead of a run: two to four parts, each with its own acceptance checks. The
+factory comments on the issue with the plan, labels it `factory/split-proposed` and waits. No part
+exists yet.
+
+| You want to… | Do this |
+|---|---|
+| Approve the plan | A maintainer comments **`/factory split`**. The approver pays for every part |
+| Run the whole issue as one task | A maintainer comments **`/factory retry`** |
+| Change the issue and plan again | Edit the issue, then a maintainer re-applies `factory/ready`: the scoper may split again |
+| Stop every part | `factory/stop` on the parent issue |
+
+After an approval the parts open one at a time, as sub-issues titled `Part k of N of #p`. Each part is
+a pull request through `pair` and the class's merge gate. The next part opens when the previous one has
+merged, and the parent closes on the last merge. A part that stops waits for a re-label or a close; a
+part closed without landing ends the family and the remaining parts are never created.
+
 ## What the factory never does
 
 | Never | What enforces it |

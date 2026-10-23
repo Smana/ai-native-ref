@@ -262,7 +262,8 @@ crossplane-configuration v0.9.18); **no class has a row**, so every run behaves 
 
 **The switch** is the factory's `loops` key, one row per class (`default`, `review`, or a class a
 repository declares). A row that sets any of its three keys switches that class on. No row, or a row
-without them, is today's run (D4). **No row ships here**, and the values carry no `loops` key.
+without them, is today's run (D4). **No class has a row here**: the values' `loops` key holds only
+`default: {scope: off}`, which switches nothing on.
 
 | Key | Default once a row exists | Bounds |
 |---|---|---|
@@ -288,6 +289,52 @@ The counter also reads `finished` for a run under the policy that ended normally
 
 Switching a class on is last: add its row only after the platform session's live check passes. The
 meter and the factory's outcomes then say whether cost per accepted pull request fell.
+
+## Search {#search}
+
+{{< badge content="built, off" color="yellow" >}} The implementer can ask a read-only helper one
+question about the repository instead of reading it file by file. The code ships (agent-platform
+v0.19.0); **no class has `search: true`**, so every run behaves as before.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant I as implementer (agent-server)
+  participant S as search tool (same process)
+  participant C as child conversation
+  participant P as identity proxy /v1
+  participant G as gateway (meter, caps)
+  participant H as agent-run
+  I->>S: search(question)
+  S->>S: call cap from the ledger · one at a time
+  S->>C: fresh context: search brief + question · grep, glob, read_file, list_directory
+  loop at most 40 iterations, 300k tokens, 300 s
+    C->>P: chat completion (the run's model, effort low)
+    P->>G: the run's token · x-ar-model pinned
+    G-->>C: metered on the run, inside its caps
+    C->>C: read-only tool calls in /workspace/repo
+  end
+  C-->>S: final message, or a stop with its partial answer
+  S->>S: ledger row · header · clip at 8,000 characters
+  S-->>I: observation (an error observation on a failure)
+  H->>H: reads the ledger: the child's steps join the stall count
+```
+
+| Case | The child | The implementer sees | Ledger outcome |
+|---|---|---|---|
+| Answered | `finish` | the answer | `complete` |
+| 40 iterations, 300k tokens or 300 s | stopped (the SDK's limit or the watchdog's pause) | error observation: the bound and the partial answer | `budget` |
+| A model error after the transient retries | stopped | error observation with the reason | `error` |
+| A budget 429 | stopped | error observation; the run then ends on its own next call | `error` |
+| The 7th call | not started | "no searches left: read the files yourself" | `refused` |
+| The stall rule fires mid-search | paused by the executor when the parent is interrupted | — the run ends `stalled` | `interrupted` |
+| The pod stops mid-search | lost with the process | on resume, the call's error, as for any interrupted tool | none |
+| `agent_search` fails to import | — | no `search` tool, a run as today | — (`search off` logged) |
+
+The child sees nothing of the conversation, reads the uncommitted tree, never writes and never reaches
+the room. Its calls are metered on the run and bounded by the run's USD cap, and the bridge classes the
+call plain. The switch is `loops.<class>.search: true` ([reference]({{< relref "/docs/platform/ai-platform/agents/harness-reference.md#caps" >}})),
+which does not switch the loop policy on.
 
 ## Not tunable today {#limits}
 

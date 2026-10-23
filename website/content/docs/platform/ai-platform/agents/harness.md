@@ -284,7 +284,7 @@ refuses the claim, and the task escalates with `loop_unsupported`.
 | `stalled` | `harness_end` event, then the run's findings as a note | `Escalated`, reason `stalled` | The same | `end="stalled"` |
 | `not_met` | `harness_end` event, then the last `not_yet` reason as a note | `Escalated`, reason `not_met` | The same | `end="not_met"` |
 
-The counter also reads `finished` for a run under the policy that ended normally, by `class`.
+The counter also reads `finished` for a run under the policy that ended normally, and `other` for any end not listed above, by `class`.
 
 Switching a class on is last: add its row only after the platform session's live check passes. The
 meter and the factory's outcomes then say whether cost per accepted pull request fell.

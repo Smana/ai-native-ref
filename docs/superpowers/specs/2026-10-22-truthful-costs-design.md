@@ -300,7 +300,7 @@ Ruled in PR 3 ([plan](../plans/2026-10-22-truthful-costs-adopt-plan.md#this-plan
   the room-broker's image, its `crd-rooms.yaml` asset and its schema ref. The values move to the
   USD keys in the same commit: v0.15.6's strict decoder refuses `factoryDailyUSD`.
 - **The rows:** `source` is the provider's page the table's comment names, and `checkedAt` the day
-  the row was read (2026-10-16), quoted, on a second line of the row's flow mapping.
+  the row was read (2026-10-16), quoted, on the same single line as the row (the flow mapping), not a second one: that keeps test-gen-prices' row anchors.
 - **The gates:** AG8 also fails values without a positive `factoryDailyUSD`. AG10 requires `source`
   and `checkedAt` on every row, in the release's format. Offline proof 12's parse is a one-off step
   of the plan, not a suite: it needs Go and the release's source.

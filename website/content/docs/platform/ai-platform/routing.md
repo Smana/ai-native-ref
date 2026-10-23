@@ -385,12 +385,12 @@ flowchart TB
 | Layer | Unit | Enforced | Note |
 |---|---|---|---|
 | `runUSD`, `taskUSD` | USD, cache-aware | **yes** | The cap that decides a run's fate |
-| `factoryDailyUSD`, `humanDailyUSD` | USD, cache-aware: the same `meter.prices`, since agent-platform v0.17.1 | **shadow**, the fleet's day and each person's: with `enforcePrincipal: false` a run past its day is admitted and counted as `budget-principal-shadow` | `AgentFactoryDailyBudgetHigh` fires at 80%. The day's ledger is `agent-factory-ledger-usd-<YYYYMMDD>`, in micro-USD |
+| `factoryDailyUSD`, `humanDailyUSD` | USD, cache-aware: the same `meter.prices`, since agent-platform v0.16.0 (#168), pinned here at v0.17.1 | **shadow**, the fleet's day and each person's: with `enforcePrincipal: false` a run past its day is admitted and counted as `budget-principal-shadow` | `AgentFactoryDailyBudgetHigh` fires at 80%. The day's ledger is `agent-factory-ledger-usd-<YYYYMMDD>`, in micro-USD |
 | B1, B2, B6 | reference tokens: USD ÷ $1.70 per million, at `meter.prices` | **yes**, since 2026-10-18 (`SHADOW_MODE: "false"`, `infrastructure/base/agent-gateway/ratelimit.yaml`): `429 agent_budget_exhausted` | Sized above the factory's caps, so the gateway never refuses what the factory admits. Gate AG8 holds B2 at or above `factoryDailyUSD` plus four frontier runs |
 | local limit | raw tokens per hour, per replica | always | Above the largest admitted run: $6.80 of Opus cache reads is 34M tokens |
 
 {{< callout type="info" >}}
-**The daily caps count dollars.** Until agent-platform v0.17.1 they counted raw tokens, a cache read
+**The daily caps count dollars.** Until agent-platform v0.16.0 they counted raw tokens, a cache read
 as a full token: on 2026-10-18 the fleet's 25M and a person's 5M both read 0 remaining after about
 $10 of real spend. `factoryDailyUSD` ($42.50) and `humanDailyUSD` ($8.50) are the same days at the
 reference $1.70 per million, now priced as the run caps are. They stay in shadow until a record in

@@ -266,7 +266,7 @@ kubectl delete btp -n llm-gateway zz-budget-marker-probe --ignore-not-found
 as `agent_factory_run_revocations_total{reason="budget-principal-shadow", principal}`
 ([agent-platform: per-person caps](https://github.com/Smana/agent-platform/blob/main/docs/factory.md#per-person-caps)).
 `AgentPersonCapShadowRefusal` (info) fires on each one. Turning on `enforcePrincipal` refuses on
-the person's day **and** on the fleet's, so both count. Since agent-platform v0.17.1 the days are in
+the person's day **and** on the fleet's, so both count. Since agent-platform v0.16.0 (#168), pinned here at v0.17.1, the days are in
 USD (`budgets.humanDailyUSD`, $8.50 a person), so the week's record starts again, in dollars.
 
 ### Step 1 — attribution is on
@@ -419,7 +419,7 @@ for internal runs and neither alert fires. The drill (a run that sends no marker
 
 ## Part F — daily caps in dollars, the switch day
 
-From agent-platform v0.17.1 the factory's daily caps count dollars at `meter.prices`
+From agent-platform v0.16.0 (#168), pinned here at v0.17.1, the factory's daily caps count dollars at `meter.prices`
 ([truthful costs](../../superpowers/specs/2026-10-22-truthful-costs-design.md), TC5 to TC9). One
 ConfigMap per UTC day, `agent-factory-ledger-usd-<YYYYMMDD>`, holds `spent` (principal → micro-USD),
 `reserved.<runId>` (`maxMicroUSD`) and `settled.<runId>` (the micro-USD charged to that run that

@@ -1,6 +1,6 @@
 # v3 feature 6: the splitter, a hard issue landed as approved sub-issues, one at a time
 
-**Date:** 2026-10-23 · **Status:** proposed; SP1–SP6 open, each with a recommended default ·
+**Date:** 2026-10-23 · **Status:** approved 2026-10-23, SP1–SP6 at their recommended defaults ·
 **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features), feature 6 ("A hard issue
 becomes sub-issues, each with its own verifier and each run through the existing templates on its own
 branch. The parent closes when its children merge"; it "needs the scoper's bounded-task format") ·

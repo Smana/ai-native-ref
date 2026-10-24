@@ -30,8 +30,17 @@ spec:
             description: "Its class is paused until the factory config changes (§6.4). Read why on the task: kubectl get task -n agent-system -o wide | grep Reverted"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#64-rollback"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryMergeRegression
+          expr: sum by (class, repository) (increase(agent_factory_monitor_verdicts_total{verdict="regression"}[15m])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "The post-merge monitor found a regression after a {{ $labels.class }} merge"
+            description: "The class is demoted at its next decision; nothing was reverted (MC7). The PR carries factory/monitor:regression and the monitor's comment says which signal."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/15-dead-links.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryDailyBudgetHigh
-          # Truthful costs TC8: the day in USD (the USD gauges since agent-platform v0.16.0, pinned here at v0.20.0). spent is unclamped, so a day
+          # Truthful costs TC8: the day in USD (the USD gauges since agent-platform v0.16.0, pinned here at v0.21.0). spent is unclamped, so a day
           # past its cap keeps firing; the meter records yesterday's principals at 0 on a day's first tick.
           expr: agent_factory_budget_spent_usd / agent_factory_budget_cap_usd > 0.8
           for: 5m

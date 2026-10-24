@@ -115,7 +115,7 @@ data:
               probe: dead-links
               text: Fix the dead external links listed below.
         # The second repository (v2 design D9): every class review or shadow, nothing arms until
-        # its own 20 shadow decisions. Its .policy.yml has no low-risk rule to match a live class.
+        # its own 20 shadow decisions. Its .policy.yml has one low-risk rule, `dead-links`' (R50).
         - name: Smana/ai-native-ref
           maintainers: [Smana]
           triggerLabel: factory/ready
@@ -129,8 +129,9 @@ data:
             tests: {}
             dashboards: {}
             scripts: {}
-            # Declared off (MC14). No schedule here yet: this repository has no dead-links.yaml, and
-            # its .policy.yml no low-risk rule, so a shadow decision could not reach would-arm.
+            # Declared off (MC14): no switch, so no intake and no decision. Its detector is this
+            # repository's dead-links.yaml and its rule `low-risk: dead-links` in .policy.yml
+            # (test-agent-merge-gate-parity.py holds the two).
             dead-links:
               allowedFiles: ['^(docs|website/content)/.+\.md$']
               protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
@@ -139,6 +140,9 @@ data:
               diffShape: links-only
               holdoutChecks: ["External links 🔗"]
               oracle: {probe: dead-links, workflow: dead-links.yaml, maxFindings: 10}
+              # L16, as the host's: every merge of the class is watched, whoever made it. No `flux`:
+              # its changes reach a cluster only through a host pin bump.
+              monitor: {oracleRuns: 2, followUpWindow: 168h}
               maxPerDay: 1
           merge:
             # The `main` ruleset's 2 contexts (app 15368): `gh api repos/Smana/ai-native-ref/rulesets/25225244`.
@@ -155,6 +159,16 @@ data:
             leakScanCheck: lint
             awaitingCIFor: 24h
             breaker: {window: 10, maxReverts: 1, maxFollowUps: 1}
+          schedules:
+            # dead-links' intake here (MC6, F3): what two nightly runs of this repository's
+            # dead-links.yaml agree on. Inert while the class is off (MC14). The name keys every
+            # task it starts and is unique across repositories (the factory's strict parse refuses
+            # a second `dead-links`, the host's).
+            - name: ai-native-ref-dead-links
+              cron: "15 7 * * *"  # after the 04:41 scan; the host's slot is 07:00
+              class: dead-links
+              probe: dead-links
+              text: Fix the dead external links listed below.
       control: {repository: Smana/cloud-native-ref, issue: 2188}  # factory/stop here stops every repository
       factoryLogin: ogenki-agent-factory[bot]
       agentsLogin: ogenki-agents[bot]

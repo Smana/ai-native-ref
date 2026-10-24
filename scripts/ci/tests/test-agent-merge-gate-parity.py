@@ -97,6 +97,20 @@ else:
     if not check("self-test", {"dead-links": live}, host):
         fails.append("self-test: a live class without its rule went unnoticed")
 
+# OD-F3-1 (R50): this repository's dead-links lane needs its own rule, or a shadow decision here
+# could never reach would-arm; the lane's schedule and monitor are declared with it.
+own = next(r for r in config["repositories"] if r["name"] == "Smana/ai-native-ref")
+own_dead = (own.get("classes") or {}).get("dead-links")
+if own_dead is None:
+    fails.append("Smana/ai-native-ref declares no dead-links class")
+else:
+    if "low-risk: dead-links" not in rules_of(yaml.safe_load(POLICY["Smana/ai-native-ref"].read_text())):
+        fails.append("Smana/ai-native-ref: dead-links declared with no 'low-risk: dead-links' rule in .policy.yml (R50)")
+    if not any(s.get("class") == "dead-links" for s in own.get("schedules") or []):
+        fails.append("Smana/ai-native-ref: dead-links has no schedule (MC6)")
+    if "monitor" not in own_dead:
+        fails.append("Smana/ai-native-ref: dead-links has no monitor (L16)")
+
 for f in fails:
     print(f"FAIL: {f}")
 print(f"==> merge gate parity: {len(config['repositories'])} repositories, {len(fails)} problem(s)")

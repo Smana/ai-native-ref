@@ -6,6 +6,8 @@
   permissions never drift wider than the host's, and the audience names this repository.
 - The fence names gcp-0, the only live factory.
 - .policy.yml: every agent rule excludes the whole gate list, and every sentinel is a gate path.
+  An agent rule approves without a review only as `low-risk: <class>` of a class this repository
+  declares and has not made live (R50: shadow approves, the merger merges nothing).
 
 run-tests.sh runs this from .composite/ (the host's .github/ stays there) with cwd = this repo."""
 import pathlib
@@ -56,14 +58,19 @@ else:
     gates = canon["if"]["no_changed_files"]["paths"]
     if canon.get("requires", {}).get("users") != ["Smana"] or canon["requires"].get("count", 0) < 1:
         fails.append(".policy.yml: the agent rule must require Smana's review")
+    cm = yaml.safe_load((OWN / "tooling/base/agent-factory/helm-values-configmap.yaml").read_text())
+    own_classes = next(r for r in yaml.safe_load(cm["data"]["values.yaml"])["config"]["repositories"]
+                       if r["name"] == REPO).get("classes") or {}
+    unreviewed = {f"low-risk: {n}" for n, c in own_classes.items() if not c.get("live")}
     for r in rules:
         users = (r.get("if", {}).get("has_author_in") or {}).get("users", [])
         if any(u.endswith("[bot]") for u in users):
             have = set((r["if"].get("no_changed_files") or {}).get("paths", []))
             if missing := [g for g in gates if g not in have]:
                 fails.append(f".policy.yml: rule '{r['name']}' lacks gate paths {missing}")
-            if "requires" not in r:
-                fails.append(f".policy.yml: agent rule '{r['name']}' approves without a review (no live class here)")
+            if "requires" not in r and r["name"] not in unreviewed:
+                fails.append(f".policy.yml: agent rule '{r['name']}' approves without a review (only a declared, "
+                             f"not live class's low-risk rule may)")
     for s in SENTINELS:
         if not any(re.search(g, s) for g in gates):
             fails.append(f".policy.yml: sentinel {s} is not a gate path")

@@ -88,3 +88,27 @@ Nothing was reverted. The class is demoted (`class_paused`) at its next decision
 5. To un-demote: merge clean PRs of the class (a maintainer's merge counts, it refills the window) until
    the regressed merge is out of the newest 10. The labels live on GitHub, so a rebuild of the factory
    keeps the demotion. Do not widen the class meanwhile.
+
+## 6. ai-native-ref
+
+This repository runs its own lane: `.github/workflows/dead-links.yaml` (the nightly `scan` at 04:41 UTC
+and the "External links 🔗" holdout on pull requests), the `ai-native-ref-dead-links` schedule at 07:15 UTC (schedule names are unique across repositories, so not `dead-links`, the host's), the
+monitor (`oracleRuns: 2`, `followUpWindow: 168h`) and the rule `low-risk: dead-links` in `.policy.yml`.
+Its Flux signal is absent by design: its changes reach a cluster only through a host pin bump.
+
+L1 here, in order:
+
+1. Two scheduled runs of the workflow on `main`, each holding a `findings` artifact:
+
+   ```bash
+   gh run list -R Smana/ai-native-ref --workflow dead-links.yaml --branch main
+   ```
+
+2. The merger App's installation on this repository grants `actions: read` and `issues: write` (B1: the
+   monitor's labels). Accept the permission update on the installation if GitHub asks.
+3. Then `shadow: true` on this repository's `dead-links` entry, in
+   `tooling/base/agent-factory/helm-values-configmap.yaml`.
+
+From the rule's merge, `low-risk: dead-links` approves any agents pull request inside the class's fence
+on this repository, `docs-links` and `docs` shadow pull requests included. Their shadow decisions can
+then reach `would-arm` and count in the `docs-links` tally: read that tally with this in mind.

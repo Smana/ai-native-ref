@@ -1,6 +1,6 @@
 # v3: more auto-merge classes, the merge gate's vocabulary, monitor and calibration
 
-**Date:** 2026-10-22 · **Status:** approved by the owner 2026-10-22 with every recommended default; M1–M6 decided as recommended; first slice planned in agent-platform's [merge gate classes plan](https://github.com/Smana/agent-platform/blob/main/docs/superpowers/plans/2026-10-22-merge-gate-classes-plan.md), its rulings R1–R26 · **Part of:** the
+**Date:** 2026-10-22 · **Status:** approved by the owner 2026-10-22 with every recommended default; M1–M6 decided as recommended; first slice planned in agent-platform's [merge gate classes plan](https://github.com/Smana/agent-platform/blob/main/docs/superpowers/plans/2026-10-22-merge-gate-classes-plan.md), its rulings R1–R26; F1–F3 planned in agent-platform `docs/superpowers/plans/2026-10-23-merge-gate-followups-plan.md`; rulings R27–R50 · **Part of:** the
 [v3 roadmap](2026-10-19-v3-roadmap-design.md), feature 8, as amended by the
 [v3 review](2026-10-21-v3-review.md#5-amendments-proposed) and its decision O8 ("the oracle-backed
 class first; dependency bumps after, patch versions only") · **Research:**

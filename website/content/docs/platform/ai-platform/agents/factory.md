@@ -31,6 +31,18 @@ every run has a task and a budget. This page describes the design; what runs tod
 The developer's view of the same journey is in the
 [user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md" >}}).
 
+## After a merge
+
+Every merge of a class that declares a monitor stays under watch, whoever merged it. The monitor reads
+main's CI, the detector's next scheduled runs and, for a class that declares it, Flux, then records
+`healthy`, `regression` or `inconclusive` (an unreadable answer is always `inconclusive`). It also counts
+the follow-up fixes merged within the class's window. It never reverts and never widens a class.
+`dead-links` is the first class under it (two detector runs, 7 days of follow-ups); declaring it never
+back-fills older merges. The merger labels the pull request (`factory/merged:<class>`,
+`factory/monitor:regression`, and `factory/follow-up-of:#<n>` on a fixing PR), so the record survives a
+rebuild. A regression or a follow-up counts against the breaker like a revert and sends the class back to
+human review, and the `AgentFactoryMergeRegression` alert fires on a regression.
+
 ## Components and software
 
 | Component | Software | What it does | Why this software |

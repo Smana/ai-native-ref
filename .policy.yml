@@ -2,7 +2,8 @@
 # from main, never from the PR it evaluates. A gate path itself: agents can never change it. When
 # every rule skips, policy-bot posts `error`, so an unknown author or a gate-path PR cannot merge.
 #
-# No low-risk rule: every class here is review or shadow (second-repository design D9), so every
+# One low-risk rule, `dead-links`' (merge gate R50): it approves the class's fence; the merger merges
+# only a live class, and none is live here until its own 20 shadow decisions (v2 D9). Every other
 # agent PR needs a maintainer's review. A live class needs its rule added here first.
 #
 # This repository is the factory's own configuration, so its gate list is wider than the host's:
@@ -13,6 +14,7 @@ policy:
     - or:
         - human-authored
         - agent change approved by a maintainer
+        - "low-risk: dead-links"
 
 approval_defaults:
   options:
@@ -60,3 +62,46 @@ approval_rules:
       request_review:
         enabled: true
         mode: all-users
+
+  - name: "low-risk: dead-links"  # shadow until its own 20 decisions (v2 D9): approves, merges nothing (merge gate R50)
+    if:
+      has_author_in:
+        users: ["ogenki-agents[bot]"]
+      only_has_contributors_in:
+        users: ["ogenki-agents[bot]"]
+      from_branch:
+        pattern: '^agent/[a-z2-7]{8}$'
+      only_changed_files:
+        paths: ['^(docs|website/content)/.+\.md$']
+      no_changed_files:
+        paths:
+          # the gate list of `agent change approved by a maintainer`, copied whole, then:
+          - '^\.policy\.yml$'
+          - '^\.github/'
+          - '^\.github/agent-factory\.yaml$'
+          - '(^|/)(AGENTS|CLAUDE)\.md$'
+          - '^\.(agents|claude)/'
+          - '^clusters/'
+          - '^flux/'
+          - '^security/'
+          - '^infrastructure/base/(agent-sandbox|karpenter-nodepools-agents|runtimeclass-gvisor|agent-runtime|agent-router|agent-mcp|room-broker|kueue|kueue-queues|agent-model-routing|agentgateway|agent-gateway)/'
+          - '^infrastructure/(aws-0|gcp-0)/(agent-mcp|agent-router|room-broker|kueue|agentgateway|agent-gateway|agentgateway-poc)/'
+          - '^infrastructure/aws-0/agent-model-routing/'
+          - '^observability/base/agent-platform/'
+          - '^observability/base/runlore-factory/'
+          - '^observability/(aws-0|gcp-0)/agent-platform/'
+          - '^tooling/base/(agent-factory|policy-bot)/'
+          - '^tooling/(aws-0|gcp-0)/agent-factory/'
+          - '^scripts/ci/'
+          - '^(HOST_REF|taskfile\.yaml|\.pre-commit-config\.yaml|\.secrets\.baseline|\.gitignore)$'
+          - '^docs/(superpowers|specs)/'
+          - '^website/content/docs/decisions/'
+      file_not_added:
+        paths: ['.*']
+      file_not_deleted:
+        paths: ['.*']
+      modified_lines:
+        total: "< 21"
+      has_workflow_result:
+        conclusions: ["success"]
+        workflows: [".github/workflows/ci.yaml"]

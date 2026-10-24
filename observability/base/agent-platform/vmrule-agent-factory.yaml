@@ -37,7 +37,7 @@ spec:
           annotations:
             summary: "The post-merge monitor found a regression after a {{ $labels.class }} merge"
             description: "The class is demoted at its next decision; nothing was reverted (MC7). The PR carries factory/monitor:regression and the monitor's comment says which signal."
-            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/15-dead-links.md"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/15-dead-links.md#when-agentfactorymergeregression-fires"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryDailyBudgetHigh
           # Truthful costs TC8: the day in USD (the USD gauges since agent-platform v0.16.0, pinned here at v0.21.0). spent is unclamped, so a day

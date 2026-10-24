@@ -72,7 +72,7 @@ merges: only merges made after the pin are watched.
 - Widen a class: it records a verdict, labels the PR, comments and feeds the breaker. Widening is the
   owner's config PR, citing the calibration tally.
 
-### When `AgentFactoryMergeRegression` fires {#regression}
+### When `AgentFactoryMergeRegression` fires
 
 Nothing was reverted. The class is demoted (`class_paused`) at its next decision.
 

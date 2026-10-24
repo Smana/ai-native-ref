@@ -19,3 +19,5 @@ ciOnly:
   - {check: validate, part: "the two Docker suites", why: "no Docker daemon under gVisor"}
   - {check: lint, part: TruffleHog, why: "an Action over the pushed range"}
   - {check: prerelease, part: all, why: "signs and pushes with the workflow's identity"}
+  - {check: "Scan external links 🕸", part: all, why: "runs on schedule and workflow_dispatch only; a nightly lychee scan of every external link"}
+  - {check: "External links 🔗", part: all, why: "fetches external sites, beyond the egress"}

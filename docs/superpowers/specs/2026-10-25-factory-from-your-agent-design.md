@@ -2,8 +2,8 @@
 
 **Date:** 2026-10-25 · **Status:** design approved by the owner section by section 2026-10-25; this
 written spec awaits the owner's review · **Part of:** the
-[v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features), as feature 13 by owner decision D7
-([below](#roadmap-and-decisions)), which amends D1 ("outcomes first"). It builds on feature 9's MCP
+[v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features), as feature 13 by owner decision
+[D7](2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-25), which amends D1 ("outcomes first"). It builds on feature 9's MCP
 server ([factory interfaces](2026-10-21-factory-interfaces-design.md)), amends
 [local-first D1](2026-10-08-agent-factory-local-first-ux-design.md#decisions) and
 [interfaces F3](2026-10-21-factory-interfaces-design.md#decisions), and supersedes
@@ -99,7 +99,7 @@ flowchart LR
 | 5 | Local tools in `roomctl mcp` | agent-platform | `issue_file` gains the start field; `room_wait` and `room_checkout` are new |
 | 6 | `roomctl` CLI | agent-platform | `status` and `rooms` use the view package; `changes`, `checkout` and `setup` are new; `doctor` checks the skill's version |
 | 7 | Skill v2 | agent-platform | FA13 |
-| 8 | Docs and decisions | ai-native-ref | Feature 13 and D7 in the roadmap, ADR-0059, the user guide's "from your coding agent" section and its portability table |
+| 8 | Docs and decisions | ai-native-ref | Feature 13 and D7 in the roadmap, with this design; then ADR-0059, the user guide's "from your coding agent" section and its portability table |
 
 ## The views
 
@@ -390,18 +390,20 @@ labels; the checkout refuses and names the file), and the portability table reco
 | 3 | agent-platform | The broker: text views, `structuredContent` and `outputSchema`; `room_changes`; prompts; instructions; `human.mcp.sessionStart`; `canStart` | 2 | 1 |
 | 4 | agent-platform | `roomctl`: views in `status`, `rooms` and `changes`; the start field; `room_wait`; `room_checkout` and `checkout`; rendering for an older broker | 2–4 | 1 |
 | 5 | agent-platform | `roomctl setup`, skill v2, the doctor's drift check. Then a release carrying 1 to 5 | 5 | 4 |
-| 6 | ai-native-ref | The release pin; `sessionStart: []`; roadmap feature 13 and D7; ADR-0059 and ADR-0056's D2 marked superseded; the user guide section with the portability table; the status page row | `task check` | 5 |
+| 6 | ai-native-ref | The release pin; `sessionStart: []`; ADR-0059 and ADR-0056's D2 marked superseded; the user guide section with the portability table; the design and plan links on the status page's row | `task check` | 5 |
 | 7 | cloud-native-ref | Replace the v0.11.0 skill copy with `roomctl setup claude --project` output, or delete it in favour of user-level installs | the host's CI | 5 |
 
 ## Roadmap and decisions {#roadmap-and-decisions}
 
+Landed with this design: [D7](2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-25), feature
+13's row and its place in the [order of work](2026-10-19-v3-roadmap-design.md#order-of-work) in the v3
+roadmap, and the row on the status page's roadmap. Later, in PR 6:
+
 | Change | Text |
 |---|---|
-| Owner decision D7, 2026-10-25 | "v3 adds feature 13, the factory from your coding agent. It amends D1: one developer-facing feature, because using the factory from where developers work is part of it working better" |
-| Feature 13's row | "**The factory from your coding agent** ([design](2026-10-25-factory-from-your-agent-design.md)) · Start, follow and bring back room work from any terminal coding agent: four views rendered by the broker, `room_wait`, `room_checkout`, `roomctl setup` · Gate: offline proofs 1–5; live proofs 1–5 in Claude Code and OpenCode" |
-| Order of work | In the offline track, after interfaces (9), which ships the MCP server it extends. The live proof joins the platform session's checklist |
 | ADR-0059 | The views rendered by the broker, starting through a confirmation form, setup per client. It supersedes ADR-0056 D2 and amends local-first D1 and interfaces F3, and it records the accepted auto-accept risk |
 | The user guide | "Hand off from your coding agent" is rewritten around `setup`, the slash commands, the four views and the portability table |
+| The status page's row | Gains its design and plan links once they are on `main` (the PR's external link check fetches each new URL) |
 
 ## Not in this design
 

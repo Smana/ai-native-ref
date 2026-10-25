@@ -4,7 +4,8 @@
 [v3 review](2026-10-21-v3-review.md#5-amendments-proposed): features 2, 4, 5, 7 and 8 revised, 9 to 11
 added, the [Later](#later) section now pointing at agent-platform's designs; **amended 2026-10-22**:
 feature 12 (spend per identity) added and the work ordered offline first
-([D4, D5](#owner-decisions-2026-10-22)). Each feature gets its own design before it is built ·
+([D4, D5](#owner-decisions-2026-10-22)); **amended 2026-10-25**: feature 13 (the factory from your
+coding agent) added ([D7](#owner-decisions-2026-10-25)). Each feature gets its own design before it is built ·
 **Part of:** the roadmap on the
 [status page](../../../website/content/docs/platform/ai-platform/status.md#roadmap)
 
@@ -35,6 +36,12 @@ issues.
 | D4 | **Offline first.** Everything that can be built and proven without a cluster is, before a platform runs: unit, golden and container suites in CI, rule unit tests, drift gates. The live gates then run together in platform sessions on `gcp-0` | Each feature's gate splits into an offline proof, merged first, and a live proof on a session's checklist. Each feature ships behind a per-class switch, off by default, so one session measures the bench's baseline and its variants. `gcp-0` is rebuilt when the offline track is done, not first ([order](#order-of-work)) |
 | D5 | **Spend per identity** becomes feature 12: one dashboard per charged principal, the person or the sponsored service account | Needs truthful costs (dollars, cache reads discounted) and the factory's charge per run, since a label-started run's pod carries `system:factory`, not the person |
 | D6 | **The eval bench is deferred to Later (sponsor-funded).** A bench session costs about $400 against a $600 budget, and no one funds it yet. It resumes if a sponsor funds the bench sessions | Every feature still ships behind a per-class switch, off by default (D4). A class is switched on after its offline proofs pass and a live proof on real issues in a platform session, with acceptance and cost per accepted PR read from the meter and the factory's outcomes (feature 12 makes this per identity), as v2's gates were judged on live evidence. The open-weight bake-off (7) needs the bench and moves to Later with it. The stall limit's N comes from the factory's history of accepted runs |
+
+## Owner decisions, 2026-10-25 {#owner-decisions-2026-10-25}
+
+| # | Decision | Consequence |
+|---|---|---|
+| D7 | **The factory from your coding agent** becomes feature 13. **Amends D1**: one developer-facing feature, because using the factory from where developers work is part of it working better | It builds on the interfaces' MCP server (9) and follows it in the offline track. It is judged on its own live proofs, in Claude Code and OpenCode, not on [the metrics below](#how-v3-is-judged): it changes how developers reach the factory, not what a run does |
 
 ## Why these features
 
@@ -93,11 +100,12 @@ scoper's bounded-task format; new auto-merge classes need the scoper or the test
 verifiable.
 
 Features 9 to 11 come from the [v3 review](2026-10-21-v3-review.md#5-amendments-proposed); feature
-12 from D5:
+12 from D5; feature 13 from [D7](#owner-decisions-2026-10-25):
 
 | # | Feature | What changes | Gate |
 |---|---|---|---|
 | 12 | **Spend per identity** ([design](2026-10-22-spend-per-identity-design.md)) | A dashboard per charged principal (`github:<login>` for a person, `system:<name>` for a sponsored principal, with its sponsor): dollars against its daily cap and the fleet's day, tokens by type and the cache-read share, runs, rooms and tasks, pull requests opened, merged and reverted, cost per accepted PR, refusals and revocations, the time runs waited on that person, and a sponsored principal's `max_cost` against its spend. The factory exports spend and runs per charged principal (its `chargedTo`), which the gateway's per-run series cannot give | Offline: the factory's per-principal series sum to the meter's run costs. Live: for a day, each principal's spend on the dashboard matches the meter's ledger |
+| 13 | **The factory from your coding agent** ([design](2026-10-25-factory-from-your-agent-design.md)) | Start, follow and bring back room work from any terminal coding agent without leaving it. The broker renders four views (rooms overview, room card, runs line, what changed) as the MCP tools' text. `issue_file`'s form gains "start the factory now", applied with the developer's own `gh` and switched per repository. `room_wait` follows a room, `room_checkout` brings its branch back into a new worktree, and `roomctl setup <client>` installs the MCP server and the skill. Approvals stay on the room page | Offline: golden views with hostile notes, the MCP contract, `room_wait`, `room_checkout` and `setup --print`. Live, in Claude Code and OpenCode: start from the form, wait for an approval, the card, the checkout, a hostile note rendered inert |
 
 ### Order of work {#order-of-work}
 
@@ -110,6 +118,7 @@ flowchart LR
     o3["Spend per identity (12)"]
     o4["Profiles: spike S0, generator, drift gate (10)"]
     o5["Interfaces (9)"]
+    o7["The factory from your coding agent (13)"]
     o6["Loop policy · scoper · checks in the sandbox ·<br/>tester · search behind per-class switches"]
   end
   off --> gcp["gcp-0 rebuilt<br/>from release pins"]
@@ -121,7 +130,8 @@ flowchart LR
 
 Within the offline track: checks in the sandbox (3) precede the tester (4); the profiles' per-run
 model pin (P4) precedes the loop policy's judge, which calls through it; daily caps in dollars precede
-the sponsored principals and the Slack intake.
+the sponsored principals and the Slack intake; the interfaces' MCP server (9) precedes feature 13,
+which extends it, and feature 13's live proofs join the platform session's checklist.
 
 Run provenance (what every run ran on, review R10) is recorded on every task, always on: [design](2026-10-22-run-provenance-design.md).
 

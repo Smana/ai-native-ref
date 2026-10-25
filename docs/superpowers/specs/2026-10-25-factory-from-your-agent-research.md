@@ -31,7 +31,7 @@ into the local session.**
 | 4 | A URL or id comes back at once, then list or poll, `--json` for agents | Claude, `codex cloud list --json`, Devin `poll`, `gh agent-task list` |
 | 5 | Bringing back is one command that checks its preconditions | `--teleport`, `codex apply`, `jules remote pull --apply` |
 | 6 | Approvals live on web or mobile; a run waiting on one can expire | Claude cloud sessions; Cursor approval cards |
-| 7 | When an agent calls the dispatch tool, a human confirms first | [Jules skill](https://github.com/openclaw/skills/blob/main/skills/ajstafford/jules-cli/SKILL.md) confirms before `new` and `pull --apply` |
+| 7 | When an agent calls the dispatch tool, a human confirms first | [Jules skill](https://clawhub.ai/ajstafford/skills/jules-cli) confirms before `new` and `pull --apply` |
 | 8 | Known pains: one-way moves, copies that diverge after a teleport, no "the remote branch moved" signal, worktree sprawl | [vscode#266476](https://github.com/microsoft/vscode/issues/266476), [HN 49258045](https://news.ycombinator.com/item?id=49258045) |
 
 ## 2. What an MCP integration can rely on, per client

@@ -277,7 +277,7 @@ git commit -m "docs(decisions): ADR-0059, the factory from your coding agent"
   Gemini CLI, Copilot CLI, Cursor), with columns for tools and text views, forms, URL forms, slash
   commands, background wait, and skill directory. Claude Code and OpenCode are "documented" until
   runbook 19 marks them "proven" with the session's date. Each other cell links its source from
-  [the research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-25-factory-from-your-agent-research.md#2-what-an-mcp-integration-can-rely-on-per-client),
+  [the research](../specs/2026-10-25-factory-from-your-agent-research.md#2-what-an-mcp-integration-can-rely-on-per-client),
   and an unconfirmed cell says "unconfirmed".
 
 - [ ] **Step 3: Check the claims.** No cell says "proven" yet. Every command shown is in

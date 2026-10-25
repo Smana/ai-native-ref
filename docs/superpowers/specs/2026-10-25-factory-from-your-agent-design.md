@@ -37,7 +37,7 @@ Copilot CLI and Cursor are documented, best-effort.
 | The skill | `factory-handoff`, shell only (`gh`, `roomctl status`, `rooms`, `post`, `doctor`): "Never apply a label yourself". `roomctl skill install [dir]` writes it stamped with the binary's version | `internal/roomctl/skill/factory-handoff/SKILL.md`, `internal/roomctl/skill/skill.go:26` |
 | A drifted copy | cloud-native-ref commits the skill at `roomctl-version: "v0.11.0"`, from before `roomctl mcp` shipped (v0.17.0, [agent-platform#172](https://github.com/Smana/agent-platform/pull/172)) | cloud-native-ref `.agents/skills/factory-handoff/SKILL.md` |
 | The start rule | A `factory/ready` label starts a task only when its labeller is in the repository's maintainers and holds write on GitHub (v2 D5). Any other label is narrated `unauthorised_labeller` | `internal/factory/intake/`, `internal/factory/narrate/narrate.go:217` |
-| Broker config | `human.mcp.enabled`, `human.mcp.sponsored` | `internal/config/config.go:63`; this repository's `infrastructure/base/room-broker/config.yaml` |
+| Broker config | `human.mcp.enabled`, `human.mcp.sponsored`. Both off in this repository's committed configs: only runbook 18's gcp-0 session turns `/mcp` on | `internal/config/config.go:63`; this repository's `infrastructure/base/room-broker/config.yaml` |
 | Decisions in force | [ADR-0049](../../../website/content/docs/decisions/0049-room-client-and-human-auth.md): no approving or steering from a client an agent can drive. Local-first D1 (starting stays the developer's label), D2 (no MCP server; stale since [agent-platform#172](https://github.com/Smana/agent-platform/pull/172)), D3 (a deterministic summary), D6 (GitHub's notifications). Interfaces F3, F7 and F8 | the linked designs |
 
 ## Decisions
@@ -328,7 +328,8 @@ linked to its source in the research.
 ## The switch
 
 Only the start path changes what reaches the factory. The views, `room_wait`, `room_checkout`, the
-prompts and `setup` are read-only or local, and they ship on.
+prompts and `setup` are read-only or local, and they ship on: this repository turns `/mcp` on with the
+release (the owner, 2026-10-25). `/mcp` still admits only roomctl's token and sponsored principals.
 
 ```yaml
 # infrastructure/base/room-broker/config.yaml
@@ -390,7 +391,7 @@ labels; the checkout refuses and names the file), and the portability table reco
 | 3 | agent-platform | The broker: text views, `structuredContent` and `outputSchema`; `room_changes`; prompts; instructions; `human.mcp.sessionStart`; `canStart` | 2 | 1 |
 | 4 | agent-platform | `roomctl`: views in `status`, `rooms` and `changes`; the start field; `room_wait`; `room_checkout` and `checkout`; rendering for an older broker | 2–4 | 1 |
 | 5 | agent-platform | `roomctl setup`, skill v2, the doctor's drift check. Then a release carrying 1 to 5 | 5 | 4 |
-| 6 | ai-native-ref | The release pin; `sessionStart: []`; ADR-0059 and ADR-0056's D2 marked superseded; the user guide section with the portability table; the design and plan links on the status page's row | `task check` | 5 |
+| 6 | ai-native-ref | The release pin; `/mcp` on with `sessionStart: []`; ADR-0059 and ADR-0056's D2 marked superseded; the user guide section with the portability table; the design and plan links on the status page's row | `task check` | 5 |
 | 7 | cloud-native-ref | Replace the v0.11.0 skill copy with `roomctl setup claude --project` output, or delete it in favour of user-level installs | the host's CI | 5 |
 
 ## Roadmap and decisions {#roadmap-and-decisions}

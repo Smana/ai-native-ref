@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.21.0, the chart's appVersion.
+      # agent-platform v0.22.0, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.21.0@sha256:ff79e403e23d711b49fc833b86dab0fc683b9cb00555a0f2afae31bf32de7666"
+      tag: "v0.22.0@sha256:78e154c4cf4388198a8ed731c63d82ccdb68c7e617666f00910b19b6b501a3bf"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.
@@ -62,6 +62,44 @@ data:
               # Markdown deploys nothing. The monitor records a verdict and never reverts.
               monitor: {oracleRuns: 2, followUpWindow: 168h}
               maxPerDay: 1
+            # Declared off (merge gate classes MC14): no switch, so no adoption. A session's first
+            # commit sets shadow: true (runbook 16); Renovate keeps merging meanwhile (MC12). w0:
+            # patch bumps of what Flux deploys (R42), Renovate's never-automerge files protected
+            # (test-agent-merge-gate-parity.py derives them from renovate.json).
+            deps-patch:
+              author: {adopt: {logins: ["renovate[bot]"], branches: ['^renovate/']}}
+              diffShape: semver-patch
+              allowedFiles: ['^(apps|flux|infrastructure|observability|security|tooling)/.+\.ya?ml$']
+              protectedFiles:
+                - '^security/base/zitadel/'
+                - '^security/(aws|gcp)-0/zitadel/'
+                - '^flux/sources/helmrepo-zitadel\.yaml$'
+                - '^infrastructure/base/crossplane/configuration-core/'
+                - '^flux/sources/gitrepo-gateway-api\.yaml$'
+                - '^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\.yaml$'
+              modifyOnly: true
+              maxPatchFiles: 3
+              maxModifiedLines: 10
+              releaseAgeCheck: renovate/stability-days
+              maxPerDay: 2
+              monitor: {flux: {source: flux-system/flux-system, within: 1h}, followUpWindow: 168h}
+            # M2 (a): Renovate's minors observed in shadow at no cost; semver-minor never goes live.
+            deps-minor:
+              author: {adopt: {logins: ["renovate[bot]"], branches: ['^renovate/']}}
+              diffShape: semver-minor
+              allowedFiles: ['^(apps|flux|infrastructure|observability|security|tooling)/.+\.ya?ml$']
+              protectedFiles:
+                - '^security/base/zitadel/'
+                - '^security/(aws|gcp)-0/zitadel/'
+                - '^flux/sources/helmrepo-zitadel\.yaml$'
+                - '^infrastructure/base/crossplane/configuration-core/'
+                - '^flux/sources/gitrepo-gateway-api\.yaml$'
+                - '^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\.yaml$'
+              modifyOnly: true
+              maxPatchFiles: 3
+              maxModifiedLines: 10
+              releaseAgeCheck: renovate/stability-days
+              monitor: {flux: {source: flux-system/flux-system, within: 1h}, followUpWindow: 168h}
           merge:
             # Classic protection's 8 contexts (app 15368), read with `gh api repos/Smana/cloud-native-ref/branches/main/protection`.
             requiredChecks:

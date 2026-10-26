@@ -78,7 +78,7 @@ spec:
             - {name: envoy-config, mountPath: /etc/envoy, readOnly: true}
             - {name: envoy-tmp, mountPath: /tmp}
         - name: room-bridge
-          image: ghcr.io/smana/room-bridge:v0.21.0@sha256:a225d7d6d84be0080d851df075e649238df7d20762b0ba706f44aed8c8e45031
+          image: ghcr.io/smana/room-bridge:v0.22.0@sha256:939ba460f93fe9799170818f4368e72cee3f0925d61126bcd9ab17aac652fc55
           args: ["gate"]
           resources:
             requests: {cpu: 10m, memory: 16Mi}
@@ -86,7 +86,7 @@ spec:
           securityContext: *container-security
       containers:
         - name: harness
-          image: ghcr.io/smana/agent-harness:v0.21.0@sha256:2b281e200a1077f3588e8cc0c4f377ffdf05d01f96f2990d6cee18fc44a0ee27
+          image: ghcr.io/smana/agent-harness:v0.22.0@sha256:a30d5d7a589570562e5cb53c23e5905acb9dc6679d61c18614274285b7d6ff1b
           # tini forwards SIGTERM, so a preemption ends the pod at once.
           command: ["tini", "--", "sleep", "infinity"]
           readinessProbe:

@@ -16,8 +16,12 @@ is the policy's alone, as before the vocabulary. The host's .policy.yml is the c
 repository's is the working directory's (run-tests.sh runs this from .composite/).
 """
 import copy
+import json
 import pathlib
+import re
+import subprocess
 import sys
+import tempfile
 
 import yaml
 
@@ -110,6 +114,93 @@ else:
         fails.append("Smana/ai-native-ref: dead-links has no schedule (MC6)")
     if "monitor" not in own_dead:
         fails.append("Smana/ai-native-ref: dead-links has no monitor (L16)")
+
+# Offline proof 16 (MC11): every file a never-automerge rule of the host's renovate.json reaches
+# is the lane's to refuse: in the gate list or in deps-patch's protectedFiles, or outside its
+# allowedFiles. A rule by file names its files; a rule by package reaches every host file that
+# references the package as a dependency, never a bare mention (M14). A new never-automerge rule
+# is covered or this fails.
+HOST_TREE = OWN / ".host"  # the host's own checkout: the composite also holds this repository's files (L5)
+KEYED = r"^[^#]*(chart|image|repository|url|name):[[:space:]]*['\"]?[^'\"]*"
+
+
+def ere(s):
+    return re.sub(r"([.\[\]()*+?{}|^$\\])", r"\\\1", s)
+
+
+def reach_pattern(name):
+    """The ERE of a dependency reference to one matchPackageNames entry. A regex entry loses its
+    anchors (grep's ^ is the line's start, not the package name's); a path is a whole token
+    wherever it sits, open-ended when the regex was a prefix; a bare name is a word in the value
+    of a dependency key."""
+    regex = name.startswith("/") and name.endswith("/")
+    body = name[1:-1] if regex else ere(name)
+    exact = not regex or body.endswith("$")
+    body = body.removeprefix("^").removesuffix("$")
+    if "/" in body:
+        return rf"(^|[[:space:]'\"=/@])({body})" + (r"([[:space:]'\"@:]|$)" if exact else "")
+    return rf"{KEYED}\b({body})\b"
+
+
+def never_automerge(renovate):
+    return [r for r in renovate.get("packageRules", []) if r.get("automerge") is False or r.get("enabled") is False]
+
+
+def reached(rule, tree=HOST_TREE):
+    files = set(rule.get("matchFileNames", []))
+    for name in rule.get("matchPackageNames", []):
+        out = subprocess.run(["git", "-C", str(tree), "grep", "-lE", reach_pattern(name), "--", "*.yaml", "*.yml"],
+                             capture_output=True, text=True).stdout
+        files |= set(out.split())
+    return files
+
+
+def refused(path, cl, gates):
+    allowed = cl.get("allowedFiles")
+    if allowed and not any(re.match(f"^(?:{p})$", path) for p in allowed):
+        return True
+    return any(re.search(p, path) for p in list(gates) + cl.get("protectedFiles", []))
+
+
+# Self-test of the reach (M14), on a fixture tree: a bare name reaches the file that deploys it,
+# not one that mentions it; an anchored registry regex reaches its reference; a repository that
+# only shares the package's prefix is not the package.
+with tempfile.TemporaryDirectory() as d:
+    fx = pathlib.Path(d)
+    for path, text in {
+        "deploy.yaml": "spec:\n  chart:\n    spec:\n      chart: zitadel\n",
+        "mention.yaml": "# zitadel never started\nspec:\n  description: waits for zitadel\n",
+        "pkg.yaml": "spec:\n  package: ghcr.io/smana/crossplane-configuration-aws:v0.9.20\n",
+        "inference.yaml": "spec:\n  url: https://github.com/kubernetes-sigs/gateway-api-inference-extension\n",
+        "gateway.yaml": "spec:\n  url: https://github.com/kubernetes-sigs/gateway-api\n",
+    }.items():
+        (fx / path).write_text(text)
+    subprocess.run(["git", "init", "-q", d], check=True)
+    subprocess.run(["git", "-C", d, "add", "."], check=True)
+    for names, want in [(["zitadel"], {"deploy.yaml"}),
+                        (["/^ghcr\\.io/smana/crossplane-configuration-/"], {"pkg.yaml"}),
+                        (["kubernetes-sigs/gateway-api"], {"gateway.yaml"})]:
+        if (got := reached({"matchPackageNames": names}, fx)) != want:
+            fails.append(f"self-test: {names} reaches {sorted(got)}, want {sorted(want)}")
+
+renovate = json.loads((HOST_TREE / ".github/renovate.json").read_text())
+host_classes = next(r for r in config["repositories"] if r["name"] == "Smana/cloud-native-ref")["classes"]
+gates = rules_of(host)[CANON]["if"]["no_changed_files"]["paths"]
+for lane in ("deps-patch", "deps-minor"):  # both adopted lanes hold the same refusals
+    lane_cl = host_classes.get(lane)
+    if lane_cl is None:
+        fails.append(f"{lane}: not declared on the host")
+        continue
+    for rule in never_automerge(renovate):
+        for path in sorted(reached(rule)):
+            if not refused(path, lane_cl, gates):
+                fails.append(f"{lane}: never-automerge {rule.get('matchPackageNames') or rule.get('matchFileNames')} reaches {path}, which the lane would take")
+deps = host_classes.get("deps-patch")
+if deps is not None:
+    # self-test: drop zitadel's protection and the suite must notice
+    probe = dict(deps, protectedFiles=[p for p in deps.get("protectedFiles", []) if "zitadel" not in p])
+    if all(refused(p, probe, gates) for r in never_automerge(renovate) for p in reached(r)):
+        fails.append("self-test: a dropped protectedFiles entry went unnoticed")
 
 for f in fails:
     print(f"FAIL: {f}")

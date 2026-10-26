@@ -31,6 +31,23 @@ every run has a task and a budget. This page describes the design; what runs tod
 The developer's view of the same journey is in the
 [user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md" >}}).
 
+## Dependency bumps
+
+The factory authors no bump. A class that declares `author.adopt` takes Renovate's pull requests: a
+poller turns an eligible open one into a Task that runs no agent and costs nothing, and the same merge
+gate decides it. `deps-patch` takes patch bumps of the YAML Flux deploys, and `deps-minor` observes
+minors in shadow only. Both are declared and switched off.
+
+| What is checked | How |
+|---|---|
+| The pull request | Into `main`, from the same repository (never a fork), by `renovate[bot]` on a `renovate/` branch; at most 10 open Tasks per repository and class |
+| The diff | Computed by the factory, never read from Renovate's label: at most 3 files and 10 lines, version tokens only, a digest only when attached to the moved version, no lockfile, none of the never-automerge files |
+| The age | Renovate's `stability-days` status must be green |
+| The people | A `CHANGES_REQUESTED` from a repository member parks it; so does a human commit or push on the branch |
+| The merge | Pinned to the head it judged, so a push by Renovate afterwards refuses it; Renovate's next head is decided again, at most 3 times, then monitored on Flux |
+
+First `shadow`: Renovate keeps merging, and the factory records the decision it would have made.
+
 ## After a merge
 
 Every merge of a class that declares a monitor stays under watch, whoever merged it. The monitor reads

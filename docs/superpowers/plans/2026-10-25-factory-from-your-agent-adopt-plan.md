@@ -18,6 +18,9 @@ green. Task 8 is a separate cloud-native-ref pull request.
 - **Tasks 3–5** write ADR-0059, the user guide section and runbook 19.
 - **Task 6** links the design and both plans from the status page and the roadmap.
 - **Task 7** verifies, pushes and opens the pull request.
+- **Task 8**, in cloud-native-ref, merges before runbook 19 runs: until it does, `roomctl doctor`'s
+  `skill` check FAILs in every cloud-native-ref checkout on the drifted copy, and runbook 19 step 2
+  needs every check `ok`.
 
 **Tech Stack:** Python 3 with PyYAML (the suites, run by `scripts/ci/run-tests.sh` inside
 `.composite/`), Hugo (the site), `oras`, `cosign`, `helm` and `gh` to read the release, Flux 2.
@@ -61,6 +64,9 @@ the spec's "The switch" shows. `/mcp` admits only roomctl's token and sponsored 
 - **Wording, verbatim from the spec:** "Approvals stay on the room page"; the states `needs you`,
   `waiting for a human`, `running`, `queued`, `done`, `failed`, `stopped`; "a form field, never a tool
   argument".
+- **Versions:** ai-native-ref pins agent-platform **v0.22.0** (PR J, #116). The release this plan
+  adopts is **v0.23.0**, so `vX.Y.Z` below is `v0.23.0`. The diff base is always the tag pinned now,
+  read from the repository, never a literal.
 - **Commits:** conventional, in English, no trailers.
 
 ## Review Focus
@@ -93,8 +99,15 @@ clone at `$SCRATCH/agent-platform`.
 - [ ] **Step 1: Find the release**
 
 Run: `gh release list -R Smana/agent-platform --limit 5 --json tagName,isDraft,isPrerelease,publishedAt`
-Expected: a release that is not a draft or prerelease, published after agent-platform PR 5 merged.
-Call it `vX.Y.Z` below; the pinned one is `v0.21.0` on 2026-10-25.
+Expected: `v0.23.0`, not a draft or prerelease, published after agent-platform PR 5 merged. Call it
+`vX.Y.Z` below. The pinned one is v0.22.0 since PR J (#116); read it rather than assume it:
+
+```bash
+BASE=$(git grep -h 'tag: "' flux/sources/ocirepo-agent-factory.yaml | grep -o -E 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+echo "$BASE"
+```
+
+Expected: `v0.22.0`. Anything else, stop: another pin PR is in flight.
 
 - [ ] **Step 2: Check that it carries the feature**
 
@@ -103,8 +116,9 @@ git clone --quiet --filter=blob:none https://github.com/Smana/agent-platform "$S
 git -C "$SCRATCH/agent-platform" grep -n -E 'json:"sessionStart|"room_wait"|"room_checkout"|"room_changes"' vX.Y.Z -- internal
 ```
 
-Expected: `sessionStart` in `internal/config/config.go`, and each tool name at least once. If any is
-missing, stop and report it.
+Expected: `sessionStart` in `internal/config/config.go`, and each tool name at least once, as the
+value of a Go `const` in `internal/` (agent-platform's plan names each tool by a constant: L16). If
+any is missing, stop and report it.
 
 - [ ] **Step 3: Read the digests, and check the chart's signature**
 
@@ -133,7 +147,7 @@ failed verification, stop.
 - [ ] **Step 4: What the release changes beside feature 13**
 
 ```bash
-git -C "$SCRATCH/agent-platform" diff --stat v0.21.0 vX.Y.Z -- \
+git -C "$SCRATCH/agent-platform" diff --stat "$BASE" vX.Y.Z -- \
   charts/agent-factory internal/factory/config internal/config internal/store/migrations
 gh release download vX.Y.Z --repo Smana/agent-platform --pattern crd-rooms.yaml --dir "$SCRATCH/crd-rooms-vX.Y.Z"
 diff <(tail -n +4 infrastructure/base/room-broker/crd-rooms.yaml) "$SCRATCH/crd-rooms-vX.Y.Z/crd-rooms.yaml"
@@ -157,7 +171,8 @@ diff <(tail -n +4 infrastructure/base/room-broker/crd-rooms.yaml) "$SCRATCH/crd-
   `infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml`, and the "pinned here at"
   mentions in `observability/base/agent-platform/vmrule-agent-factory.yaml`,
   `website/content/docs/platform/ai-platform/agents/harness-reference.md` and
-  `website/content/docs/platform/ai-platform/routing.md` (`git grep -n -F 0.21.0` lists them all)
+  `website/content/docs/platform/ai-platform/routing.md` (`git grep -n -F "${BASE#v}"`, from Task 1,
+  lists them all)
 - Modify: `infrastructure/base/room-broker/config.yaml`, `infrastructure/gcp-0/room-broker/config.yaml`
 - Test: `scripts/ci/tests/test-factory-interfaces-off.py`
 
@@ -303,7 +318,8 @@ git commit -m "docs(agents): the factory from your coding agent, in the user gui
 
 - [ ] **Step 1: Write the runbook** in runbook 18's shape. Start with the purpose and the design
   link, then a mermaid sequence of the journey. Prerequisites: `roomctl vX.Y.Z` logged in, both
-  clients installed. Then:
+  clients installed, and Task 8's cloud-native-ref pull request merged: until it is, the doctor's
+  `skill` check FAILs on the drifted v0.11.0 copy in every cloud-native-ref checkout (step 2). Then:
 
 | Section | Steps |
 |---|---|
@@ -356,6 +372,10 @@ git commit -m "docs(v3): feature 13's design and plan linked from the roadmap"
 - [ ] **Step 3:** `gh pr checks --watch`. Expected: `ci` and "External links 🔗" green.
 
 ### Task 8: cloud-native-ref, the drifted skill copy (a separate pull request)
+
+It merges before runbook 19 runs, and before agent-platform v0.23.0 is announced to developers: the
+doctor's `skill` check reads project skill directories, and FAILs on this copy's
+`roomctl-version: "v0.11.0"`.
 
 **Files:**
 - Delete: cloud-native-ref `.agents/skills/factory-handoff/` and the `.claude/skills` link to it, if

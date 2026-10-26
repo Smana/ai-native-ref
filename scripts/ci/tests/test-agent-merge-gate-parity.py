@@ -185,15 +185,18 @@ with tempfile.TemporaryDirectory() as d:
 
 renovate = json.loads((HOST_TREE / ".github/renovate.json").read_text())
 host_classes = next(r for r in config["repositories"] if r["name"] == "Smana/cloud-native-ref")["classes"]
-deps = host_classes.get("deps-patch")
 gates = rules_of(host)[CANON]["if"]["no_changed_files"]["paths"]
-if deps is None:
-    fails.append("deps-patch: not declared on the host")
-else:
+for lane in ("deps-patch", "deps-minor"):  # both adopted lanes hold the same refusals
+    lane_cl = host_classes.get(lane)
+    if lane_cl is None:
+        fails.append(f"{lane}: not declared on the host")
+        continue
     for rule in never_automerge(renovate):
         for path in sorted(reached(rule)):
-            if not refused(path, deps, gates):
-                fails.append(f"deps-patch: never-automerge {rule.get('matchPackageNames') or rule.get('matchFileNames')} reaches {path}, which the lane would take")
+            if not refused(path, lane_cl, gates):
+                fails.append(f"{lane}: never-automerge {rule.get('matchPackageNames') or rule.get('matchFileNames')} reaches {path}, which the lane would take")
+deps = host_classes.get("deps-patch")
+if deps is not None:
     # self-test: drop zitadel's protection and the suite must notice
     probe = dict(deps, protectedFiles=[p for p in deps.get("protectedFiles", []) if "zitadel" not in p])
     if all(refused(p, probe, gates) for r in never_automerge(renovate) for p in reached(r)):

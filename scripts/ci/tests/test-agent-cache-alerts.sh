@@ -5,7 +5,7 @@
 # the agent router's scrape leaves them (vmpodscrape.yaml). A dropped marker fires
 # AgentCacheReadZero within two scrapes of a run's first 100k input tokens; a share under 60% over
 # 15 minutes fires AgentCacheReadShareLow only with 200k input tokens in the window, so one
-# condensation does not; public runs (Z.ai) are never selected. Annotations are stripped from the
+# condensation does not; public runs (Z.ai) are never selected by an alert, though the recorded share counts every provider. Annotations are stripped from the
 # copy promtool reads: it compares them exactly, and test-agent-alert-annotations owns them.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -125,6 +125,26 @@ tests:
     alert_rule_test:
       - {eval_time: 3m, alertname: AgentCacheReadZero, exp_alerts: []}
       - {eval_time: 16m, alertname: AgentCacheReadShareLow, exp_alerts: []}
+  # The recorded share is every provider's: Z.ai reading 90% records 0.9 (it recorded nothing when it
+  # was Anthropic's alone), and an Anthropic run beside it records its own.
+  - interval: 30s
+    input_series:
+      - series: 'gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="zai", ar_agent="system:serviceaccount:agents:xplane-run-zaiok", gen_ai_token_type="input"}'
+        values: '0+20000x40'
+      - series: 'gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="zai", ar_agent="system:serviceaccount:agents:xplane-run-zaiok", gen_ai_token_type="cached_input"}'
+        values: '0+18000x40'
+      - series: '${S}anth", gen_ai_token_type="input"}'
+        values: '0+20000x40'
+      - series: '${S}anth", gen_ai_token_type="cached_input"}'
+        values: '0+10000x40'
+    promql_expr_test:
+      - expr: agent_run:cache_read_share:ratio15m
+        eval_time: 16m
+        exp_samples:
+          - labels: 'agent_run:cache_read_share:ratio15m{ar_agent="system:serviceaccount:agents:xplane-run-zaiok"}'
+            value: 0.9
+          - labels: 'agent_run:cache_read_share:ratio15m{ar_agent="system:serviceaccount:agents:xplane-run-anth"}'
+            value: 0.5
 EOF
 
 cd "$tmp" && promtool test rules tests.yaml

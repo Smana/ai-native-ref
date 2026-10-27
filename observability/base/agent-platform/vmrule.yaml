@@ -185,10 +185,14 @@ spec:
     # above 1, so the denominator must change with it. The series carry a run (ar_agent) but no step; the
     # per-step view is the harness log's. No rule reads another's output: vmalert's recorded series
     # reach the datasource through remote write, too late for the same evaluation.
+    # The recorded share counts every provider the meter prices (the dashboard reads it for whatever
+    # the fleet runs: Z.ai today), and keeps its name for its readers. The two alerts below stay on
+    # Anthropic: their cause, a dropped cache marker, is Anthropic's, and a public run on Z.ai reads
+    # nothing explicit.
     - name: agent-cache
       rules:
         - record: agent_run:cache_read_share:ratio15m
-          expr: (sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="cached_input"}[15m])) or sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}[15m])) * 0) / sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}[15m]))
+          expr: (sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type="cached_input"}[15m])) or sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type="input"}[15m])) * 0) / sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type="input"}[15m]))
         - alert: AgentCacheReadZero
           expr: sum by (ar_agent) (gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}) >= 100000 unless on (ar_agent) sum by (ar_agent) (gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="cached_input"}) > 0 and on (ar_agent) sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}[15m])) > 0
           labels:

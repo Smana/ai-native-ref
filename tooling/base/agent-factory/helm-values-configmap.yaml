@@ -319,10 +319,11 @@ data:
         # twice (0..5). judge tier-light: the completion judge's alias (the claim's judgeModel),
         # reading the scoper's checks; without the capability profiles' P4 sidecar (#103) its
         # /judge/v1 route is refused and the judge is silently skipped.
-        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light}
-      # loops.<class>.search: true offers that class's implementer runs the search tool (agent-platform
-      # v3 feature 5): a read-only child on the run's token, 40 iterations, 300k tokens, 300 s, six a
-      # run. No class has it (D4): a gcp-0 session switches one on for the paired live gate (SQ5).
+        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}
+      # search: true on the docs row (above) offers that class's implementer runs the search tool
+      # (agent-platform v3 feature 5): a read-only child on the run's token, 40 iterations, 300k
+      # tokens, 300 s, six a run. No other class has it (D4): the gcp-0 session of 2026-10-27 flips
+      # it on for the paired live gate (SQ5) and, if the pairs do not hold, back off.
       # split (splitter design SL3) is off: a platform session adds it to one class and removes it.
       # SP4 PR 2's agent_router:run_tokens:total expression over the raw series (R12).
       meter:

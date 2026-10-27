@@ -217,7 +217,7 @@ Destroying the cluster is a separate owner call.
 
 ## v3 loop and sandbox layers on the `docs` class
 
-The gcp-0 session of 2026-10-27 switches three v3 features on for the `docs` class only, one commit
+The gcp-0 session of 2026-10-27 switches v3 features on for the `docs` class only, one commit
 each in `tooling/base/agent-factory/helm-values-configmap.yaml`, so a failure is attributable. Merge
 and prove them in this order; the next layer waits for the previous one's proofs. The class is
 declared by both repositories, so each switch reads for `Smana/ai-native-ref` and
@@ -390,6 +390,67 @@ Acceptance: the sentence exists, `./scripts/ci/validate-links.sh` passes, no oth
 
 Both links end in a wrong extension (`.mdx`, `.yml`): the `links` step reports each before the push,
 and the pushed head carries the corrected link.
+
+### Layer 4: the search tool
+
+`docs: {…, search: true}` offers the class's implementer runs the search tool (a read-only child on the
+run's token: 40 iterations, 300k tokens, 300 s, six calls a run). It never switches the loop on. Design:
+[search tool](../../superpowers/specs/2026-10-23-search-tool-design.md) (live proofs, SQ5). Prerequisite:
+layers 1 and 2 passed, so a difference between the arms is the tool's alone.
+
+| # | Do | Expected reading |
+|---|---|---|
+| 1 | File drill issues H1 to H3 below, label each as in layer 1 | The task has `spec.search: true`, every implementer claim `spec.loop.search: true` (`kubectl -n agent-system get agentrun -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.search}'`), the run calls the search tool at least once, the gateway's log shows the child's calls under the run's identity |
+| 2 | Read the ledger of each run | The child's tokens are inside the run's; `budget` and `error` outcomes are under a quarter of the calls |
+| 3 | Paired gate (SQ5a): flip `search` to `false` in a commit, file the same three issues again as new issues, then flip it back | Acceptance not lower over the pairs; steps per run (children included) and cost per accepted PR not higher with search on |
+
+**Drill H1, a multi-file lookup** (the answer is spread over several files, so searching beats reading):
+
+```text
+Title: docs: list the runbooks that mention the room broker
+
+Body:
+Add a "Related runbooks" line at the end of docs/runbooks/agent-factory/13-rooms-restore.md that
+names every runbook in docs/runbooks/agent-factory/ whose text contains the words "room broker".
+
+## Acceptance
+- The new line lists exactly the runbook files (by file name) that contain "room broker", found by
+  searching the directory.
+- No other line of any file changes and `task links` passes.
+```
+
+**Drill H2, a rename sweep:**
+
+```text
+Title: docs: say "factory" where the status page still says "dark factory"
+
+Body:
+In website/content/docs/platform/ai-platform/status.md, replace the phrase "dark factory" by
+"factory" wherever it appears, except inside a link target or a code span.
+
+## Acceptance
+- No "dark factory" is left in that file outside a link target or a code span.
+- No other file changes and `task links` passes.
+```
+
+**Drill H3, a cross-reference:**
+
+```text
+Title: docs: point the splitter runbook at the spec that defines the family budget
+
+Body:
+In docs/runbooks/agent-factory/17-splitter.md, section 4, add one sentence naming the decision id
+(SLn) in docs/superpowers/specs/2026-10-23-splitter-design.md that defines the family budget, with a
+relative link to that spec.
+
+## Acceptance
+- The sentence cites the right decision id and links to the spec; `task links` passes.
+- No other line of any file changes.
+```
+
+Cost: six runs for the three pairs, each capped by the docs tier's task cap (standard: $5.10); a docs
+run costs about $0.50 to $1.50 and a search adds at most the child's 300k tokens, so the layer is
+about $5 expected and $31 at the caps, inside `tasksPerDay: 20` and `factoryDailyUSD: 42.50`.
 
 ## Recording results
 

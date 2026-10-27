@@ -75,8 +75,9 @@ series, and `OctoStsExchangeFailures` valid LogsQL against this cluster's log fi
 ### Step 4 — the dashboard renders
 
 Open Grafana at `https://grafana.priv.$CLOUD.ogenki.io`, folder **agents**,
-dashboard **Agent platform** (`uid: agent-platform`). Confirm all four panels render without a query
-error:
+the capacity panels of the former **Agent platform** dashboard (`uid: agent-platform`, retired: its panels moved
+to **Agent fleet**, `uid: agent-fleet`, and **Agent gateway**, `uid: agent-gateway`; start from **Agents overview**,
+`uid: agents-overview`). Confirm all four panels render without a query error:
 
 > Corrected 2026-09-27: Grafana is SSO-gated (`/api/dashboards/...` returns 401 without a browser
 > session) — an agent cannot open the actual dashboard headlessly. Verified live instead that all
@@ -86,10 +87,10 @@ error:
 
 | Panel | Expression | Expect |
 |---|---|---|
-| Sandbox pods by phase | `sum by (phase) (kube_pod_status_phase{namespace="agents"})` | A line per phase seen during this session |
-| Tokens per run through agent-router | `sum by (ar_agent) (rate(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:.*"}[5m]))` | Non-empty only while/after a run made model calls (runbooks 01, 02, 07) |
-| agents-gvisor usage / limit | `karpenter_nodepools_usage / karpenter_nodepools_limit` for `agents-gvisor` | Empty on gcp-0: Karpenter-only metric, no series on a GKE node pool. Non-empty on aws-0, may be near-zero if the pool scaled to zero |
-| agent-router 4xx | LogsQL, `kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"agent-router" \| unpack_json \| filter log.http.status:4*` | Entries corresponding to the 401/403 checks in runbooks 02 and 04 |
+| Sandbox pods by phase (Agent fleet) | `sum by (phase) (kube_pod_status_phase{namespace="agents"})` | A line per phase seen during this session |
+| Tokens per run (Agent fleet; the former "through agent-router" panel) | `sum by (ar_agent) (rate(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:.*"}[5m]))` | Non-empty only while/after a run made model calls (runbooks 01, 02, 07) |
+| agents-gvisor usage over limit (Agent fleet) | `karpenter_nodepools_usage / karpenter_nodepools_limit` for `agents-gvisor` | Empty on gcp-0: Karpenter-only metric, no series on a GKE node pool. Non-empty on aws-0, may be near-zero if the pool scaled to zero |
+| Access log: 4xx and 5xx (Agent gateway) | LogsQL, `kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"agent-router" \| unpack_json \| filter log.http.status:4*` | Entries corresponding to the 401/403 checks in runbooks 02 and 04 |
 
 The "Tokens per run" panel is empty only if no run made model calls in the window. Record "no data"
 as a fail only if a run from an earlier runbook definitely made model calls in the last 24h.

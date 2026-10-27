@@ -147,7 +147,34 @@ def check_trace_pipeline():
     check("noValue" in p["fieldConfig"]["defaults"], "Trace pipeline reads 0 for a series that has none (no failed export yet)")
 
 
-for run in (check_folder, check_drilldown, check_colours, check_sponsored, check_gateway_ratio, check_trace_pipeline):
+def check_models():
+    # The served model (gen_ai_request_model; agentrun_info's model is the agent-default alias) on the identity, run, room and fleet pages.
+    want = {"grafana-dashboard-agent-identity.yaml": ("Spend by model", "Spend by model per day", "Tokens by model"),
+            "grafana-dashboard-agent-run.yaml": ("Models", "Cost by model"),
+            "grafana-dashboard-agent-fleet.yaml": ("Spend by model and principal",)}
+    for file, titles in want.items():
+        ps = panels(file)
+        for title in titles:
+            p = ps.get(title)
+            check(p is not None, f"{file}: {title} exists")
+            if p is None:
+                continue
+            check(all("gen_ai_request_model" in t["expr"] for t in p["targets"]), f"{title}: splits by the served model")
+            d = p.get("fieldConfig", {}).get("defaults", {})
+            if p["type"] in ("stat", "bargauge"):
+                check(d.get("color", {}).get("fixedColor") in ("blue", "text"), f"{title}: a neutral fixed colour, not a verdict")
+    # a model column of a Runs table joins the models of a run in one cell: groupBy run_id, unique models
+    for file, title, ref in (("grafana-dashboard-agent-identity.yaml", "Runs", "G"), ("grafana-dashboard-agent-room.yaml", "Runs of this room", "H")):
+        p = panels(file)[title]
+        check(any(t["refId"] == ref and "gen_ai_request_model" in t["expr"] for t in p["targets"]), f"{title}: query {ref} reads the models")
+        group = next((tr for tr in p["transformations"] if tr["id"] == "groupBy"), {})
+        check(group.get("options", {}).get("fields", {}).get("gen_ai_request_model", {}).get("aggregations") == ["uniqueValues"],
+              f"{title}: the model column joins the unique models of a run")
+        renames = next((tr for tr in p["transformations"][::-1] if tr["id"] == "organize"), {}).get("options", {}).get("renameByName", {})
+        check(renames.get("gen_ai_request_model (uniqueValues)") == "model", f"{title}: the column is named model")
+
+
+for run in (check_folder, check_drilldown, check_colours, check_sponsored, check_gateway_ratio, check_trace_pipeline, check_models):
     run()
 if errors:
     print("\n".join(errors), file=sys.stderr)

@@ -35,7 +35,7 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [
            {"refId": "A", "instant": true, "format": "table", "expr": "topk by (run_id) (1, tlast_over_time(agentrun_info{namespace=\"agents\"}[$__range]))"},
-           {"refId": "B", "instant": true, "format": "table", "expr": "max by (run_id, phase) (last_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) == 1)"},
+           {"refId": "B", "instant": true, "format": "table", "expr": "max by (run_id, phase) (last_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) == 1) and on (run_id, phase) topk by (run_id) (1, tlast_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) and (last_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) == 1))"},
            {"refId": "C", "instant": true, "format": "table", "expr": "topk by (run_id) (1, tlast_over_time(agentrun_outcome_info{namespace=\"agents\"}[$__range]))"},
            {"refId": "F", "instant": true, "format": "table", "expr": "topk by (run_id) (1, tlast_over_time(agentrun_pull_request_info{namespace=\"agents\"}[$__range]))"},
            {"refId": "D", "instant": true, "format": "table", "expr": "max by (run_id) (last_over_time(agentrun_started_timestamp_seconds{namespace=\"agents\"}[$__range]) > 0) * 1000"},

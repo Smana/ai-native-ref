@@ -174,7 +174,7 @@ From Claude Code, OpenCode or another terminal coding agent you hand a side task
 follow it and bring its branch back without leaving the session. The broker renders the views once,
 so every client shows the same text ([ADR-0059]({{< relref "/docs/decisions/0059-factory-from-your-coding-agent.md" >}})).
 
-**Set it up.** It needs `roomctl` v0.23.0 or later, configured and logged in (see
+**Set it up.** It needs `roomctl` v0.23.1 or later, configured and logged in (see
 [From a terminal](#from-a-terminal-roomctl)).
 
 ```bash

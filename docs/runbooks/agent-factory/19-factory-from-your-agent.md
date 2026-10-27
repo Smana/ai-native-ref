@@ -30,9 +30,9 @@ sequenceDiagram
 
 ## 1. Prerequisites
 
-- [ ] **[OWNER]** agent-platform v0.23.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`), and
+- [ ] **[OWNER]** agent-platform v0.23.1 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`), and
   `human.mcp.enabled` on in base and gcp-0 (done by the pin PR).
-- [ ] `roomctl` v0.23.0 or later, configured and logged in (`roomctl doctor`: `dns`, `tls`, `login`, `github` ok).
+- [ ] `roomctl` v0.23.1 or later, configured and logged in (`roomctl doctor`: `dns`, `tls`, `login`, `github` ok).
 - [ ] Claude Code and OpenCode installed, each able to run a background subagent.
 - [ ] The cloud-native-ref pull request that removes the drifted v0.11.0 `factory-handoff` skill copy
   (design PR 7, plan Task 8) is merged. Until it is, the doctor's `skill` check FAILs in every
@@ -102,7 +102,7 @@ Record "no forms" in the user guide's portability table, in the Forms cell.
 
 1. Empty `human.mcp.sessionStart` in gcp-0's broker config copy, and revert the parity widening and the
    off-test skip. `test-factory-interfaces-off.py` passes on `main`. **Keep** `human.mcp.enabled`
-   (on since v0.23.0).
+   (on since v0.23.1).
 2. Remove the planted `.opencode/plugins/` test branch and the checked-out worktrees
    (`git worktree remove <path>`).
 3. In the user guide's portability table (`website/content/docs/platform/ai-platform/agents/user-guide.md`),

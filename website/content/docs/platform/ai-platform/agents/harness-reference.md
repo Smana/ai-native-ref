@@ -93,7 +93,7 @@ implementer's tier.
 | `caps.maxPendingMinutes` | 30 (5 … 480) | A run still `Pending` escalates as `run_unschedulable` |
 | `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="live" color="green" >}} aws-0 |
 | `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
-| `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since agent-platform v0.16.0, pinned here at v0.22.0). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
+| `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since agent-platform v0.16.0, pinned here at v0.23.1). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
 | `loops.<class>` | only `default: {scope: off}`: **no class has a row (D4)** | The loop policy and the scope, off for every class. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
 | `loops.<class>.search` | absent: **off for every class (D4)** | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/harness.md#search" >}}) |
 

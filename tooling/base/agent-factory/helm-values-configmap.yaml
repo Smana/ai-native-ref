@@ -62,11 +62,12 @@ data:
               # Markdown deploys nothing. The monitor records a verdict and never reverts.
               monitor: {oracleRuns: 2, followUpWindow: 168h}
               maxPerDay: 1
-            # Declared off (merge gate classes MC14): no switch, so no adoption. A session's first
-            # commit sets shadow: true (runbook 16); Renovate keeps merging meanwhile (MC12). w0:
+            # Shadow since the gcp-0 session of 2026-10-27 (runbook 16): adopted, judged, never
+            # merged by the factory; Renovate keeps merging meanwhile (MC12). w0:
             # patch bumps of what Flux deploys (R42), Renovate's never-automerge files protected
             # (test-agent-merge-gate-parity.py derives them from renovate.json).
             deps-patch:
+              shadow: true
               author: {adopt: {logins: ["renovate[bot]"], branches: ['^renovate/']}}
               diffShape: semver-patch
               allowedFiles: ['^(apps|flux|infrastructure|observability|security|tooling)/.+\.ya?ml$']
@@ -85,6 +86,7 @@ data:
               monitor: {flux: {source: flux-system/flux-system, within: 1h}, followUpWindow: 168h}
             # M2 (a): Renovate's minors observed in shadow at no cost; semver-minor never goes live.
             deps-minor:
+              shadow: true
               author: {adopt: {logins: ["renovate[bot]"], branches: ['^renovate/']}}
               diffShape: semver-minor
               allowedFiles: ['^(apps|flux|infrastructure|observability|security|tooling)/.+\.ya?ml$']

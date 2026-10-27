@@ -192,7 +192,7 @@ spec:
         {"id": 17,
          "type": "timeseries",
          "title": "Spend per hour, by model",
-         "description": "What the meter priced per hour, by model (agent_factory_model_cost_usd_total), stacked. Hourly buckets, counted from 0 for a model first seen inside the range.",
+         "description": "What the meter priced per hour, by model (agent_factory_model_cost_usd_total), stacked. Hourly buckets, counted from 0 for a model first seen inside the range. The meter counter resets when the factory restarts and the ledger panel (Spend per UTC day on the factory dashboard) is the truth.",
          "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "interval": "1h",

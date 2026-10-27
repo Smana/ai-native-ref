@@ -165,3 +165,56 @@ spec:
             description: "The meter priced those runs right, as fresh input. Every cost read through llm_gateway:charge_usd_per_mtoken under-counts them, down to a negative figure: the agent-run Cost panel and AnthropicFleetNearCap. A gateway path or the provider changed its usage shape: run test-agent-gateway-cache-wire against the deployed agentgateway digest. The leader's log names each run: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep 'without its cache tokens'"
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+    # B-2, the cost cross-check (docs/superpowers/specs/2026-10-27-cost-crosscheck-design.md):
+    # the ledger's total for a run (agent_factory_run_settled_usd, read from the ledger, kept 1 h
+    # after the run) against agentgateway's own priced counter. A mismatch warns, nothing more:
+    # the meter stays the authority and a human says which side is wrong (XC6).
+    # `$$1` is Flux's escape: postBuild turns it into the `$1` label_replace reads. increase()
+    # because promtool has no increase_pure: it reads a few percent low for a run's first
+    # samples, well inside the 15 m `for` once the run has stopped spending.
+    - name: agent-cost-crosscheck
+      rules:
+        # 6 h outlasts the longest run cap. Only agentgateway series (XC7).
+        - record: agent_cost:gateway_run_usd
+          expr: sum by (run) (label_replace(increase(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+"}[6h]), "run", "$$1", "ar_agent", ".*xplane-run-(.+)"))
+        # XC4: abs(ledger - gateway) <= max(1% of the gateway, 0.01 USD). Judged only once the
+        # gateway's cost has not moved for 10 m, so a run still spending is silent. A run with an
+        # Envoy series is left out (XC7): Envoy's router exports no cost, it would always
+        # mismatch; the last_over_time keeps it out for as long as the gateway window holds it.
+        # Second branch: gateway cost the ledger never saw, only while the run's gauge must still
+        # exist (it leaves 1 h after the run ends; the cost last moved under 40 m ago).
+        - alert: AgentCostCrossCheckMismatch
+          expr: |
+            (
+              (
+                abs(max by (run) (agent_factory_run_settled_usd) - on (run) agent_cost:gateway_run_usd)
+                  > on (run) clamp_min(0.01 * agent_cost:gateway_run_usd, 0.01)
+              )
+              or
+              (
+                (agent_cost:gateway_run_usd > 0.01 unless on (run) agent_factory_run_settled_usd)
+                  and on (run) (sum by (run) (label_replace(changes(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+"}[40m]), "run", "$$1", "ar_agent", ".*xplane-run-(.+)")) > 0)
+              )
+            )
+            and on (run) (sum by (run) (label_replace(changes(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+"}[10m]), "run", "$$1", "ar_agent", ".*xplane-run-(.+)")) == 0)
+            unless on (run) label_replace(sum by (ar_agent) (last_over_time(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:xplane-run-.+", namespace!="agent-gateway"}[6h])), "run", "$$1", "ar_agent", ".*xplane-run-(.+)")
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Run {{ $labels.run }}: the ledger and the gateway disagree on its cost"
+            description: "The ledger's total for the run and agentgateway's priced counter differ by more than max(1 %, 0.01 USD), or the gateway priced spend the ledger never saw. Neither side is presumed right: the runbook lists the suspects (a double charge, a lost write, an overlay price, an unpriced lookup, a scrape gap)."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-g--the-cost-cross-check"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-run?var-run={{ $labels.run }}"
+        # agentgateway prices a response from the overlay catalog (agent-model-catalog) and counts
+        # the lookup; only Exact adds to the cost counter, so any other status is spend the
+        # cross-check cannot see on the gateway side.
+        - alert: AgentGatewayCostUnpriced
+          expr: sum by (ar_agent, gen_ai_request_model, status) (increase(agentgateway_cost_catalog_lookups_total{namespace="agent-gateway", status!="Exact"}[15m])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "agentgateway could not price {{ $labels.gen_ai_request_model }} ({{ $labels.status }}) for {{ $labels.ar_agent }}"
+            description: "A catalog lookup other than Exact adds nothing to the gateway's cost counter. Missing or Unpriced: the model has no row in agent-model-catalog (meter.prices, then gen-prices.py --write). NoCatalog: the ConfigMap is not mounted on the proxy."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-g--the-cost-cross-check"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"

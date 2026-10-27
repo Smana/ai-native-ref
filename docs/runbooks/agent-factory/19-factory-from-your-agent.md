@@ -14,7 +14,7 @@ sequenceDiagram
   participant R as roomctl mcp
   participant B as room-broker /mcp
   participant GH as GitHub
-  Dev->>A: /factory:handoff …
+  Dev->>A: the handoff prompt (the client's slash spelling)
   A->>B: issue_draft (canStart)
   A->>R: issue_file
   R->>Dev: form: file it? start now?
@@ -58,7 +58,7 @@ sequenceDiagram
 | 1 | `roomctl setup claude`, then `roomctl setup opencode` | Each prints the MCP registration (the client's own `mcp add`, or the snippet to paste) and the skill directory it wrote |
 | 2 | `roomctl doctor` | Every check `ok`, `skill` included |
 | 3 | `opencode`'s config after setup | The server sits under `mcp.servers.factory`, the shape `opencode mcp add` writes, and opencode lists it as connected. **Record the opencode version.** A docs-shaped `mcp.factory` that opencode ignores is a FAIL for `setup`'s snippet |
-| 4 | In each client, list the MCP tools and prompts | `rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`, `issue_file`; prompts `handoff`, `status`, `inbox`. **Record the slash spelling** each client shows (`/factory:handoff`, `/mcp__factory__handoff`) |
+| 4 | In each client, list the MCP tools and prompts | `rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`, `issue_file`; prompts `handoff`, `status`, `inbox`. **Record the slash spelling** each client shows (`/factory:handoff` in OpenCode, `/mcp__factory__handoff` in Claude Code) |
 
 ## 3. Live proofs
 
@@ -66,7 +66,7 @@ Run each in Claude Code, then in OpenCode. Mark PASS or FAIL per client; a FAIL 
 
 | # | Do | Expected | Claude Code | OpenCode |
 |---|---|---|---|---|
-| 1a | `/factory:handoff` with the small `docs` issue | The agent drafts one issue; a form shows it with "start the factory now" defaulting to no | | |
+| 1a | `/factory:handoff` (OpenCode) or `/mcp__factory__handoff` (Claude Code), with the small `docs` issue | The agent drafts one issue; a form shows it with "start the factory now" defaulting to no | | |
 | 1b | Answer file + start | The issue is filed and labelled `factory/ready`; GitHub's timeline shows the developer, not a bot, as the labeller; the room card appears within 60 s | | |
 | 1c | In a second session, the model is asked to start the work without the form | No tool argument starts it: the form is the only path | | |
 | 2a | "wait for it" (a background `room_wait`) | It returns when the run asks an approval, with the card and the approval link; the main session stayed usable meanwhile | | |

@@ -9,6 +9,9 @@
 # Anthropic upstream, and checks the Messages body it emits and the token series it exports, which
 # the agent-cache alerts read. A control request without the markers proves the check can fail.
 # Standalone proves the conversion code, not the controller's translation of the CRDs.
+# That holds for the catalog source too: the controller's translation of parameters.yaml's
+# sources[].configMap (name, key, namespace, a missing or malformed ConfigMap) is proven live, not here;
+# test-gen-prices only ties the name and key to the generated ConfigMap.
 # A last request streams (truthful costs TC4): its reply must be counted as the others are, input
 # including the cache reads and writes, which llm_gateway:charge_usd_per_mtoken's join rests on.
 # The same proxy prices what it counts (cost cross-check XC1, offline proof 2): it loads the overlay

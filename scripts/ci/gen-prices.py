@@ -42,6 +42,8 @@ VALUES_NAME = "agent-factory-helm-values"
 RULES = pathlib.PurePosixPath("infrastructure/base/llm-gateway/vmrule-llm-gateway.yaml")
 CATALOG = pathlib.PurePosixPath("infrastructure/base/agent-gateway/model-catalog.yaml")
 CATALOG_NAME = "agent-model-catalog"
+CATALOG_KEY = "catalog.json"
+PARAMETERS = pathlib.PurePosixPath("infrastructure/base/agent-gateway/parameters.yaml")
 CATALOG_NAMESPACE = "agent-gateway"
 # The provider key agentgateway looks a model up under, by the model name's family.
 PROVIDERS = (("claude-", "anthropic"), ("glm-", "zai"))
@@ -104,6 +106,19 @@ def catalog_file(prices):
             "apiVersion: v1\nkind: ConfigMap\nmetadata:\n"
             f"  name: {CATALOG_NAME}\n  namespace: {CATALOG_NAMESPACE}\n"
             "data:\n  catalog.json: |\n" + "".join(f"    {line}\n" for line in body.splitlines()))
+
+
+def catalog_link_errors(root):
+    """The Gateway's AgentgatewayParameters must load the ConfigMap and key this file generates: a rename on
+    one side prices every response at $0 live, and no other offline check would see it."""
+    docs = [d for d in yaml.safe_load_all((root / PARAMETERS).read_text()) if isinstance(d, dict)]
+    sources = [src for d in docs for src in ((((d.get("spec") or {}).get("modelCatalog") or {}).get("sources")) or [])]
+    refs = [src.get("configMap") or {} for src in sources]
+    if not any(r.get("name") == CATALOG_NAME and r.get("key", CATALOG_KEY) == CATALOG_KEY for r in refs):
+        got = ", ".join(f"{r.get('name')}/{r.get('key', CATALOG_KEY)}" for r in refs) or "no source"
+        return [f"{PARAMETERS}: spec.modelCatalog.sources holds {got}, not the generated ConfigMap "
+                f"{CATALOG_NAME} key {CATALOG_KEY} ({CATALOG})"]
+    return []
 
 
 def load_prices(root, errors):
@@ -197,6 +212,7 @@ def main(argv):
     paths = [a for a in args if a != "--write"]
     root = pathlib.Path(paths[0]) if paths else pathlib.Path(__file__).resolve().parents[2]
     rendered, errors = render(root)
+    errors = (errors or []) + catalog_link_errors(root)
     for e in errors:
         print(f"FAIL {e}", file=sys.stderr)
     if errors:

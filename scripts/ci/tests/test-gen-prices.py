@@ -65,7 +65,7 @@ def tree():
     """A temporary root holding copies of the factory values and the price rule, the group rendered."""
     with tempfile.TemporaryDirectory() as d:
         root = pathlib.Path(d)
-        for rel in (gen.VALUES, gen.RULES, gen.CATALOG):
+        for rel in (gen.VALUES, gen.RULES, gen.CATALOG, gen.PARAMETERS):
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(ROOT / rel, root / rel)
         run(root, "--write")
@@ -173,6 +173,27 @@ with tree() as t:
     (t / gen.CATALOG).unlink()
     code, out = run(t, "--write")
     check("--write creates a missing catalog file", code == 0 and (t / gen.CATALOG).exists() and run(t)[0] == 0, out)
+
+print("the overlay is the one parameters.yaml loads")
+with tree() as t:
+    code, out = run(t)
+    check("the committed parameters.yaml names the generated ConfigMap and its key", code == 0, out)
+with tree() as t:
+    replace(t, gen.PARAMETERS, "name: agent-model-catalog", "name: agent-model-catalogue")
+    code, out = run(t)
+    check("a renamed ConfigMap in parameters.yaml fails, naming both",
+          code == 1 and "agent-model-catalogue" in out and "agent-model-catalog" in out, out)
+with tree() as t:
+    replace(t, gen.PARAMETERS, "name: agent-model-catalog", "name: agent-model-catalog\n          key: prices.json")
+    code, out = run(t)
+    check("a key other than catalog.json fails", code == 1 and "prices.json" in out, out)
+with tree() as t:
+    replace(t, gen.PARAMETERS, "name: agent-model-catalog", "name: agent-model-catalog\n          key: catalog.json")
+    check("the explicit default key passes", run(t)[0] == 0)
+with tree() as t:
+    replace(t, gen.PARAMETERS, "  modelCatalog:", "  modelCatalogOff:")
+    code, out = run(t)
+    check("no modelCatalog source at all fails", code == 1 and "modelCatalog" in out, out)
 
 print("parity")
 with tree() as t:

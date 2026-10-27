@@ -291,7 +291,7 @@ data:
         # The days in USD (TC5): the old 25M and 5M at the reference $1.70 per M, now counted at
         # meter.prices, cache reads at their own rate. AG8 holds B2 at or above factoryDailyUSD
         # plus caps.concurrentRuns frontier runs, and fails a token key (factoryDaily, humanDaily,
-        # perPerson.dailyTokens): v0.22.0 ignores one, a later release refuses it.
+        # perPerson.dailyTokens): v0.23.1 ignores one, a later release refuses it.
         factoryDailyUSD: 42.50
         humanDailyUSD: 8.50
         # Per-person caps in shadow (D8): counted as budget-principal-shadow{principal}, never refused.

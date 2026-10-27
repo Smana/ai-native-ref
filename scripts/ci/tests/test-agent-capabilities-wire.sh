@@ -11,6 +11,9 @@
 # controller's translation of the CRDs; the live gate does.
 # And its argument rule (P3, gate item 2): the internal MCP route, its Allow list and the rendered
 # capabilities-mcp-internal in front of a fake flux-operator-mcp.
+# The identity proxy (P4) then runs from agent-runtime/identity-proxy-configmap.yaml in front of the
+# same gateway, with the environment the AgentRun composition gives it: each model path carries the
+# run's alias and /judge/v1 the judge's, over whatever the harness asks for.
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../.." && pwd)"
@@ -33,7 +36,10 @@ chmod 755 "$tmp"
 gw="agent-capabilities-wire-gw-$$"
 fake_pid=""
 mcp_pid=""
-trap 'docker rm -f "$gw" >/dev/null 2>&1; [ -n "$fake_pid" ] && kill "$fake_pid" 2>/dev/null; [ -n "$mcp_pid" ] && kill "$mcp_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
+px="agent-capabilities-wire-px-$$"
+# One trap for the whole script: every container and every background child dies with it. A child left
+# alive keeps run-tests.sh's `out="$(...)"` pipe open, and the runner waits on it until its time limit.
+trap 'docker rm -f "$gw" "$px" >/dev/null 2>&1; [ -n "$fake_pid" ] && kill "$fake_pid" 2>/dev/null; [ -n "$mcp_pid" ] && kill "$mcp_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
 free_port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])'; }
 up_port="$(free_port)"; gw_port="$(free_port)"; gw_admin="$(free_port)"; gw_ready="$(free_port)"; gw_stats="$(free_port)"
 mcp_port="$(free_port)"
@@ -298,6 +304,71 @@ expect "no kind reaches the server, which answers it" '200 {"apiVersion":"v1"}' 
 expect "another tool's argument is not the rule's" '200 {"query":"Secret"}' "$(tool $R search_flux_docs '{"query": "Secret"}')"
 passes "a GET passes the rule (the stateless backend answers it)" "$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
   "http://127.0.0.1:$gw_port/mcp" -H "authorization: Bearer $(cat "$tmp/$R.jwt")" -H 'accept: text/event-stream')"
+
+# --- P4's sidecar half: the identity proxy from the real ConfigMap, holding the reviewer's token, in front
+#     of the same gateway. Its image is the one crossplane-configuration's AgentRun composition pins. ---
+ENVOY_IMAGE="docker.io/envoyproxy/envoy:distroless-v1.39.1@sha256:eb2c01c13125d1629637cb4e4cce7207009fb7cc2c8027f9742758549d15b6f4"
+px_port="$(free_port)"; px_health="$(free_port)"
+# free_port reserves nothing: two calls can return one port, and Envoy then refuses a duplicate listener.
+for _ in $(seq 1 20); do
+  [ "$px_health" != "$px_port" ] && [ "$px_health" != "$gw_port" ] && break
+  px_health="$(free_port)"
+done
+mkdir -p "$tmp/token" && cp "$tmp/$R.jwt" "$tmp/token/token" && chmod 755 "$tmp/token" && chmod 644 "$tmp/token/token"
+ROOT="$ROOT" TMP="$tmp" PORTS="$px_port $px_health $gw_port" python3 - <<'PY' || { echo "cannot render the proxy config" >&2; exit 1; }
+import os
+import yaml
+
+root, tmp = os.environ["ROOT"], os.environ["TMP"]
+port, health, gateway = (int(p) for p in os.environ["PORTS"].split())
+data = next(d for d in yaml.safe_load_all(open(f"{root}/infrastructure/base/agent-runtime/identity-proxy-configmap.yaml"))
+            if d and d["kind"] == "ConfigMap")["data"]
+open(f"{tmp}/sds-gateway.yaml", "w").write(data["sds-gateway.yaml"].replace("/var/run/secrets/agents/gateway", f"{tmp}/token"))
+cfg = yaml.safe_load(data["envoy.yaml"].replace("/etc/envoy/sds-gateway.yaml", f"{tmp}/sds-gateway.yaml")
+                     .replace("/var/run/secrets/agents/gateway", f"{tmp}/token"))
+# The admin socket's path is the pod's; admin is not under test.
+cfg["admin"] = {"address": {"socket_address": {"address": "127.0.0.1", "port_value": 0}}}
+lst = {l["name"]: l for l in cfg["static_resources"]["listeners"]}
+lst["internal"]["address"]["socket_address"]["port_value"] = port
+lst["health"]["address"]["socket_address"].update(address="127.0.0.1", port_value=health)
+cfg["static_resources"]["listeners"] = [lst["internal"], lst["health"]]
+cluster = next(c for c in cfg["static_resources"]["clusters"] if c["name"] == "agent_router_internal")
+cluster["type"] = "STATIC"
+cluster["load_assignment"]["endpoints"][0]["lb_endpoints"][0]["endpoint"]["address"]["socket_address"].update(
+    address="127.0.0.1", port_value=gateway)
+cfg["static_resources"]["clusters"] = [cluster]
+yaml.safe_dump(cfg, open(f"{tmp}/envoy.yaml", "w"), sort_keys=False)
+PY
+chmod 644 "$tmp/envoy.yaml" "$tmp/sds-gateway.yaml"
+proxy() {  # proxy [NAME=VALUE ...]: (re)starts the identity proxy with that environment
+  docker rm -f "$px" >/dev/null 2>&1
+  local envs=()
+  for e in "$@"; do envs+=(-e "$e"); done
+  docker run -d --name "$px" --network host "${envs[@]}" -v "$tmp:$tmp:ro" "$ENVOY_IMAGE" \
+    -c "$tmp/envoy.yaml" --log-level warn --disable-hot-restart --concurrency 1 >/dev/null || { echo "cannot start $ENVOY_IMAGE" >&2; exit 1; }
+  for _ in $(seq 1 30); do
+    curl -fs -o /dev/null --max-time 2 "http://127.0.0.1:$px_health/ready" && return 0
+    sleep 0.5
+  done
+  docker logs "$px" 2>&1 | tail -20 >&2; echo "the identity proxy never became ready" >&2; exit 1
+}
+# The harness's view: no token (the proxy adds it), and it asks for tier-frontier in the body and the header.
+via() { call "$px_port" "$1" "" tier-frontier tier-frontier; }
+upstream_path() { python3 -c 'import json,sys; l=open(sys.argv[1]).read().splitlines(); print(json.loads(l[-1])["path"] if l else "-")' "$tmp/upstream.jsonl"; }
+
+echo "through the identity proxy (P4's sidecar half, gate 3)"
+proxy MODEL=tier-standard JUDGE_MODEL=tier-light
+expect "/v1 reaches the run's model, whatever the body and the harness's header say" "200 claude-sonnet-5-5" "$(via /v1/chat/completions)"
+expect "/anthropic is pinned too" "200 claude-sonnet-5-5" "$(via /anthropic/v1/messages)"
+expect "/judge/v1 reaches the judge's model" "200 claude-haiku-5-5" "$(via /judge/v1/chat/completions)"
+expect "on the gateway's /v1" "/v1/chat/completions" "$(upstream_path)"
+proxy MODEL=tier-standard JUDGE_MODEL=none
+expect "no judge on the claim: /judge/v1 is refused" "403 -" "$(via /judge/v1/chat/completions)"
+expect "and /v1 still answers" "200 claude-sonnet-5-5" "$(via /v1/chat/completions)"
+proxy MODEL=tier-frontier JUDGE_MODEL=none
+expect "a run created with a model its profile refuses fails at its first call" "403 -" "$(via /v1/chat/completions)"
+proxy
+expect "a proxy without MODEL (a ConfigMap ahead of the composition) refuses: the composition ships first" "403 -" "$(via /v1/chat/completions)"
 
 [ "$fails" -eq 0 ] || { echo "$fails failure(s)"; exit 1; }
 echo PASS

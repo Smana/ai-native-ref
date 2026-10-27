@@ -67,7 +67,16 @@ def check_sponsored():
     check("off" in ceilings["fieldConfig"]["defaults"].get("noValue", ""), "Ceilings admitted says it is off when F4 is")
 
 
-for run in (check_colours, check_sponsored):
+def check_gateway_ratio():
+    p = panels("grafana-dashboard-agent-gateway.yaml")["5xx ratio by route"]
+    expr = p["targets"][0]["expr"]
+    check(p["fieldConfig"]["defaults"].get("unit") == "percentunit", "5xx ratio by route is a percentunit")
+    check(expr.count("agentgateway_requests_total") == 3 and ") / sum by (route) (rate(agentgateway_requests_total{" in expr
+          and 'status=~"5.."' in expr, "5xx ratio by route divides 5xx by all requests, per route")
+    check(" * 0) /" in expr, "a route with traffic and no 5xx reads 0, not nothing")
+
+
+for run in (check_colours, check_sponsored, check_gateway_ratio):
     run()
 if errors:
     print("\n".join(errors), file=sys.stderr)

@@ -1,7 +1,7 @@
 # v3 feature 13: the factory from your coding agent
 
 **Date:** 2026-10-25 · **Status:** design approved by the owner section by section 2026-10-25; this
-written spec awaits the owner's review · **Part of:** the
+written spec awaits the owner's review; built in agent-platform v0.23.0; live proofs wait for a gcp-0 session (runbook 19) · **Part of:** the
 [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features), as feature 13 by owner decision
 [D7](2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-25), which amends D1 ("outcomes first"). It builds on feature 9's MCP
 server ([factory interfaces](2026-10-21-factory-interfaces-design.md)), amends

@@ -34,15 +34,15 @@ data:
         - name: Smana/cloud-native-ref
           maintainers: [Smana]
           triggerLabel: factory/ready
-          # v3 feature 3: what a check-enabled run requests beyond github. No class has checks: true
-          # until the gcp-0 session's live proofs (D4).
+          # v3 feature 3: what a check-enabled run requests beyond github. Only docs has checks: true,
+          # since the gcp-0 session's live proofs (README, "v3 loop and sandbox layers").
           checks: {egress: [pypi]}
           classes:
             # LIVE for the drill (runbook 12, design D4): revert with it, or an auto-merge waits on a
             # human to merge its own revert (D5). Back to {shadow: true} once the drill is over.
             docs-links: {live: true}
             revert: {live: true}
-            docs: {}
+            docs: {checks: true}  # public runs only: an internal claim with checks is refused by the XRD
             tests: {}
             dashboards: {}
             scripts: {}
@@ -159,13 +159,13 @@ data:
         - name: Smana/ai-native-ref
           maintainers: [Smana]
           triggerLabel: factory/ready
-          # v3 feature 3: what a check-enabled run requests beyond github. No class has checks: true
-          # until the gcp-0 session's live proofs (D4).
+          # v3 feature 3: what a check-enabled run requests beyond github. Only docs has checks: true,
+          # since the gcp-0 session's live proofs (README, "v3 loop and sandbox layers").
           checks: {egress: [golang, pypi]}
           classes:
             docs-links: {shadow: true}
             revert: {shadow: true}
-            docs: {}
+            docs: {checks: true}  # public runs only: an internal claim with checks is refused by the XRD
             tests: {}
             dashboards: {}
             scripts: {}

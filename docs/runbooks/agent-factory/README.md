@@ -338,6 +338,56 @@ Add to docs/runbooks/agent-factory/README.md a link to docs/runbooks/agent-facto
 Acceptance: `task links` passes with that link in place, and 99-nonexistent.md is not created.
 ```
 
+### Layer 3: the sandbox checks
+
+Both repositories now carry `docs: {checks: true}` (egress `[pypi]` on cloud-native-ref, `[golang, pypi]`
+on ai-native-ref). Prerequisites: each repository's `.github/agent-checks.yaml` is on its default branch
+(`gh api repos/<repo>/contents/.github/agent-checks.yaml`), the cluster's `AgentRun` XRD has
+`spec.loop.checks` (crossplane-configuration v0.9.20 or later), and `internal` runs never get it: the XRD
+refuses the combination, and the factory sets it on public implementer and reviewer claims only. Watch the
+egress during every step: `hubble observe --namespace agent-system --verdict DROPPED`.
+
+| # | Do | Expected reading |
+|---|---|---|
+| 1 | File drill issue F on ai-native-ref, label it as in layer 1 | The implementer's claim has `spec.loop.checks` true (`kubectl -n agent-system get agentrun -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.checks}'`), the toolchain installs through the CNP, and `hubble` shows no DROPPED flow to a declared host |
+| 2 | Read the run's checks note in the room | Each step of ai-native-ref's `agent-checks.yaml` ends `pass` or `skip`; the result matches offline proof 4's on `main` |
+| 3 | The same for drill issue G on cloud-native-ref | The same, with the host's steps (`overlay`, `suites`, `shellcheck`, `links`, `pre-commit`) |
+| 4 | Read each drill's first pushed head | The seeded defect was reported before the push; the first head's CI is green; `status.fixRuns` is 0 on the task (`kubectl -n agent-system get task <name> -o jsonpath='{.status.fixRuns}'`) |
+| 5 | After a few real `docs` issues, compare each final head | The sandbox's step results agree with the CI's check conclusions on at least 90% of final heads; explain each miss |
+
+The drills' seeded defect is a broken relative Markdown link, caught by the `links` step of both
+repositories. The host's `shellcheck` step needs a script change, outside the `docs` class: prove it
+under a `scripts` class switch in a later session.
+
+**Drill F, a seeded defect on ai-native-ref:**
+
+```text
+Title: docs: add a pointer from the runbooks README to the steering note
+
+Body:
+In docs/runbooks/agent-factory/README.md, under "Prerequisites (all runbooks)", add one sentence that
+links to .github/agent-factory/steering/docs.md with the relative link
+[the docs steering note](../../../.github/agent-factory/steering/docs.mdx). Write the link exactly as
+given on your first commit, then run the checks, and fix what they report before you push.
+Acceptance: the sentence exists, `task links` passes, no other line changes.
+```
+
+**Drill G, a seeded defect on cloud-native-ref:**
+
+```text
+Title: docs: add a pointer from the README to the agent checks
+
+Body:
+In README.md, under its contribution section, add one sentence that links to
+.github/agent-checks.yaml with the relative link [agent checks](.github/agent-checks.yml).
+Write the link exactly as given on your first commit, then run the checks, and fix what they report
+before you push.
+Acceptance: the sentence exists, `./scripts/ci/validate-links.sh` passes, no other line changes.
+```
+
+Both links end in a wrong extension (`.mdx`, `.yml`): the `links` step reports each before the push,
+and the pushed head carries the corrected link.
+
 ## Recording results
 
 Each runbook ends with a results table (step, expected, observed, pass/fail). Fill it in place as

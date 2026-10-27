@@ -36,7 +36,10 @@ chmod 755 "$tmp"
 gw="agent-capabilities-wire-gw-$$"
 fake_pid=""
 mcp_pid=""
-trap 'docker rm -f "$gw" >/dev/null 2>&1; [ -n "$fake_pid" ] && kill "$fake_pid" 2>/dev/null; [ -n "$mcp_pid" ] && kill "$mcp_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
+px="agent-capabilities-wire-px-$$"
+# One trap for the whole script: every container and every background child dies with it. A child left
+# alive keeps run-tests.sh's `out="$(...)"` pipe open, and the runner waits on it until its time limit.
+trap 'docker rm -f "$gw" "$px" >/dev/null 2>&1; [ -n "$fake_pid" ] && kill "$fake_pid" 2>/dev/null; [ -n "$mcp_pid" ] && kill "$mcp_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
 free_port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])'; }
 up_port="$(free_port)"; gw_port="$(free_port)"; gw_admin="$(free_port)"; gw_ready="$(free_port)"; gw_stats="$(free_port)"
 mcp_port="$(free_port)"
@@ -305,11 +308,12 @@ passes "a GET passes the rule (the stateless backend answers it)" "$(curl -s -o 
 # --- P4's sidecar half: the identity proxy from the real ConfigMap, holding the reviewer's token, in front
 #     of the same gateway. Its image is the one crossplane-configuration's AgentRun composition pins. ---
 ENVOY_IMAGE="docker.io/envoyproxy/envoy:distroless-v1.39.1@sha256:eb2c01c13125d1629637cb4e4cce7207009fb7cc2c8027f9742758549d15b6f4"
-px="agent-capabilities-wire-px-$$"
-trap 'docker rm -f "$gw" "$px" >/dev/null 2>&1; [ -n "$fake_pid" ] && kill "$fake_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
 px_port="$(free_port)"; px_health="$(free_port)"
 # free_port reserves nothing: two calls can return one port, and Envoy then refuses a duplicate listener.
-while [ "$px_health" = "$px_port" ] || [ "$px_health" = "$gw_port" ]; do px_health="$(free_port)"; done
+for _ in $(seq 1 20); do
+  [ "$px_health" != "$px_port" ] && [ "$px_health" != "$gw_port" ] && break
+  px_health="$(free_port)"
+done
 mkdir -p "$tmp/token" && cp "$tmp/$R.jwt" "$tmp/token/token" && chmod 755 "$tmp/token" && chmod 644 "$tmp/token/token"
 ROOT="$ROOT" TMP="$tmp" PORTS="$px_port $px_health $gw_port" python3 - <<'PY' || { echo "cannot render the proxy config" >&2; exit 1; }
 import os

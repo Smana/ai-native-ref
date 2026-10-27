@@ -1,8 +1,8 @@
 # v3 feature 14: agent-to-agent work with RunLore
 
 **Date:** 2026-10-27 · **Status:** design approved by the owner 2026-10-27 ("yes, go with your
-recommendation"); RA9 and RA10 were settled while writing this spec, on a fact the approval did not
-have ([below](#what-the-approval-did-not-have)), and await the owner's confirmation · **Part of:** the
+recommendation"); RA9 and RA10, on a fact the approval did not have
+([below](#what-the-approval-did-not-have)), decided by the owner the same day: publish in one click · **Part of:** the
 [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features), as feature 14 by owner decision
 [D8](2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-27). It extends feature 9's
 [factory interfaces](2026-10-21-factory-interfaces-design.md) and the post-merge monitor of
@@ -38,7 +38,8 @@ standard client; then **A**, RunLore verifies the fix.
 RunLore's own task never opens a pull request. It runs the `investigate` template, a lone triager
 that proposes and never writes (R38), and ends `Done`. The fix is a **second task**, started by a
 maintainer's new issue. So `room.pr_opened` and `room.merged` never fire for RunLore's room: the
-loop needs a link from the fix's task back to RunLore's. RA9 and RA10 add it; R38 is unchanged.
+loop needs a link from the fix's task back to RunLore's. RA9 and RA10 add it; R38 is unchanged: a
+maintainer still decides what is published and when work starts.
 
 ## Decisions
 
@@ -52,8 +53,8 @@ loop needs a link from the fix's task back to RunLore's. RA9 and RA10 add it; R3
 | RA6 | **The public issue is today's stub**, from `incident` identifiers transposed to the label charset; `title` is refused | The sponsored path's titled issue | The finding is internal (R33): the issue names the alert, resource and room, never the text |
 | RA7 | **RunLore follows its tasks through the broker's webhooks**, as a `cluster` subscriber of the repository, and drops rooms its ledger does not know | A filter by principal in the broker; polling `/mcp` | Webhooks exist, are signed and id-only; a principal filter is a broker change for one caller |
 | RA8 | **`/intake/runlore` is retired** once stage 1's live proofs pass | Keeping both paths | Two intakes for one caller are two sets of gates to keep in step |
-| RA9 | **The fix's task records its origin.** The proposal comment asks the maintainer to keep a `Follows agent factory task <name>.` line in the new issue. A `factory/ready` issue whose line names an `investigate` task of the same repository that made a proposal gets `spec.origin: <name>`; any other line is ignored | Dropping R38 for RunLore; RunLore matching PRs by text | Keeps R38. The line is public and spoofable, but only a maintainer's label starts the task, and a wrong origin only makes RunLore check an unrelated merge |
-| RA10 | **`room.task_received` gains `origin`**, the origin task's room, an id like the others | A new event type | RunLore learns the fix's room from the event it already receives, then follows it like its own |
+| RA9 | **Publish in one click.** A maintainer labels RunLore's public stub issue (`factory/proposed`) `factory/publish`. The factory creates the fix issue itself with its App, from the `investigate` task's proposal, sanitised as public text (hidden-character strip, the redactor, the draft rules), and records it on that task (`status.published.issue`). When the fix issue is started, its Task gets `spec.origin: <RunLore's task>`, read from that record. Only a maintainer's label counts, checked as `factory/ready` is; any other is narrated `unauthorised_labeller`. The factory never publishes on its own, publishes once per task, and does **not** label the new issue `factory/ready`: the maintainer starts it as usual | (1) A `Follows agent factory task <name>` line the maintainer copies by hand into a new issue; (3) RunLore's task writes the fix itself, lifting R38 | (1) depends on a hand-copied line: forgotten, it breaks the loop silently, and anyone can write it. The record here is the factory's own state, so no text can forge an origin. (3) lets internal alert text reach a public implementer and PR without a human reading it, which R38 forbids. Publish and start stay two labels: the first reads the text, the second spends money, and the maintainer reads the published issue on GitHub between the two |
+| RA10 | **Every webhook event of a room whose task has an origin carries `origin`**, the origin task's room, an id like the others | `origin` on `room.task_received` only; a new event type | RunLore correlates `room.pr_opened`, `room.merged` and `room.ended` of the fix to its incident from the event itself, even when it missed an earlier one |
 | RA11 | **The verdict is a new monitor signal, `verification`**, declared per class: `resolved` is healthy, `persisting` a regression, no verdict within `within` is `inconclusive` | A RunLore-only label; a revert on `persisting` | It feeds the existing breaker, labels and narration. The monitor never reverts; a revert stays main-red's |
 | RA12 | **On `persisting`, the factory opens a follow-up**: a public stub issue labelled `factory/proposed`, naming the merged PR, the alert and the origin room, never the evidence | A new `investigate` task at once | No spend the incident's owner did not decide; RunLore's own next detection of the key starts the next generation |
 | RA13 | **The evidence stays internal**: stored on the origin room, which is `internal`. The PR comment carries the verdict, the alert name and the room link | Evidence in the PR comment | The fix's room and PR are public |
@@ -103,6 +104,18 @@ the sponsored errors otherwise.
 
 `agent_factory_monitor_verifications_total{class,verdict}` counts each verdict once.
 
+**`factory/publish`**, on an issue that is the `spec.issue` of an `investigate` task:
+
+| Case | The factory |
+|---|---|
+| A maintainer's label, the task ended with a proposal, nothing published yet | Creates the fix issue (title and body from the proposal, sanitised; a footer naming the publisher and the task; the fix task's `spec.issueAuthor` is the publisher), sets `status.published.issue`, comments the link on the stub issue |
+| Already published | Comments the existing link; creates nothing |
+| No proposal, or the task not ended | Comments why; creates nothing |
+| Not a maintainer | `unauthorised_labeller`, as `factory/ready` |
+
+A `factory/ready` task whose issue is some task's `status.published.issue` gets `spec.origin` = that
+task. **Webhook payloads** gain `origin?` (a room id) on every event of such a room.
+
 **RunLore** gains `factory: {url, tokenURL, clientIDFile, clientSecretFile, audience, maxCostUSD,
 webhook: {listen, secretFile}, soak: 30m}` and `alertmanager: {url}`. Its ledger records per
 `TriggerKey`: task, room, issue, fix room, PR, the outcomes and the verdict.
@@ -126,10 +139,11 @@ sequenceDiagram
   F-->>RL: 201 {task, room, issue}
   F->>F: investigate task: triager proposes (R38)
   B-->>RL: room.ended {state: done}
-  M->>F: new issue "Follows agent factory task …" + factory/ready
+  M->>F: factory/publish on the stub issue
+  F->>F: fix issue from the proposal (sanitised), status.published
+  M->>F: factory/ready on the fix issue
   F->>F: fix task, spec.origin = RunLore's task
-  B-->>RL: room.task_received {origin}
-  B-->>RL: room.pr_opened, room.merged {pr}
+  B-->>RL: room.task_received, room.pr_opened, room.merged {pr, origin}
   RL->>RL: soak 30 min
   RL->>AM: is the alert firing?
   RL->>RL: short re-investigation
@@ -142,7 +156,7 @@ sequenceDiagram
 
 | # | Repository | Content | Proof | Depends on |
 |---|---|---|---|---|
-| 1 | agent-platform | `api.internalPrincipals`; `POST /v1/tasks` for them (RA3–RA6); `spec.origin` (RA9) and the proposal text; `origin` on `room.task_received` (RA10); a release | Offline 1, 3 | nothing |
+| 1 | agent-platform | `api.internalPrincipals`; `POST /v1/tasks` for them (RA3–RA6); `factory/publish` and `spec.origin` (RA9) and the proposal comment's text; `origin` on every event of the fix's room (RA10); a release | Offline 1, 3 | nothing |
 | 2 | RunLore | The factory client: token, `POST /v1/tasks`, ledger fields; the webhook receiver (verify, ±5 min, dedup on `webhook-id`, persisted); the Slack thread posts; the templated notifier stays until PR 7 | Offline 1, 2 | nothing |
 | 3 | cloud-native-ref | **After live 1 shows the drop**: RunLore egress to `agent-system` factory `:8082` and `observability` Alertmanager `:9093`; RunLore ingress from the room broker on its webhook port | the host's CI | live 1 |
 | 4 | ai-native-ref | Pin both releases; the `runlore` internal principal and its ZITADEL client; the broker's `runlore` subscriber and its generated egress; the factory CNP admits RunLore on `:8082`; RunLore's `factory` values | `task check` | 1, 2, 3 |
@@ -161,10 +175,14 @@ sequenceDiagram
    `503` retried with the same key; the ledger holds task, room, issue.
 2. RunLore's receiver: a good signature passes; a wrong key, a body changed by one byte, a timestamp
    6 min old or ahead, and a replayed `webhook-id` are refused or dropped; a room it does not know
-   is acknowledged and ignored; `origin` adopts the fix's room.
+   is acknowledged and ignored; an event whose `origin` is a known room adopts the fix's room.
 3. The factory: an internal principal gets `internal` and `investigate`; a sponsored one asking
    `internal` is still `400 bad_data_class`; `title` refused; the gates at 0.74 and the sixth task;
-   a new generation after `Done`; `origin` set only from an `investigate` task with a proposal.
+   a new generation after `Done`. `factory/publish`: a maintainer's label publishes once, sanitised
+   (a hostile proposal with a link, HTML and a bidi character comes out inert); a second label
+   creates nothing; a non-maintainer's is `unauthorised_labeller`; no `factory/ready` is applied;
+   `spec.origin` is set only from `status.published`, never from issue text; every event of the
+   fix's room carries `origin`.
 4. The verification endpoint's authz: own fix task `201`; another principal's, a task with no
    origin, a sponsored caller, `verification: false`, a task not merged, a second different
    verdict, past `within`: each its code.
@@ -182,8 +200,8 @@ sequenceDiagram
 2. A seeded incident (a deliberately broken alerting rule) goes RunLore → `POST /v1/tasks` → task,
    room and stub issue; a replay is a duplicate; each webhook lands in the Slack thread.
 3. `/intake/runlore` is no longer called (its counter flat for the session).
-4. The same incident, end to end: proposal, the maintainer's issue with its `Follows` line, the fix
-   merged, the soak, verdict `resolved`, the monitor `healthy`.
+4. The same incident, end to end: proposal, `factory/publish`, the fix issue, `factory/ready`, the
+   fix merged with `origin` on its events, the soak, verdict `resolved`, the monitor `healthy`.
 5. A second seeded case whose fix does not hold: verdict `persisting`, the PR labelled, the
    follow-up issue, the class `class_paused`.
 
@@ -197,8 +215,8 @@ is the labelling maintainer's, as any label-started task.
 ## Owner decisions
 
 D8, 2026-10-27: feature 14, stages B then A, RunLore as an internal principal over loosening the
-sponsored rule (RA2), the rest as recommended. To confirm: RA9 (the `Follows` line) and RA10
-(`origin` on `room.task_received`), settled while writing this spec.
+sponsored rule (RA2), the rest as recommended. RA9 and RA10, the same day: publish in one click
+(option 2) over a hand-copied link line (1) and lifting R38 (3).
 
 ## Left to the builder
 

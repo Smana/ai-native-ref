@@ -27,7 +27,13 @@ names its listeners, audiences, caller namespace and route namespace:
        `openai` for the OpenAI API.
   AG6  Every MCP authorization is an Allow list whose expressions are each one
        complete alternative (role AND target AND tool names), for the route's
-       own class: Allow expressions are OR-ed at runtime (PoC N7).
+       own class: Allow expressions are OR-ed at runtime (PoC N7). A route-level
+       authorization on an MCP route (capability profiles P3: 1.6's
+       mcpAuthorization cannot read arguments) is a Require holding the
+       listener's sub prefix, repeated, and argument rules only, each in
+       argument_rule's one form for an audience of the route's class. Its value
+       is lower case: the rule folds the argument, so an upper-case value would
+       never match and the rule would refuse nothing.
   AG7  Every listener with an LLM route answers an Exact /v1/models with a
        404 direct response (PoC N3).
   AG8  Every rateLimit.global fails open, charges Tokens at the run meter's
@@ -226,6 +232,17 @@ def alternative(prof):
         rf'^"{re.escape(prof.aud_prefix)}\.(?P<role>[a-z]+)\.(?P<cls>public|internal)" in jwt\.aud'
         r' && mcp\.tool\.target == "(?P<target>[a-z0-9-]+)"'
         rf' && mcp\.tool\.name (== {name}|in \[{name}(, {name})*\])$')
+
+
+def argument_rule(prof):
+    """P3's grammar, as gen-capabilities.py renders it: one audience's call of one tool never carries one
+    argument value, compared folded. Reused by test-agent-mcp-scope."""
+    return re.compile(
+        rf'^!\("{re.escape(prof.aud_prefix)}\.(?P<role>[a-z]+)\.(?P<cls>public|internal)" in jwt\.aud'
+        r' && default\(mcp\.tool\.target, ""\) == "(?P<target>[a-z0-9-]+)"'
+        r' && default\(mcp\.tool\.name, ""\) == "(?P<tool>[a-z0-9_]+)"\)'
+        r' \|\| default\(mcp\.tool\.arguments\.(?P<arg>[A-Za-z_][A-Za-z0-9_]*), ""\)\.lowerAscii\(\)'
+        r' != "(?P<value>[a-z0-9._/-]+)"$')
 
 
 def meta(obj):
@@ -476,6 +493,28 @@ def check_mcp_authz(objs):
                     out.append(f"AG6: {ref(p)} expression is not one complete alternative: {e}")
                 elif m.group("cls") not in classes:
                     out.append(f"AG6: {ref(p)} grants a {m.group('cls')} audience on {sorted(classes)} routes: {e}")
+    mcp_backends = {key(b) for b in kind(objs, "AgentgatewayBackend") if spec_of(b).get("mcp")}
+    for g, prof in profiled(objs):
+        grammar = argument_rule(prof)
+        for p in policies(objs):
+            authz = (spec_of(p).get("traffic") or {}).get("authorization")
+            names = {t.get("name") for t in spec_of(p).get("targetRefs") or [] if t.get("kind") in ROUTE_KINDS}
+            routes = [r for r in routes_on(objs, g) if meta(r).get("name") in names
+                      and meta(r).get("namespace") == meta(p).get("namespace") and backend_refs(r) & mcp_backends]
+            if authz is None or not routes:
+                continue
+            classes = {s for r in routes for s in listeners_of(r, g)}
+            exprs = (authz.get("policy") or {}).get("matchExpressions") or []
+            if authz.get("action") != "Require" or sub_prefix(prof) not in exprs:
+                out.append(f"AG6: {ref(p)} on an MCP route must Require {sub_prefix(prof)}: the listener's rule, repeated")
+            for e in exprs:
+                if e == sub_prefix(prof):
+                    continue
+                m = grammar.match(e)
+                if not m:
+                    out.append(f"AG6: {ref(p)} expression is not one argument rule (P3): {e}")
+                elif m.group("cls") not in classes:
+                    out.append(f"AG6: {ref(p)} binds a {m.group('cls')} audience on {sorted(classes)} routes: {e}")
     return out
 
 

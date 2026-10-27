@@ -9,6 +9,8 @@
 # llm.requestModel where a route's authorization runs, so a rule written on it refuses every call:
 # a grammar gate cannot see that, a request can. Standalone proves the data plane, not the
 # controller's translation of the CRDs; the live gate does.
+# And its argument rule (P3, gate item 2): the internal MCP route, its Allow list and the rendered
+# capabilities-mcp-internal in front of a fake flux-operator-mcp.
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../.." && pwd)"
@@ -30,9 +32,11 @@ tmp="$(mktemp -d)"
 chmod 755 "$tmp"
 gw="agent-capabilities-wire-gw-$$"
 fake_pid=""
-trap 'docker rm -f "$gw" >/dev/null 2>&1; [ -n "$fake_pid" ] && kill "$fake_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
+mcp_pid=""
+trap 'docker rm -f "$gw" >/dev/null 2>&1; [ -n "$fake_pid" ] && kill "$fake_pid" 2>/dev/null; [ -n "$mcp_pid" ] && kill "$mcp_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
 free_port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])'; }
 up_port="$(free_port)"; gw_port="$(free_port)"; gw_admin="$(free_port)"; gw_ready="$(free_port)"; gw_stats="$(free_port)"
+mcp_port="$(free_port)"
 
 # --- The run tokens: an RSA key, its JWKS, one token per audience, signed with openssl. ---
 openssl genrsa -out "$tmp/key.pem" 2048 2>/dev/null
@@ -85,15 +89,51 @@ class Handler(http.server.BaseHTTPRequestHandler):
 http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
 PY
 python3 "$tmp/fake.py" "$up_port" "$tmp/upstream.jsonl" & fake_pid=$!
+cat > "$tmp/fake_mcp.py" <<'PY'
+"""Stands in for flux-operator-mcp: answers the handshake, lists two tools, records each tools/call."""
+import http.server, json, sys
+PORT, OUT = int(sys.argv[1]), sys.argv[2]
+TOOLS = [{"name": n, "inputSchema": {"type": "object"}} for n in ("search_flux_docs", "get_kubernetes_resources")]
+class Handler(http.server.BaseHTTPRequestHandler):
+    def reply(self, code, body=b"", kind="application/json"):
+        self.send_response(code)
+        self.send_header("content-type", kind)
+        self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def do_POST(self):
+        msg = json.loads(self.rfile.read(int(self.headers.get("content-length", 0))))
+        if "id" not in msg:  # a notification
+            return self.reply(202)
+        method = msg.get("method")
+        if method == "initialize":
+            result = {"protocolVersion": msg["params"]["protocolVersion"], "capabilities": {"tools": {}},
+                      "serverInfo": {"name": "fake-flux-operator-mcp", "version": "0"}}
+        elif method == "tools/list":
+            result = {"tools": TOOLS}
+        elif method == "tools/call":
+            with open(OUT, "a") as f:
+                f.write(json.dumps(msg["params"]) + "\n")
+            result = {"content": [{"type": "text", "text": "ok"}], "isError": False}
+        else:
+            result = {}
+        self.reply(200, json.dumps({"jsonrpc": "2.0", "id": msg["id"], "result": result}).encode())
+    def do_GET(self):
+        self.reply(405)
+    def log_message(self, *args):
+        pass
+http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+PY
+python3 "$tmp/fake_mcp.py" "$mcp_port" "$tmp/mcp.jsonl" & mcp_pid=$!
 
 # --- The gateway: the internal listener's JWT, its model route's three rules, anthropic.yaml's backend
 #     policy and the rendered capabilities-internal, as the controller would attach them. ---
-image="$(ROOT="$ROOT" TMP="$tmp" PORTS="$gw_port $gw_admin $gw_ready $gw_stats $up_port" python3 - <<'PY'
+image="$(ROOT="$ROOT" TMP="$tmp" PORTS="$gw_port $gw_admin $gw_ready $gw_stats $up_port $mcp_port" python3 - <<'PY'
 import os
 import yaml
 
 root, tmp = os.environ["ROOT"], os.environ["TMP"]
-port, admin, ready, stats, upstream = os.environ["PORTS"].split()
+port, admin, ready, stats, upstream, mcp_port = os.environ["PORTS"].split()
 def docs(path):
     return [d for d in yaml.safe_load_all(open(path)) if d]
 gw = f"{tmp}/root/infrastructure/base/agent-gateway"
@@ -123,6 +163,20 @@ for rule in route["spec"]["rules"]:
     routes.append({"name": rule["name"],
                    "matches": [{"path": {"exact" if match["type"] == "Exact" else "pathPrefix": match["value"]}}],
                    "policies": policies, "backends": [{"ai": ai}]})
+mcp_docs = docs(f"{gw}/mcp.yaml")
+allow = next(d for d in mcp_docs if d["kind"] == "AgentgatewayPolicy" and d["metadata"]["name"] == "agentgateway-mcp-internal")
+mcp_route = next(d for d in mcp_docs if d["kind"] == "HTTPRoute" and d["metadata"]["name"] == "agentgateway-mcp-internal")
+args = next((d for d in docs(f"{gw}/policy-capabilities.yaml") if d["metadata"]["name"] == "capabilities-mcp-internal"), None)
+mcp_policies = {"mcpAuthorization": {"rules": [
+    {"allow": e} for e in allow["spec"]["backend"]["mcp"]["authorization"]["policy"]["matchExpressions"]]}}
+if args:  # absent while no profile constrains a tool: nothing then binds arguments, and the Secret cases fail
+    mcp_policies["authorization"] = {"rules": [
+        {"require": e} for e in args["spec"]["traffic"]["authorization"]["policy"]["matchExpressions"]]}
+routes.append({"name": "mcp",
+               "matches": [{"path": {"pathPrefix": mcp_route["spec"]["rules"][0]["matches"][0]["path"]["value"]}}],
+               "policies": mcp_policies,
+               "backends": [{"mcp": {"prefixMode": "always", "statefulMode": "stateless", "targets": [
+                   {"name": "flux-operator-mcp", "mcp": {"host": f"http://127.0.0.1:{mcp_port}/mcp"}}]}}]})
 jwt = listener["spec"]["traffic"]["jwtAuthentication"]["providers"][0]
 config = {
     "config": {"adminAddr": f"127.0.0.1:{admin}", "readinessAddr": f"127.0.0.1:{ready}", "statsAddr": f"127.0.0.1:{stats}"},
@@ -190,6 +244,38 @@ expect "/v1/models keeps its 404: the rule does not target it" "404" "$models"
 gwlog="$(docker logs "$gw" 2>&1)"
 grep 'http.status=403' <<<"$gwlog" | grep -q 'jwt.sub=system:serviceaccount:agents:xplane-run-wiretest' \
   && echo "ok    a refusal's access log names the run (gate 1)" || fail "no 403 access log line names jwt.sub"
+
+# rpc <aud> <JSON-RPC message>: prints "<status> <arguments of the tools/call the server saw, or ->".
+rpc() {
+  : > "$tmp/mcp.jsonl"
+  local code
+  code="$(curl -s -o "$tmp/rpc.out" -w '%{http_code}' --max-time 10 "http://127.0.0.1:$gw_port/mcp" \
+    -H "authorization: Bearer $(cat "$tmp/$1.jwt")" -H 'content-type: application/json' \
+    -H 'accept: application/json, text/event-stream' -H 'mcp-protocol-version: 2025-06-18' -d "$2")"
+  echo "$code $(python3 -c 'import json,sys; l=open(sys.argv[1]).read().splitlines(); print(json.dumps(json.loads(l[-1])["arguments"], sort_keys=True, separators=(",", ":")) if l else "-")' "$tmp/mcp.jsonl")"
+}
+tool() {  # tool <aud> <tool> <arguments JSON>
+  rpc "$1" "{\"jsonrpc\": \"2.0\", \"id\": 7, \"method\": \"tools/call\", \"params\": {\"name\": \"flux-operator-mcp_$2\", \"arguments\": $3}}"
+}
+passes() {  # passes <what> <status and rest>: anything but the rule's 403
+  [ "${2%% *}" != 403 ] && echo "ok    $1 (${2%% *})" || fail "$1: refused 403"
+}
+
+echo "the argument rule (P3, gate item 2)"
+passes "initialize passes the rule" "$(rpc $R '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "wire", "version": "0"}}}')"
+passes "a notification passes the rule" "$(rpc $R '{"jsonrpc": "2.0", "method": "notifications/initialized"}')"
+expect "tools/list passes the rule" "200 -" "$(rpc $R '{"jsonrpc": "2.0", "id": 2, "method": "tools/list"}')"
+grep -q 'flux-operator-mcp_get_kubernetes_resources' "$tmp/rpc.out" \
+  && echo "ok    the constrained tool is still listed (gate item 4)" || fail "tools/list lost get_kubernetes_resources"
+expect "kind Secret is refused 403, the server untouched" "403 -" \
+  "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": "Secret"}')"
+expect "kind secret, folded, is refused 403" "403 -" "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": "secret"}')"
+expect "kind Pod reaches the server" '200 {"apiVersion":"v1","kind":"Pod"}' \
+  "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": "Pod"}')"
+expect "no kind reaches the server, which answers it" '200 {"apiVersion":"v1"}' "$(tool $R get_kubernetes_resources '{"apiVersion": "v1"}')"
+expect "another tool's argument is not the rule's" '200 {"query":"Secret"}' "$(tool $R search_flux_docs '{"query": "Secret"}')"
+passes "a GET passes the rule (the stateless backend answers it)" "$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+  "http://127.0.0.1:$gw_port/mcp" -H "authorization: Bearer $(cat "$tmp/$R.jwt")" -H 'accept: text/event-stream')"
 
 [ "$fails" -eq 0 ] || { echo "$fails failure(s)"; exit 1; }
 echo PASS

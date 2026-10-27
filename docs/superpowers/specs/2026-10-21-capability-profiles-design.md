@@ -3,7 +3,9 @@
 **Date:** 2026-10-21 · **Status:** draft; no owner decision pending (O3 and O4 taken 2026-10-21) · **Amended
 2026-10-22**: the migration's first step, the profiles and a generator at parity, is built
 ([plan](../plans/2026-10-22-capability-profiles-p1-plan.md)); P2 and the gateway's half of P4 are
-built ([plan](../plans/2026-10-22-capability-profiles-p2-p4-plan.md)) · **Part of:** the
+built ([plan](../plans/2026-10-22-capability-profiles-p2-p4-plan.md)); **2026-10-27**: P3, the
+argument constraints, is built ([plan](../plans/2026-10-27-capability-profiles-p3-plan.md)) ·
+**Part of:** the
 [v3 review](2026-10-21-v3-review.md), proposed feature 10 · **Research:**
 [§3](2026-10-21-v3-landscape-research.md#3-fine-grained-permissions-for-tools-and-models) ·
 **Runtime:** the gateway runtime only; the portable runtime has no gateway to compile to
@@ -33,7 +35,7 @@ it was created with.
 |---|---|---|---|
 | P1 | **One profile per role and data class, in Git**, under `infrastructure/base/agent-gateway/profiles/`: `models`, `tools` (per server, with optional argument constraints), `egress`, `readOnly`. A generator renders the `mcpAuthorization` allow lists (for list hiding), a route-level `authorization` policy (for arguments and models), and a ConfigMap `agent-capability-profiles` in `agents` holding each profile's read-only map and requestable egress set, which the AgentRun composition reads at reconcile time (one KCL change, released once through crossplane-configuration and the host's pin). The rendered files are committed and a gate fails on any difference, as AG8 does for the price table | Hand-written CEL; a policy engine (Cerbos, OPA) in the request path; generated KCL committed in crossplane-configuration (every profile change would chain a package release, a host pin and a `HOST_REF` bump) | ToolHive and Cerbos show the dimensions; CEL is enough at four roles and two classes; generated-and-committed keeps the gate paths reviewable and the gateway the only enforcer |
 | P2 | **Per-role model allow-lists**: a route-level `authorization` rule `jwt.aud` → `llm.requestModel in [...]`, answering 403. The first profiles list the aliases each role's loop policy names, which today is `agent-default` everywhere; since every alias resolves to the same model today, the lists bind nothing real until roles move to different sizes ([loops L8](2026-10-21-loops-and-teams-design.md#decisions), decision O3, taken). The mechanism ships now so that day needs a profile edit, not a design | Budgets alone (SP4 R10); the factory's tier change in this design | Available in agentgateway 1.6.0; the router's 403 lacks caller attributes in its log until a release carries [#3996](https://github.com/agentgateway/agentgateway/issues/3989) |
-| P3 | **Argument constraints** in the same route-level policy on `mcp.tool.arguments`. The first one is `get_kubernetes_resources` never with `kind: Secret`; the first profiles otherwise encode today's access exactly (reviewers read every namespace today, and no per-class namespace list exists), so a namespace scope is a later per-repository choice shown by the mechanism, not imposed here. The reviewer's `room_read` scope ([loops L4](2026-10-21-loops-and-teams-design.md#decisions)) waits for the broker to give the tool a `kinds` argument (its schema is `{sinceSeq, limit}` today), an agent-platform change; until then the rule is name-only | An ExtMCP guardrail service now | `mcp.tool.arguments` is request-time in route-level `authorization` and absent in `mcpAuthorization`; a 403 instead of a hidden tool is not acceptable: the SDK's MCP client does not survive one (see the [S0 result](#gate-the-spike-and-the-live-checks)) |
+| P3 | **Argument constraints** in the same route-level policy on `mcp.tool.arguments`. The first one is `get_kubernetes_resources` never with `kind: Secret`; the first profiles otherwise encode today's access exactly (reviewers read every namespace today, and no per-class namespace list exists), so a namespace scope is a later per-repository choice shown by the mechanism, not imposed here. The reviewer's `room_read` scope ([loops L4](2026-10-21-loops-and-teams-design.md#decisions)) waits for the broker to give the tool a `kinds` argument (its schema is `{sinceSeq, limit}` today), an agent-platform change; until then the rule is name-only | An ExtMCP guardrail service now | `mcp.tool.arguments` is request-time in route-level `authorization` and absent in `mcpAuthorization`; a refused call answers 403 rather than hiding the tool, which the harness's SDK survives since 1.55 (see the [S0 result](#gate-the-spike-and-the-live-checks)) |
 | P4 | **The identity proxy pins the model per run**: on `/v1` the sidecar sets `x-ar-model` from its `MODEL` environment (Envoy `%ENVIRONMENT(MODEL)%`, overwriting any client value); on a second prefix, `/judge/v1`, from `JUDGE_MODEL`, the loop policy's judge alias ([loops L2](2026-10-21-loops-and-teams-design.md#decisions)); the gateway strips a client-set copy as it strips `x-ar-agent`, then sets the request's `model` from the header. A role's `models` are exactly the aliases its pinned paths can name | The tier in the token audience; trusting the body; one pinned path (it would force the judge onto the run's model) | The sidecar is the trusted path the harness cannot configure, and the token never leaves it: a call from the harness straight to the gateway fails 401. Whichever path the harness uses, it gets one of the two aliases its profile allows. Audiences per tier would multiply past the provider's eight |
 | P5 | **Tool annotations drive the bridge's classifier through the profile**: `readOnly` replaces `MCP_READ_ONLY_TOOLS`, seeded from each server's `readOnlyHint` and reviewed by a human; an unlisted tool is a write, as today | Trusting annotations | The MCP spec: "clients MUST consider tool annotations to be untrusted"; ToolHive's annotation overrides are the pattern |
 | P6 | **No external policy decision point in v3**; reconsider when a profile outgrows CEL, a third data class appears, or rules become per task | Cerbos or OPA behind `extAuthz` now | One more critical service in the request path; AuthZEN's agent drafts are from June 2026 |
@@ -67,7 +69,7 @@ tools:
     - get_flux_instance
     - get_kubernetes_api_versions
     - get_kubernetes_metrics
-    - {name: get_kubernetes_resources, when: 'mcp.tool.arguments.kind != "Secret"'}
+    - {name: get_kubernetes_resources, when: 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]'}
     - get_kubernetes_logs
   mcp-victorialogs:
     - documentation
@@ -92,7 +94,7 @@ policy's judge alias, which `agent-run` calls on the run's token through the sid
 | Output | From | Enforces |
 |---|---|---|
 | `mcpAuthorization` expressions, one per role, target and tool name | `tools` names | list hiding, a denied call answers `Unknown tool` |
-| Route-level `authorization` `Require` rules per listener: `"<aud>" in jwt.aud && (mcp.tool.name != X \|\| <when>)` and `"<aud>" in jwt.aud && llm.requestModel in <models>` | `tools[].when`, `models` | models: 403 on a model outside the profile. `tools[].when`: superseded by the S0 result (deny at the JSON-RPC level or ExtMCP, not a 403) |
+| Route-level `authorization` `Require` rules per listener: `"<aud>" in jwt.aud && (mcp.tool.name != X \|\| <when>)` and `"<aud>" in jwt.aud && llm.requestModel in <models>` | `tools[].when`, `models` | models: 403 on a model outside the profile. `tools[].when`: 403 on a `tools/call` carrying the excluded value, from `capabilities-mcp-<listener>` on the MCP route (P3) |
 | A `model` transformation reading `x-ar-model` when present | P4 | the run's model on `/v1`, the judge's on `/judge/v1` |
 | The `agent-capability-profiles` ConfigMap: per profile, the read-only map and the requestable egress set | `readOnly`, `egress` | the bridge's `mcp.write` class; the run API's and `roomctl fork`'s validation of a requested profile |
 | The listener's own `Require` rule (`jwt.sub.startsWith("system:serviceaccount:agents:")`) repeated in every generated route-level policy | — | agentgateway merges policies per field, so a route-level `authorization` replaces the listener's on the routes it targets; a gate asserts the repetition |
@@ -128,8 +130,8 @@ uses the 403 is still this design's decision, and the S0 spike should be re-run 
    attributed in the access log (or recorded as the known gap until the gateway release that fixes
    it). Today's profiles allow the same model under every name, so the check runs with a test
    profile on the bench cluster.
-2. Superseded by the S0 result (deny at the JSON-RPC level or ExtMCP, not a 403): `get_kubernetes_resources`
-   with `kind: Secret` from a reviewer is refused; without the argument it answers.
+2. `get_kubernetes_resources` with `kind: Secret` from a reviewer is refused 403; with another kind,
+   or without the argument, it answers, and the run's later MCP calls succeed.
 3. A command in the sandbox posting to the identity proxy's `/v1` with another `model` reaches the
    model the run was created with, and one posting to `/judge/v1` reaches the judge's alias; the
    gateway log names the pinned alias in both cases.
@@ -188,3 +190,20 @@ Ruled in P2 and P4 ([plan](../plans/2026-10-22-capability-profiles-p2-p4-plan.md
 - **P3 and S0:** OpenHands SDK 1.55 fixes the disconnect S0 measured (measured 2026-10-22 against
   1.56.0 by the SDK upgrade plan): a route-level 403 for P3's argument constraints becomes possible
   once the harness ships an SDK at 1.55 or later, which P3 then depends on.
+
+Ruled in P3 ([plan](../plans/2026-10-27-capability-profiles-p3-plan.md#this-plans-rulings)):
+
+- **The rule is route-level, in its own policy.** agentgateway 1.6 sets `mcp.tool.arguments` for HTTP
+  request policies only. `mcpAuthorization` sees the tool's target and name, not its arguments. Each
+  listener whose profiles constrain a tool gets `capabilities-mcp-<listener>` on its MCP route. Sharing
+  `capabilities-<listener>` would AND the model rule into every MCP call.
+- **`when` takes one form, `mcp.tool.arguments.<argument> not in ["<value>", ...]`, lower-case values.**
+  A set, because one resource has several names: controller-runtime resolves `SecretList` to Secrets.
+  The generator renders it as `!(<aud> && <target> && <tool>) ||
+  !(default(mcp.tool.arguments.<argument>, "").lowerAscii() in [<values>])`, with one Require per role
+  and tool. Any other request, and a call without the argument,
+  passes; a non-string value is refused. AG6 and `test-agent-mcp-scope` parse the same form.
+- **The 403 is accepted.** Every harness a run can get pins OpenHands SDK 1.56.0, which keeps its MCP
+  session after a refused `tools/call` (S0's re-run, measured by the SDK 1.56 plan).
+- **The first rule binds every role that holds the tool**: the reviewer, the tester and the triager
+  on `internal`.

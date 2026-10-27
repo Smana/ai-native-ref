@@ -58,6 +58,12 @@ def model_rule(prof, listener, auds=None):
     return f"{gate.EFFECTIVE_MODEL}.with(m, {alts})"
 
 
+def argument(prof, listener, value='"secret", "secretlist"'):
+    """A P3 argument rule as gen-capabilities.py renders it."""
+    return (f'!("{prof.aud_prefix}.reviewer.{listener}" in jwt.aud && default(mcp.tool.target, "") == "room-broker"'
+            f' && default(mcp.tool.name, "") == "room_read") || !(default(mcp.tool.arguments.kind, "").lowerAscii() in [{value}])')
+
+
 def compliant(key=REAL):
     gw_ns, gw_name = key
     prof = gate.PROFILES[key]
@@ -163,6 +169,10 @@ def compliant(key=REAL):
             "backend": {"mcp": {"authorization": {"action": "Allow", "policy": {"matchExpressions": [
                 allow + ' && mcp.tool.name in ["room_read", "room_post"]',
                 allow + ' && mcp.tool.name == "room_read"']}}}}}),
+        obj("AgentgatewayPolicy", rns, "capabilities-mcp-public", {
+            "targetRefs": [{"group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "name": "agent-mcp-public"}],
+            "traffic": {"authorization": {"action": "Require", "policy": {"matchExpressions": [
+                gate.sub_prefix(prof), argument(prof, "public")]}}}}),
         obj("AgentgatewayBackend", rns, "github", {
             "static": {"host": "github.com", "port": 443}, "policies": {"tls": {"sni": "github.com"}}}),
         route("github-internal", "internal", [
@@ -740,6 +750,35 @@ expect("a tier pinning a model a role refuses fails", tier_model("tier-frontier"
 expect("no frontend buffer fails", lambda o: o.remove(find(o, "AgentgatewayPolicy", "frontend")), "AG14", "maxBufferSize")
 expect("a whole-route authorization reaches /v1/models and fails", lambda o: spec_at(
     o, "AgentgatewayPolicy", "capabilities-public", "targetRefs")[0].pop("sectionName"), "AG14", "403 before its 404")
+
+print("AG6 argument rules (capability profiles P3)")
+
+
+def arg_authz(o):
+    return spec_at(o, "AgentgatewayPolicy", "capabilities-mcp-public", "traffic", "authorization")
+
+
+def arg_expr(o, value):
+    arg_authz(o)["policy"]["matchExpressions"][1] = value
+
+
+R = gate.PROFILES[REAL]
+expect("an upper-case value, which the folded argument never equals, fails",
+       lambda o: arg_expr(o, argument(R, "public", '"Secret"')), "AG6", "not one argument rule")
+expect("the unfolded form fails", lambda o: arg_expr(o, 'mcp.tool.arguments.kind not in ["secret"]'), "AG6", "not one argument rule")
+expect("an appended || true fails", lambda o: arg_expr(o, argument(R, "public") + " || true"), "AG6", "not one argument rule")
+expect("a body read fails", lambda o: arg_authz(o)["policy"]["matchExpressions"].append(
+    'json(request.body).method != "tools/call"'), "AG6", "not one argument rule")
+expect("an internal audience on a public MCP route fails",
+       lambda o: arg_expr(o, argument(R, "internal")), "AG6", "binds a internal audience")
+expect("Allow instead of Require fails", lambda o: arg_authz(o).update({"action": "Allow"}), "AG6", "must Require")
+expect("no repeated sub prefix fails", lambda o: arg_authz(o)["policy"]["matchExpressions"].pop(0), "AG6", "must Require")
+check("the gate's grammar takes the generator's rule", bool(gate.argument_rule(R).match(
+    gen.argument_rule("reviewer", "internal", "flux-operator-mcp", "get_kubernetes_resources", "kind",
+                      ("secret", "secretlist", "secrets")))))
+expect("the single-value form fails", lambda o: arg_expr(o, argument(R, "public").replace(
+    'in ["secret", "secretlist"])', '== "secret")')), "AG6", "not one argument rule")
+expect("an empty value set fails", lambda o: arg_expr(o, argument(R, "public", "")), "AG6", "not one argument rule")
 
 print("main")
 with tempfile.TemporaryDirectory() as d:

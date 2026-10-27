@@ -7,6 +7,8 @@
 #
 # The capability profiles (infrastructure/base/agent-gateway/profiles/) must grant the same sets
 # as mcp.yaml's Allow lists (capability profiles design, gate 4).
+# get_kubernetes_resources never runs with kind Secret: the profiles' when and
+# policy-capabilities.yaml hold exactly the frozen argument rules (P3), read independently.
 #
 # Allowlists, not denylists (review round 1): a set that must equal an exact expectation
 # catches an addition denylisting three tool names never could -- `flags`/`export` sneaking
@@ -170,6 +172,44 @@ for fname in sorted(os.listdir(PROFILE_DIR)) if os.path.isdir(PROFILE_DIR) else 
 for aud in sorted(set(got) | set(want)):
     if got.get(aud) != want.get(aud):
         errors.append(f"profiles: {aud} grants {got.get(aud)}, expected {want.get(aud)}")
+
+# --- P3: the argument rules, frozen like the sets above: every role that holds get_kubernetes_resources
+#     never calls it with a kind that names Secrets (Secret, SecretList, secrets). The profiles' `when` and policy-capabilities.yaml must both hold
+#     exactly these, each read here on its own so a generator bug cannot hide a missing rule. ---
+NO_SECRET = {("flux-operator-mcp", "get_kubernetes_resources"): ("kind", ("secret", "secretlist", "secrets"))}
+EXPECTED_ARGUMENT_RULES = {aud: NO_SECRET for per_route in EXPECTED_ROLE_TOOLS.values() for aud, grants in per_route.items()
+                           if "get_kubernetes_resources" in grants.get("flux-operator-mcp", set())}
+WHEN = re.compile(r'^mcp\.tool\.arguments\.([A-Za-z_][A-Za-z0-9_]*) not in \[("[^"\]]+"(?:, "[^"\]]+")*)\]$')
+got = {}
+for fname in sorted(os.listdir(PROFILE_DIR)) if os.path.isdir(PROFILE_DIR) else []:
+    if not fname.endswith(".yaml"):
+        continue
+    prof = yaml.safe_load(open(os.path.join(PROFILE_DIR, fname))) or {}
+    for target, names in (prof.get("tools") or {}).items():
+        for n in names:
+            if isinstance(n, dict):
+                m = WHEN.match(str(n.get("when")))
+                if not m:
+                    errors.append(f"profiles/{fname}: {target} {n.get('name')}: when outside the one form: {n.get('when')}")
+                    continue
+                got.setdefault(f"agent-router.{prof.get('role')}.{prof.get('dataClass')}", {})[(target, n.get("name"))] = \
+                    (m.group(1), tuple(v.lower() for v in re.findall(r'"([^"]+)"', m.group(2))))
+if got != EXPECTED_ARGUMENT_RULES:
+    errors.append(f"profiles: argument rules are {got}, expected {EXPECTED_ARGUMENT_RULES}")
+args = _agw.argument_rule(_agw.PROFILES[("agent-gateway", "agent-router")])
+CAPS_FILE = os.path.join(root, "infrastructure/base/agent-gateway/policy-capabilities.yaml")
+got = {}
+for pol in (d for d in yaml.safe_load_all(open(CAPS_FILE)) if d):
+    if not {t.get("name") for t in pol["spec"]["targetRefs"]} & set(AGW_ROUTES):
+        continue
+    for e in pol["spec"]["traffic"]["authorization"]["policy"]["matchExpressions"]:
+        m = args.match(e)
+        if m:
+            got.setdefault(f"agent-router.{m['role']}.{m['cls']}", {})[(m["target"], m["tool"])] = (m["arg"], tuple(re.findall(r'"([^"]+)"', m["values"])))
+        elif not e.startswith("jwt.sub.startsWith("):
+            errors.append(f"policy-capabilities.yaml: {pol['metadata']['name']}: outside the argument grammar: {e}")
+if got != EXPECTED_ARGUMENT_RULES:
+    errors.append(f"policy-capabilities.yaml: argument rules are {got}, expected {EXPECTED_ARGUMENT_RULES}")
 
 # --- flux-operator-mcp RBAC: allowlist the flux-system Role, deny secrets/* anywhere the
 #     ServiceAccount is bound, and require exactly one well-formed RoleBinding for it ---

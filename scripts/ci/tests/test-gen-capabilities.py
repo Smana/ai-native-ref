@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # requires: python3
 """Tests for scripts/ci/gen-capabilities.py, which renders mcp.yaml's MCP Allow lists (P1) and
-policy-capabilities.yaml's model rules (P2) from the profiles.
+policy-capabilities.yaml's model rules (P2) and argument rules (P3) from the profiles.
 
 Each case copies the real infrastructure/base/agent-gateway/ into a temporary root, changes one
 thing and runs the generator there: the profiles rebuild every list and the policy file byte for
@@ -65,10 +65,11 @@ def caps(root):
 
 
 def rules(root):
-    """{policy name: (its targetRefs' sectionNames, its expressions)} from policy-capabilities.yaml."""
-    return {d["metadata"]["name"]: ([t["sectionName"] for t in d["spec"]["targetRefs"]],
+    """{policy name: (its targetRefs' sectionNames, its expressions)} for the model rules (P2)."""
+    return {d["metadata"]["name"]: ([t.get("sectionName") for t in d["spec"]["targetRefs"]],
                                     d["spec"]["traffic"]["authorization"]["policy"]["matchExpressions"])
-            for d in yaml.safe_load_all(caps(root).read_text()) if d}
+            for d in yaml.safe_load_all(caps(root).read_text())
+            if d and not d["metadata"]["name"].startswith("capabilities-mcp-")}
 
 
 def edit(root, name, change):
@@ -94,7 +95,18 @@ def on(name, change):
 
 def constrained(d):
     d["tools"]["flux-operator-mcp"][3] = {"name": "get_kubernetes_resources",
-                                          "when": 'mcp.tool.arguments.kind != "Secret"'}
+                                          "when": 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]'}
+
+
+def unconstrained(t):
+    """Every profile with its tools' `when` dropped, as before P3."""
+    for p in (t / gen.PROFILES).glob("*.yaml"):
+        edit(t, p.name, lambda d: d.update(tools={k: [n["name"] if isinstance(n, dict) else n for n in v]
+                                                  for k, v in d["tools"].items()}))
+
+
+def when(form):
+    return lambda d: d["tools"]["flux-operator-mcp"].__setitem__(3, {"name": "get_kubernetes_resources", "when": form})
 
 
 def renamed_target(d):
@@ -185,6 +197,50 @@ with tree() as t:
           in changed[0][1] and "public" not in changed[0][1], str(changed))
     check("mcp.yaml is untouched by a model change", mcp(t).read_bytes() == (GW / "mcp.yaml").read_bytes())
 
+print("argument rules (P3)")
+GOLDEN = """\
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: capabilities-mcp-internal
+  namespace: agent-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: agentgateway-mcp-internal
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - 'jwt.sub.startsWith("system:serviceaccount:agents:")'
+          - '!("agent-router.reviewer.internal" in jwt.aud && default(mcp.tool.target, "") == "flux-operator-mcp" && default(mcp.tool.name, "") == "get_kubernetes_resources") || !(default(mcp.tool.arguments.kind, "").lowerAscii() in ["secret", "secretlist", "secrets"])'
+"""
+with tree() as t:
+    unconstrained(t)
+    code, out = run(t, "--write")
+    check("profiles without a when render no argument policy", code == 0 and "name: capabilities-mcp-" not in caps(t).read_text(), out)
+    edit(t, "reviewer.internal.yaml", constrained)
+    code, out = run(t, "--write")
+    text = caps(t).read_text()
+    check("a constrained tool renders capabilities-mcp-internal on the internal MCP route (golden)",
+          code == 0 and text.split("---\n")[-1] == GOLDEN, out + text)
+    check("its name stays in the Allow list: mcp.yaml is untouched", mcp(t).read_bytes() == (GW / "mcp.yaml").read_bytes())
+    check("the model rules are untouched", rules(t) == rules(ROOT))
+    edit(t, "triager.internal.yaml", constrained)
+    run(t, "--write")
+    exprs = [e for d in yaml.safe_load_all(caps(t).read_text()) if d and d["metadata"]["name"] == "capabilities-mcp-internal"
+             for e in d["spec"]["traffic"]["authorization"]["policy"]["matchExpressions"]]
+    check("roles render in name order, after the listener's Require",
+          [e.split('"')[1] for e in exprs[1:]] == ["agent-router.reviewer.internal", "agent-router.triager.internal"], str(exprs))
+check("an argument rule binds one audience, target and tool, and folds the value",
+      gen.argument_rule("reviewer", "internal", "flux-operator-mcp", "get_kubernetes_resources", "kind",
+                        ("secret", "secretlist", "secrets")) ==
+      '!("agent-router.reviewer.internal" in jwt.aud && default(mcp.tool.target, "") == "flux-operator-mcp"'
+      ' && default(mcp.tool.name, "") == "get_kubernetes_resources")'
+      ' || !(default(mcp.tool.arguments.kind, "").lowerAscii() in ["secret", "secretlist", "secrets"])')
+
 print("drift (design gate 5)")
 with tree() as t:
     text = caps(t).read_text()
@@ -242,8 +298,26 @@ for name, change, needle in [
     ("readOnly waits for the ConfigMap", on("reviewer.internal.yaml", lambda d: d.update(readOnly=["room-broker/*"])),
      "readOnly arrives with the agent-capability-profiles ConfigMap"),
     ("an unknown key", on("reviewer.internal.yaml", lambda d: d.update(namespaces=["x"])), "unknown key namespaces"),
-    ("an argument constraint waits for P3", on("reviewer.internal.yaml", constrained),
-     "get_kubernetes_resources: argument constraints (when) arrive with P3"),
+    ("a when of another form", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind != "Pod"')), "when takes one form"),
+    ("the single-value form, which cannot hold SecretList", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind != "secret"')),
+     "when takes one form"),
+    ("a when with an upper-case value, which the folded argument never equals",
+     on("reviewer.internal.yaml", when('mcp.tool.arguments.kind not in ["Secret"]')), "when takes one form"),
+    ("a when with an empty set", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind not in []')), "when takes one form"),
+    ("a when on a tool with a bad name", on("reviewer.internal.yaml", lambda d: d["tools"]["flux-operator-mcp"].__setitem__(
+        3, {"name": "Get-Resources", "when": 'mcp.tool.arguments.kind not in ["secret"]'})), "not a tool name"),
+    ("a when with an appended || true", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"] || true')),
+     "when takes one form"),
+    ("a when with a quote in its value", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind not in ["se"cret"]')),
+     "when takes one form"),
+    ("a constrained tool with another key", on("reviewer.internal.yaml", lambda d: d["tools"]["flux-operator-mcp"]
+     .__setitem__(3, {"name": "get_kubernetes_resources", "when": 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]', "unless": "x"})),
+     "a constrained tool is {name, when}"),
+    ("a when with no name", on("reviewer.internal.yaml", lambda d: d["tools"]["flux-operator-mcp"]
+     .__setitem__(3, {"when": 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]'})), "a constrained tool is {name, when}"),
+    ("a constrained tool listed twice", on("reviewer.internal.yaml", lambda d: d["tools"]["flux-operator-mcp"]
+     .append({"name": "get_kubernetes_resources", "when": 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]'})),
+     "get_kubernetes_resources twice"),
     ("an alias no backend serves", on("tester.public.yaml", lambda d: d["models"].append("tier-huge")),
      "models names tier-huge, which no LLM backend serves"),
     ("no model at all", on("tester.public.yaml", lambda d: d.update(models=[])), "at least one"),

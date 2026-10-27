@@ -32,7 +32,7 @@ spec:
           containers:
             - name: retention
               # The same pin as app.yaml's.
-              image: ghcr.io/smana/room-broker:v0.23.1@sha256:bff0ee09887228ae804f43a6cd7eefa266e287aab24aa649f743aea649ffec00
+              image: ghcr.io/smana/room-broker:v0.23.2@sha256:f53d9aca7d9a453bdff686a7cdc7d252f812458d6dd21729eb1cc0111ee35c32
               args: ["retention"]
               env:
                 - name: ROOMS_DATABASE_URL

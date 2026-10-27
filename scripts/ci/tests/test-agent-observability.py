@@ -232,7 +232,7 @@ def check_agent_gateway():
     endpoint = (scrape.get("podMetricsEndpoints") or [{}])[0]
     check(endpoint.get("port") == "metrics", "the proxy's port 15020 is named metrics")
     rules = endpoint.get("metricRelabelConfigs", [])
-    base = {"namespace": "agent-gateway", "gen_ai_system": "custom", "gen_ai_request_model": "glm-5.3",
+    base = {"namespace": "agent-gateway", "gen_ai_system": "zai", "gen_ai_request_model": "glm-5.3",
             "ar_agent": "system:serviceaccount:agents:xplane-run-x"}
     for agw_type, want in (("input", "input"), ("output", "output"),
                            ("input_cache_read", "cached_input"), ("input_cache_write", "cache_creation_input")):
@@ -245,7 +245,7 @@ def check_agent_gateway():
                           ["gen_ai_token_type"] for t in ("input", "output", "input_cache_read", "input_cache_write")},
           "every token type the meter prices is produced")
     got = relabel(rules, {**base, "__name__": "agentgateway_gen_ai_client_token_usage_sum", "gen_ai_token_type": "input"})
-    check(got.get("ar_agent") == base["ar_agent"] and got.get("gen_ai_provider_name") == "custom" and "gen_ai_system" not in got,
+    check(got.get("ar_agent") == base["ar_agent"] and got.get("gen_ai_provider_name") == "zai" and "gen_ai_system" not in got,
           f"ar_agent survives and gen_ai_system becomes Envoy's gen_ai_provider_name, got {got}")
     for suffix in ("bucket", "sum", "count"):
         got = relabel(rules, {**base, "__name__": f"agentgateway_gen_ai_server_request_duration_{suffix}"})

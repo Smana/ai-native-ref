@@ -138,6 +138,13 @@ Q1: the warning route, no page. Q2: the double charge is simulated offline by it
 test, so #166 is fixed in PR 2. Q3: `providerOverride: zai`, agentgateway's maintained provider
 name, over the catch-all `custom`.
 
+Q3 verified in PR 1 against agentgateway `v1.6.0` (2026-10-27): `AgentgatewayBackend` `spec.ai.provider.custom.providerOverride`
+is accepted (`CustomProviderSettings`, `agentgateway_backend_types.go:329-331`, "Provider identity used for
+cost-catalog lookup and telemetry"); `AIProvider::provider()` returns it (`llm/mod.rs`, `AIProvider::Custom`), the
+request's provider is that value, and `ModelCatalog::project` resolves `(provider, model)` with it
+(`llm/catalog/mod.rs:152-170`). The built-in catalog has no `zai` provider, so the overlay's rows are the only ones. The wire
+test reads `Exact` and the expected cost for a Z.ai reply under `gen_ai_system="zai"`.
+
 ## The questions as asked
 
 | # | Question | Default if unanswered |

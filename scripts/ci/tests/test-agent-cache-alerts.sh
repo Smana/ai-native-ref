@@ -120,7 +120,7 @@ tests:
   # A public run on Z.ai reads nothing explicit: never selected.
   - interval: 30s
     input_series:
-      - series: 'gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="custom", ar_agent="system:serviceaccount:agents:xplane-run-public", gen_ai_token_type="input"}'
+      - series: 'gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="zai", ar_agent="system:serviceaccount:agents:xplane-run-public", gen_ai_token_type="input"}'
         values: '0+20000x40'
     alert_rule_test:
       - {eval_time: 3m, alertname: AgentCacheReadZero, exp_alerts: []}

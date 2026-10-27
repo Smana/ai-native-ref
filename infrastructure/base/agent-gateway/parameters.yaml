@@ -17,6 +17,13 @@ spec:
     digest: sha256:9d3e6044ddcdc0878b1787f77bd401252b95e22684203fb5e874c4c42d2ed90c
   logging:
     format: json
+  # The overlay that prices each response (cost cross-check XC1/XC2): generated from
+  # meter.prices by scripts/ci/gen-prices.py, merged over the built-in catalog, which has no
+  # GLM and a stale Sonnet 5.5 cache read. Same namespace as the Gateway.
+  modelCatalog:
+    sources:
+      - configMap:
+          name: agent-model-catalog
   # The default (10s/60s) cut a 200s stream; min 10 / max 660 held it through the
   # deletion of every proxy pod (PoC N1). 660 = the 600s request timeout + 60s, and
   # the controller sets terminationGracePeriodSeconds from max.

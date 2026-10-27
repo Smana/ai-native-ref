@@ -167,7 +167,7 @@ spec:
            "gridPos": {"x": 18, "y": 35, "w": 6, "h": 8},
            "datasource": {"type": "prometheus", "uid": "$${datasource}"},
            "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "graphMode": "none"},
-           "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+           "fieldConfig": {"defaults": {"unit": "percentunit", "noValue": "0", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 0.05}]}}, "overrides": []},
            "targets": [{"refId": "A", "expr": "(sum(increase(gen_ai_server_request_duration_seconds_count{ar_agent=\"system:serviceaccount:agents:xplane-run-$${run}\", error_type=~\".+\"}[$__range])) or vector(0)) / sum(increase(gen_ai_server_request_duration_seconds_count{ar_agent=\"system:serviceaccount:agents:xplane-run-$${run}\"}[$__range]))", "instant": true}]}
          ]},
         {"id": 102,

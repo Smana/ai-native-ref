@@ -85,6 +85,8 @@ spec:
          ]},
         {"id": 6, "type": "bargauge", "title": "Tokens by tier",
          "gridPos": {"x": 16, "y": 26, "w": 8, "h": 10},
+         "options": {"displayMode": "basic"},
+         "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "instant": true, "legendFormat": "{{tier}}", "expr": "sum by (tier) (label_replace(sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\") * on (run_id) group_left (tier) max by (run_id, tier) (last_over_time(agentrun_info{namespace=\"agents\", tier!=\"\"}[$__range])))"}]}
       ]

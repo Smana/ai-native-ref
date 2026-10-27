@@ -35,7 +35,7 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [
            {"refId": "A", "instant": true, "format": "table", "expr": "topk by (run_id) (1, tlast_over_time(agentrun_info{namespace=\"agents\"}[$__range]))"},
-           {"refId": "B", "instant": true, "format": "table", "expr": "max by (run_id, phase) (last_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) == 1)"},
+           {"refId": "B", "instant": true, "format": "table", "expr": "max by (run_id, phase) (last_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) == 1) and on (run_id, phase) topk by (run_id) (1, tlast_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) and (last_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) == 1))"},
            {"refId": "C", "instant": true, "format": "table", "expr": "topk by (run_id) (1, tlast_over_time(agentrun_outcome_info{namespace=\"agents\"}[$__range]))"},
            {"refId": "F", "instant": true, "format": "table", "expr": "topk by (run_id) (1, tlast_over_time(agentrun_pull_request_info{namespace=\"agents\"}[$__range]))"},
            {"refId": "D", "instant": true, "format": "table", "expr": "max by (run_id) (last_over_time(agentrun_started_timestamp_seconds{namespace=\"agents\"}[$__range]) > 0) * 1000"},
@@ -61,13 +61,15 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "legendFormat": "{{ar_agent}}", "expr": "sum by (ar_agent) (rate(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:.*\", gen_ai_token_type=~\"input|output\"}[$__rate_interval]))"}]},
         {"id": 4, "type": "timeseries", "title": "Trace pipeline (agent-traces-collector)",
+         "description": "Spans per second through the collector the agent traces go to. The collector exposes its own counters with or without a _total suffix depending on its version (gcp-0, 2026-10-27: without), so the queries accept both. A stalled pipeline reads accepted above exported, or export failed above 0; no line at all means the collector is not scraped (up{job=\"agent-traces-collector\"}).",
+         "fieldConfig": {"defaults": {"unit": "ops", "noValue": "0"}, "overrides": []},
          "gridPos": {"x": 0, "y": 20, "w": 24, "h": 6},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [
-           {"refId": "A", "legendFormat": "accepted", "expr": "sum(rate(otelcol_receiver_accepted_spans_total{job=\"agent-traces-collector\"}[$__rate_interval]))"},
-           {"refId": "B", "legendFormat": "refused", "expr": "sum(rate(otelcol_receiver_refused_spans_total{job=\"agent-traces-collector\"}[$__rate_interval]))"},
-           {"refId": "C", "legendFormat": "exported", "expr": "sum(rate(otelcol_exporter_sent_spans_total{job=\"agent-traces-collector\"}[$__rate_interval]))"},
-           {"refId": "D", "legendFormat": "export failed", "expr": "sum(rate(otelcol_exporter_send_failed_spans_total{job=\"agent-traces-collector\"}[$__rate_interval]))"}
+           {"refId": "A", "legendFormat": "accepted", "expr": "sum(rate({__name__=~\"otelcol_receiver_accepted_spans(_total)?\", job=\"agent-traces-collector\"}[$__rate_interval]))"},
+           {"refId": "B", "legendFormat": "refused", "expr": "sum(rate({__name__=~\"otelcol_receiver_refused_spans(_total)?\", job=\"agent-traces-collector\"}[$__rate_interval]))"},
+           {"refId": "C", "legendFormat": "exported", "expr": "sum(rate({__name__=~\"otelcol_exporter_sent_spans(_total)?\", job=\"agent-traces-collector\"}[$__rate_interval]))"},
+           {"refId": "D", "legendFormat": "export failed", "expr": "sum(rate({__name__=~\"otelcol_exporter_send_failed_spans(_total)?\", job=\"agent-traces-collector\"}[$__rate_interval]))"}
          ]},
         {"id": 5, "type": "table", "title": "Tier vs tokens and steps per run",
          "gridPos": {"x": 0, "y": 26, "w": 16, "h": 10},
@@ -85,6 +87,8 @@ spec:
          ]},
         {"id": 6, "type": "bargauge", "title": "Tokens by tier",
          "gridPos": {"x": 16, "y": 26, "w": 8, "h": 10},
+         "options": {"displayMode": "basic"},
+         "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "instant": true, "legendFormat": "{{tier}}", "expr": "sum by (tier) (label_replace(sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\") * on (run_id) group_left (tier) max by (run_id, tier) (last_over_time(agentrun_info{namespace=\"agents\", tier!=\"\"}[$__range])))"}]}
       ]

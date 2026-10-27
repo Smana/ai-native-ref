@@ -8,7 +8,9 @@
 # - Alice's run reading 1050 input with 900 cached gives her a 0.857 cache-read share, and bob, who
 #   ran nothing, no data; a fleet run's tokens stay out of hers.
 # - Three runs in two rooms of one task read 3 runs, 2 rooms, 1 task, though no run is live at once.
-# - $3 of task spend with 2 merged and 1 reverted reads $3.00 per accepted PR; with 0 accepted, no data.
+# - A counter born today shows on Spend per day, at the UTC midnight Grafana's 1d step stops at.
+# - $3 of task spend with 4 merged and 1 reverted reads $1.00 per accepted PR, 3 beside it; under 3 accepted,
+#   no value (the panel reads "too few merges") and the count alone.
 # The panels run on VictoriaMetrics, where increase_pure counts a series from 0; promtool has none,
 # and agrees with increase() on series that start at 0, as these do (test-agent-cost-rules does the same).
 set -uo pipefail
@@ -73,6 +75,22 @@ tests = [
          {"expr": q("The fleet's day", "A", A), "eval_time": "50m", "exp_samples": [{"value": 3.5}]},
          {"expr": q("The fleet's day", "C", A), "eval_time": "50m", "exp_samples": [{"value": 2.5 / 3.5}]},
      ]},
+    # Spend per day: Grafana evaluates a 1d step at UTC midnight (time 0 here) and stops at the last
+    # midnight. The series was born that day: hour 1 onwards, 0.5 more every hour. The query at the
+    # midnight, `increase(x[1d] offset -1d)`, reads the day that begins there: by definition of a
+    # negative offset, `increase(x[1d])` at midnight + 1d (promtool loads samples up to the evaluation
+    # time and cannot read ahead, so the test evaluates that and VictoriaMetrics proves the offset live).
+    # It reads the 11.5 spent to date, and nothing for a principal that spent nothing; the unshifted
+    # [1d] at the midnight reads nothing, the "No data" the screenshot showed.
+    {"interval": "1h",
+     "input_series": [
+         {"series": f'agent_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "_ 0+0.5x30"},
+     ],
+     "promql_expr_test": [
+         {"expr": q("Spend per day", "A", A).replace(" offset -1d", ""), "eval_time": "24h", "exp_samples": [{"labels": '{kind="task"}', "value": 11.5}]},
+         {"expr": q("Spend per day", "A", B).replace(" offset -1d", ""), "eval_time": "24h", "exp_samples": []},
+         {"expr": q("Spend per day", "A", A).replace(" offset -1d", ""), "eval_time": "0m", "exp_samples": []},
+     ]},
     # Tokens: alice's run reads 1050 input with 900 cached; a fleet run's tokens are not hers.
     {"interval": "1m",
      "input_series": [
@@ -116,11 +134,31 @@ tests = [
      ] + [
          {"series": f'agent_factory_pr_outcomes_total{{{X}, principal="{who}", class="review", outcome="{o}", repository="Smana/cloud-native-ref"}}',
           "values": "0 1x50"}
-         for who, o in ((A, "auto_merged"), (A, "human_merged"), (A, "reverted"), (B, "human_merged"), (B, "reverted"))
+         for who, o in ((A, "auto_merged"), (A, "human_merged"), (A, "reverted"), (B, "human_merged"))
+     ] + [
+         # alice's second merged PR of the range is auto-merged too: 3 merged, 1 reverted = 2 accepted
+         {"series": f'agent_factory_pr_outcomes_total{{{X}, principal="{A}", class="docs", outcome="auto_merged", repository="Smana/cloud-native-ref"}}',
+          "values": "0 1x50"},
+         # bob has 1 accepted: under the floor of 3, it reads no value, never $4 for one lucky merge
      ],
      "promql_expr_test": [
-         {"expr": q("Cost per accepted PR", "A", A), "eval_time": "50m", "exp_samples": [{"value": 3}]},
+         {"expr": q("Cost per accepted PR", "A", A), "eval_time": "50m", "exp_samples": []},
+         {"expr": q("Cost per accepted PR", "B", A), "eval_time": "50m", "exp_samples": [{"value": 2}]},
          {"expr": q("Cost per accepted PR", "A", B), "eval_time": "50m", "exp_samples": []},
+         {"expr": q("Cost per accepted PR", "B", B), "eval_time": "50m", "exp_samples": [{"value": 1}]},
+     ]},
+    # Three accepted PRs (4 merged, 1 reverted) over $3 of tasks read $1.00 each.
+    {"interval": "1m",
+     "input_series": [
+         {"series": f'agent_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "0 3x50"},
+     ] + [
+         {"series": f'agent_factory_pr_outcomes_total{{{X}, principal="{A}", class="review", outcome="{o}", repository="Smana/cloud-native-ref"}}',
+          "values": "0 " + str(n) + "x50"}
+         for o, n in (("auto_merged", 3), ("human_merged", 1), ("reverted", 1))
+     ],
+     "promql_expr_test": [
+         {"expr": q("Cost per accepted PR", "A", A), "eval_time": "50m", "exp_samples": [{"value": 1}]},
+         {"expr": q("Cost per accepted PR", "B", A), "eval_time": "50m", "exp_samples": [{"value": 3}]},
      ]},
 ]
 open(os.path.join(out, "rules.yaml"), "w").write("groups: []\n")

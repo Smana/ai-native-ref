@@ -55,7 +55,7 @@ COUNTED = ("agent_factory_charged_usd_total", "agent_factory_prs_opened_total", 
 WANT = {"What this page is", "Today, against its day", "The fleet's day", "Spend in the range, by kind", "Spend per day",
         "Tokens by type", "Cache-read share", "Runs · rooms · tasks", "Runs", "Pull requests opened · merged · reverted",
         "Cost per accepted PR", "Refusals", "Revocations", "Waiting for a human now", "Time waited", "Sponsor",
-        "Ceilings against spend", "Stopped at the ceiling"}
+        "Ceilings admitted", "Stopped at the ceiling"}
 
 
 def check_identity():
@@ -94,6 +94,9 @@ def check_identity():
                           f"{title} {t['refId']}: {series} is read through increase_pure")
         for tr in p.get("transformations", []):
             check("principal" not in json.dumps(tr), f"{title}: a transformation names principal")
+    day = panels.get("Spend per day", {})
+    check(day.get("interval") == "1d" and all("[1d] offset -1d)" in t["expr"] for t in day.get("targets", [])),
+          "Spend per day reads each day forward from its UTC midnight ([1d] offset -1d), so today shows")
     runs = panels.get("Runs", {})
     charge = 'max_over_time(agent_factory_run_charge_info{principal="${principal}"}[$__range])'
     for t in runs.get("targets", []):

@@ -98,7 +98,7 @@ v3 resume there, in the [order below](#before-v3).
 v3 makes the factory **land more accepted pull requests per dollar on the models it may use**. Public
 work stays on open-weight models and internal work on Claude, so the lever is the task, not the
 model: shape it to fit, measure every change, let the best open model win on our own issues. We are
-[on the road to a dark factory](#dark-factory), one proven lane at a time. Each
+[on the road to a factory](#dark-factory), one proven lane at a time. Each
 feature is a go/no-go (the eval bench is [deferred](#later)) ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md), [how v3 is judged](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#how-v3-is-judged)).
 Reviewed against the field on 2026-10-21: the amendments and the owner's eight decisions are in the
 [review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-v3-review.md#decisions-for-the-owner), and the rows below carry them.
@@ -128,9 +128,9 @@ Not in v3: public work on Claude, a doc-writer or standalone architect agent, me
 parallel writers on one branch, switching models in the middle of a run ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#not-in-v3)), and
 approving or steering a run from Slack or MCP, which stays in the rooms web UI.
 
-### On the road to a dark factory {#dark-factory}
+### On the road to a factory {#dark-factory}
 
-A *dark factory* is the top of Dan Shapiro's levels of AI-assisted programming, named after robot
+A *factory* is the top of Dan Shapiro's levels of AI-assisted programming, named after robot
 factories that run with the lights off: specs go in, software comes out, and no human writes or
 reviews the changes ([the levels](https://simonwillison.net/2026/Jan/28/the-five-levels/)).
 StrongDM's AI team runs one under two rules: code must not be written by humans, and must not be
@@ -140,9 +140,9 @@ reviewed by humans ([StrongDM](https://factory.strongdm.ai/)).
 |---|---|---|
 | 3 · Developer | Agents write most of the code; a human reviews it | |
 | 4 · Engineering team | Humans write the specs; agents build | **Most work**: a human writes the issue and approves the merge; agents implement and review each other |
-| 5 · Dark factory | No human in the loop | **One lane**: link fixes merge with no human, at most once a day, and a revert sends the class back to human review |
+| 5 · Factory | No human in the loop | **One lane**: link fixes merge with no human, at most once a day, and a revert sends the class back to human review |
 
-We are not a dark factory yet, and we do not remove humans wholesale. Each class of change earns its
+We are not a factory yet, and we do not remove humans wholesale. Each class of change earns its
 way to lights-out on evidence: a live drill, a revert breaker, a budget. v3's next lane is a class
 with a machine oracle, then dependency bumps, and each one's own revert rate decides how wide it
 opens. Dropping human review is a consequential choice, not only a productivity one ([Stanford CodeX](https://law.stanford.edu/2026/02/08/built-by-agents-tested-by-agents-trusted-by-whom/)),

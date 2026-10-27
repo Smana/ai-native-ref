@@ -55,7 +55,7 @@ COUNTED = ("agent_factory_charged_usd_total", "agent_factory_prs_opened_total", 
 WANT = {"What this page is", "Today, against its day", "The fleet's day", "Spend in the range, by kind", "Spend per day",
         "Tokens by type", "Cache-read share", "Runs · rooms · tasks", "Runs", "Pull requests opened · merged · reverted",
         "Cost per accepted PR", "Refusals", "Revocations", "Waiting for a human now", "Time waited", "Sponsor",
-        "Ceilings against spend", "Stopped at the ceiling"}
+        "Ceilings admitted", "Stopped at the ceiling"}
 
 
 def check_identity():

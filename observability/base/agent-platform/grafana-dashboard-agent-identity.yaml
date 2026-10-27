@@ -161,25 +161,23 @@ spec:
          "fieldConfig": {"defaults": {"unit": "s", "noValue": "0", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "instant": true, "legendFormat": "{{phase}}", "expr": "sum by (phase) (increase_pure(agent_factory_human_wait_seconds_total{principal=\"$${principal}\"}[$__range]))"}]},
-        {"id": 22, "type": "row", "title": "Sponsored", "collapsed": false, "gridPos": {"x": 0, "y": 49, "w": 24, "h": 1}, "panels": []},
-        {"id": 23, "type": "stat", "title": "Sponsor", "gridPos": {"x": 0, "y": 50, "w": 8, "h": 5},
-         "description": "A sponsored principal's sponsor, from the factory's config (F4). No data until F4 ships, and for a person.",
-         "options": {"textMode": "name", "reduceOptions": {"calcs": ["lastNotNull"]}},
-         "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
-         "datasource": {"type": "prometheus", "uid": "$${datasource}"},
-         "targets": [{"refId": "A", "instant": true, "legendFormat": "{{sponsor}}", "expr": "max by (sponsor) (agent_factory_principal_sponsor_info{principal=\"$${principal}\"})"}]},
-        {"id": 24, "type": "stat", "title": "Ceilings against spend", "gridPos": {"x": 8, "y": 50, "w": 8, "h": 5},
-         "description": "The cost ceilings admitted for this principal's tasks (F4) against what its tasks spent. Ceilings read No data until F4 ships.",
-         "fieldConfig": {"defaults": {"unit": "currencyUSD", "decimals": 2, "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
-         "datasource": {"type": "prometheus", "uid": "$${datasource}"},
-         "targets": [
-           {"refId": "A", "instant": true, "legendFormat": "ceilings admitted", "expr": "sum(increase_pure(agent_factory_max_cost_usd_total{principal=\"$${principal}\"}[$__range]))"},
-           {"refId": "B", "instant": true, "legendFormat": "task spend", "expr": "sum(increase_pure(agent_factory_charged_usd_total{principal=\"$${principal}\", kind=\"task\"}[$__range]))"}
-         ]},
-        {"id": 25, "type": "stat", "title": "Stopped at the ceiling", "gridPos": {"x": 16, "y": 50, "w": 8, "h": 5},
-         "description": "Tasks of this principal stopped at their cost ceiling (F4). No data until F4 ships.",
-         "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "noValue": "0", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
-         "datasource": {"type": "prometheus", "uid": "$${datasource}"},
-         "targets": [{"refId": "A", "instant": true, "expr": "sum(increase_pure(agent_factory_run_revocations_total{principal=\"$${principal}\", reason=\"budget-task\", limit=\"task-usd\"}[$__range]))"}]}
+        {"id": 22, "type": "row", "title": "Sponsored (off until the factory declares a sponsored principal)", "collapsed": true, "gridPos": {"x": 0, "y": 49, "w": 24, "h": 1}, "panels": [
+          {"id": 23, "type": "stat", "title": "Sponsor", "gridPos": {"x": 0, "y": 50, "w": 8, "h": 5},
+           "description": "A sponsored principal's sponsor, from the factory's config (F4). Only a system:<name> principal has one: a person never does.",
+           "options": {"textMode": "name", "reduceOptions": {"calcs": ["lastNotNull"]}},
+           "fieldConfig": {"defaults": {"noValue": "off: no sponsored principal declared", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
+           "datasource": {"type": "prometheus", "uid": "$${datasource}"},
+           "targets": [{"refId": "A", "instant": true, "legendFormat": "{{sponsor}}", "expr": "max by (sponsor) (agent_factory_principal_sponsor_info{principal=\"$${principal}\"})"}]},
+          {"id": 24, "type": "stat", "title": "Ceilings admitted", "gridPos": {"x": 8, "y": 50, "w": 8, "h": 5},
+           "description": "The task cost ceilings the factory admitted for this principal in the range (F4), summed. Off until api.sponsored is configured; the spend itself is under Spend.",
+           "fieldConfig": {"defaults": {"unit": "currencyUSD", "decimals": 2, "noValue": "off: F4 ceilings not configured", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
+           "datasource": {"type": "prometheus", "uid": "$${datasource}"},
+           "targets": [{"refId": "A", "instant": true, "legendFormat": "ceilings admitted", "expr": "sum(increase_pure(agent_factory_max_cost_usd_total{principal=\"$${principal}\"}[$__range]))"}]},
+          {"id": 25, "type": "stat", "title": "Stopped at the ceiling", "gridPos": {"x": 16, "y": 50, "w": 8, "h": 5},
+           "description": "Tasks of this principal stopped at their cost ceiling (F4). 0 when none was, or while F4 is off.",
+           "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "noValue": "0", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
+           "datasource": {"type": "prometheus", "uid": "$${datasource}"},
+           "targets": [{"refId": "A", "instant": true, "expr": "sum(increase_pure(agent_factory_run_revocations_total{principal=\"$${principal}\", reason=\"budget-task\", limit=\"task-usd\"}[$__range]))"}]}
+        ]}
       ]
     }

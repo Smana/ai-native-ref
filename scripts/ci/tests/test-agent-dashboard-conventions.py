@@ -55,7 +55,19 @@ def check_colours():
         check(ident[title]["fieldConfig"]["defaults"].get("noValue") == "0", f"{title} reads 0 when it has no series")
 
 
-for run in (check_colours,):
+def check_sponsored():
+    b = board("grafana-dashboard-agent-identity.yaml")
+    row = next(p for p in b["panels"] if p["type"] == "row" and p["title"].startswith("Sponsored"))
+    ident = panels("grafana-dashboard-agent-identity.yaml")
+    check(row.get("collapsed") is True and len(row.get("panels", [])) == 3, "the Sponsored row is collapsed, its three panels inside")
+    check("off" in ident["Sponsor"]["fieldConfig"]["defaults"].get("noValue", ""), "Sponsor says it is off, not No data")
+    ceilings = ident["Ceilings admitted"]
+    check(all("agent_factory_max_cost_usd_total" in t["expr"] and "charged_usd" not in t["expr"] for t in ceilings["targets"]),
+          "Ceilings admitted shows ceilings only, never task spend under a ceilings title")
+    check("off" in ceilings["fieldConfig"]["defaults"].get("noValue", ""), "Ceilings admitted says it is off when F4 is")
+
+
+for run in (check_colours, check_sponsored):
     run()
 if errors:
     print("\n".join(errors), file=sys.stderr)

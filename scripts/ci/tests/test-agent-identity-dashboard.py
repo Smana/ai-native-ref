@@ -52,7 +52,7 @@ RANKS = re.compile(r"\b(by|without)\s*\([^)]*\bprincipal\b|\b(topk|bottomk|sort|
 COUNTED = ("agent_factory_charged_usd_total", "agent_factory_prs_opened_total", "agent_factory_pr_outcomes_total",
            "agent_factory_admission_refusals_total", "agent_factory_run_revocations_total",
            "agent_factory_human_wait_seconds_total", "agent_factory_max_cost_usd_total", "gen_ai_client_token_usage_sum")
-WANT = {"What this page is", "Today, against its day", "The fleet's day", "Spend in the range, by kind", "Spend per day",
+WANT = {"Today, against its day", "The fleet's day", "Spend in the range", "Spend per day",
         "Tokens by type", "Cache-read share", "Runs · rooms · tasks", "Runs", "Pull requests opened · merged · reverted",
         "Cost per accepted PR", "Refusals", "Revocations", "Waiting for a human now", "Time waited", "Sponsor",
         "Ceilings admitted", "Stopped at the ceiling"}
@@ -73,9 +73,6 @@ def check_identity():
     check(set(variables) == {"datasource", "principal"}, f"no other variable: {sorted(variables)}")
     panels = {p["title"]: p for p in flat(b)}
     check(WANT <= set(panels), f"missing panels: {sorted(WANT - set(panels))}")
-    text = panels.get("What this page is", {})
-    check(text.get("type") == "text" and "not a score" in text.get("options", {}).get("content", ""),
-          "the text panel says the page attributes cost and scores nobody")
     for p in flat(b):
         if p.get("type") in ("row", "text"):
             continue
@@ -109,8 +106,11 @@ def check_identity():
 
 def check_links():
     _, fleet = board("agent-fleet")
-    check(any(link.get("url", "").startswith("/d/agent-identity/agent-identity") for link in fleet.get("links", [])),
-          "agent-fleet links to Spend per identity")
+    check(any(link.get("tags") == ["agents"] for link in fleet.get("links", [])),
+          "agent-fleet reaches Spend per identity through the folder's shared link (by tag)")
+    runs = next((p for p in flat(fleet) if p.get("title") == "Runs"), {})
+    check("/d/agent-identity/agent-identity?var-principal=${__value.text}" in json.dumps(runs.get("fieldConfig", {})),
+          "a payer in the fleet's Runs table opens its Spend per identity page")
     _, factory = board("agent-factory")
     budget = next((p for p in flat(factory) if p.get("title") == "Budget left today"), {})
     check("/d/agent-identity/agent-identity?var-principal=${__field.labels.principal}" in json.dumps(budget.get("fieldConfig", {})),

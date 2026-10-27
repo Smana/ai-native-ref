@@ -68,9 +68,8 @@ tests = [
          {"series": f'agent_factory_budget_spent_usd{{{X}, principal="{F}"}}', "values": "0 3.5x50"},
      ],
      "promql_expr_test": [
-         {"expr": q("Spend in the range, by kind", "A", A), "eval_time": "50m",
-          "exp_samples": [{"labels": '{kind="task"}', "value": 2}, {"labels": '{kind="room"}', "value": 0.5}]},
-         {"expr": f'sum({q("Spend in the range, by kind", "A", A)}) + sum({q("Spend in the range, by kind", "A", B)})',
+         {"expr": q("Spend in the range", "A", A), "eval_time": "50m", "exp_samples": [{"value": 2.5}]},
+         {"expr": f'{q("Spend in the range", "A", A)} + {q("Spend in the range", "A", B)}',
           "eval_time": "50m", "exp_samples": [{"value": 3.5}]},
          {"expr": q("The fleet's day", "A", A), "eval_time": "50m", "exp_samples": [{"value": 3.5}]},
          {"expr": q("The fleet's day", "C", A), "eval_time": "50m", "exp_samples": [{"value": 2.5 / 3.5}]},

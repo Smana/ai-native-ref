@@ -7,7 +7,8 @@ resources:
   - vmrule-rooms.yaml
   - vmrule-agent-factory.yaml
   - grafana-folder.yaml
-  - grafana-dashboard.yaml
+  - grafana-dashboard-agents-overview.yaml
+  - grafana-dashboard-agent-room.yaml
   - grafana-dashboard-agent-run.yaml
   - grafana-dashboard-agent-fleet.yaml
   - grafana-dashboard-agent-factory.yaml

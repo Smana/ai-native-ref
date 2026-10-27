@@ -452,6 +452,54 @@ Cost: six runs for the three pairs, each capped by the docs tier's task cap (sta
 run costs about $0.50 to $1.50 and a search adds at most the child's 300k tokens, so the layer is
 about $5 expected and $31 at the caps, inside `tasksPerDay: 20` and `factoryDailyUSD: 42.50`.
 
+### Layer 5: the splitter
+
+`scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard}}` lets the
+scoper propose a split of a hard `scripts` task; nothing splits before a maintainer comments `/factory
+split`. The proofs are [runbook 17](17-splitter.md) section 3. Prerequisites: layer 1 passed (the split
+needs the scoper), the factory App holds `issues: write`. File the cohort on cloud-native-ref, label each
+`class:scripts` then `factory/ready` (without `class:scripts` the task's class is `review`, off).
+
+**Drill S1, a hard issue of three separable parts:**
+
+```text
+Title: scripts: a report of the Flux Kustomizations that are not ready
+
+Body:
+Add scripts/ops/k8s/flux-not-ready.sh, which lists the Flux Kustomizations whose Ready condition is not
+True as "<namespace>/<name>: <message>" lines, one per line, exit 0 whatever the count. Add a test for
+it that runs it against a canned `kubectl get -o json` fixture, and a one-line entry for it in
+scripts/README.md.
+
+## Acceptance
+- scripts/ops/k8s/flux-not-ready.sh exists, is executable and passes shellcheck.
+- Its test passes against the fixture and fails when the fixture's not-ready item is removed.
+- scripts/README.md lists the script in one line and `./scripts/ci/validate-links.sh` passes.
+```
+
+**Drill S2, a second hard issue:**
+
+```text
+Title: scripts: a check that every ops script has a header comment
+
+Body:
+Add scripts/ops/check-script-headers.sh, which fails (exit 1) and names each shell script under
+scripts/ops/ whose first comment line does not state what the script does. Add a test with two fixture
+scripts, one with a header and one without. Run it over the repository and add the missing header to
+every script it names, one sentence each.
+
+## Acceptance
+- scripts/ops/check-script-headers.sh exists, is executable and passes shellcheck.
+- Its test passes: exit 0 on the headed fixture, exit 1 naming the headless one.
+- Run over scripts/ops/ it exits 0, and the headers added are the only other changes.
+```
+
+Step 4 of runbook 17 (`/factory retry` on a second proposal) uses S2's proposal; steps 1 to 3 and 5
+use S1's. Cost: a family is capped at familyUSD $20.40 per issue, so the two issues are $40.80 at the
+caps and exceed `factoryDailyUSD: 42.50` together with any other run that day: file them on separate
+days, or expect about $4 to $8 per family in practice (a scoper run, then up to four parts at about
+$1 to $2).
+
 ## Recording results
 
 Each runbook ends with a results table (step, expected, observed, pass/fail). Fill it in place as

@@ -215,6 +215,182 @@ cloud-native-ref's `main`: the umbrellas and the source go back to `suspend: tru
 reconciling without removing anything, so follow the cluster README's Teardown for the children.
 Destroying the cluster is a separate owner call.
 
+## v3 loop and sandbox layers on the `docs` class
+
+The gcp-0 session of 2026-10-27 switches three v3 features on for the `docs` class only, one commit
+each in `tooling/base/agent-factory/helm-values-configmap.yaml`, so a failure is attributable. Merge
+and prove them in this order; the next layer waits for the previous one's proofs. The class is
+declared by both repositories, so each switch reads for `Smana/ai-native-ref` and
+`Smana/cloud-native-ref`; the drills below file on ai-native-ref unless said otherwise. Each issue is
+public. A maintainer labels it `class:docs` first (without the label the task's class is `review`, which
+reads `default`'s row, off), then `factory/ready`.
+
+| Layer | Switch (`loops.docs`, or `classes.docs` per repository) | Design |
+|---|---|---|
+| 1. Scoper | `scope: scoper` | [scoper](../../superpowers/specs/2026-10-22-scoper-design.md#gate) |
+| 2. Loop policy | `stallSteps: 60`, `continuations: 2`, `judge: tier-light` | [loops](../../superpowers/specs/2026-10-21-loops-and-teams-design.md), [harness reference](../../../website/content/docs/platform/ai-platform/agents/harness.md#loop-policy) |
+| 3. Sandbox checks | `checks: true` | [sandbox checks](../../superpowers/specs/2026-10-22-sandbox-checks-design.md#gate) |
+
+Before layer 1: the pins carry agent-platform v0.23.2 and crossplane-configuration v0.9.20 or later
+(`spec.loop` with `search`, `checks` and `judgeModel`), and `scripts/ops/k8s/gcp-0-platform-gates.sh`
+passes. Read a task with `kubectl -n agent-system get task <name> -o yaml`.
+
+### Layer 1: the scoper
+
+The factory runs a read-only triager first. Under `scope: scoper` it either scopes the issue (the scope
+reaches the room and the implementer's brief) or asks its author the one question it cannot answer.
+
+| # | Do | Expected reading |
+|---|---|---|
+| 1 | File drill issue A below; a maintainer applies `class:docs`, then `factory/ready` | A triager run, then an implementer. `status.scope` on the task is `ready` and holds the scope; the room shows the same scope; the implementer's brief holds it; `spec.scopeMode` is `scoper` |
+| 2 | File drill issue B below and label it | One comment on the issue (the question, the assumption it would make), the label `factory/needs-author`, the task `Escalated` with reason `needs_author`, no implementer run |
+| 3 | Edit issue B's body to add the acceptance check, then re-apply `factory/ready` | A new task (a new generation) scopes `ready`; the first one is superseded |
+| 4 | File drill issue B again as a new issue, label it, then comment `/factory retry` | The implementer starts on the assumption (`status.scope` `assumed`), no second scoper run, the label is removed |
+| 5 | Read the counters | `agent_factory_scoper_runs_total` and `agent_factory_scope_bounces_total` carry one outcome per run above |
+
+Steering (live proof 3) needs a note at `.github/agent-factory/steering/docs.md` on the target's default
+branch, which exists on ai-native-ref and not yet on cloud-native-ref. To prove it, switch the row to
+`scope: steering` for this one step, then back: the implementer's brief carries the note, and
+`spec.steering` names its blob sha (`git rev-parse origin/main:.github/agent-factory/steering/docs.md`).
+
+**Drill A, a vague issue** the scoper can still bound (title and body, ready to file on ai-native-ref). If it asks a question instead of scoping, record it, answer by an edit as in step 3, and take the second task as step 1's evidence:
+
+```text
+Title: docs: the runbooks README is out of date
+
+Body:
+The Status section of docs/runbooks/agent-factory/README.md looks stale. Please bring it up to date.
+```
+
+**Drill B, no acceptance check, should bounce:**
+
+```text
+Title: docs: define "room" in the runbooks README
+
+Body:
+The runbooks README uses the word "room" without saying what it is. Add a definition.
+```
+
+Edit for step 3 (append, then re-label):
+
+```text
+Acceptance: docs/runbooks/agent-factory/README.md gains one sentence under "Prerequisites (all
+runbooks)" that defines a room as the per-task workspace the broker serves at rooms.<domain>. No
+other line of that file and no other file changes. `task links` passes.
+```
+
+### Layer 2: the loop policy
+
+Prerequisites: layer 1's proofs passed (the judge reads the scope's checks) and the capability profiles'
+sidecar ([#103](https://github.com/Smana/ai-native-ref/pull/103)) is merged and live: a command in the
+sandbox that posts to the identity proxy's `/judge/v1` reaches the judge alias. Without the sidecar the
+judge call is refused (403 or 404) and silently skipped: the run ends as `finished`, as with no judge, and
+no error shows. Drills D and E run only after #103 is live; drill C (the stall rule) does not need it.
+The row now reads `docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light}`.
+The factory copies it
+into every implementer claim of the class: `kubectl -n agent-system get task <name> -o
+jsonpath='{.spec.loop}'` shows `stallSteps`, `continuations` and `judgeModel`.
+
+| # | Do | Expected reading |
+|---|---|---|
+| 1 | In a commit of the session, set `loops.docs.stallSteps` to 20 for this drill. File drill issue C (a stall drill) and label it as in layer 1 | The implementer ends with no commit by step 20: the task is `Escalated`, reason `stalled`; the room holds the run's findings as a note; the issue carries the fixed narration with the reason category only; `agent_factory_loop_runs_total{end="stalled"}` is 1. The run's cost stays under the tier's `runUSD` |
+| 2 | File drill issue D (a clear issue whose first attempt misses a check) and label it | After the first run ends on its own, the judge answers `not_yet` against the scope's checks; the same conversation continues (the room shows one run's conversation, not a restart), at most twice |
+| 3 | On step 2's task, read the cache | `cache_read` over `input` for the continued steps is high (runbook 04, Part E); a continuation that restarted the conversation reads as a cold prefix |
+| 4 | An issue whose acceptance cannot be met (drill E) | The judge answers `impossible`: `Escalated`, reason `judge_impossible`, the judge's text only in the room, the issue carries the category only |
+| 5 | Read the reviewer's role in the room on any of the runs above | The reviewer's brief and calls hold no implementer transcript |
+| 6 | Read the counters | `agent_factory_loop_runs_total` by `end` (`finished`, `stalled`, `not_met`, `judge_impossible`) matches the runs above |
+
+After the drill, put `stallSteps` back to 60 (a real docs run takes 15 to 40 steps before its first
+commit; do not go under about 50), then set it from the accepted runs' step counts.
+
+**Drill C, a stall** (a task that sends the run searching without ever committing):
+
+```text
+Title: docs: find every mention of the old agent-gateway route name
+
+Body:
+Somewhere in this repository's docs and website content a route of the agent gateway is still named
+by an old name, and I do not remember which. Find every such mention and change it to the current
+name. Read the whole docs tree before changing anything, and explain what you found in the pull request.
+Acceptance: no file under docs/ or website/content/ names the old route.
+```
+
+The route's old name does not exist, so the run reads and never finds a line to change; at step 20 the
+stall rule stops it. If it commits a change, pick a stricter wording ("or change nothing and say so")
+and file it again.
+
+**Drill D, a continuation** (acceptance with two checks; the second is easy to miss):
+
+```text
+Title: docs: add a drill row to the status table
+
+Body:
+Add one row for the loop policy to the table in website/content/docs/platform/ai-platform/status.md
+named "Loop policy drill".
+Acceptance: (1) the table gains exactly one row, named "Loop policy drill"; (2) the row's last cell
+is "drill, remove after the session" and `task links` passes; (3) no other line of any file changes.
+```
+
+**Drill E, an impossible acceptance** (the judge should answer `impossible`, a human takes over). The judge may answer `not_yet` first and `impossible` after a continuation: either order passes if the task ends `Escalated` with `judge_impossible`. A task that ends `not_met` (continuations spent) is recorded as observed, not as a pass:
+
+```text
+Title: docs: link the runbooks README to a page that does not exist
+
+Body:
+Add to docs/runbooks/agent-factory/README.md a link to docs/runbooks/agent-factory/99-nonexistent.md.
+Acceptance: `task links` passes with that link in place, and 99-nonexistent.md is not created.
+```
+
+### Layer 3: the sandbox checks
+
+Both repositories now carry `docs: {checks: true}` (egress `[pypi]` on cloud-native-ref, `[golang, pypi]`
+on ai-native-ref). Prerequisites: each repository's `.github/agent-checks.yaml` is on its default branch
+(`gh api repos/<repo>/contents/.github/agent-checks.yaml`), the cluster's `AgentRun` XRD has
+`spec.loop.checks` (crossplane-configuration v0.9.20 or later), and `internal` runs never get it: the XRD
+refuses the combination, and the factory sets it on public implementer and reviewer claims only. Watch the
+egress during every step: `hubble observe --namespace agent-system --verdict DROPPED`.
+
+| # | Do | Expected reading |
+|---|---|---|
+| 1 | File drill issue F on ai-native-ref, label it as in layer 1 | The implementer's claim has `spec.loop.checks` true (`kubectl -n agent-system get agentrun -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.checks}'`), the toolchain installs through the CNP, and `hubble` shows no DROPPED flow to a declared host |
+| 2 | Read the run's checks note in the room | Each step of ai-native-ref's `agent-checks.yaml` ends `pass` or `skip`; the result matches offline proof 4's on `main` |
+| 3 | The same for drill issue G on cloud-native-ref | The same, with the host's steps (`overlay`, `suites`, `shellcheck`, `links`, `pre-commit`) |
+| 4 | Read each drill's first pushed head | The seeded defect was reported before the push; the first head's CI is green; `status.fixRuns` is 0 on the task (`kubectl -n agent-system get task <name> -o jsonpath='{.status.fixRuns}'`) |
+| 5 | After a few real `docs` issues, compare each final head | The sandbox's step results agree with the CI's check conclusions on at least 90% of final heads; explain each miss |
+
+The drills' seeded defect is a broken relative Markdown link, caught by the `links` step of both
+repositories. The host's `shellcheck` step needs a script change, outside the `docs` class: prove it
+under a `scripts` class switch in a later session.
+
+**Drill F, a seeded defect on ai-native-ref:**
+
+```text
+Title: docs: add a pointer from the runbooks README to the steering note
+
+Body:
+In docs/runbooks/agent-factory/README.md, under "Prerequisites (all runbooks)", add one sentence that
+links to .github/agent-factory/steering/docs.md with the relative link
+[the docs steering note](../../../.github/agent-factory/steering/docs.mdx). Write the link exactly as
+given on your first commit, then run the checks, and fix what they report before you push.
+Acceptance: the sentence exists, `task links` passes, no other line changes.
+```
+
+**Drill G, a seeded defect on cloud-native-ref:**
+
+```text
+Title: docs: add a pointer from the README to the agent checks
+
+Body:
+In README.md, under its contribution section, add one sentence that links to
+.github/agent-checks.yaml with the relative link [agent checks](.github/agent-checks.yml).
+Write the link exactly as given on your first commit, then run the checks, and fix what they report
+before you push.
+Acceptance: the sentence exists, `./scripts/ci/validate-links.sh` passes, no other line changes.
+```
+
+Both links end in a wrong extension (`.mdx`, `.yml`): the `links` step reports each before the push,
+and the pushed head carries the corrected link.
+
 ## Recording results
 
 Each runbook ends with a results table (step, expected, observed, pass/fail). Fill it in place as

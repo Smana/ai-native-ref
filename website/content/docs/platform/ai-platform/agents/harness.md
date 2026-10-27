@@ -252,7 +252,7 @@ flowchart LR
 
 The loop policy stops wandering runs and checks a finished run against the task's acceptance checks.
 {{< badge content="built, off" color="yellow" >}} The code ships (agent-platform v0.17.1,
-crossplane-configuration v0.9.18); **no class has a row**, so every run behaves as before.
+crossplane-configuration v0.9.18); only the `docs` class has a row (a gcp-0 session), so every other run behaves as before.
 
 | Piece | What it does |
 |---|---|
@@ -262,7 +262,7 @@ crossplane-configuration v0.9.18); **no class has a row**, so every run behaves 
 
 **The switch** is the factory's `loops` key, one row per class (`default`, `review`, or a class a
 repository declares). A row that sets any of its three keys switches that class on. No row, or a row
-without them, is today's run (D4). **No class has a row here**: the values' `loops` key holds only
+without them, is today's run (D4). **Only `docs` has a row here**: besides it, the values' `loops` key holds only
 `default: {scope: off}`, which switches nothing on.
 
 | Key | Default once a row exists | Bounds |

@@ -34,15 +34,15 @@ data:
         - name: Smana/cloud-native-ref
           maintainers: [Smana]
           triggerLabel: factory/ready
-          # v3 feature 3: what a check-enabled run requests beyond github. No class has checks: true
-          # until the gcp-0 session's live proofs (D4).
+          # v3 feature 3: what a check-enabled run requests beyond github. Only docs has checks: true,
+          # since the gcp-0 session's live proofs (README, "v3 loop and sandbox layers").
           checks: {egress: [pypi]}
           classes:
             # LIVE for the drill (runbook 12, design D4): revert with it, or an auto-merge waits on a
             # human to merge its own revert (D5). Back to {shadow: true} once the drill is over.
             docs-links: {live: true}
             revert: {live: true}
-            docs: {}
+            docs: {checks: true}  # public runs only: an internal claim with checks is refused by the XRD
             tests: {}
             dashboards: {}
             scripts: {}
@@ -159,13 +159,13 @@ data:
         - name: Smana/ai-native-ref
           maintainers: [Smana]
           triggerLabel: factory/ready
-          # v3 feature 3: what a check-enabled run requests beyond github. No class has checks: true
-          # until the gcp-0 session's live proofs (D4).
+          # v3 feature 3: what a check-enabled run requests beyond github. Only docs has checks: true,
+          # since the gcp-0 session's live proofs (README, "v3 loop and sandbox layers").
           checks: {egress: [golang, pypi]}
           classes:
             docs-links: {shadow: true}
             revert: {shadow: true}
-            docs: {}
+            docs: {checks: true}  # public runs only: an internal claim with checks is refused by the XRD
             tests: {}
             dashboards: {}
             scripts: {}
@@ -301,10 +301,22 @@ data:
       # Disruption design §4: a run lost to a reclaim or an eviction resumes on its own, twice per task
       # at most, and only with a RunTokens left under the task's TaskTokens (enforced on that path).
       resume: {maxPerTask: 2}
-      # Per-class loop policy and scope (scoper design SC2). Every class is off (D4): a platform
-      # session sets steering, then scoper, on one class at a time.
+      # Per-class loop policy and scope (scoper design SC2). Every class is off (D4) but docs: the
+      # gcp-0 session of 2026-10-27 switches one feature at a time on it, so a failure is
+      # attributable (runbooks README, "v3 loop and sandbox layers"). A row is read whole, never merged with default's.
       loops:
         default: {scope: off}
+        # docs, the gcp-0 session's class (both repositories declare it, so the row reads for both). A
+        # row is read whole: the scoper's key stays on it. Scoper (v3 feature 1): a public triager
+        # run scopes a labelled issue, or asks its author the one question it cannot answer; a
+        # repository's steering note (.github/agent-factory/steering/docs.md) is optional. Loop
+        # policy (feature 2): any of the three keys switches the loop on. stallSteps 60 (default 80,
+        # 1..500): a run with no commit by then stops and posts its findings; the stall drill sets a
+        # lower value for itself. continuations 2: a not_yet continues the same conversation at most
+        # twice (0..5). judge tier-light: the completion judge's alias (the claim's judgeModel),
+        # reading the scoper's checks; without the capability profiles' P4 sidecar (#103) its
+        # /judge/v1 route is refused and the judge is silently skipped.
+        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light}
       # loops.<class>.search: true offers that class's implementer runs the search tool (agent-platform
       # v3 feature 5): a read-only child on the run's token, 40 iterations, 300k tokens, 300 s, six a
       # run. No class has it (D4): a gcp-0 session switches one on for the paired live gate (SQ5).

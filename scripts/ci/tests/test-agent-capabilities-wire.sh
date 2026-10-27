@@ -308,6 +308,8 @@ ENVOY_IMAGE="docker.io/envoyproxy/envoy:distroless-v1.39.1@sha256:eb2c01c13125d1
 px="agent-capabilities-wire-px-$$"
 trap 'docker rm -f "$gw" "$px" >/dev/null 2>&1; [ -n "$fake_pid" ] && kill "$fake_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
 px_port="$(free_port)"; px_health="$(free_port)"
+# free_port reserves nothing: two calls can return one port, and Envoy then refuses a duplicate listener.
+while [ "$px_health" = "$px_port" ] || [ "$px_health" = "$gw_port" ]; do px_health="$(free_port)"; done
 mkdir -p "$tmp/token" && cp "$tmp/$R.jwt" "$tmp/token/token" && chmod 755 "$tmp/token" && chmod 644 "$tmp/token/token"
 ROOT="$ROOT" TMP="$tmp" PORTS="$px_port $px_health $gw_port" python3 - <<'PY' || { echo "cannot render the proxy config" >&2; exit 1; }
 import os

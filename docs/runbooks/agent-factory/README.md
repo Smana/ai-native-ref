@@ -5,6 +5,8 @@ and the agent observability work on the live test cluster `gcp-0`. Every command
 Start with [Runbook 00](#runbook-00-one-time-cluster-setup): the cluster is already deployed, but four
 owner actions gate most runbooks.
 
+`roomctl setup <client>` installs the factory MCP server and the `factory-handoff` skill for that coding agent client (`claude`, `opencode`, ...); see [Runbook 19](19-factory-from-your-agent.md).
+
 ## Status (2026-10-17)
 
 gcp-0 is the live target again since 2026-10-17 ([runbook 14](14-gcp-0-session.md)), from `main` on release

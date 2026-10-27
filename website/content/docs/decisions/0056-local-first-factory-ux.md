@@ -7,6 +7,7 @@ lastVerified: 2026-10-08
 ---
 
 **Status**: Accepted
+**Partly superseded** by [ADR-0059]({{< relref "/docs/decisions/0059-factory-from-your-coding-agent.md" >}}): D2 (a local MCP server now ships), and D1 amended (a confirmation form may start the work).
 **Date**: 2026-10-08
 **Deciders**: Smana (Platform Owner)
 **Related Spec**: [Agent factory: local-first developer UX](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)

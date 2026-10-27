@@ -97,22 +97,20 @@ check("the Envoy query reads token series outside namespace agent-gateway", 'nam
 partial = cc.window("20261028", NOW)
 check("today's window ends now", partial == (NOW, 6 * 3600), partial)
 
-print("the day total is the ledger's spent column (XC3)")
+print("the day total is the settled entries, each run once (XC3); spent is not additive")
 text, ok = go()
-check("the fixture day agrees on spent minus the Envoy run's settled (1.7 - 1.0) against the gateway's 0.695",
+check("the fixture day agrees on the settled sum less the Envoy run (0.7) against the gateway's 0.695",
       ok and any(l.startswith("TOTAL") and "0.700000" in l for l in text.splitlines()), text)
-check("the settled sum is printed as a cross-reference, with no disagreement note when it agrees",
-      "settled sum" in text and "disagree" not in text, text)
 cm = copy.deepcopy(ledger_cm)
-cm["data"]["spent"] = json.dumps({"system:factory": "2400000", "github:smana": "300000"})
+# A run charged to a person settles to the fleet and the person (meter `charged`): spent counts it twice.
+cm["data"]["spent"] = json.dumps({"system:factory": "700000", "github:smana": "700000"})
 text, ok = go(cm)
-check("a spent column $1.00 over the settled entries fails the day against the gateway", not ok, text)
+check("spent keyed for the fleet and the person (gcp-0, 2026-10-27) does not double the day", ok, text)
+check("spent is printed per principal with a note that it does not add up", "do not add up" in text, text)
 cm = copy.deepcopy(ledger_cm)
 cm["data"]["settled.bbb"] = "50000"
-cm["data"]["spent"] = json.dumps({"system:factory": "1400000", "github:smana": "300000"})
 text, ok = go(cm)
-check("spent and settled apart: both printed and said so, the verdict stays on spent and the gateway",
-      "disagree" in text and "spent" in text, text)
+check("a settled run apart from the gateway still fails the day", not ok, text)
 
 print("cannot tell (exit 2), no traceback")
 

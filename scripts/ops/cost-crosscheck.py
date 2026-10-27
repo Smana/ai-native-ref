@@ -12,9 +12,9 @@ left out and listed (XC7).
 
 Agreement, XC4: abs(ledger - gateway) <= max(1% x gateway, floor); the floor is $0.01 per run and
 $0.10 for the day's total. Exit 0 all within, 1 one run or the total outside, 2 a source unreadable.
-The day's total is compared on the ledger's `spent` column (XC3), less the settled entries of the runs left
-out; the sum of the `settled.<run>` entries is printed beside it, and a gap between the two is said so, never
-failed on. `spent` per principal is printed for reference: the gateway has no principal label.
+The day's total is the sum of the `settled.<run>` entries, each run once (XC3). `spent` is not additive: a run
+charged to a person settles to the fleet (system:factory) and to that person both (agent-platform's
+meter `charged`), so it is printed per principal for reference only; the gateway has no principal label.
 Exit 2 also for a VictoriaMetrics body that is not a success or a value that is NaN or infinite.
 """
 import argparse
@@ -84,7 +84,7 @@ def compare(ledger, gateway, skipped=(), spent_total=None):
 
 def render(day, rows, total, skipped, spent, settled_sum=None):
     usd = lambda d: f"{d:.6f}"
-    lines = [f"cost cross-check {day} (USD; ledger = settled.<run> per run and spent for the TOTAL, gateway = priced by agentgateway)",
+    lines = [f"cost cross-check {day} (USD; ledger = settled.<run>, each run once, gateway = priced by agentgateway)",
              f"{'run':<28}{'ledger':>12}{'gateway':>12}{'diff':>12}  ok"]
     for run, l, g, ok in rows:
         lines.append(f"{run:<28}{usd(l):>12}{usd(g):>12}{usd(l - g):>12}  {'yes' if ok else 'NO'}")
@@ -98,7 +98,8 @@ def render(day, rows, total, skipped, spent, settled_sum=None):
     if skipped:
         lines.append(f"left out, a token series outside agentgateway (XC7): {', '.join(sorted(skipped))}")
     if spent:
-        lines.append("ledger spent per principal (reference): " + ", ".join(f"{p} {usd(v)}" for p, v in sorted(spent.items())))
+        lines.append("ledger spent per principal (reference; a run charged to a person counts for the fleet and the person, "
+                     "so these do not add up): " + ", ".join(f"{p} {usd(v)}" for p, v in sorted(spent.items())))
     return "\n".join(lines)
 
 
@@ -133,10 +134,8 @@ def run(day, namespace, vm_url, now, fetch_ledger=None, fetch_query=None):
     envoy = by_run(fetch_query(
         f'sum by (ar_agent) (increase_pure(gen_ai_client_token_usage_sum{{ar_agent=~"{RUN_AGENT}", namespace!="agent-gateway"}}[{secs}s])) > 0', end))
     skipped = sorted(envoy)
-    spent_total = sum(spent.values(), Decimal(0)) - sum((ledger.get(r, Decimal(0)) for r in skipped), Decimal(0))
-    rows, total, ok = compare(ledger, gateway, skipped, spent_total)
-    settled_sum = sum((r[1] for r in rows), Decimal(0))
-    return render(day, rows, total, skipped, spent, settled_sum), ok
+    rows, total, ok = compare(ledger, gateway, skipped)
+    return render(day, rows, total, skipped, spent), ok
 
 
 def main(argv):

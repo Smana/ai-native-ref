@@ -29,4 +29,4 @@ data:
             # "<Slack team id>/<owner's Slack user id>": the owner's GitHub login. The owner's check
             # mark files an issue in their name; an unlinked Slack user is refused (not_linked).
             onBehalfOf:
-              slack: {"OWNER-FILL-SLACK-TEAM-ID/OWNER-FILL-SLACK-OWNER-USER-ID": Smana}
+              slack: {"T07J97G2K2P/U07JY4EQNDN": Smana}

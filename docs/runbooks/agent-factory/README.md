@@ -500,6 +500,58 @@ caps and exceed `factoryDailyUSD: 42.50` together with any other run that day: f
 days, or expect about $4 to $8 per family in practice (a scoper run, then up to four parts at about
 $1 to $2).
 
+### Layer 6: the test-first tester (blocked: no switch exists yet)
+
+Design: [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) (TF1, TO4). Its
+switch is `repositories[].classes.scripts.testFirst: true` on cloud-native-ref only (TO4: none on
+ai-native-ref, whose tests live under the gate path `scripts/ci/`). **No commit sets it yet**, for two
+reasons found on 2026-10-27:
+
+- `testFirst` and `merge.contractCheck` are in no agent-platform release (v0.25.0's `Class` has no such
+  key, and the factory's strict parse refuses an unknown one). Only the contract check (plan PR 1, the
+  harness's `test-contract`) is built; the factory slice (plan PR 6) is not.
+- The host's `.github/chainguard/agent-tester.sts.yaml` grants `contents: read`; TO2 needs `contents: write`,
+  a gate path and so a human pull request on cloud-native-ref.
+
+When both land: pin the release, then one commit sets `scripts: {testFirst: true}` on cloud-native-ref with
+`merge: {contractCheck: "Test contract 🧪"}`, and the drills run on cloud-native-ref with `class:scripts`
+then `factory/ready`. Proofs, from the design's live proofs: the tester runs first and commits a test that
+fails on the base; `status.contract` holds `{runId, commit, files, ids}`; the implementer's pull request
+passes "Test contract 🧪"; the gate reads `contract_modified` if the implementer edits a contract file.
+
+**Drill T1, testable behaviour** (a pure function with a clear contract):
+
+```text
+Title: scripts: a helper that turns a Flux Kustomization list into "<namespace>/<name>" lines
+
+Body:
+Add scripts/ops/k8s/lib-kustomization-names.sh with a function `kustomization_names` that reads
+`kubectl get kustomizations -A -o json` on stdin and prints "<namespace>/<name>" per item, sorted.
+
+## Acceptance
+- With a two-item fixture the function prints the two lines sorted.
+- With an empty list it prints nothing and returns 0.
+- The test for it fails before the function exists and passes after.
+```
+
+**Drill T2, not testable** (the tester should end `not_testable`, the implementer runs without a contract):
+
+```text
+Title: scripts: reword the header of the CSI volume reclaim script
+
+Body:
+Reword the first comment line of scripts/ops/k8s/reclaim-csi-volumes.sh so it names the script's
+purpose in one sentence.
+
+## Acceptance
+- The first comment line is one sentence naming what the script checks.
+- No other line changes and shellcheck passes.
+```
+
+Cost: the tester run is a writer on the task's caps, so each drill is one tester run plus the implementer
+and reviewer, about $2 to $4 expected and $5.10 (standard) at the task cap: two drills stay inside
+`tasksPerDay: 20` and `factoryDailyUSD: 42.50`.
+
 ## Recording results
 
 Each runbook ends with a results table (step, expected, observed, pass/fail). Fill it in place as

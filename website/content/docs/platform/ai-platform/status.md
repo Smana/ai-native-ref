@@ -75,7 +75,7 @@ v3 resume there, in the [order below](#before-v3).
 
 | Feature | What is left |
 |---|---|
-| Per-person spend caps | Counting, not refusing. Compressed same-day test 2026-10-17: every run was charged to its person, and none would have been refused. The daily caps count dollars since agent-platform v0.16.0 (#168), pinned here at v0.23.2, cache reads at their own rate: a person's day is $8.50, the 5M-token default it replaces at the reference $1.70 per million. That is proven offline; the live proof and a longer record in dollars come before enforcing ([runbook 04](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)) |
+| Per-person spend caps | Counting, not refusing. Compressed same-day test 2026-10-17: every run was charged to its person, and none would have been refused. The daily caps count dollars since agent-platform v0.16.0 (#168), pinned here at v0.24.0, cache reads at their own rate: a person's day is $8.50, the 5M-token default it replaces at the reference $1.70 per million. That is proven offline; the live proof and a longer record in dollars come before enforcing ([runbook 04](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)) |
 
 ### Before v3 {#before-v3}
 
@@ -89,7 +89,7 @@ v3 resume there, in the [order below](#before-v3).
 3. Per-person caps: a longer shadow record before enforcing; v3's machine callers that start work wait on it.
 4. The breaker's live proof and the revert's unattended merge, at the next link-fix pull request and revert.
 5. The prompt cache's alert and wire test, **done** ([#95](https://github.com/Smana/ai-native-ref/pull/95)); each run's provenance recorded on its task, **R10 done** in agent-platform v0.17.1 (live proofs wait for the next `gcp-0` session) ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-run-provenance-design.md)); the docs
-   fixes and the dead triage config the review lists, **done** (R8 in agent-platform v0.23.2) ([R4, R8, R9](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-v3-review.md#2-issues-found)).
+   fixes and the dead triage config the review lists, **done** (R8 in agent-platform v0.24.0) ([R4, R8, R9](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-v3-review.md#2-issues-found)).
 
 <span id="v2-roadmap"></span>
 

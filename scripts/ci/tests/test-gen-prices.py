@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # requires: python3
-"""Tests for scripts/ci/gen-prices.py, which renders the llm-gateway-prices group from meter.prices.
+"""Tests for scripts/ci/gen-prices.py, which renders the llm-gateway-prices group and the agentgateway
+model catalog overlay (ConfigMap agent-model-catalog) from meter.prices.
 
 Each case copies the real factory values and price rule into a temporary root, changes one thing and
 runs the generator there: the rendering holds the design's charges, it rebuilds the group byte for
@@ -12,6 +13,7 @@ Run: python3 scripts/ci/tests/test-gen-prices.py
 import contextlib
 import importlib.util
 import io
+import json
 import pathlib
 import shutil
 import sys
@@ -63,7 +65,7 @@ def tree():
     """A temporary root holding copies of the factory values and the price rule, the group rendered."""
     with tempfile.TemporaryDirectory() as d:
         root = pathlib.Path(d)
-        for rel in (gen.VALUES, gen.RULES):
+        for rel in (gen.VALUES, gen.RULES, gen.CATALOG):
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(ROOT / rel, root / rel)
         run(root, "--write")
@@ -72,6 +74,12 @@ def tree():
 
 def rules(root):
     return root / gen.RULES
+
+
+def catalog(root):
+    """(the ConfigMap, the catalog.json it holds parsed) from the tree's rendered overlay."""
+    cm = yaml.safe_load((root / gen.CATALOG).read_text())
+    return cm, json.loads(cm["data"]["catalog.json"])
 
 
 def replace(root, rel, old, new):
@@ -118,6 +126,53 @@ check("exact decimals: 0.26 - 1.40 is -1.14, not float noise",
       and gen.usd(Decimal("0.625") - Decimal("0.50")) == "0.125" and gen.usd(Decimal("1.4") - Decimal("1.40")) == "0.00")
 check("a write the provider does not bill is charged as input",
       gen.charges({"input": 1.4, "cacheRead": 0.26, "output": 4.4})["cache_creation_input"] == 0)
+
+print("the catalog overlay (cost cross-check design, offline proof 1)")
+with tree() as t:
+    cm, cat = catalog(t)
+    check("a ConfigMap agent-model-catalog in agent-gateway holding catalog.json",
+          cm["kind"] == "ConfigMap" and cm["metadata"] == {"name": "agent-model-catalog", "namespace": "agent-gateway"}
+          and list(cm["data"]) == ["catalog.json"], str(cm["metadata"]))
+    anthropic = cat["providers"]["anthropic"]["models"]
+    zai = cat["providers"]["zai"]["models"]
+    check("six rows: Anthropic under anthropic, GLM under zai, nothing else",
+          list(cat["providers"]) == ["anthropic", "zai"] and list(anthropic) == [
+              "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"] and list(zai) == [
+              "glm-5.3", "glm-5.3-flashx", "glm-5.3-flash"], str(cat))
+    check("the rates are the table's values as strings, USD per million",
+          anthropic["claude-opus-5-5"] == {"rates": {"input": "4.00", "output": "20.00", "cacheRead": "0.20", "cacheWrite": "5.00"}}
+          and anthropic["claude-haiku-5-5"]["rates"] == {"input": "0.50", "output": "2.50", "cacheRead": "0.05", "cacheWrite": "0.625"},
+          str(anthropic))
+    check("GLM has no cacheWrite: an absent column stays absent",
+          all("cacheWrite" not in m["rates"] for m in zai.values())
+          and zai["glm-5.3"]["rates"] == {"input": "1.40", "output": "4.40", "cacheRead": "0.26"}, str(zai))
+    check("provenance is never rendered into the catalog",
+          "source" not in (t / gen.CATALOG).read_text() and "checkedAt" not in (t / gen.CATALOG).read_text())
+with tree() as t:
+    path = t / gen.CATALOG
+    path.write_text(path.read_text().replace('"output": "20.00"', '"output": "21.00"'))
+    code, out = run(t)
+    check("a hand edit to catalog.json fails, with the diff and the fix",
+          code == 1 and '-                "output": "21.00"' in out and '+                "output": "20.00"' in out and "--write" in out, out)
+    code, out = run(t, "--write")
+    check("--write restores it", code == 0 and run(t)[0] == 0, out)
+with tree() as t:
+    replace(t, gen.VALUES, HAIKU, HAIKU + "\n          claude-mythos-5: {input: 25.00, cacheRead: 2.50, cacheWrite: 31.25, output: 125.00}")
+    code, out = run(t)
+    check("a meter.prices row added without --write fails on the catalog too", code == 1 and gen.CATALOG.as_posix() in out, out)
+    code, out = run(t, "--write")
+    check("--write adds it under anthropic",
+          code == 0 and catalog(t)[1]["providers"]["anthropic"]["models"]["claude-mythos-5"]["rates"]["cacheWrite"] == "31.25", out)
+with tree() as t:
+    replace(t, gen.VALUES, FLASH, FLASH + "\n          mystery-1: {input: 1.00, cacheRead: 0.10, output: 2.00}")
+    before = (t / gen.CATALOG).read_text()
+    code, out = run(t, "--write")
+    check("a model with no provider is refused, by name, without a write",
+          code == 1 and "mystery-1" in out and (t / gen.CATALOG).read_text() == before, out)
+with tree() as t:
+    (t / gen.CATALOG).unlink()
+    code, out = run(t, "--write")
+    check("--write creates a missing catalog file", code == 0 and (t / gen.CATALOG).exists() and run(t)[0] == 0, out)
 
 print("parity")
 with tree() as t:

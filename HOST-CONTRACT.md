@@ -1,10 +1,9 @@
 # Host contract
 
-**Contract version 3**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
-at the commit in [`HOST_REF`](HOST_REF). Copied from the design on 2026-10-23. Changes from 2: H5
+**Contract version 4**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
+at the commit in [`HOST_REF`](HOST_REF). Copied from the design on 2026-10-23. Changes from 3: H4 gains the `factory-slack` listener of `platform-public` on gcp-0 (routes from `agent-system` only), for the Slack App's Events API (runbook 18). Changes from 2: H5
 ZITADEL names the `factory-slack-app` machine user (client credentials, no project role) and where
-its client id, secret and project id are; H4 is unchanged, the `factory-slack` listener arrives with
-the Slack App's switch-on (version 4, runbook 18). Changes from 1: H1 Source names both signing
+its client id, secret and project id are. Changes from 1: H1 Source names both signing
 identities, the aws-0 un-suspend patch and the children's sources; H1 Feature branches is a pin edit
 on the branch, not a variable; H3 drops `ai_native_ref_tag`.
 
@@ -63,7 +62,7 @@ Grafana dashboard variables (`${datasource}`, `${model}`) are not Flux substitut
 
 | Item | Contract |
 |---|---|
-| Gateways | `platform-tailscale-general` (tailnet) and `platform-public` (internet, with a `policy-bot` listener for `merge-gate` on both clouds), Gateway API, in the namespaces their routes reference today |
+| Gateways | `platform-tailscale-general` (tailnet) and `platform-public` (internet, with a `policy-bot` listener for `merge-gate` on both clouds, and on gcp-0 a `factory-slack` listener for `agent-system`), Gateway API, in the namespaces their routes reference today |
 | Cilium | Default-deny CNP is the constitution's rule; `socketLB.hostNamespaceOnly: true` on both clouds (gVisor needs it) and the startup taint on every node pool (F2) |
 | DNS | Hostnames under `private_domain_name` resolve on the tailnet |
 

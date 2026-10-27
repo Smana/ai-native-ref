@@ -5,7 +5,9 @@
 On the real tree: no cluster applies the Slack App's manifests; no broker config declares a webhook
 or a sponsored human MCP client, no repository may start from a session (human.mcp.sessionStart), and no factory values declare a sponsored API client; the factory's
 public route is still the one POST /v1/runs, and the Slack App's is the one POST /slack/events.
-A switch-on lands in a gcp-0 session's copy (runbook 18), never here.
+A switch-on lands in gcp-0's own copies (runbook 18), never in base or aws-0: gcp-0's agent-platform
+cluster may apply the Slack App, and gcp-0's broker config and factory values may declare its switches
+(test-factory-slack-switchon.py holds that switch-on to its shape).
 """
 import pathlib
 import sys
@@ -19,6 +21,7 @@ except ImportError:
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 SLACK_DIRS = ("tooling/base/agent-factory/slack-app", "tooling/gcp-0/agent-factory/slack-app")
+SWITCHED_ON = "gcp-0"  # the one cloud whose copies may declare the switches (runbook 18)
 problems = []
 
 
@@ -26,13 +29,13 @@ def load(rel):
     return [d for d in yaml.safe_load_all((ROOT / rel).read_text()) if d]
 
 
-# 1. Nothing applies the Slack App (R30, L3').
+# 1. Nothing but gcp-0's cluster applies the Slack App (R30, L3').
 for path in sorted((ROOT / "clusters").rglob("*")):
-    if path.is_file():
+    if path.is_file() and f"clusters/{SWITCHED_ON}-agent-platform/" not in path.as_posix():
         text = path.read_text(errors="replace")
         for d in SLACK_DIRS:
             if d in text:
-                problems.append(f"{path.relative_to(ROOT)} names {d}: the Slack App is applied by a gcp-0 session only")
+                problems.append(f"{path.relative_to(ROOT)} names {d}: the Slack App is applied by gcp-0 only")
 for path in sorted(ROOT.rglob("kustomization.yaml")):
     rel = path.relative_to(ROOT)
     if rel.parts[0] in (".host", ".composite", "node_modules"):
@@ -45,9 +48,11 @@ for path in sorted(ROOT.rglob("kustomization.yaml")):
             if "slack-app" in pathlib.PurePosixPath(str(res)).parts:
                 problems.append(f"{rel} lists {res}: the Slack App is not wired")
 
-# 2. The broker declares no webhook and no sponsored human MCP client; the factory no sponsored API client.
+# 2. Outside gcp-0's copies, the broker declares no webhook and no sponsored human MCP client; the factory no sponsored API client.
 for cfg in sorted(ROOT.glob("infrastructure/*/room-broker/config.yaml")):
     rel = cfg.relative_to(ROOT)
+    if rel.parts[1] == SWITCHED_ON:
+        continue
     for doc in load(str(rel)):
         if "webhooks" in doc:
             problems.append(f"{rel} declares webhooks (D4)")
@@ -82,6 +87,8 @@ def sponsored_in(node, parent=None):
 for path in sorted(ROOT.glob("tooling/*/agent-factory/**/*.yaml")):
     rel = path.relative_to(ROOT)
     if any(str(rel).startswith(d) for d in SLACK_DIRS):
+        continue
+    if rel.as_posix() == f"tooling/{SWITCHED_ON}/agent-factory/helm-values-sponsored.yaml":
         continue
     if sponsored_in(load(str(rel))):
         problems.append(f"{rel} declares api.sponsored (D4)")

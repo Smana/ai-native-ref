@@ -9,7 +9,7 @@ kind: Kustomization
 resources:
   - ../../base/room-broker
 
-# v2 suspend is on here only: this config.yaml is base's plus suspend.enabled.
+# This config.yaml is base's plus suspend.enabled, human.mcp.sponsored and sessionStart, and webhooks.
 configMapGenerator:
   - name: room-broker-config
     namespace: agent-system
@@ -18,6 +18,8 @@ configMapGenerator:
       - config.yaml
 
 patches:
+  # The webhook egress, generated from config.yaml's webhooks: scripts/ci/gen-webhook-egress.py --write.
+  - path: network-policy-webhooks-patch.yaml
   - target:
       group: cloud.ogenki.io
       kind: SQLInstance

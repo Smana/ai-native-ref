@@ -1,0 +1,32 @@
+# The Slack App's sponsored principal on gcp-0 (factory interfaces part 2, runbook 18). Merged over
+# agent-factory-helm-values after helm-values-suspend.yaml: Helm deep-merges, so config.api.sponsored
+# lands beside base's api. The name and the client id file are the broker's human.mcp.sponsored entry's
+# (infrastructure/gcp-0/room-broker/config.yaml); the Secret behind both files is
+# tooling/base/agent-factory/slack-app/externalsecret-sponsored.yaml.
+#
+# OWNER-FILL: the one value this file cannot know is the Slack ids, in onBehalfOf below. They are
+# marked OWNER-FILL-* and test-factory-slack-switchon.py refuses them once FACTORY_SLACK_LIVE=1.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # As agent-factory-helm-values: a change upgrades the release at once.
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
+  name: agent-factory-helm-values-sponsored
+  namespace: agent-system
+data:
+  values.yaml: |  # pragma: allowlist secret -- Secret key file paths, no credential value
+    config:
+      api:
+        projectIDFile: /etc/agent-factory-sponsored/project-id
+        sponsored:
+          - name: slack-app
+            clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
+            sponsor: Smana
+            repositories: [Smana/cloud-native-ref]
+            dailyUSD: 5
+            maxCostUSD: 2
+            # "<Slack team id>/<owner's Slack user id>": the owner's GitHub login. The owner's check
+            # mark files an issue in their name; an unlinked Slack user is refused (not_linked).
+            onBehalfOf:
+              slack: {"T07J97G2K2P/U07JY4EQNDN": Smana}

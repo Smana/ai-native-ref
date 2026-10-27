@@ -5,7 +5,8 @@
 added, the [Later](#later) section now pointing at agent-platform's designs; **amended 2026-10-22**:
 feature 12 (spend per identity) added and the work ordered offline first
 ([D4, D5](#owner-decisions-2026-10-22)); **amended 2026-10-25**: feature 13 (the factory from your
-coding agent) added ([D7](#owner-decisions-2026-10-25)). Each feature gets its own design before it is built ·
+coding agent) added ([D7](#owner-decisions-2026-10-25)); **amended 2026-10-27**: feature 14
+(agent-to-agent work with RunLore) added ([D8](#owner-decisions-2026-10-27)). Each feature gets its own design before it is built ·
 **Part of:** the roadmap on the
 [status page](../../../website/content/docs/platform/ai-platform/status.md#roadmap)
 
@@ -42,6 +43,12 @@ issues.
 | # | Decision | Consequence |
 |---|---|---|
 | D7 | **The factory from your coding agent** becomes feature 13. **Amends D1**: one developer-facing feature, because using the factory from where developers work is part of it working better | It builds on the interfaces' MCP server (9) and follows it in the offline track. It is judged on its own live proofs, in Claude Code and OpenCode, not on [the metrics below](#how-v3-is-judged): it changes how developers reach the factory, not what a run does |
+
+## Owner decisions, 2026-10-27 {#owner-decisions-2026-10-27}
+
+| # | Decision | Consequence |
+|---|---|---|
+| D8 | **Agent-to-agent work with RunLore** becomes feature 14, in two stages: **B**, RunLore as a standard client of the factory, then **A**, RunLore verifies the fix. RunLore is an internal principal, a small explicit extension beside the sponsored principals, which stay public-only | It builds on the interfaces (9) and the post-merge monitor (8), and retires `/intake/runlore` once stage 1 is proven live. It is judged on its own live proofs, a seeded incident verified `resolved` and one ending `persisting` with its class paused, not on [the metrics below](#how-v3-is-judged) |
 
 ## Why these features
 
@@ -100,12 +107,13 @@ scoper's bounded-task format; new auto-merge classes need the scoper or the test
 verifiable.
 
 Features 9 to 11 come from the [v3 review](2026-10-21-v3-review.md#5-amendments-proposed); feature
-12 from D5; feature 13 from [D7](#owner-decisions-2026-10-25):
+12 from D5; feature 13 from [D7](#owner-decisions-2026-10-25); feature 14 from [D8](#owner-decisions-2026-10-27):
 
 | # | Feature | What changes | Gate |
 |---|---|---|---|
 | 12 | **Spend per identity** ([design](2026-10-22-spend-per-identity-design.md)) | A dashboard per charged principal (`github:<login>` for a person, `system:<name>` for a sponsored principal, with its sponsor): dollars against its daily cap and the fleet's day, tokens by type and the cache-read share, runs, rooms and tasks, pull requests opened, merged and reverted, cost per accepted PR, refusals and revocations, the time runs waited on that person, and a sponsored principal's `max_cost` against its spend. The factory exports spend and runs per charged principal (its `chargedTo`), which the gateway's per-run series cannot give | Offline: the factory's per-principal series sum to the meter's run costs. Live: for a day, each principal's spend on the dashboard matches the meter's ledger |
 | 13 | **The factory from your coding agent** ([design](2026-10-25-factory-from-your-agent-design.md), [plan](https://github.com/Smana/agent-platform/blob/main/docs/superpowers/plans/2026-10-25-factory-from-your-agent-plan.md), [adopt plan](../plans/2026-10-25-factory-from-your-agent-adopt-plan.md)) | Start, follow and bring back room work from any terminal coding agent without leaving it. The broker renders four views (rooms overview, room card, runs line, what changed) as the MCP tools' text. `issue_file`'s form gains "start the factory now", applied with the developer's own `gh` and switched per repository. `room_wait` follows a room, `room_checkout` brings its branch back into a new worktree, and `roomctl setup <client>` installs the MCP server and the skill. Approvals stay on the room page | Offline: golden views with hostile notes, the MCP contract, `room_wait`, `room_checkout` and `setup --print`. Live, in Claude Code and OpenCode: start from the form, wait for an approval, the card, the checkout, a hostile note rendered inert |
+| 14 | **Agent-to-agent work with RunLore** ([design](2026-10-27-runlore-agent-to-agent-design.md)) | RunLore hands an incident to the factory through `POST /v1/tasks` as an internal principal (sponsor, ceiling, daily cap, the 0.75 and 5-a-day gates), follows the work through signed webhooks into its Slack incident thread, and replaces `/intake/runlore`. After the fix merges and a soak, it re-checks the alert and posts `resolved` or `persisting`; the post-merge monitor takes it as a signal, and `persisting` pauses the class and opens a follow-up | Offline: the client against a fake factory, webhook signature, replay and dedup, the verification endpoint's authz, the monitor's decision tables. Live: a seeded incident verified `resolved`; a second ending `persisting`, its class paused |
 
 ### Order of work {#order-of-work}
 
@@ -119,6 +127,7 @@ flowchart LR
     o4["Profiles: spike S0, generator, drift gate (10)"]
     o5["Interfaces (9)"]
     o7["The factory from your coding agent (13)"]
+    o8["RunLore as a client (14 B),<br/>then it verifies the fix (14 A)"]
     o6["Loop policy · scoper · checks in the sandbox ·<br/>tester · search behind per-class switches"]
   end
   off --> gcp["gcp-0 rebuilt<br/>from release pins"]
@@ -131,7 +140,9 @@ flowchart LR
 Within the offline track: checks in the sandbox (3) precede the tester (4); the profiles' per-run
 model pin (P4) precedes the loop policy's judge, which calls through it; daily caps in dollars precede
 the sponsored principals and the Slack intake; the interfaces' MCP server (9) precedes feature 13,
-which extends it, and feature 13's live proofs join the platform session's checklist.
+which extends it, and feature 13's live proofs join the platform session's checklist. Feature 14's
+stage B follows the interfaces (9); its stage A follows the post-merge monitor (8) and stage B's own
+live proofs, which retire `/intake/runlore` first.
 
 Run provenance (what every run ran on, review R10) is recorded on every task, always on: [design](2026-10-22-run-provenance-design.md).
 

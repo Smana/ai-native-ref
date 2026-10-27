@@ -503,6 +503,43 @@ too, and the task would run and count `budget-principal-shadow`. Put the values 
 flux resume kustomization agent-factory -n flux-system   # restores the ConfigMap; the release upgrades again
 ```
 
+## Part G — the cost cross-check
+
+Two independent readings of a run's cost: the factory's ledger (`agent_factory_run_settled_usd{run}`,
+the sum of the run's `settled` entries, kept 1 h after the run) and agentgateway's own counter
+(`agentgateway_gen_ai_client_cost_usd_total`, priced from the `agent-model-catalog` overlay that
+`gen-prices.py` renders from `meter.prices`). Design:
+[cost cross-check](../../superpowers/specs/2026-10-27-cost-crosscheck-design.md). A disagreement warns
+and nothing more: neither side is presumed right. The *Cost: ledger vs gateway* panel on the agent-run
+dashboard and *Spend per UTC day: ledger vs gateway* on the factory dashboard show the two sides; the day
+is also `scripts/ops/cost-crosscheck.py --day YYYYMMDD` (exit 1 outside the tolerance).
+
+| Alert | Means | Do |
+|---|---|---|
+| `AgentCostCrossCheckMismatch` (warning) | A run whose gateway cost stopped moving 10 min ago differs from its ledger total by more than max(1 %, 0.01 USD), or the gateway priced spend the ledger never saw | Read the run's two figures, then the suspects below, in order |
+| `AgentGatewayCostUnpriced` (warning) | A catalog lookup answered other than `Exact`: the call adds nothing to the gateway counter | `Missing` or `Unpriced`: the model has no row (or a zero rate) in `meter.prices`; add it, then `scripts/ci/gen-prices.py --write`. `NoCatalog`: `agent-model-catalog` is not mounted (`AgentgatewayParameters.spec.modelCatalog`) |
+
+Which side is high decides the first suspect:
+
+| Suspect | Reads as | Check |
+|---|---|---|
+| [agent-platform#166](https://github.com/Smana/agent-platform/issues/166), a double charge: a settle write answered 504 that commits later | Ledger above gateway by one tick's spend. Fixed in agent-platform v0.25.0; any recurrence is a new bug | The run's `settled.<id>` against `status.usage.costMicroUSD` on the task (Part F, step 3) |
+| [agent-platform#167](https://github.com/Smana/agent-platform/issues/167), a lifted run's late spend lost across a failover | Ledger below gateway, by the run's last reading; only on a run first seen already ended, after a leader change | `kubectl get lease -n agent-system agent-factory.agents.ogenki.io`: did the holder change near the run's end? |
+| A price row, in the table or the overlay | Both sides consistently off by the same ratio on one model | `scripts/ci/gen-prices.py` (exit 1 on drift); the catalog the proxy mounted against `meter.prices`; the run's *Cost by model* panel |
+| An unpriced lookup | Ledger above gateway, with `AgentGatewayCostUnpriced` firing | Above |
+| A run through Envoy | Left out of the alert by design (XC7); counted in the factory dashboard's *Runs outside the cross-check* | The router the run's gateway series belong to |
+| Scrape loss | Gateway below ledger, a gap in `agentgateway_gen_ai_client_cost_usd_total` for the run's proxy pod | `up{namespace="agent-gateway"}` over the run's window; a proxy pod that died takes its last scrape with it |
+
+The access log's `cost` attribute traces one request: `kubectl logs -n agent-gateway -l gateway.networking.k8s.io/gateway-name=agent-router | grep <run id>`.
+
+Offline, `test-agent-cost-crosscheck-alerts` evaluates the rule and both alerts on synthetic series: an
+agreeing run, 1.5 % off, a 0.005 USD gap on a 0.20 USD run, a run still spending, an Envoy run, gateway
+cost with no ledger series, and a `Missing` lookup.
+
+Live, at the next platform session: the drill. Double `output` for Opus in `agent-model-catalog`, in
+place, under a suspended Kustomization (Part F's method); the next Opus run fires
+`AgentCostCrossCheckMismatch` within 30 min; put the row back.
+
 ## Results
 
 > Every round below predates phase H (#2429): the agent rows ran on Envoy's agent-router in

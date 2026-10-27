@@ -62,6 +62,15 @@ spec:
          "targets": [{"refId": "A", "expr": "sum by (reason) (increase_pure(agent_factory_resumes_total[1d]))", "legendFormat": "{{reason}}"}]},
         {"id": 12, "type": "table", "title": "Merge decisions by class and reason (7 days)", "description": "What the merge gate decided in 7 days, by class, verdict and reason.", "gridPos": {"x": 12, "y": 32, "w": 12, "h": 8},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
-         "targets": [{"refId": "A", "expr": "sum by (class, verdict, reason) (increase_pure(agent_factory_merge_decisions_total[7d])) > 0", "format": "table", "instant": true}]}
+         "targets": [{"refId": "A", "expr": "sum by (class, verdict, reason) (increase_pure(agent_factory_merge_decisions_total[7d])) > 0", "format": "table", "instant": true}]},
+        {"id": 13, "type": "timeseries", "title": "Spend per UTC day: ledger vs gateway", "description": "Each day's spend in the factory's ledger (the spent column's day maximum per principal, summed) against agentgateway's priced counter over the same day, one point per UTC day. The day's cross-check holds within max(1 %, 0.10 USD); scripts/ops/cost-crosscheck.py --day reads the same two sides and names the runs. The ledger counts runs through Envoy that the gateway counter does not price.", "gridPos": {"x": 0, "y": 40, "w": 16, "h": 8},
+         "datasource": {"type": "prometheus", "uid": "$${datasource}"}, "interval": "1d",
+         "fieldConfig": {"defaults": {"unit": "currencyUSD", "noValue": "0", "custom": {"drawStyle": "bars", "fillOpacity": 60}}, "overrides": []},
+         "targets": [{"refId": "A", "expr": "sum(max by (principal) (max_over_time(agent_factory_budget_spent_usd[1d])))", "legendFormat": "ledger (spent)"}, {"refId": "B", "expr": "sum(increase_pure(agentgateway_gen_ai_client_cost_usd_total{namespace=\"agent-gateway\"}[1d]))", "legendFormat": "gateway counter"}]},
+        {"id": 14, "type": "stat", "title": "Runs outside the cross-check (Envoy)", "description": "Runs in the dashboard's range with a token series on Envoy, not agentgateway. Envoy's router exports no per-request cost, so the cross-check leaves them out (XC7) rather than alert on a certain mismatch. Zero once every run goes through agent-router on agentgateway.", "gridPos": {"x": 16, "y": 40, "w": 8, "h": 8},
+         "datasource": {"type": "prometheus", "uid": "$${datasource}"},
+         "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "none", "graphMode": "none"},
+         "fieldConfig": {"defaults": {"noValue": "0", "decimals": 0, "color": {"mode": "fixed", "fixedColor": "text"}}, "overrides": []},
+         "targets": [{"refId": "A", "instant": true, "expr": "count(count by (ar_agent) (last_over_time(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.+\", namespace!=\"agent-gateway\"}[$__range])))"}]}
       ]
     }

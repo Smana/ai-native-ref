@@ -276,9 +276,13 @@ expect "kind secrets, the plural resource name, is refused 403" "403 -" \
   "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": "secrets"}')"
 expect "a kind that is a list is refused 403" "403 -" "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": ["Secret"]}')"
 expect "a kind that is an object is refused 403" "403 -" "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": {"k": "Secret"}}')"
-# unseen <what> <status and arguments>: framings the rule may not read; the server must never see a Secret call.
+# unseen <what> <status and arguments>: framings the rule may not read; the gateway refuses them (4xx)
+# and the server sees no call at all ("-" or nothing recorded).
 unseen() {
-  case "$2" in *[Ss]ecret*) fail "$1: the server saw a Secret call: $2" ;; *) echo "ok    $1 (${2%% *})" ;; esac
+  local status="${2%% *}" seen="${2#* }"
+  [ "$seen" = "$2" ] && seen=""
+  case "$status" in 4??) ;; *) fail "$1: the gateway did not refuse it: $2"; return ;; esac
+  case "$seen" in "" | "-") echo "ok    $1 ($status, the server saw no call)" ;; *) fail "$1: the server saw a call: $2" ;; esac
 }
 SECRET_CALL='{"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "flux-operator-mcp_get_kubernetes_resources", "arguments": {"apiVersion": "v1", "kind": "Secret"}}}'
 unseen "a JSON-RPC batch carrying a Secret tools/call never reaches the server with it" "$(rpc $R "[$SECRET_CALL]")"

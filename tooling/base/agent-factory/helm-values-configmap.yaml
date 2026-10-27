@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.23.1, the chart's appVersion.
+      # agent-platform v0.23.2, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.23.1@sha256:926b5ff3c0986b6b38b5bc8acc4f9ea12079f503f40bf6b2e401252ece15d239"
+      tag: "v0.23.2@sha256:4485e5126cf4cc37ab5d541f136f0a7c018b830e1b425b734eb3c889a7211fc5"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.
@@ -260,12 +260,11 @@ data:
         dailyCap: 5          # OD-9
         repository: Smana/cloud-native-ref  # where its issues go, whatever the caller asks
       poll: {issues: 60s, tasks: 30s, meter: 30s}
-      # pair until a class goes live (FR-11): every task gets a reviewer (SP3 phase 3).
-      defaults: {template: pair, tier: standard, dataClass: public, predictedClass: review}
+      # The template comes from the class and the tier (pair for review, FR-11); no default template or tier (R8).
+      defaults: {dataClass: public, predictedClass: review}
       triage:
-        # SP4 PR 5's complexity-classifier (C7, R24). Until it exists every task falls back to
-        # standard with fallback: static, which status.classification records.
-        classifierURL: http://complexity-classifier.agent-system.svc.cluster.local:8080/v1/classify
+        # No classifierURL: the classifier (C7) was never deployed, and the scoper replaced it (R8).
+        # Unset, every task takes tier standard, classifier static, without a call (since v0.23.2).
         controlPercent: 10  # OD-14
       # Every tier asks for agent-default (R11). The router serves tier-* on both listeners since
       # AGW-8; a tier moves to its name with that model's meter price below.
@@ -291,7 +290,7 @@ data:
         # The days in USD (TC5): the old 25M and 5M at the reference $1.70 per M, now counted at
         # meter.prices, cache reads at their own rate. AG8 holds B2 at or above factoryDailyUSD
         # plus caps.concurrentRuns frontier runs, and fails a token key (factoryDaily, humanDaily,
-        # perPerson.dailyTokens): v0.23.1 ignores one, a later release refuses it.
+        # perPerson.dailyTokens): v0.23.2 ignores one, a later release refuses it.
         factoryDailyUSD: 42.50
         humanDailyUSD: 8.50
         # Per-person caps in shadow (D8): counted as budget-principal-shadow{principal}, never refused.

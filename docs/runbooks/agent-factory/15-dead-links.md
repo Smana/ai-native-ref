@@ -28,7 +28,8 @@ session writes one, it has no intake and takes no decision. See [README.md](READ
 
 One commit: `dead-links: {…, shadow: true}` on the host's entry in
 `tooling/base/agent-factory/helm-values-configmap.yaml`, and the `link-rot` schedule removed (M4: the
-two schedules would fix the same links twice).
+two schedules would fix the same links twice). The gcp-0 session of 2026-10-27 keeps `link-rot` beside
+the class until the breaker and revert proof of the live drill (§3) is done, then a host change removes it.
 
 | Proof | Reading |
 |---|---|

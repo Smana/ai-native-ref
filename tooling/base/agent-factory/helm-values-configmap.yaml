@@ -46,11 +46,12 @@ data:
             tests: {}
             dashboards: {}
             scripts: {}
-            # Declared off (merge gate classes MC14): no switch, so no intake and no decision. A
-            # session's first commit sets shadow: true (runbook 15). Its fence repeats the host's
+            # Shadow (merge gate classes MC14, runbook 15 §2): intake and decisions, nothing armed.
+            # Its fence repeats the host's
             # `low-risk: docs-links` rule, which approves its pull requests until `low-risk:
             # dead-links` lands with the live switch; test-agent-merge-gate-parity.py holds the two.
             dead-links:
+              shadow: true  # since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed
               allowedFiles: ['^(docs|website/content)/.+\.md$']
               protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
               modifyOnly: true
@@ -148,7 +149,8 @@ data:
                 change fewer than 21 lines in total and add or delete no file. If none is broken,
                 change nothing and open no pull request.
             # dead-links' intake (MC6): the findings two consecutive nightly runs of the host's
-            # dead-links.yaml agree on become one task. Inert while the class is off.
+            # dead-links.yaml agree on become one task. link-rot stays beside it until the
+            # revert proof (runbook 15 §3) is done: a host change removes it (M4).
             - name: dead-links
               cron: "0 7 * * *"  # daily, after the 04:23 UTC scan
               class: dead-links
@@ -169,10 +171,11 @@ data:
             tests: {}
             dashboards: {}
             scripts: {}
-            # Declared off (MC14): no switch, so no intake and no decision. Its detector is this
+            # Shadow (MC14, runbook 15 §6): intake and decisions, nothing armed. Its detector is this
             # repository's dead-links.yaml and its rule `low-risk: dead-links` in .policy.yml
             # (test-agent-merge-gate-parity.py holds the two).
             dead-links:
+              shadow: true  # since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed
               allowedFiles: ['^(docs|website/content)/.+\.md$']
               protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
               modifyOnly: true
@@ -201,7 +204,7 @@ data:
             breaker: {window: 10, maxReverts: 1, maxFollowUps: 1}
           schedules:
             # dead-links' intake here (MC6, F3): what two nightly runs of this repository's
-            # dead-links.yaml agree on. Inert while the class is off (MC14). The name keys every
+            # dead-links.yaml agree on. Inert only if the class is off (MC14). The name keys every
             # task it starts and is unique across repositories (the factory's strict parse refuses
             # a second `dead-links`, the host's).
             - name: ai-native-ref-dead-links

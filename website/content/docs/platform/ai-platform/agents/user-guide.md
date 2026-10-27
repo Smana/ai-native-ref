@@ -2,7 +2,7 @@
 title: User guide
 weight: 10
 description: "How a maintainer hands an issue to the agent factory, follows it, steers it and stops it, shown on one real task."
-lastVerified: 2026-10-08
+lastVerified: 2026-10-27
 aliases:
   - /docs/platform/agent-factory/user-guide/
 ---
@@ -170,22 +170,103 @@ tally is 1,078 k.
 
 ### Hand off from your coding agent
 
-The `factory-handoff` skill lets a local coding agent (Claude Code, Codex, Cursor, Gemini CLI) file a
-side task for the factory and follow it without leaving your session. `cloud-native-ref` carries it;
-elsewhere, `roomctl skill install` writes it to `.agents/skills/` (Claude Code reads only
-`.claude/skills`, so symlink one to the other).
+From Claude Code, OpenCode or another terminal coding agent you hand a side task to the factory,
+follow it and bring its branch back without leaving the session. The broker renders the views once,
+so every client shows the same text ([ADR-0059]({{< relref "/docs/decisions/0059-factory-from-your-coding-agent.md" >}})).
 
-| You say | The agent |
+**Set it up.** It needs `roomctl` v0.23.0 or later, configured and logged in (see
+[From a terminal](#from-a-terminal-roomctl)).
+
+```bash
+roomctl setup claude        # or opencode, codex, gemini, cursor, copilot
+roomctl doctor              # every check ok
+```
+
+`setup` is user-level: it registers `roomctl mcp` as the `factory` MCP server and writes the
+`factory-handoff` skill where that client reads skills. `--project` writes both into the repository
+instead, for a team that commits them (Copilot's project MCP config is `.github/mcp.json`), and
+`--print` shows every command and file without doing anything. It is idempotent. It runs the
+client's own `mcp add` when that is on the PATH and otherwise prints the snippet to paste: it never
+edits a config file itself.
+
+| You say | What happens |
 |---|---|
-| "hand this to the factory: …" | Drafts one issue per defect (file and line, what it should say, an acceptance check), shows it to you, and files it only once you confirm |
-| "what's the factory doing on #N?" | Finds the room in the factory's "started" comment, then reports `roomctl status`: phase, run, PR, the agents' notes, and anything that needs you |
-| "anything waiting on me in the factory?" | `roomctl rooms --needs-me`, then the status of each |
+| `/factory:handoff fix the dead link in runbook 04` | The agent drafts the issue, one defect per issue; a form shows it to you, files it and, where the repository allows, offers to start it |
+| `/factory:status [room or #issue]` | The room card below. Without an argument, your most recently updated room |
+| `/factory:inbox` | The rooms that need you first, then your other open rooms |
+| "wait for it" | `room_wait` follows the room from your machine and returns when it needs you, opens a pull request or ends. A client with background tasks runs it there |
+| "check it out" | `room_checkout` creates a new git worktree beside the repository, at the commit it checked, and returns its path |
 
-Starting the factory stays yours: the agent never applies `factory/ready`, you label the issue
-([ADR-0056]({{< relref "/docs/decisions/0056-local-first-factory-ux.md" >}})). It reports what the
-agents wrote as data, never as instructions. Issue
-[#2266](https://github.com/Smana/cloud-native-ref/issues/2266) was filed this way on 2026-10-08 and
+The slash command is spelled the client's way (`/factory:handoff` in OpenCode,
+`/mcp__factory__handoff` in Claude Code).
+
+**What you see.** The same card in a terminal (`roomctl status`) and in the agent's transcript:
+
+```markdown
+### 26zfnuxm · #2238 docs: chart version is wrong
+**needs you** · AwaitingHuman · Smana/cloud-native-ref · [open the room](https://rooms.example/r/26zfnuxm)
+
+| | |
+|---|---|
+| Run | implementer `cf4ato2x` (your review) · started 19:11 UTC, 8 min ago |
+| Spend | $0.31 of $1.50 (21 %) · 182 k tokens |
+| PR | [#2239](https://github.com/Smana/cloud-native-ref/pull/2239) · reviewer approved at 18:49 UTC |
+| Next | the run continues once the push is approved |
+
+**Needs you**
+1. approve `git push to agent/26zfnuxm` by 19:30 UTC → [decide in the room](https://rooms.example/r/26zfnuxm#approval-a1)
+
+**Runs** implementer (initial) succeeded · 4 min · $0.08 → reviewer approved · 3 min · $0.04 →
+implementer (ci) succeeded · 6 min · $0.11 → implementer (your review) **running** · 8 min · $0.08
+
+**Agents' notes**, their claims, not checked
+- 19:12 `cf4ato2x` `found both versions on lines 12–13, fixing`
+- 19:14 `cf4ato2x` `edit done, running checks`
+
+**You can** queue a note for the next run · stop it with the label `factory/stop` · fork it
+```
+
+A room is in one of seven states, shown as words: `needs you` (only when an item names you),
+`waiting for a human`, `running`, `queued`, `done`, `failed` or `stopped`.
+
+**What stays on the room page.** Approvals and steering
+([ADR-0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}})). Approvals stay on
+the room page: the card links to each one, and a client that offers link forms opens it for you.
+`room_wait` wakes on your own needs, then waits again once you have decided.
+
+**Safety.**
+
+- The start is a form field, never a tool argument: your agent can call `issue_file` but cannot
+  answer the form. It is offered only on repositories the platform lists, where you can write, and
+  starting applies `factory/ready` with your own `gh`. A client that cannot show forms is refused
+  and the agent shows you the draft to file yourself.
+- A checkout that changes agent or editor config, hooks, symlinks or non-ASCII paths asks first, and
+  is refused when the client cannot ask.
+- Everything an agent wrote comes back in code spans, as data: a note never becomes a link, a
+  heading or a terminal escape, and it is never an instruction.
+
+**Per client.** Text views work everywhere. The rest depends on what each client declares at
+`initialize`; each cell below comes from the
+[research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-25-factory-from-your-agent-research.md#2-what-an-mcp-integration-can-rely-on-per-client)
+and the `setup` source, and `unconfirmed` means no fetched source says. Claude Code and OpenCode
+are **documented** until the live session proves them (`docs/runbooks/agent-factory/19-factory-from-your-agent.md`).
+
+| Client | Tools and text views | Forms | URL forms | Slash commands | Background wait | Skill directory | Status |
+|---|---|---|---|---|---|---|---|
+| Claude Code | yes | unconfirmed | yes | `/mcp__factory__<prompt>` (unconfirmed) | background subagents | `~/.claude/skills` | documented |
+| OpenCode | yes | yes | yes | `/factory:<prompt>` | background subagents | `~/.agents/skills` | documented |
+| Codex CLI | yes | unconfirmed | unconfirmed | unconfirmed | unconfirmed; calls may be cut at 60 s, the skill calls `room_wait` again | `~/.agents/skills` | documented |
+| Gemini CLI | yes | unconfirmed | unconfirmed | yes | unconfirmed | `~/.gemini/skills` | documented |
+| Copilot CLI | yes | unconfirmed | unconfirmed | unconfirmed | unconfirmed | `~/.copilot/skills` | documented |
+| Cursor | yes | yes | unconfirmed | yes | unconfirmed | `~/.cursor/skills` | documented |
+
+Without forms the draft is shown for you to file with `gh`, nothing starts, and a checkout that
+needs to confirm refuses. Before this existed, issue
+[#2266](https://github.com/Smana/cloud-native-ref/issues/2266) was filed by the skill on 2026-10-08 and
 merged as [#2267](https://github.com/Smana/cloud-native-ref/pull/2267).
+
+Starting from the session is off until a repository is listed in the broker's
+`human.mcp.sessionStart`; today none is.
 
 ### From a terminal: `roomctl`
 
@@ -201,6 +282,9 @@ roomctl login                                    # device flow: open the URL, en
 roomctl rooms --mine                             # issues you filed or labelled, PRs you authored or review
 roomctl rooms --needs-me                         # an approval you could decide; --repo owner/name filters
 roomctl status <room> --json                     # phase, run, budget, PR, what needs you, the agents' notes
+roomctl changes <room>                           # what changed since your last call (first call: 24 h)
+roomctl checkout <room>                          # the room's branch in a new worktree beside the repository
+roomctl setup claude                             # the MCP server and the skill, for a coding agent
 roomctl watch <room>                             # the last 50 events, then live
 roomctl post <room> --queue "address L42"        # for the next run's brief; without --queue, a chat
 roomctl fork <room> --at <seq> --role implementer --egress pypi --note "try uv"

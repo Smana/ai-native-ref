@@ -210,6 +210,7 @@ flowchart LR
 | Signature, issuer, the listener's own audiences, `exp` and `sub` present | `jwtAuthentication`, `mode: Strict`, one policy per listener | 401 |
 | `sub` starts with `system:serviceaccount:agents:` | the listener's `authorization` rule | 403 |
 | The model the call reaches is one the caller's profile names | `capabilities-<listener>` on the model routes (`policy-capabilities.yaml`) | 403 |
+| A tool call carries no argument value the caller's profile excludes (today: `get_kubernetes_resources` with `kind: Secret`) | `capabilities-mcp-<listener>` on the MCP route (`policy-capabilities.yaml`) | 403 |
 | No client-set `x-ar-agent`, `x-ar-human`, `x-ai-gateway-client-id` or `agent-session-id` | `strip-identity-headers`, before routing | — (removed) |
 
 Each listener then sets `x-ar-agent` from the verified `jwt.sub`, and the same `sub` labels every
@@ -240,6 +241,16 @@ transformation makes. The rule reads the raw body, so a gzip request with no `x-
 403 too. Every profile lists the four aliases today, so the rule binds nothing until a
 role moves to its own size: narrowing a profile is the switch, and gate AG14 refuses one that would
 refuse a model the factory's tiers pin.
+
+The arguments are generated too. A tool in a profile may read
+`{name: <tool>, when: 'mcp.tool.arguments.<argument> != "<value>"'}`, the one form the generator
+takes. It becomes a route-level `Require` on the listener's MCP route (`capabilities-mcp-<listener>`),
+because agentgateway 1.6's `mcpAuthorization` cannot read arguments. A call that carries the excluded
+value, compared case-insensitively, is refused 403 before it reaches the server. The tool stays listed,
+and a call without the argument reaches the server, which answers it. One rule exists today:
+`get_kubernetes_resources` never with `kind: Secret`, for every role that has the tool. It adds to the
+Flux MCP server's own RBAC, which grants no Secret. The harness's OpenHands SDK keeps its MCP session
+after such a 403 (since 1.55), so the run keeps its other tools.
 
 | Role | `public` | `internal` adds |
 |---|---|---|

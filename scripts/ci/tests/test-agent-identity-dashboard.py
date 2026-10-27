@@ -94,6 +94,9 @@ def check_identity():
                           f"{title} {t['refId']}: {series} is read through increase_pure")
         for tr in p.get("transformations", []):
             check("principal" not in json.dumps(tr), f"{title}: a transformation names principal")
+    day = panels.get("Spend per day", {})
+    check(day.get("interval") == "1d" and all("[1d] offset -1d)" in t["expr"] for t in day.get("targets", [])),
+          "Spend per day reads each day forward from its UTC midnight ([1d] offset -1d), so today shows")
     runs = panels.get("Runs", {})
     charge = 'max_over_time(agent_factory_run_charge_info{principal="${principal}"}[$__range])'
     for t in runs.get("targets", []):

@@ -20,6 +20,10 @@ spec:
       automountServiceAccountToken: true
       securityContext:
         runAsNonRoot: true
+        # The image's user is the name "nonroot": the kubelet cannot verify a name is non-root, so the
+        # numeric ids are set here (CreateContainerConfigError on gcp-0, 2026-10-27).
+        runAsUser: 65532
+        runAsGroup: 65532
         fsGroup: 65532  # the 0440 Secret files are readable through it
         seccompProfile:
           type: RuntimeDefault

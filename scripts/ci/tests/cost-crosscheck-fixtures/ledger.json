@@ -1,4 +1,4 @@
 {"kind": "ConfigMap", "metadata": {"name": "agent-factory-ledger-usd-20261027", "namespace": "agent-system"},
- "data": {"spent": "{\"system:factory\": \"1700000\", \"github:smana\": \"300000\"}",
+ "data": {"spent": "{\"system:factory\": \"1400000\", \"github:smana\": \"300000\"}",
           "reserved.aaa": "{\"maxMicroUSD\": 2000000}",
           "settled.aaa": "500000", "settled.bbb": "200000", "settled.ccc": "1000000"}}

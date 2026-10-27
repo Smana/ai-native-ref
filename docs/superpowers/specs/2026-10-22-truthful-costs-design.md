@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-22 · **Status:** approved design 2026-10-22; TC1–TC10 record the owner's
 decisions, and the details they left open are ruled where they appear, each with its reason ·
-**PR 1 built** ([plan](../plans/2026-10-22-truthful-costs-rule-plan.md)) ·
+**Built offline, all four PRs merged** (ai-native-ref #99, agent-platform #168 in v0.16.0, ai-native-ref #105 and #98; [plan](../plans/2026-10-22-truthful-costs-rule-plan.md)); the live proofs wait for a `gcp-0` session ·
 **Part of:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md#before-v3-starts), "Before v3 starts",
 truthful costs; this is its first part, B-2 holds the rest ([Not in this design](#not-in-this-design)) ·
 **Research:** [model pricing](2026-10-20-model-pricing-research.md#recommendations), recommendations 1,

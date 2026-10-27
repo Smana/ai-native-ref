@@ -279,6 +279,65 @@ runbooks)" that defines a room as the per-task workspace the broker serves at ro
 other line of that file and no other file changes. `task links` passes.
 ```
 
+### Layer 2: the loop policy
+
+Prerequisites: layer 1's proofs passed (the judge reads the scope's checks) and the capability profiles'
+sidecar ([#103](https://github.com/Smana/ai-native-ref/pull/103)) is merged and live: a command in the
+sandbox that posts to the identity proxy's `/judge/v1` reaches the judge alias. The row now reads
+`docs: {scope: scoper, stallSteps: 20, continuations: 2, judge: tier-light}`. The factory copies it
+into every implementer claim of the class: `kubectl -n agent-system get task <name> -o
+jsonpath='{.spec.loop}'` shows `stallSteps`, `continuations` and `judgeModel`.
+
+| # | Do | Expected reading |
+|---|---|---|
+| 1 | File drill issue C (a stall drill) and label it as in layer 1 | The implementer ends with no commit by step 20: the task is `Escalated`, reason `stalled`; the room holds the run's findings as a note; the issue carries the fixed narration with the reason category only; `agent_factory_loop_runs_total{end="stalled"}` is 1. The run's cost stays under the tier's `runUSD` |
+| 2 | File drill issue D (a clear issue whose first attempt misses a check) and label it | After the first run ends on its own, the judge answers `not_yet` against the scope's checks; the same conversation continues (the room shows one run's conversation, not a restart), at most twice |
+| 3 | On step 2's task, read the cache | `cache_read` over `input` for the continued steps is high (runbook 04, Part E); a continuation that restarted the conversation reads as a cold prefix |
+| 4 | An issue whose acceptance cannot be met (drill E) | The judge answers `impossible`: `Escalated`, reason `judge_impossible`, the judge's text only in the room, the issue carries the category only |
+| 5 | Read the reviewer's role in the room on any of the runs above | The reviewer's brief and calls hold no implementer transcript |
+| 6 | Read the counters | `agent_factory_loop_runs_total` by `end` (`finished`, `stalled`, `not_met`, `judge_impossible`) matches the runs above |
+
+After the drill, set `stallSteps` from the accepted runs' step counts (the default is 80) in a follow-up
+commit; 20 is a drill value and would stop a legitimate run.
+
+**Drill C, a stall** (a task that sends the run searching without ever committing):
+
+```text
+Title: docs: find every mention of the old agent-gateway route name
+
+Body:
+Somewhere in this repository's docs and website content a route of the agent gateway is still named
+by an old name, and I do not remember which. Find every such mention and change it to the current
+name. Read the whole docs tree before changing anything, and explain what you found in the pull request.
+Acceptance: no file under docs/ or website/content/ names the old route.
+```
+
+The route's old name does not exist, so the run reads and never finds a line to change; at step 20 the
+stall rule stops it. If it commits a change, pick a stricter wording ("or change nothing and say so")
+and file it again.
+
+**Drill D, a continuation** (acceptance with two checks; the second is easy to miss):
+
+```text
+Title: docs: add a drill row to the status table
+
+Body:
+Add one row for the loop policy to the table in website/content/docs/platform/ai-platform/status.md
+named "Loop policy drill".
+Acceptance: (1) the table gains exactly one row, named "Loop policy drill"; (2) the row's last cell
+is "drill, remove after the session" and `task docs` passes; (3) no other line of any file changes.
+```
+
+**Drill E, an impossible acceptance** (the judge answers `impossible`, a human takes over):
+
+```text
+Title: docs: link the runbooks README to a page that does not exist
+
+Body:
+Add to docs/runbooks/agent-factory/README.md a link to docs/runbooks/agent-factory/99-nonexistent.md.
+Acceptance: `task links` passes with that link in place, and 99-nonexistent.md is not created.
+```
+
 ## Recording results
 
 Each runbook ends with a results table (step, expected, observed, pass/fail). Fill it in place as

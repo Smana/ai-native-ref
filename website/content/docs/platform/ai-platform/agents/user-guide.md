@@ -184,7 +184,7 @@ roomctl doctor              # every check ok
 
 `setup` is user-level: it registers `roomctl mcp` as the `factory` MCP server and writes the
 `factory-handoff` skill where that client reads skills. `--project` writes both into the repository
-instead, for a team that commits them (Copilot's project MCP config is `.github/mcp.json`), and
+instead, for a team that commits them (Copilot's project MCP config is the `mcp.json` file in the repository's `.github` folder), and
 `--print` shows every command and file without doing anything. It is idempotent. It runs the
 client's own `mcp add` when that is on the PATH and otherwise prints the snippet to paste: it never
 edits a config file itself.

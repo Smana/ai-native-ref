@@ -341,6 +341,9 @@ Add to docs/runbooks/agent-factory/README.md a link to docs/runbooks/agent-facto
 Acceptance: `task links` passes with that link in place, and 99-nonexistent.md is not created.
 ```
 
+This runbook is itself the drill's subject: [99-nonexistent](99-nonexistent.md) is the deliberate target
+that does not exist, so `task links` fails on it and the acceptance cannot pass.
+
 ### Layer 3: the sandbox checks
 
 Both repositories now carry `docs: {checks: true}` (egress `[pypi]` on cloud-native-ref, `[golang, pypi]`

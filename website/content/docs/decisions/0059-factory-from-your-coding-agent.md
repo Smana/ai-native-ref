@@ -71,7 +71,8 @@ Decided by the owner on 2026-10-25, with the design's numbering.
 | FA9 | `roomctl setup <client>` registers the MCP server and writes the skill where the client reads it |
 
 **In this deployment:** `/mcp` is on (`human.mcp.enabled`) with `sessionStart` empty, so no
-repository offers the start. The owner decided this on 2026-10-25. A gcp-0 session lists one
+repository offers the start. On the tailnet it admits only roomctl's token: reads, and `room_queue` and
+`room_fork` as the caller, rate-limited; no sponsored principal is configured. The owner decided this on 2026-10-25. A gcp-0 session lists one
 repository to prove it, and removes it after (`docs/runbooks/agent-factory/19-factory-from-your-agent.md`).
 
 ---

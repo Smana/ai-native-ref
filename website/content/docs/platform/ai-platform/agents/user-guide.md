@@ -187,7 +187,8 @@ roomctl doctor              # every check ok
 instead, for a team that commits them (Copilot's project MCP config is the `mcp.json` file in the repository's `.github` folder), and
 `--print` shows every command and file without doing anything. It is idempotent. It runs the
 client's own `mcp add` when that is on the PATH and otherwise prints the snippet to paste: it never
-edits a config file itself.
+edits a config file itself. Gemini CLI connects a local (stdio) server only in a folder you trust;
+`roomctl setup gemini` reminds you.
 
 | You say | What happens |
 |---|---|
@@ -204,7 +205,7 @@ The slash command is spelled the client's way (`/factory:handoff` in OpenCode,
 
 ```markdown
 ### 26zfnuxm · #2238 docs: chart version is wrong
-**needs you** · AwaitingHuman · Smana/cloud-native-ref · [open the room](https://rooms.example/r/26zfnuxm)
+**needs you** · waiting for a human · Smana/cloud-native-ref · [open the room](https://rooms.example/r/26zfnuxm)
 
 | | |
 |---|---|

@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.24.0, the chart's appVersion.
+      # agent-platform v0.25.0, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.24.0@sha256:7e193256c93c3121da51f5c0add2c53627e32f7106a815d5f46cffde2d1a8687"
+      tag: "v0.25.0@sha256:54c859ead2a38f280881b061f1a68e847922dc74c51368d65cb3069fa3227ae6"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.
@@ -266,7 +266,7 @@ data:
       defaults: {dataClass: public, predictedClass: review}
       triage:
         # No classifierURL: the classifier (C7) was never deployed, and the scoper replaced it (R8).
-        # Unset, every task takes tier standard, classifier static, without a call (since v0.24.0).
+        # Unset, every task takes tier standard, classifier static, without a call (since v0.25.0).
         controlPercent: 10  # OD-14
       # Every tier asks for agent-default (R11). The router serves tier-* on both listeners since
       # AGW-8; a tier moves to its name with that model's meter price below.
@@ -292,7 +292,7 @@ data:
         # The days in USD (TC5): the old 25M and 5M at the reference $1.70 per M, now counted at
         # meter.prices, cache reads at their own rate. AG8 holds B2 at or above factoryDailyUSD
         # plus caps.concurrentRuns frontier runs, and fails a token key (factoryDaily, humanDaily,
-        # perPerson.dailyTokens): v0.24.0 ignores one, a later release refuses it.
+        # perPerson.dailyTokens): v0.25.0 ignores one, a later release refuses it.
         factoryDailyUSD: 42.50
         humanDailyUSD: 8.50
         # Per-person caps in shadow (D8): counted as budget-principal-shadow{principal}, never refused.

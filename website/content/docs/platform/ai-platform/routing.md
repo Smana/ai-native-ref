@@ -252,7 +252,7 @@ drifts:
 | Gateway budgets B1, B2, B6 | A CEL cost string in `infrastructure/base/agent-gateway/policy-budgets.yaml` | Gate AG8 regenerates it |
 | The `agent-run` dashboard's *Cost (USD)* panel, `AnthropicFleetNearCap` | `llm_gateway:charge_usd_per_mtoken`, the `llm-gateway-prices` group of `infrastructure/base/llm-gateway/vmrule-llm-gateway.yaml` | `test-agent-prices`: the group is what `scripts/ci/gen-prices.py` renders |
 
-A price change is the row's edit, `python3 scripts/ci/gen-prices.py --write` and the cost string gate AG8 prints for `infrastructure/base/agent-gateway/policy-budgets.yaml`, in one commit.
+A price change is the row's edit, `python3 scripts/ci/gen-prices.py --write` (it renders the gateway's `agent-model-catalog` overlay too) and the cost string gate AG8 prints for `infrastructure/base/agent-gateway/policy-budgets.yaml`, in one commit.
 
 `meter.prices`, USD per million tokens, list prices read 2026-10-16:
 

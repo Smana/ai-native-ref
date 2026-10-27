@@ -48,6 +48,10 @@ spec:
         add:
           - name: x_ar_agent
             expression: jwt.sub
+          # The request's priced cost in USD (empty when the catalog lookup is not Exact): the line
+          # that traces a cost cross-check mismatch to a request.
+          - name: cost
+            expression: flatten(llm.cost)
     metrics:
       attributes:
         add:

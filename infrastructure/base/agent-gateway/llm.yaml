@@ -39,6 +39,8 @@ spec:
   ai:
     provider:
       custom:
+        # The catalog key (agent-model-catalog) and the series' provider label.
+        providerOverride: zai
         formats:
           - type: Completions
             path: /api/paas/v4/chat/completions
@@ -76,6 +78,8 @@ spec:
   ai:
     provider:
       custom:
+        # The catalog key (agent-model-catalog) and the series' provider label.
+        providerOverride: zai
         formats:
           - type: Messages
             path: /api/anthropic/v1/messages

@@ -24,7 +24,8 @@ names its listeners, audiences, caller namespace and route namespace:
        Anthropic one from `internal` only (ADR-0054); a rule sends to one
        backend; no policy other than the listener ones carries
        jwtAuthentication. A Z.ai backend uses the custom provider: 1.6 keeps
-       `openai` for the OpenAI API.
+       `openai` for the OpenAI API; on the required Gateway it sets providerOverride: zai, the key
+       agent-model-catalog prices it under and the series' provider label.
   AG6  Every MCP authorization is an Allow list whose expressions are each one
        complete alternative (role AND target AND tool names), for the route's
        own class: Allow expressions are OR-ed at runtime (PoC N7). A route-level
@@ -467,9 +468,14 @@ def check_routes(objs):
 
 def check_zai_provider(objs):
     out = []
+    # Only the required Gateway loads agent-model-catalog (parameters.yaml): the aws-0 PoC prices nothing.
+    priced = {b for g, prof in profiled(objs) if prof.required for r in routes_on(objs, g) for b in backend_refs(r)}
     for b in kind(objs, "AgentgatewayBackend"):
         if is_zai(b) and any("custom" not in p for p in providers(b)):
             out.append(f"AG5: {ref(b)} serves Z.ai without provider.custom (1.6: openai is for the OpenAI API only)")
+        elif is_zai(b) and key(b) in priced and any((p.get("custom") or {}).get("providerOverride") != "zai" for p in providers(b)):
+            out.append(f"AG5: {ref(b)} serves Z.ai without provider.custom.providerOverride: zai "
+                       "(the catalog key agent-model-catalog prices GLM under)")
     return out
 
 

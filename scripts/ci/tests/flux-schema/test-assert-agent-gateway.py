@@ -119,7 +119,7 @@ def compliant(key=REAL):
                         "transformation": {"request": {"remove": list(gate.IDENTITY_HEADERS)}}}}),
         *[listener_policy(s) for s in prof.listeners],
         obj("AgentgatewayBackend", "agent-system", "zai", {
-            "ai": {"provider": {"custom": {"formats": [
+            "ai": {"provider": {"custom": {"providerOverride": "zai", "formats": [
                 {"type": "Completions", "path": "/api/paas/v4/chat/completions"}]},
                 "host": "api.z.ai", "port": 443}},
             "policies": {"auth": {"secretRef": {"name": "zai-api-key", "key": "apiKey"}},
@@ -297,6 +297,10 @@ expect("zai on internal fails", lambda o: spec_at(o, "HTTPRoute", "agent-models"
        .update({"sectionName": "internal"}), "AG5")
 expect("route-level jwtAuthentication fails", lambda o: spec_at(o, "AgentgatewayPolicy", "agent-mcp-public")
        .update({"traffic": {"jwtAuthentication": {"mode": "Strict"}}}), "AG5")
+expect("a Z.ai backend without providerOverride zai fails (the catalog key and the series label)",
+       lambda o: zai(o)["ai"]["provider"]["custom"].pop("providerOverride"), "AG5", "providerOverride")
+expect("a Z.ai backend under another provider name fails",
+       lambda o: zai(o)["ai"]["provider"]["custom"].update({"providerOverride": "custom"}), "AG5", "providerOverride")
 expect("Z.ai on the openai provider fails", lambda o: zai(o)["ai"].update(
     {"provider": {"openai": {"model": "glm-5.3"}, "host": "api.z.ai", "port": 443, "path": "/api/paas/v4/chat/completions"}}), "AG5")
 

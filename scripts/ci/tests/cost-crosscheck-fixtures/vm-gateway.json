@@ -1,0 +1,3 @@
+{"status": "success", "data": {"resultType": "vector", "result": [
+  {"metric": {"ar_agent": "system:serviceaccount:agents:xplane-run-aaa"}, "value": [1793059200, "0.5"]},
+  {"metric": {"ar_agent": "system:serviceaccount:agents:xplane-run-bbb"}, "value": [1793059200, "0.195"]}]}}

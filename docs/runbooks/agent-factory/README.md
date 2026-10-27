@@ -217,7 +217,7 @@ Destroying the cluster is a separate owner call.
 
 ## v3 loop and sandbox layers on the `docs` class
 
-The gcp-0 session of 2026-10-27 switches three v3 features on for the `docs` class only, one commit
+The gcp-0 session of 2026-10-27 switches v3 features on for the `docs` class only, one commit
 each in `tooling/base/agent-factory/helm-values-configmap.yaml`, so a failure is attributable. Merge
 and prove them in this order; the next layer waits for the previous one's proofs. The class is
 declared by both repositories, so each switch reads for `Smana/ai-native-ref` and
@@ -390,6 +390,167 @@ Acceptance: the sentence exists, `./scripts/ci/validate-links.sh` passes, no oth
 
 Both links end in a wrong extension (`.mdx`, `.yml`): the `links` step reports each before the push,
 and the pushed head carries the corrected link.
+
+### Layer 4: the search tool
+
+`docs: {…, search: true}` offers the class's implementer runs the search tool (a read-only child on the
+run's token: 40 iterations, 300k tokens, 300 s, six calls a run). It never switches the loop on. Design:
+[search tool](../../superpowers/specs/2026-10-23-search-tool-design.md) (live proofs, SQ5). Prerequisite:
+layers 1 and 2 passed, so a difference between the arms is the tool's alone.
+
+| # | Do | Expected reading |
+|---|---|---|
+| 1 | File drill issues H1 to H3 below, label each as in layer 1 | The task has `spec.search: true`, every implementer claim `spec.loop.search: true` (`kubectl -n agent-system get agentrun -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.search}'`), the run calls the search tool at least once, the gateway's log shows the child's calls under the run's identity |
+| 2 | Read the ledger of each run | The child's tokens are inside the run's; `budget` and `error` outcomes are under a quarter of the calls |
+| 3 | Paired gate (SQ5a): flip `search` to `false` in a commit, file the same three issues again as new issues, then flip it back | Acceptance not lower over the pairs; steps per run (children included) and cost per accepted PR not higher with search on |
+
+**Drill H1, a multi-file lookup** (the answer is spread over several files, so searching beats reading):
+
+```text
+Title: docs: list the runbooks that mention the room broker
+
+Body:
+Add a "Related runbooks" line at the end of docs/runbooks/agent-factory/13-rooms-restore.md that
+names every runbook in docs/runbooks/agent-factory/ whose text contains the words "room broker".
+
+## Acceptance
+- The new line lists exactly the runbook files (by file name) that contain "room broker", found by
+  searching the directory.
+- No other line of any file changes and `task links` passes.
+```
+
+**Drill H2, a rename sweep:**
+
+```text
+Title: docs: say "factory" where the status page still says "dark factory"
+
+Body:
+In website/content/docs/platform/ai-platform/status.md, replace the phrase "dark factory" by
+"factory" wherever it appears, except inside a link target or a code span.
+
+## Acceptance
+- No "dark factory" is left in that file outside a link target or a code span.
+- No other file changes and `task links` passes.
+```
+
+**Drill H3, a cross-reference:**
+
+```text
+Title: docs: point the splitter runbook at the spec that defines the family budget
+
+Body:
+In docs/runbooks/agent-factory/17-splitter.md, section 4, add one sentence naming the decision id
+(SLn) in docs/superpowers/specs/2026-10-23-splitter-design.md that defines the family budget, with a
+relative link to that spec.
+
+## Acceptance
+- The sentence cites the right decision id and links to the spec; `task links` passes.
+- No other line of any file changes.
+```
+
+Cost: six runs for the three pairs, each capped by the docs tier's task cap (standard: $5.10); a docs
+run costs about $0.50 to $1.50 and a search adds at most the child's 300k tokens, so the layer is
+about $5 expected and $31 at the caps, inside `tasksPerDay: 20` and `factoryDailyUSD: 42.50`.
+
+### Layer 5: the splitter
+
+`scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard}}` lets the
+scoper propose a split of a hard `scripts` task; nothing splits before a maintainer comments `/factory
+split`. The proofs are [runbook 17](17-splitter.md) section 3. Prerequisites: layer 1 passed (the split
+needs the scoper), the factory App holds `issues: write`. File the cohort on cloud-native-ref, label each
+`class:scripts` then `factory/ready` (without `class:scripts` the task's class is `review`, off).
+
+**Drill S1, a hard issue of three separable parts:**
+
+```text
+Title: scripts: a report of the Flux Kustomizations that are not ready
+
+Body:
+Add scripts/ops/k8s/flux-not-ready.sh, which lists the Flux Kustomizations whose Ready condition is not
+True as "<namespace>/<name>: <message>" lines, one per line, exit 0 whatever the count. Add a test for
+it that runs it against a canned `kubectl get -o json` fixture, and a one-line entry for it in
+scripts/README.md.
+
+## Acceptance
+- scripts/ops/k8s/flux-not-ready.sh exists, is executable and passes shellcheck.
+- Its test passes against the fixture and fails when the fixture's not-ready item is removed.
+- scripts/README.md lists the script in one line and `./scripts/ci/validate-links.sh` passes.
+```
+
+**Drill S2, a second hard issue:**
+
+```text
+Title: scripts: a check that every ops script has a header comment
+
+Body:
+Add scripts/ops/check-script-headers.sh, which fails (exit 1) and names each shell script under
+scripts/ops/ whose first comment line does not state what the script does. Add a test with two fixture
+scripts, one with a header and one without. Run it over the repository and add the missing header to
+every script it names, one sentence each.
+
+## Acceptance
+- scripts/ops/check-script-headers.sh exists, is executable and passes shellcheck.
+- Its test passes: exit 0 on the headed fixture, exit 1 naming the headless one.
+- Run over scripts/ops/ it exits 0, and the headers added are the only other changes.
+```
+
+Step 4 of runbook 17 (`/factory retry` on a second proposal) uses S2's proposal; steps 1 to 3 and 5
+use S1's. Cost: a family is capped at familyUSD $20.40 per issue, so the two issues are $40.80 at the
+caps and exceed `factoryDailyUSD: 42.50` together with any other run that day: file them on separate
+days, or expect about $4 to $8 per family in practice (a scoper run, then up to four parts at about
+$1 to $2).
+
+### Layer 6: the test-first tester (blocked: no switch exists yet)
+
+Design: [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) (TF1, TO4). Its
+switch is `repositories[].classes.scripts.testFirst: true` on cloud-native-ref only (TO4: none on
+ai-native-ref, whose tests live under the gate path `scripts/ci/`). **No commit sets it yet**, for two
+reasons found on 2026-10-27:
+
+- `testFirst` and `merge.contractCheck` are in no agent-platform release (v0.25.0's `Class` has no such
+  key, and the factory's strict parse refuses an unknown one). Only the contract check (plan PR 1, the
+  harness's `test-contract`) is built; the factory slice (plan PR 6) is not.
+- The host's `.github/chainguard/agent-tester.sts.yaml` grants `contents: read`; TO2 needs `contents: write`,
+  a gate path and so a human pull request on cloud-native-ref.
+
+When both land: pin the release, then one commit sets `scripts: {testFirst: true}` on cloud-native-ref with
+`merge: {contractCheck: "Test contract 🧪"}`, and the drills run on cloud-native-ref with `class:scripts`
+then `factory/ready`. Proofs, from the design's live proofs: the tester runs first and commits a test that
+fails on the base; `status.contract` holds `{runId, commit, files, ids}`; the implementer's pull request
+passes "Test contract 🧪"; the gate reads `contract_modified` if the implementer edits a contract file.
+
+**Drill T1, testable behaviour** (a pure function with a clear contract):
+
+```text
+Title: scripts: a helper that turns a Flux Kustomization list into "<namespace>/<name>" lines
+
+Body:
+Add scripts/ops/k8s/lib-kustomization-names.sh with a function `kustomization_names` that reads
+`kubectl get kustomizations -A -o json` on stdin and prints "<namespace>/<name>" per item, sorted.
+
+## Acceptance
+- With a two-item fixture the function prints the two lines sorted.
+- With an empty list it prints nothing and returns 0.
+- The test for it fails before the function exists and passes after.
+```
+
+**Drill T2, not testable** (the tester should end `not_testable`, the implementer runs without a contract):
+
+```text
+Title: scripts: reword the header of the CSI volume reclaim script
+
+Body:
+Reword the first comment line of scripts/ops/k8s/reclaim-csi-volumes.sh so it names the script's
+purpose in one sentence.
+
+## Acceptance
+- The first comment line is one sentence naming what the script checks.
+- No other line changes and shellcheck passes.
+```
+
+Cost: the tester run is a writer on the task's caps, so each drill is one tester run plus the implementer
+and reviewer, about $2 to $4 expected and $5.10 (standard) at the task cap: two drills stay inside
+`tasksPerDay: 20` and `factoryDailyUSD: 42.50`.
 
 ## Recording results
 

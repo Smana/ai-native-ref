@@ -46,11 +46,12 @@ data:
             tests: {}
             dashboards: {}
             scripts: {}
-            # Declared off (merge gate classes MC14): no switch, so no intake and no decision. A
-            # session's first commit sets shadow: true (runbook 15). Its fence repeats the host's
+            # Shadow (merge gate classes MC14, runbook 15 §2): intake and decisions, nothing armed.
+            # Its fence repeats the host's
             # `low-risk: docs-links` rule, which approves its pull requests until `low-risk:
             # dead-links` lands with the live switch; test-agent-merge-gate-parity.py holds the two.
             dead-links:
+              shadow: true  # since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed
               allowedFiles: ['^(docs|website/content)/.+\.md$']
               protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
               modifyOnly: true
@@ -148,7 +149,8 @@ data:
                 change fewer than 21 lines in total and add or delete no file. If none is broken,
                 change nothing and open no pull request.
             # dead-links' intake (MC6): the findings two consecutive nightly runs of the host's
-            # dead-links.yaml agree on become one task. Inert while the class is off.
+            # dead-links.yaml agree on become one task. link-rot stays beside it until the
+            # revert proof (runbook 15 §3) is done: a host change removes it (M4).
             - name: dead-links
               cron: "0 7 * * *"  # daily, after the 04:23 UTC scan
               class: dead-links
@@ -169,10 +171,11 @@ data:
             tests: {}
             dashboards: {}
             scripts: {}
-            # Declared off (MC14): no switch, so no intake and no decision. Its detector is this
+            # Shadow (MC14, runbook 15 §6): intake and decisions, nothing armed. Its detector is this
             # repository's dead-links.yaml and its rule `low-risk: dead-links` in .policy.yml
             # (test-agent-merge-gate-parity.py holds the two).
             dead-links:
+              shadow: true  # since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed
               allowedFiles: ['^(docs|website/content)/.+\.md$']
               protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
               modifyOnly: true
@@ -201,7 +204,7 @@ data:
             breaker: {window: 10, maxReverts: 1, maxFollowUps: 1}
           schedules:
             # dead-links' intake here (MC6, F3): what two nightly runs of this repository's
-            # dead-links.yaml agree on. Inert while the class is off (MC14). The name keys every
+            # dead-links.yaml agree on. Inert only if the class is off (MC14). The name keys every
             # task it starts and is unique across repositories (the factory's strict parse refuses
             # a second `dead-links`, the host's).
             - name: ai-native-ref-dead-links
@@ -316,11 +319,17 @@ data:
         # twice (0..5). judge tier-light: the completion judge's alias (the claim's judgeModel),
         # reading the scoper's checks; without the capability profiles' P4 sidecar (#103) its
         # /judge/v1 route is refused and the judge is silently skipped.
-        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light}
-      # loops.<class>.search: true offers that class's implementer runs the search tool (agent-platform
-      # v3 feature 5): a read-only child on the run's token, 40 iterations, 300k tokens, 300 s, six a
-      # run. No class has it (D4): a gcp-0 session switches one on for the paired live gate (SQ5).
-      # split (splitter design SL3) is off: a platform session adds it to one class and removes it.
+        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}
+        # scripts: the splitter's class for the gcp-0 session of 2026-10-27 (runbook 17 §2, splitter
+        # design SL3). split needs scope: scoper on the same row, and a row is read whole, so the scoper
+        # is on for scripts too. maxChildren 4 (2..5); familyUSD 20.40, the parent's and every part's
+        # runs together (four standard tasks, SP3); childTier standard (SP5). Back off with the session's
+        # last commit (D4): remove the row.
+        scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard}}
+      # search: true on the docs row (above) offers that class's implementer runs the search tool
+      # (agent-platform v3 feature 5): a read-only child on the run's token, 40 iterations, 300k
+      # tokens, 300 s, six a run. No other class has it (D4): the gcp-0 session of 2026-10-27 flips
+      # it on for the paired live gate (SQ5) and, if the pairs do not hold, back off.
       # SP4 PR 2's agent_router:run_tokens:total expression over the raw series (R12).
       meter:
         url: http://vmsingle-victoria-metrics-k8s-stack.observability.svc:8428

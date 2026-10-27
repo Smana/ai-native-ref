@@ -76,7 +76,16 @@ def check_gateway_ratio():
     check(" * 0) /" in expr, "a route with traffic and no 5xx reads 0, not nothing")
 
 
-for run in (check_colours, check_sponsored, check_gateway_ratio):
+def check_trace_pipeline():
+    p = panels("grafana-dashboard-agent-fleet.yaml")["Trace pipeline (agent-traces-collector)"]
+    check(len(p["targets"]) == 4, "Trace pipeline keeps its four series")
+    for t in p["targets"]:
+        # gcp-0 exposes otelcol_receiver_accepted_spans without _total: the name must match either
+        check(re.search(r'__name__=~"otelcol_[a-z_]+\(_total\)\?"', t["expr"]), f"Trace pipeline {t['refId']}: the _total suffix is optional")
+    check("noValue" in p["fieldConfig"]["defaults"], "Trace pipeline reads 0 for a series that has none (no failed export yet)")
+
+
+for run in (check_colours, check_sponsored, check_gateway_ratio, check_trace_pipeline):
     run()
 if errors:
     print("\n".join(errors), file=sys.stderr)

@@ -4,7 +4,12 @@
 must not paint a count red: Grafana's default thresholds are green with red at 80, so a bar of
 tokens or runs turns red for being large. A stat or bar gauge therefore sets its colour (fixed, or
 thresholds that mean something: a cap, a ratio), and a counter that has no series until its first
-event reads 0, not No data."""
+event reads 0, not No data.
+
+The folder reads as one tool: every dashboard carries the "agents" tag and the shared top-bar link (a
+dashboards-by-tag link, so a new dashboard joins every bar without an edit), every panel says what it shows,
+and a counter the meter or the gateway resets is never read through a bare increase() over a range: the
+series of a run or a payer is born inside the range, and increase() drops its first value (SI11)."""
 import json
 import pathlib
 import re
@@ -39,6 +44,63 @@ def flat(b):
 
 def panels(file):
     return {p["title"]: p for p in flat(board(file))}
+
+
+UIDS = {"agents-overview", "agent-fleet", "agent-factory", "agent-gateway", "agent-identity", "agent-room", "agent-run"}
+# Counters (and histogram parts) the meter, the factory or the gateway resets or births inside a range.
+RESET = re.compile(r"(?<!_)\bincrease\(\s*(agent_factory_\w+|gen_ai_client_token_usage_sum|gen_ai_server_request_duration_seconds_(?:count|sum|bucket))\b[^\[]*\[([^\]]+)\]")
+
+
+def all_boards():
+    for path in sorted(DASHBOARDS.glob("grafana-dashboard*.yaml")):
+        yield path.name, board(path.name)
+
+
+def check_folder():
+    seen = {}
+    for name, b in all_boards():
+        seen[b["uid"]] = name
+        check(b.get("tags") == ["agents"], f"{name}: tagged agents")
+        shared = [x for x in b.get("links", []) if x.get("type") == "dashboards" and x.get("tags") == ["agents"]]
+        check(len(shared) == 1 and shared[0].get("keepTime") is True and shared[0].get("includeVars") is True and shared[0].get("asDropdown") is False,
+              f"{name}: carries the shared top-bar link (dashboards tagged agents, keepTime, includeVars)")
+        for p in flat(b):
+            if p.get("type") == "row":
+                continue
+            check(len(p.get("description", "").strip()) >= 20, f"{name}: {p['title']} has a description")
+            for t in p.get("targets", []):
+                for m in RESET.finditer(t.get("expr", "")):
+                    check(m[2] == "$__rate_interval", f"{name}: {p['title']} {t['refId']}: increase({m[1]}[{m[2]}]) is unbounded: increase_pure")
+    check(set(seen) == UIDS, f"the folder holds exactly {sorted(UIDS)}, found {sorted(seen)} (agent-platform is retired)")
+    resources = yaml.safe_load((DASHBOARDS / "kustomization.yaml").read_text())["resources"]
+    check(sorted(r for r in resources if r.startswith("grafana-dashboard")) == sorted(seen.values()), "kustomization lists every dashboard file, and only those")
+    for path in DASHBOARDS.glob("vmrule*.yaml"):
+        check("/d/agent-platform" not in path.read_text(), f"{path.name}: no alert points at the retired agent-platform dashboard")
+        for uid in re.findall(r"/d/([a-z-]+)\"", path.read_text()):
+            check(uid in UIDS, f"{path.name}: dashboard annotation /d/{uid} is a dashboard of the folder")
+
+
+def check_drilldown():
+    """Overview -> Fleet -> Identity -> Room -> Run: a row or tile opens the next dashboard down."""
+    def links(file, title):
+        p = panels(file)[title]
+        return json.dumps([p.get("links", []), p.get("fieldConfig", {})])
+    check("/d/agent-room/agent-room?var-room=" in links("grafana-dashboard-agents-overview.yaml", "Waiting for a human"), "overview: a waiting task opens its room")
+    for tile, dash in (("Factory", "agent-factory"), ("Spent today", "agent-identity"), ("Runs in flight", "agent-fleet"),
+                       ("Approvals pending", "agent-room"), ("Router 5xx now", "agent-gateway")):
+        check(f"/d/{dash}/{dash}" in links("grafana-dashboard-agents-overview.yaml", tile), f"overview: {tile} opens {dash}")
+    for file, title in (("grafana-dashboard-agent-fleet.yaml", "Runs"), ("grafana-dashboard-agent-identity.yaml", "Runs"), ("grafana-dashboard-agent-room.yaml", "Runs of this room")):
+        check("/d/agent-run/agent-run?var-run=" in links(file, title), f"{file}: {title}: a run id opens its run")
+    for file, title in (("grafana-dashboard-agent-fleet.yaml", "Runs"), ("grafana-dashboard-agent-identity.yaml", "Runs")):
+        check("/d/agent-room/agent-room?var-room=" in links(file, title), f"{file}: {title}: a room opens its dashboard")
+    for file, title in (("grafana-dashboard-agent-fleet.yaml", "Runs"), ("grafana-dashboard-agent-room.yaml", "Runs of this room")):
+        check("/d/agent-identity/agent-identity?var-principal=" in links(file, title), f"{file}: {title}: a payer opens its spend page")
+    run = board("grafana-dashboard-agent-run.yaml")
+    urls = " ".join(x.get("url", "") for x in run["links"])
+    check("/d/agent-identity/agent-identity?var-principal=" in urls and "/d/agent-room/agent-room?var-room=" in urls, "agent-run links up to its payer and its room")
+    room = board("grafana-dashboard-agent-room.yaml")
+    check(any(x.get("url", "").startswith("https://rooms.${private_domain_name}/r/${room}") for x in room["links"]), "agent-room links to the room page")
+    check({v["name"] for v in room["templating"]["list"]} == {"datasource", "room"}, "agent-room has one variable: room")
 
 
 def check_colours():
@@ -85,7 +147,7 @@ def check_trace_pipeline():
     check("noValue" in p["fieldConfig"]["defaults"], "Trace pipeline reads 0 for a series that has none (no failed export yet)")
 
 
-for run in (check_colours, check_sponsored, check_gateway_ratio, check_trace_pipeline):
+for run in (check_folder, check_drilldown, check_colours, check_sponsored, check_gateway_ratio, check_trace_pipeline):
     run()
 if errors:
     print("\n".join(errors), file=sys.stderr)

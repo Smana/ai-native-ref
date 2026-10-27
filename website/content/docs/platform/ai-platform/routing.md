@@ -537,9 +537,11 @@ to the 0.2 config with the documented 0.70–0.75 threshold: it never fires.
 
 | Dashboard (`uid`) | Read it for |
 |---|---|
+| `agents-overview` | The landing page: is the factory healthy, today's spend against the caps, what waits for a human, what landed. Every tile opens the dashboard below |
 | `agent-gateway` | Tokens by type as the meter reads them, tokens per agent, B1–B2 counted and would-refuse, model latency |
 | `agent-factory` | Tokens per finished task p90, budget left today, budget fit by classifier, class mismatches |
 | `agent-fleet` | Tokens per run, tier against tokens and steps, tokens by tier |
+| `agent-room` | One room: its runs with phase, duration and priced spend, its wait for a human, and the broker's approvals and notes |
 | `agent-run` | One run: tokens against budget, model calls. Its *Cost (USD)* panel prices the run from `llm_gateway:charge_usd_per_mtoken`; see [costs](#costs) |
 | *LLM Gateway — Envoy AI Gateway GenAI Telemetry*, *LLM Platform — Self-hosted vLLM Fleet* | Serving: tokens per model, base against canary, TTFT, queue and KV cache. Folder `llm`, present only while `llm-platform` runs |
 

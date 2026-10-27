@@ -21,7 +21,7 @@ spec:
             summary: "Agent sandbox pod {{ $labels.pod }} has been Pending for 15 minutes"
             description: "Check the agents-gvisor pool (aws-0: NodePool limit; gcp-0: node pool max, cluster CPU ceiling, the Cilium-taint toleration), spot capacity and runsc on the node: kubectl describe pod -n agents {{ $labels.pod }}"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/integration/agent-factory/docs/runbooks/agent-factory/01-runtime-sandbox.md"
-            dashboard: "https://grafana.${private_domain_name}/d/agent-platform"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-fleet"
         # aws-0 only: karpenter_nodepools_* has no series on gcp-0, whose pool is a
         # GKE node pool (no Karpenter), so this can never fire there. On gcp-0 a
         # full pool surfaces as AgentSandboxPodPending.
@@ -34,7 +34,7 @@ spec:
             summary: "agents-gvisor is above 90 % of its {{ $labels.resource_type }} limit"
             description: "New runs will stay Pending. Raise the NodePool limit or wait for runs to finish. aws-0 only (Karpenter metrics); gcp-0 relies on AgentSandboxPodPending."
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/integration/agent-factory/docs/runbooks/agent-factory/01-runtime-sandbox.md"
-            dashboard: "https://grafana.${private_domain_name}/d/agent-platform"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-fleet"
         # No enforced per-run cap exists until SP4 PR 2 (design spec line 162):
         # until then a run is bounded only by the gateway's 5M ceiling. These
         # watch the same gen_ai counters the SP4 llm-gateway budget uses.
@@ -47,7 +47,7 @@ spec:
             summary: "{{ $labels.ar_agent }} spent more than 5M tokens in 8h"
             description: "No enforced per-run cap exists until SP4 PR 2. Revoke by hand: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/integration/agent-factory/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
-            dashboard: "https://grafana.${private_domain_name}/d/agent-platform"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-fleet"
         - alert: AgentFleetTokenSpendHigh
           expr: sum(increase(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:.*", gen_ai_token_type=~"input|output"}[1h])) > 1e7
           for: 5m
@@ -57,7 +57,7 @@ spec:
             summary: "The agent fleet spent more than 10M tokens in 1h"
             description: "No enforced per-run cap exists until SP4 PR 2. Revoke the noisiest run by hand: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/integration/agent-factory/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
-            dashboard: "https://grafana.${private_domain_name}/d/agent-platform"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-fleet"
     # The agent router on agentgateway (ADR-0053), beside Envoy's until phase H. The
     # scrape relabel feeds the gen_ai_* rules above; these read agentgateway_* too
     # (infrastructure/base/agent-gateway/vmpodscrape.yaml).

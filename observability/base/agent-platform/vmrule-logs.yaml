@@ -25,7 +25,7 @@ spec:
             summary: "octo-sts logged {{ $value }} failed exchanges in 5 minutes"
             description: "A run is asking for a repository or role its trust policy does not grant, or the App key is wrong."
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/integration/agent-factory/docs/runbooks/agent-factory/05-github-octo-sts.md"
-            dashboard: "https://grafana.${private_domain_name}/d/agent-platform"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
         # The SDK-shape failure only (cache design C1): the harness could not patch the SDK's model
         # call, so it sends no cache marker at all. AgentCacheReadZero catches the same loss from
         # the gateway side, and also a gateway that drops the marker, which logs nothing.

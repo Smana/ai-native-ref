@@ -1,7 +1,8 @@
 ---
 # Every agent run in the time range, one row each (agent observability design). A run_id
-# opens its "Agent run" page. "Agent platform" stays the capacity view the alerts link to
-# (O9). The collector's panel is how a stalled trace pipeline is noticed (O16). Tokens read
+# opens its "Agent run" page, a payer its spend page, a room its room page. The capacity panels of the
+# retired "Agent platform" dashboard (sandbox pods, gVisor pool) sit at the bottom. The collector's
+# panel is how a stalled trace pipeline is noticed (O16). Tokens read
 # the gateway counter, keyed back to run_id by label_replace ($1 passes Flux untouched).
 # Tier vs spend (O23): one tier per run, never re-routed within it (O24, SP3 R47).
 apiVersion: grafana.integreatly.org/v1beta1
@@ -19,18 +20,16 @@ spec:
     {
       "title": "Agent fleet",
       "uid": "agent-fleet",
+      "tags": ["agents"],
       "schemaVersion": 39,
       "time": {"from": "now-7d", "to": "now"},
-      "links": [
-        {"title": "Agent platform", "type": "link", "url": "/d/agent-platform/agent-platform", "keepTime": true},
-        {"title": "Spend per identity", "type": "link", "url": "/d/agent-identity/agent-identity", "keepTime": true}
-      ],
+      "links": [{"title": "Agents", "type": "dashboards", "tags": ["agents"], "asDropdown": false, "includeVars": true, "keepTime": true, "icon": "dashboard", "tooltip": "Every dashboard of the Agents folder: overview, fleet, factory, gateway, identity, room, run"}],
       "templating": {"list": [
         {"name": "datasource", "type": "datasource", "query": "prometheus"},
         {"name": "logs_datasource", "type": "datasource", "query": "victoriametrics-logs-datasource"}
       ]},
       "panels": [
-        {"id": 1, "type": "table", "title": "Runs",
+        {"id": 1, "type": "table", "title": "Runs", "description": "Every run in the range, one row each: role, data class, payer, room, its latest phase, why it ended, its pull request, start and tokens. A run id opens its Agent run page, a payer its spend page, a room its Agent room page.",
          "gridPos": {"x": 0, "y": 0, "w": 24, "h": 12},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [
@@ -39,24 +38,28 @@ spec:
            {"refId": "C", "instant": true, "format": "table", "expr": "topk by (run_id) (1, tlast_over_time(agentrun_outcome_info{namespace=\"agents\"}[$__range]))"},
            {"refId": "F", "instant": true, "format": "table", "expr": "topk by (run_id) (1, tlast_over_time(agentrun_pull_request_info{namespace=\"agents\"}[$__range]))"},
            {"refId": "D", "instant": true, "format": "table", "expr": "max by (run_id) (last_over_time(agentrun_started_timestamp_seconds{namespace=\"agents\"}[$__range]) > 0) * 1000"},
-           {"refId": "E", "instant": true, "format": "table", "expr": "label_replace(sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\")"}
+           {"refId": "G", "instant": true, "format": "table", "expr": "max by (run_id, room, payer) (label_replace(label_replace(max_over_time(agent_factory_run_charge_info[$__range]), \"run_id\", \"$1\", \"run\", \"(.*)\"), \"payer\", \"$1\", \"principal\", \"(.*)\"))"},
+           {"refId": "E", "instant": true, "format": "table", "expr": "label_replace(sum by (ar_agent) (increase_pure(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\")"}
          ],
          "transformations": [
            {"id": "merge", "options": {}},
            {"id": "organize", "options": {"renameByName": {"Value #D": "started", "Value #E": "tokens"}}},
-           {"id": "filterFieldsByName", "options": {"include": {"names": ["run_id", "role", "data_class", "principal", "phase", "reason", "pull_request", "started", "tokens"]}}},
+           {"id": "filterFieldsByName", "options": {"include": {"names": ["run_id", "role", "data_class", "payer", "room", "phase", "reason", "pull_request", "started", "tokens"]}}},
            {"id": "sortBy", "options": {"sort": [{"field": "started", "desc": true}]}}
          ],
          "fieldConfig": {"defaults": {}, "overrides": [
            {"matcher": {"id": "byName", "options": "run_id"}, "properties": [{"id": "links", "value": [{"title": "Open this run", "url": "/d/agent-run/agent-run?var-run=$${__value.text}&$${__url_time_range}"}]}]},
+           {"matcher": {"id": "byName", "options": "payer"}, "properties": [{"id": "links", "value": [{"title": "Spend of this principal", "url": "/d/agent-identity/agent-identity?var-principal=$${__value.text}&$${__url_time_range}"}]}]},
+           {"matcher": {"id": "byName", "options": "room"}, "properties": [{"id": "links", "value": [{"title": "Open this room", "url": "/d/agent-room/agent-room?var-room=$${__value.text}&$${__url_time_range}"}]}]},
            {"matcher": {"id": "byName", "options": "started"}, "properties": [{"id": "unit", "value": "dateTimeAsIso"}]},
            {"matcher": {"id": "byName", "options": "pull_request"}, "properties": [{"id": "links", "value": [{"title": "Pull request", "url": "$${__value.text}", "targetBlank": true}]}]}
          ]}},
-        {"id": 2, "type": "timeseries", "title": "Runs by phase",
+        {"id": 2, "type": "timeseries", "title": "Runs by phase", "description": "Runs per phase over time, each run at its latest phase only: a replaced kube-state-metrics pod leaves a stale series that would otherwise count one run twice.",
+         "fieldConfig": {"defaults": {"noValue": "0", "custom": {"drawStyle": "bars", "fillOpacity": 80, "stacking": {"mode": "normal"}}}, "overrides": []},
          "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
-         "targets": [{"refId": "A", "legendFormat": "{{phase}}", "expr": "sum by (phase) (agentrun_status_phase{namespace=\"agents\"} == 1)"}]},
-        {"id": 3, "type": "timeseries", "title": "Tokens per run",
+         "targets": [{"refId": "A", "legendFormat": "{{phase}}", "expr": "sum by (phase) (max by (run_id, phase) (agentrun_status_phase{namespace=\"agents\"} == 1) and on (run_id, phase) topk by (run_id) (1, timestamp(agentrun_status_phase{namespace=\"agents\"} == 1)))"}]},
+        {"id": 3, "type": "timeseries", "title": "Tokens per run", "description": "Input plus output tokens per second through agent-router, one line per live run (the rate of a run, not its total: a run that ended has no line; totals are in the Runs table).",
          "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "legendFormat": "{{ar_agent}}", "expr": "sum by (ar_agent) (rate(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:.*\", gen_ai_token_type=~\"input|output\"}[$__rate_interval]))"}]},
@@ -71,12 +74,12 @@ spec:
            {"refId": "C", "legendFormat": "exported", "expr": "sum(rate({__name__=~\"otelcol_exporter_sent_spans(_total)?\", job=\"agent-traces-collector\"}[$__rate_interval]))"},
            {"refId": "D", "legendFormat": "export failed", "expr": "sum(rate({__name__=~\"otelcol_exporter_send_failed_spans(_total)?\", job=\"agent-traces-collector\"}[$__rate_interval]))"}
          ]},
-        {"id": 5, "type": "table", "title": "Tier vs tokens and steps per run",
+        {"id": 5, "type": "table", "title": "Tier vs tokens and steps per run", "description": "One row per run: its tier, the tokens it used and the steps it logged. A tier that costs the same as a cheaper one is not earning its price.",
          "gridPos": {"x": 0, "y": 26, "w": 16, "h": 10},
          "datasource": {"type": "datasource", "uid": "-- Mixed --"},
          "targets": [
            {"refId": "A", "datasource": {"type": "prometheus", "uid": "$${datasource}"}, "instant": true, "format": "table", "expr": "max by (run_id, tier) (last_over_time(agentrun_info{namespace=\"agents\", tier!=\"\"}[$__range]))"},
-           {"refId": "B", "datasource": {"type": "prometheus", "uid": "$${datasource}"}, "instant": true, "format": "table", "expr": "label_replace(sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\")"},
+           {"refId": "B", "datasource": {"type": "prometheus", "uid": "$${datasource}"}, "instant": true, "format": "table", "expr": "label_replace(sum by (ar_agent) (increase_pure(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\")"},
            {"refId": "C", "datasource": {"type": "victoriametrics-logs-datasource", "uid": "$${logs_datasource}"}, "queryType": "stats", "expr": "kubernetes.pod_namespace:\"agents\" AND kubernetes.container_name:\"harness\" AND _msg:~\"^agent-run step \" | extract \"xplane-run-<run_id>\" from kubernetes.pod_name | extract_regexp \"^agent-run step (?P<step>[0-9]+):\" | stats by (run_id) count_uniq(step) as steps"}
          ],
          "transformations": [
@@ -85,11 +88,23 @@ spec:
            {"id": "filterFieldsByName", "options": {"include": {"names": ["run_id", "tier", "tokens", "steps"]}}},
            {"id": "sortBy", "options": {"sort": [{"field": "tokens", "desc": true}]}}
          ]},
-        {"id": 6, "type": "bargauge", "title": "Tokens by tier",
+        {"id": 6, "type": "bargauge", "title": "Tokens by tier", "description": "Input plus output tokens in the range, summed by the run's tier.",
          "gridPos": {"x": 16, "y": 26, "w": 8, "h": 10},
          "options": {"displayMode": "basic"},
          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
-         "targets": [{"refId": "A", "instant": true, "legendFormat": "{{tier}}", "expr": "sum by (tier) (label_replace(sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\") * on (run_id) group_left (tier) max by (run_id, tier) (last_over_time(agentrun_info{namespace=\"agents\", tier!=\"\"}[$__range])))"}]}
+         "targets": [{"refId": "A", "instant": true, "legendFormat": "{{tier}}", "expr": "sum by (tier) (label_replace(sum by (ar_agent) (increase_pure(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\") * on (run_id) group_left (tier) max by (run_id, tier) (last_over_time(agentrun_info{namespace=\"agents\", tier!=\"\"}[$__range])))"}]},
+        {"id": 7, "type": "timeseries", "title": "Sandbox pods by phase",
+         "description": "Run pods of the agents namespace by pod phase (kube-state-metrics). Pending for long is a node to scale up or an image to pull (AgentSandboxPodPending). Moved here from the retired Agent platform dashboard.",
+         "gridPos": {"x": 0, "y": 36, "w": 12, "h": 7},
+         "fieldConfig": {"defaults": {"noValue": "0"}, "overrides": []},
+         "datasource": {"type": "prometheus", "uid": "$${datasource}"},
+         "targets": [{"refId": "A", "legendFormat": "{{phase}}", "expr": "sum by (phase) (kube_pod_status_phase{namespace=\"agents\"})"}]},
+        {"id": 8, "type": "timeseries", "title": "agents-gvisor pool usage over limit (aws-0 only: Karpenter)",
+         "description": "How much of the agents-gvisor Karpenter pool's CPU and memory limit is in use (AgentGvisorPoolNearLimit). Only aws-0 runs Karpenter: on gcp-0 this reads not applicable. Moved here from the retired Agent platform dashboard.",
+         "gridPos": {"x": 12, "y": 36, "w": 12, "h": 7},
+         "fieldConfig": {"defaults": {"unit": "percentunit", "noValue": "not applicable (no Karpenter on this cluster)"}, "overrides": []},
+         "datasource": {"type": "prometheus", "uid": "$${datasource}"},
+         "targets": [{"refId": "A", "legendFormat": "{{resource_type}}", "expr": "sum by (resource_type) (karpenter_nodepools_usage{nodepool=\"agents-gvisor\"}) / sum by (resource_type) (karpenter_nodepools_limit{nodepool=\"agents-gvisor\"})"}]}
       ]
     }

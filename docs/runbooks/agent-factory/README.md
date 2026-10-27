@@ -215,6 +215,70 @@ cloud-native-ref's `main`: the umbrellas and the source go back to `suspend: tru
 reconciling without removing anything, so follow the cluster README's Teardown for the children.
 Destroying the cluster is a separate owner call.
 
+## v3 loop and sandbox layers on the `docs` class
+
+The gcp-0 session of 2026-10-27 switches three v3 features on for the `docs` class only, one commit
+each in `tooling/base/agent-factory/helm-values-configmap.yaml`, so a failure is attributable. Merge
+and prove them in this order; the next layer waits for the previous one's proofs. The class is
+declared by both repositories, so each switch reads for `Smana/ai-native-ref` and
+`Smana/cloud-native-ref`; the drills below file on ai-native-ref unless said otherwise. Each issue is
+public. A maintainer labels it `class:docs` first (without the label the task's class is `review`, which
+reads `default`'s row, off), then `factory/ready`.
+
+| Layer | Switch (`loops.docs`, or `classes.docs` per repository) | Design |
+|---|---|---|
+| 1. Scoper | `scope: scoper` | [scoper](../../superpowers/specs/2026-10-22-scoper-design.md#gate) |
+| 2. Loop policy | `stallSteps: 20`, `continuations: 2`, `judge: tier-light` | [loops](../../superpowers/specs/2026-10-21-loops-and-teams-design.md), [harness reference](../../../website/content/docs/platform/ai-platform/agents/harness.md#loop-policy) |
+| 3. Sandbox checks | `checks: true` | [sandbox checks](../../superpowers/specs/2026-10-22-sandbox-checks-design.md#gate) |
+
+Before layer 1: the pins carry agent-platform v0.23.2 and crossplane-configuration v0.9.20 or later
+(`spec.loop` with `search`, `checks` and `judgeModel`), and `scripts/ops/k8s/gcp-0-platform-gates.sh`
+passes. Read a task with `kubectl -n agent-system get task <name> -o yaml`.
+
+### Layer 1: the scoper
+
+The factory runs a read-only triager first. Under `scope: scoper` it either scopes the issue (the scope
+reaches the room and the implementer's brief) or asks its author the one question it cannot answer.
+
+| # | Do | Expected reading |
+|---|---|---|
+| 1 | File drill issue A below; a maintainer applies `class:docs`, then `factory/ready` | A triager run, then an implementer. `status.scope` on the task is `ready` and holds the scope; the room shows the same scope; the implementer's brief holds it; `spec.scopeMode` is `scoper` |
+| 2 | File drill issue B below and label it | One comment on the issue (the question, the assumption it would make), the label `factory/needs-author`, the task `Escalated` with reason `needs_author`, no implementer run |
+| 3 | Edit issue B's body to add the acceptance check, then re-apply `factory/ready` | A new task (a new generation) scopes `ready`; the first one is superseded |
+| 4 | File drill issue B again as a new issue, label it, then comment `/factory retry` | The implementer starts on the assumption (`status.scope` `assumed`), no second scoper run, the label is removed |
+| 5 | Read the counters | `agent_factory_scoper_runs_total` and `agent_factory_scope_bounces_total` carry one outcome per run above |
+
+Steering (live proof 3) needs a note at `.github/agent-factory/steering/docs.md` on the target's default
+branch, which exists on ai-native-ref and not yet on cloud-native-ref. To prove it, switch the row to
+`scope: steering` for this one step, then back: the implementer's brief carries the note, and
+`spec.steering` names its blob sha (`git rev-parse origin/main:.github/agent-factory/steering/docs.md`).
+
+**Drill A, a vague issue** the scoper can still bound (title and body, ready to file on ai-native-ref). If it asks a question instead of scoping, record it, answer by an edit as in step 3, and take the second task as step 1's evidence:
+
+```text
+Title: docs: the runbooks README is out of date
+
+Body:
+The Status section of docs/runbooks/agent-factory/README.md looks stale. Please bring it up to date.
+```
+
+**Drill B, no acceptance check, should bounce:**
+
+```text
+Title: docs: define "room" in the runbooks README
+
+Body:
+The runbooks README uses the word "room" without saying what it is. Add a definition.
+```
+
+Edit for step 3 (append, then re-label):
+
+```text
+Acceptance: docs/runbooks/agent-factory/README.md gains one sentence under "Prerequisites (all
+runbooks)" that defines a room as the per-task workspace the broker serves at rooms.<domain>. No
+other line of that file and no other file changes. `task links` passes.
+```
+
 ## Recording results
 
 Each runbook ends with a results table (step, expected, observed, pass/fail). Fill it in place as

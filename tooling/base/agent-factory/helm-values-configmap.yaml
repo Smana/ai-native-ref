@@ -301,10 +301,16 @@ data:
       # Disruption design §4: a run lost to a reclaim or an eviction resumes on its own, twice per task
       # at most, and only with a RunTokens left under the task's TaskTokens (enforced on that path).
       resume: {maxPerTask: 2}
-      # Per-class loop policy and scope (scoper design SC2). Every class is off (D4): a platform
-      # session sets steering, then scoper, on one class at a time.
+      # Per-class loop policy and scope (scoper design SC2). Every class is off (D4) but docs: the
+      # gcp-0 session of 2026-10-27 switches one feature at a time on it, so a failure is
+      # attributable (runbooks README, "v3 loop and sandbox layers"). A row is read whole, never merged with default's.
       loops:
         default: {scope: off}
+        # Scoper (v3 feature 1, live proofs 1-3): a public triager run scopes a labelled issue, or asks
+        # its author the one question it cannot answer. docs is declared by both repositories, so the
+        # row reads for both; a repository's steering note (.github/agent-factory/steering/docs.md)
+        # is optional.
+        docs: {scope: scoper}
       # loops.<class>.search: true offers that class's implementer runs the search tool (agent-platform
       # v3 feature 5): a read-only child on the run's token, 40 iterations, 300k tokens, 300 s, six a
       # run. No class has it (D4): a gcp-0 session switches one on for the paired live gate (SQ5).

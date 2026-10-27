@@ -8,6 +8,8 @@
 # - The room's Runs table joins only the runs of the room: its task's, and a room run by its branch agent/<room>.
 #   Its spend prices each run's tokens by the meter's price per token, and its tokens read input + output.
 # - Landed on the overview: merged = auto + human merged, reverted absent reads nothing (the tile says 0).
+# - The models: the identity, run, room and fleet dashboards split a run's tokens and priced spend by the served model
+#   (gen_ai_request_model). A run that called two aliases shows both, a principal's figures cover only the runs charged to it.
 # - The factory's SC-11 stat reads 0, not No data, with no reverted series and with no auto-merge at all.
 # promtool has no increase_pure (VictoriaMetrics: counts a series from 0, as these start at 0, so increase() agrees)
 # and no tlast_over_time (read as max_over_time(timestamp(series)[range:1m])).
@@ -68,6 +70,18 @@ def tok(run, kind, values):
     return {"series": f'gen_ai_client_token_usage_sum{{ar_agent="system:serviceaccount:agents:xplane-run-{run}", gen_ai_request_model="m1", gen_ai_token_type="{kind}"}}', "values": values}
 
 
+def tokm(run, model, kind, values):
+    return {"series": f'gen_ai_client_token_usage_sum{{ar_agent="system:serviceaccount:agents:xplane-run-{run}", gen_ai_request_model="{model}", gen_ai_token_type="{kind}"}}', "values": values}
+
+
+def charge(run, principal, room=""):
+    return {"series": f'agent_factory_run_charge_info{{run="{run}", principal="{principal}", room="{room}", task="{room}"}}', "values": "1x30"}
+
+
+def mprice(model, kind, v):
+    return {"series": f'llm_gateway:charge_usd_per_mtoken{{gen_ai_request_model="{model}", gen_ai_token_type="{kind}"}}', "values": f"{v}x30"}
+
+
 def price(kind, v):
     return {"series": f'llm_gateway:charge_usd_per_mtoken{{gen_ai_request_model="m1", gen_ai_token_type="{kind}"}}', "values": f"{v}x30"}
 
@@ -87,6 +101,11 @@ series = [
     tok("aaaaaaaa", "input", "0 1000000x30"), tok("aaaaaaaa", "output", "0 100000x30"),
     tok("dddddddd", "input", "0 500000x30"),
     price("input", 2), price("output", 10),
+    # models: ffffffff (room4, charged to alice) called m1 and m2; aaaaaaaa is alice's, dddddddd bob's
+    info("ffffffff", "room4", "impl"),
+    charge("aaaaaaaa", "github:alice", "room1"), charge("dddddddd", "github:bob", "room2"), charge("ffffffff", "github:alice", "room4"),
+    tokm("ffffffff", "m1", "input", "0 1000000x30"), tokm("ffffffff", "m2", "input", "0 500000x30"), tokm("ffffffff", "m2", "output", "0 100000x30"),
+    mprice("m2", "input", 4), mprice("m2", "output", 20),
     # the broker-wide factory counters
     {"series": 'agent_factory_pr_outcomes_total{outcome="auto_merged", class="deps"}', "values": "0 4x30"},
     {"series": 'agent_factory_pr_outcomes_total{outcome="human_merged", class="review"}', "values": "0 2x30"},
@@ -107,6 +126,17 @@ def runs(*ids):
 
 
 room1 = dict(room="room1")
+
+
+def by_model(*pairs, extra=""):
+    return [{"labels": '{%sgen_ai_request_model="%s"}' % (extra, m), "value": v} for m, v in pairs]
+
+
+def run_model(*rows_):
+    return [{"labels": '{gen_ai_request_model="%s", run_id="%s"}' % (m, r), "value": v} for r, m, v in rows_]
+
+
+alice, bob = dict(principal="github:alice"), dict(principal="github:bob")
 tests = [{"interval": "1m", "input_series": series, "promql_expr_test": [
     # fleet: each run once at its latest phase, 4 runs seen but dddd/eeee are Running / absent
     rows(prep(expr("agent-fleet", "Runs by phase")), ph(("Succeeded", 1), ("Running", 2))),
@@ -123,6 +153,22 @@ tests = [{"interval": "1m", "input_series": series, "promql_expr_test": [
     rows(prep(expr("agent-room", "Spend", "A"), room="room2"), [{"value": 1}]),
     rows(prep(expr("agent-room", "Tokens", "A"), **room1), [{"value": 1100000}]),
     rows(prep(expr("agent-room", "Runs of this room", "E"), **room1), runs(("aaaaaaaa", 3))),
+    # models, identity page: only the runs charged to the principal, each model apart (m1 = 3 + 2 USD, m2 = 2 + 2 USD)
+    rows(prep(expr("agent-identity", "Spend by model"), **alice), by_model(("m1", 5), ("m2", 4))),
+    rows(prep(expr("agent-identity", "Spend by model"), **bob), by_model(("m1", 1))),
+    rows(prep(expr("agent-identity", "Tokens by model"), **alice), by_model(("m1", 2100000), ("m2", 600000))),
+    rows(prep(expr("agent-identity", "Tokens by model"), **bob), by_model(("m1", 500000))),
+    rows(prep(expr("agent-identity", "Runs", "G"), **alice), run_model(("aaaaaaaa", "m1", 1100000), ("ffffffff", "m1", 1000000), ("ffffffff", "m2", 600000))),
+    # run page: the models of one run, its cost split by model adds up to the Cost tile
+    rows(prep(expr("agent-run", "Models"), run="ffffffff"), by_model(("m1", 1000000), ("m2", 600000))),
+    rows(prep(expr("agent-run", "Cost by model"), run="ffffffff"), by_model(("m1", 2), ("m2", 4))),
+    rows(prep(expr("agent-run", "Cost (USD)"), run="ffffffff"), [{"value": 6}]),
+    # room page: each run of the room with its models
+    rows(prep(expr("agent-room", "Runs of this room", "H"), room="room4"), run_model(("ffffffff", "m1", 1000000), ("ffffffff", "m2", 600000))),
+    # fleet: spend by model and by the principal each run is charged to
+    rows(prep(expr("agent-fleet", "Spend by model and principal")),
+         [{"labels": '{gen_ai_request_model="m1", principal="github:alice"}', "value": 5}, {"labels": '{gen_ai_request_model="m2", principal="github:alice"}', "value": 4},
+          {"labels": '{gen_ai_request_model="m1", principal="github:bob"}', "value": 1}]),
     # landed: 4 auto + 2 human merged; no reverted series at all
     rows(prep(expr("agents-overview", "PRs merged")), [{"value": 6}]),
     rows(prep(expr("agents-overview", "PRs reverted")), []),

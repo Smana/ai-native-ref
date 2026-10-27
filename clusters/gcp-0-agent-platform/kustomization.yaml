@@ -22,6 +22,7 @@ resources:
   - infrastructure-kueue.yaml
   - infrastructure-agents-headroom.yaml
   - tooling-agent-factory.yaml
+  - tooling-factory-slack-app.yaml
   - tooling-policy-bot.yaml
   - observability-agent-platform.yaml
   - observability-runlore-factory.yaml

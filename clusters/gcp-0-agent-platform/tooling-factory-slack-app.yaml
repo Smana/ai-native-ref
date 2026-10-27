@@ -1,0 +1,32 @@
+---
+# The agent factory's Slack App (factory interfaces part 2, runbook 18). Applied on gcp-0 only: the
+# base and aws-0 stay unwired (D4, R30).
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: tooling-factory-slack-app
+  namespace: flux-system
+spec:
+  prune: true
+  interval: 5m0s
+  retryInterval: 30s
+  timeout: 5m0s
+  path: ./tooling/gcp-0/agent-factory/slack-app
+  sourceRef:
+    kind: OCIRepository
+    name: ai-native-ref
+  postBuild:
+    substituteFrom:
+      - kind: ConfigMap
+        name: gke-gcp-0-vars
+  # The host's H2 Kustomizations only (AGENTS.md), plus its siblings: its ExternalSecrets read the
+  # agents store, it calls the broker and the factory.
+  dependsOn:
+    - name: agent-secrets
+    - name: room-broker
+    - name: agent-factory
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: factory-slack-app
+      namespace: agent-system

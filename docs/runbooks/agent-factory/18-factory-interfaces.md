@@ -157,7 +157,7 @@ The webhook key is generated in the cluster by the External Secrets `Password` g
 is written to OpenBao for it. Rotating it is a manual edit of that Secret (two base64 lines during the
 overlap); the broker and the App re-read the key at use, so nothing restarts.
 
-`task check` green, merge.
+The PR carries `OWNER-FILL-*` markers (the Slack team, channel and owner ids in the App's config and the factory's values) until the owner's ids replace them. `task check` passes with them; run it with `FACTORY_SLACK_LIVE=1` (`test-factory-slack-switchon.py`) before merging, and it fails on any left. `task check` green, merge.
 
 ## 5. Checks
 

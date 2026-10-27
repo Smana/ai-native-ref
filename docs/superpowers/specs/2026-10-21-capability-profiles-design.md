@@ -69,7 +69,7 @@ tools:
     - get_flux_instance
     - get_kubernetes_api_versions
     - get_kubernetes_metrics
-    - {name: get_kubernetes_resources, when: 'mcp.tool.arguments.kind != "Secret"'}
+    - {name: get_kubernetes_resources, when: 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]'}
     - get_kubernetes_logs
   mcp-victorialogs:
     - documentation
@@ -197,9 +197,11 @@ Ruled in P3 ([plan](../plans/2026-10-27-capability-profiles-p3-plan.md#this-plan
   request policies only. `mcpAuthorization` sees the tool's target and name, not its arguments. Each
   listener whose profiles constrain a tool gets `capabilities-mcp-<listener>` on its MCP route. Sharing
   `capabilities-<listener>` would AND the model rule into every MCP call.
-- **`when` takes one form, `mcp.tool.arguments.<argument> != "<value>"`.** The generator renders it
-  as `!(<aud> && <target> && <tool>) || default(mcp.tool.arguments.<argument>, "").lowerAscii() !=
-  "<value>"`, with one Require per role and tool. Any other request, and a call without the argument,
+- **`when` takes one form, `mcp.tool.arguments.<argument> not in ["<value>", ...]`, lower-case values.**
+  A set, because one resource has several names: controller-runtime resolves `SecretList` to Secrets.
+  The generator renders it as `!(<aud> && <target> && <tool>) ||
+  !(default(mcp.tool.arguments.<argument>, "").lowerAscii() in [<values>])`, with one Require per role
+  and tool. Any other request, and a call without the argument,
   passes; a non-string value is refused. AG6 and `test-agent-mcp-scope` parse the same form.
 - **The 403 is accepted.** Every harness a run can get pins OpenHands SDK 1.56.0, which keeps its MCP
   session after a refused `tools/call` (S0's re-run, measured by the SDK 1.56 plan).

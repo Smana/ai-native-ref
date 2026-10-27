@@ -270,6 +270,24 @@ grep -q 'flux-operator-mcp_get_kubernetes_resources' "$tmp/rpc.out" \
 expect "kind Secret is refused 403, the server untouched" "403 -" \
   "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": "Secret"}')"
 expect "kind secret, folded, is refused 403" "403 -" "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": "secret"}')"
+expect "kind SecretList, which the client's list lookup resolves to Secrets, is refused 403" "403 -" \
+  "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": "SecretList"}')"
+expect "kind secrets, the plural resource name, is refused 403" "403 -" \
+  "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": "secrets"}')"
+expect "a kind that is a list is refused 403" "403 -" "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": ["Secret"]}')"
+expect "a kind that is an object is refused 403" "403 -" "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": {"k": "Secret"}}')"
+# unseen <what> <status and arguments>: framings the rule may not read; the server must never see a Secret call.
+unseen() {
+  case "$2" in *[Ss]ecret*) fail "$1: the server saw a Secret call: $2" ;; *) echo "ok    $1 (${2%% *})" ;; esac
+}
+SECRET_CALL='{"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "flux-operator-mcp_get_kubernetes_resources", "arguments": {"apiVersion": "v1", "kind": "Secret"}}}'
+unseen "a JSON-RPC batch carrying a Secret tools/call never reaches the server with it" "$(rpc $R "[$SECRET_CALL]")"
+printf '%s' "$SECRET_CALL" | gzip > "$tmp/call.gz"
+: > "$tmp/mcp.jsonl"
+gzcode="$(curl -s -o "$tmp/rpc.out" -w '%{http_code}' --max-time 10 "http://127.0.0.1:$gw_port/mcp" \
+  -H "authorization: Bearer $(cat "$tmp/$R.jwt")" -H 'content-type: application/json' -H 'content-encoding: gzip' \
+  -H 'accept: application/json, text/event-stream' -H 'mcp-protocol-version: 2025-06-18' --data-binary "@$tmp/call.gz")"
+unseen "a gzip-encoded Secret tools/call never reaches the server with it" "$gzcode $(cat "$tmp/mcp.jsonl")"
 expect "kind Pod reaches the server" '200 {"apiVersion":"v1","kind":"Pod"}' \
   "$(tool $R get_kubernetes_resources '{"apiVersion": "v1", "kind": "Pod"}')"
 expect "no kind reaches the server, which answers it" '200 {"apiVersion":"v1"}' "$(tool $R get_kubernetes_resources '{"apiVersion": "v1"}')"

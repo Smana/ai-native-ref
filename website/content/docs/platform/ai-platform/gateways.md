@@ -243,12 +243,13 @@ role moves to its own size: narrowing a profile is the switch, and gate AG14 ref
 refuse a model the factory's tiers pin.
 
 The arguments are generated too. A tool in a profile may read
-`{name: <tool>, when: 'mcp.tool.arguments.<argument> != "<value>"'}`, the one form the generator
+`{name: <tool>, when: 'mcp.tool.arguments.<argument> not in ["<value>", ...]'}`, the one form the generator
 takes. It becomes a route-level `Require` on the listener's MCP route (`capabilities-mcp-<listener>`),
-because agentgateway 1.6's `mcpAuthorization` cannot read arguments. A call that carries the excluded
-value, compared case-insensitively, is refused 403 before it reaches the server. The tool stays listed,
+because agentgateway 1.6's `mcpAuthorization` cannot read arguments. A call that carries an excluded
+value, compared ASCII case-insensitively, is refused 403 before it reaches the server. The tool stays listed,
 and a call without the argument reaches the server, which answers it. One rule exists today:
-`get_kubernetes_resources` never with `kind: Secret`, for every role that has the tool. It adds to the
+`get_kubernetes_resources` never with `kind` `Secret`, `SecretList` (the client's list lookup resolves it to
+Secrets) or `secrets`, for every role that has the tool. It adds to the
 Flux MCP server's own RBAC, which grants no Secret. The harness's OpenHands SDK keeps its MCP session
 after such a 403 (since 1.55), so the run keeps its other tools.
 

@@ -95,7 +95,7 @@ def on(name, change):
 
 def constrained(d):
     d["tools"]["flux-operator-mcp"][3] = {"name": "get_kubernetes_resources",
-                                          "when": 'mcp.tool.arguments.kind != "Secret"'}
+                                          "when": 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]'}
 
 
 def unconstrained(t):
@@ -215,7 +215,7 @@ spec:
       policy:
         matchExpressions:
           - 'jwt.sub.startsWith("system:serviceaccount:agents:")'
-          - '!("agent-router.reviewer.internal" in jwt.aud && default(mcp.tool.target, "") == "flux-operator-mcp" && default(mcp.tool.name, "") == "get_kubernetes_resources") || default(mcp.tool.arguments.kind, "").lowerAscii() != "secret"'
+          - '!("agent-router.reviewer.internal" in jwt.aud && default(mcp.tool.target, "") == "flux-operator-mcp" && default(mcp.tool.name, "") == "get_kubernetes_resources") || !(default(mcp.tool.arguments.kind, "").lowerAscii() in ["secret", "secretlist", "secrets"])'
 """
 with tree() as t:
     unconstrained(t)
@@ -235,10 +235,11 @@ with tree() as t:
     check("roles render in name order, after the listener's Require",
           [e.split('"')[1] for e in exprs[1:]] == ["agent-router.reviewer.internal", "agent-router.triager.internal"], str(exprs))
 check("an argument rule binds one audience, target and tool, and folds the value",
-      gen.argument_rule("reviewer", "internal", "flux-operator-mcp", "get_kubernetes_resources", "kind", "Secret") ==
+      gen.argument_rule("reviewer", "internal", "flux-operator-mcp", "get_kubernetes_resources", "kind",
+                        ("secret", "secretlist", "secrets")) ==
       '!("agent-router.reviewer.internal" in jwt.aud && default(mcp.tool.target, "") == "flux-operator-mcp"'
       ' && default(mcp.tool.name, "") == "get_kubernetes_resources")'
-      ' || default(mcp.tool.arguments.kind, "").lowerAscii() != "secret"')
+      ' || !(default(mcp.tool.arguments.kind, "").lowerAscii() in ["secret", "secretlist", "secrets"])')
 
 print("drift (design gate 5)")
 with tree() as t:
@@ -297,18 +298,25 @@ for name, change, needle in [
     ("readOnly waits for the ConfigMap", on("reviewer.internal.yaml", lambda d: d.update(readOnly=["room-broker/*"])),
      "readOnly arrives with the agent-capability-profiles ConfigMap"),
     ("an unknown key", on("reviewer.internal.yaml", lambda d: d.update(namespaces=["x"])), "unknown key namespaces"),
-    ("a when of another form", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind == "Pod"')), "when takes one form"),
-    ("a when with an appended || true", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind != "Secret" || true')),
+    ("a when of another form", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind != "Pod"')), "when takes one form"),
+    ("the single-value form, which cannot hold SecretList", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind != "secret"')),
      "when takes one form"),
-    ("a when with a quote in its value", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind != "Se"cret"')),
+    ("a when with an upper-case value, which the folded argument never equals",
+     on("reviewer.internal.yaml", when('mcp.tool.arguments.kind not in ["Secret"]')), "when takes one form"),
+    ("a when with an empty set", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind not in []')), "when takes one form"),
+    ("a when on a tool with a bad name", on("reviewer.internal.yaml", lambda d: d["tools"]["flux-operator-mcp"].__setitem__(
+        3, {"name": "Get-Resources", "when": 'mcp.tool.arguments.kind not in ["secret"]'})), "not a tool name"),
+    ("a when with an appended || true", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"] || true')),
+     "when takes one form"),
+    ("a when with a quote in its value", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind not in ["se"cret"]')),
      "when takes one form"),
     ("a constrained tool with another key", on("reviewer.internal.yaml", lambda d: d["tools"]["flux-operator-mcp"]
-     .__setitem__(3, {"name": "get_kubernetes_resources", "when": 'mcp.tool.arguments.kind != "Secret"', "unless": "x"})),
+     .__setitem__(3, {"name": "get_kubernetes_resources", "when": 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]', "unless": "x"})),
      "a constrained tool is {name, when}"),
     ("a when with no name", on("reviewer.internal.yaml", lambda d: d["tools"]["flux-operator-mcp"]
-     .__setitem__(3, {"when": 'mcp.tool.arguments.kind != "Secret"'})), "a constrained tool is {name, when}"),
+     .__setitem__(3, {"when": 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]'})), "a constrained tool is {name, when}"),
     ("a constrained tool listed twice", on("reviewer.internal.yaml", lambda d: d["tools"]["flux-operator-mcp"]
-     .append({"name": "get_kubernetes_resources", "when": 'mcp.tool.arguments.kind != "Secret"'})),
+     .append({"name": "get_kubernetes_resources", "when": 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]'})),
      "get_kubernetes_resources twice"),
     ("an alias no backend serves", on("tester.public.yaml", lambda d: d["models"].append("tier-huge")),
      "models names tier-huge, which no LLM backend serves"),

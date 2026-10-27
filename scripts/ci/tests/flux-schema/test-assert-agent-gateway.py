@@ -58,10 +58,10 @@ def model_rule(prof, listener, auds=None):
     return f"{gate.EFFECTIVE_MODEL}.with(m, {alts})"
 
 
-def argument(prof, listener, value="secret"):
+def argument(prof, listener, value='"secret", "secretlist"'):
     """A P3 argument rule as gen-capabilities.py renders it."""
     return (f'!("{prof.aud_prefix}.reviewer.{listener}" in jwt.aud && default(mcp.tool.target, "") == "room-broker"'
-            f' && default(mcp.tool.name, "") == "room_read") || default(mcp.tool.arguments.kind, "").lowerAscii() != "{value}"')
+            f' && default(mcp.tool.name, "") == "room_read") || !(default(mcp.tool.arguments.kind, "").lowerAscii() in [{value}])')
 
 
 def compliant(key=REAL):
@@ -764,8 +764,8 @@ def arg_expr(o, value):
 
 R = gate.PROFILES[REAL]
 expect("an upper-case value, which the folded argument never equals, fails",
-       lambda o: arg_expr(o, argument(R, "public", "Secret")), "AG6", "not one argument rule")
-expect("the unfolded form fails", lambda o: arg_expr(o, 'mcp.tool.arguments.kind != "Secret"'), "AG6", "not one argument rule")
+       lambda o: arg_expr(o, argument(R, "public", '"Secret"')), "AG6", "not one argument rule")
+expect("the unfolded form fails", lambda o: arg_expr(o, 'mcp.tool.arguments.kind not in ["secret"]'), "AG6", "not one argument rule")
 expect("an appended || true fails", lambda o: arg_expr(o, argument(R, "public") + " || true"), "AG6", "not one argument rule")
 expect("a body read fails", lambda o: arg_authz(o)["policy"]["matchExpressions"].append(
     'json(request.body).method != "tools/call"'), "AG6", "not one argument rule")
@@ -774,7 +774,11 @@ expect("an internal audience on a public MCP route fails",
 expect("Allow instead of Require fails", lambda o: arg_authz(o).update({"action": "Allow"}), "AG6", "must Require")
 expect("no repeated sub prefix fails", lambda o: arg_authz(o)["policy"]["matchExpressions"].pop(0), "AG6", "must Require")
 check("the gate's grammar takes the generator's rule", bool(gate.argument_rule(R).match(
-    gen.argument_rule("reviewer", "internal", "flux-operator-mcp", "get_kubernetes_resources", "kind", "Secret"))))
+    gen.argument_rule("reviewer", "internal", "flux-operator-mcp", "get_kubernetes_resources", "kind",
+                      ("secret", "secretlist", "secrets")))))
+expect("the single-value form fails", lambda o: arg_expr(o, argument(R, "public").replace(
+    'in ["secret", "secretlist"])', '== "secret")')), "AG6", "not one argument rule")
+expect("an empty value set fails", lambda o: arg_expr(o, argument(R, "public", "")), "AG6", "not one argument rule")
 
 print("main")
 with tempfile.TemporaryDirectory() as d:

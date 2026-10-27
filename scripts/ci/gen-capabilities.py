@@ -25,10 +25,10 @@ reaches. That model is the identity proxy's x-ar-model when present (P4), else t
 choice the backends' `model` transformation makes (AG12), so the rule and the model cannot disagree.
 A profile's models are a non-empty subset of the aliases the LLM backends serve.
 
-A tool's `when` (P3), `{name: <tool>, when: 'mcp.tool.arguments.<argument> != "<value>"'}`, the one
+A tool's `when` (P3), `{name: <tool>, when: 'mcp.tool.arguments.<argument> not in ["<value>", ...]'}`, the one
 form this script takes: each renders one Require into policy-capabilities.yaml's
 capabilities-mcp-<listener>, on the listener's MCP route. A call of that tool by that role carrying
-that value, compared ASCII case-folded, is refused 403; any other request, and a call without the
+any of those values, compared ASCII case-folded, is refused 403; any other request, and a call without the
 argument, passes. The tool keeps its name in mcp.yaml's list. 1.6's mcpAuthorization cannot read
 arguments (its CEL holds the tool's target and name only), so the rule is route-level.
 
@@ -59,9 +59,11 @@ KEYS = ("role", "dataClass", "models", "tools")
 CONFIGMAP_KEYS = ("egress", "readOnly")
 FILE = re.compile(r"^(?P<role>[a-z]+)\.(?P<cls>[a-z]+)\.yaml$")
 TOOL = re.compile(r"^[a-z0-9_]+$")
-# P3: a tool's `when` takes one form, an argument that must not hold one value. The generator, gate AG6
+# P3: a tool's `when` takes one form, an argument that must not hold any of a set of lower-case values (a
+# set: one resource can be named several ways, e.g. kind Secret and SecretList). The generator, gate AG6
 # and test-agent-mcp-scope each parse it, so each can recompute the rule exactly.
-WHEN = re.compile(r'^mcp\.tool\.arguments\.(?P<arg>[A-Za-z_][A-Za-z0-9_]*) != "(?P<value>[A-Za-z0-9._/-]+)"$')
+WHEN = re.compile(r'^mcp\.tool\.arguments\.(?P<arg>[A-Za-z_][A-Za-z0-9_]*) not in '
+                  r'\[(?P<values>"[a-z0-9._/-]+"(?:, "[a-z0-9._/-]+")*)\]$')
 SEPARATOR = re.compile(r"^---\n", re.M)
 LIST = re.compile(r"^(?P<indent> *)matchExpressions:\n(?:(?P=indent)  - .*\n)+", re.M)
 # The model a call reaches: the identity proxy's pin when present (P4), else the body's. agentgateway
@@ -83,7 +85,7 @@ HEADER = """\
 # 1.6 adds route rules to the listener's; the listener's Require is repeated in case that changes.
 #
 # capabilities-mcp-<listener>, on the listener's MCP route, where a profile constrains a tool's
-# arguments (P3): one Require per role and constrained tool that the call never carries the value the
+# arguments (P3): one Require per role and constrained tool that the call never carries a value the
 # profile's `when` excludes, compared ASCII case-folded. default() lets every other request through,
 # and a call without the argument too: the server answers it. 1.6's mcpAuthorization cannot read
 # arguments, so a refusal answers HTTP 403 rather than hiding the tool; the harness's OpenHands SDK
@@ -113,12 +115,12 @@ def model_rule(cls, profiles):
     return f"{EFFECTIVE_MODEL}.with(m, {alternatives})"
 
 
-def argument_rule(role, cls, target, tool, arg, value):
-    """One Require (P3): this role's call of this tool never carries this argument value, folded.
+def argument_rule(role, cls, target, tool, arg, values):
+    """One Require (P3): this role's call of this tool never carries one of these argument values, folded.
     default() passes every request without that tool call, and a call without the argument."""
     return (f'!("{AUD_PREFIX}.{role}.{cls}" in jwt.aud && default(mcp.tool.target, "") == "{target}"'
             f' && default(mcp.tool.name, "") == "{tool}")'
-            f' || default(mcp.tool.arguments.{arg}, "").lowerAscii() != "{value.lower()}"')
+            f' || !(default(mcp.tool.arguments.{arg}, "").lowerAscii() in [{", ".join(f'"{v}"' for v in values)}])')
 
 
 def documents(root):
@@ -182,10 +184,12 @@ def load_profile(root, path, targets, aliases, errors):
                     errors.append(f"{rel}: {target} {n!r}: a constrained tool is {{name, when}}")
                     continue
                 n, w = n["name"], WHEN.match(str(n["when"]))
-                if w:
-                    rules.append((target, n, w["arg"], w["value"]))
-                elif isinstance(n, str) and TOOL.match(n):
-                    errors.append(f'{rel}: {target} {n}: when takes one form, mcp.tool.arguments.<argument> != "<value>"')
+                if isinstance(n, str) and TOOL.match(n):
+                    if w:
+                        rules.append((target, n, w["arg"], tuple(re.findall(r'"([^"]+)"', w["values"]))))
+                    else:
+                        errors.append(f'{rel}: {target} {n}: when takes one form, '
+                                      'mcp.tool.arguments.<argument> not in ["<value>", ...] (lower case)')
             if not isinstance(n, str) or not TOOL.match(n):
                 errors.append(f"{rel}: {target} names {n!r}, which is not a tool name")
             else:

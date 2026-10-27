@@ -174,12 +174,12 @@ for aud in sorted(set(got) | set(want)):
         errors.append(f"profiles: {aud} grants {got.get(aud)}, expected {want.get(aud)}")
 
 # --- P3: the argument rules, frozen like the sets above: every role that holds get_kubernetes_resources
-#     never calls it with kind Secret. The profiles' `when` and policy-capabilities.yaml must both hold
+#     never calls it with a kind that names Secrets (Secret, SecretList, secrets). The profiles' `when` and policy-capabilities.yaml must both hold
 #     exactly these, each read here on its own so a generator bug cannot hide a missing rule. ---
-NO_SECRET = {("flux-operator-mcp", "get_kubernetes_resources"): ("kind", "secret")}
+NO_SECRET = {("flux-operator-mcp", "get_kubernetes_resources"): ("kind", ("secret", "secretlist", "secrets"))}
 EXPECTED_ARGUMENT_RULES = {aud: NO_SECRET for per_route in EXPECTED_ROLE_TOOLS.values() for aud, grants in per_route.items()
                            if "get_kubernetes_resources" in grants.get("flux-operator-mcp", set())}
-WHEN = re.compile(r'^mcp\.tool\.arguments\.([A-Za-z_][A-Za-z0-9_]*) != "([^"]+)"$')
+WHEN = re.compile(r'^mcp\.tool\.arguments\.([A-Za-z_][A-Za-z0-9_]*) not in \[("[^"\]]+"(?:, "[^"\]]+")*)\]$')
 got = {}
 for fname in sorted(os.listdir(PROFILE_DIR)) if os.path.isdir(PROFILE_DIR) else []:
     if not fname.endswith(".yaml"):
@@ -193,7 +193,7 @@ for fname in sorted(os.listdir(PROFILE_DIR)) if os.path.isdir(PROFILE_DIR) else 
                     errors.append(f"profiles/{fname}: {target} {n.get('name')}: when outside the one form: {n.get('when')}")
                     continue
                 got.setdefault(f"agent-router.{prof.get('role')}.{prof.get('dataClass')}", {})[(target, n.get("name"))] = \
-                    (m.group(1), m.group(2).lower())
+                    (m.group(1), tuple(v.lower() for v in re.findall(r'"([^"]+)"', m.group(2))))
 if got != EXPECTED_ARGUMENT_RULES:
     errors.append(f"profiles: argument rules are {got}, expected {EXPECTED_ARGUMENT_RULES}")
 args = _agw.argument_rule(_agw.PROFILES[("agent-gateway", "agent-router")])
@@ -205,7 +205,7 @@ for pol in (d for d in yaml.safe_load_all(open(CAPS_FILE)) if d):
     for e in pol["spec"]["traffic"]["authorization"]["policy"]["matchExpressions"]:
         m = args.match(e)
         if m:
-            got.setdefault(f"agent-router.{m['role']}.{m['cls']}", {})[(m["target"], m["tool"])] = (m["arg"], m["value"])
+            got.setdefault(f"agent-router.{m['role']}.{m['cls']}", {})[(m["target"], m["tool"])] = (m["arg"], tuple(re.findall(r'"([^"]+)"', m["values"])))
         elif not e.startswith("jwt.sub.startsWith("):
             errors.append(f"policy-capabilities.yaml: {pol['metadata']['name']}: outside the argument grammar: {e}")
 if got != EXPECTED_ARGUMENT_RULES:

@@ -235,14 +235,14 @@ def alternative(prof):
 
 
 def argument_rule(prof):
-    """P3's grammar, as gen-capabilities.py renders it: one audience's call of one tool never carries one
-    argument value, compared folded. Reused by test-agent-mcp-scope."""
+    """P3's grammar, as gen-capabilities.py renders it: one audience's call of one tool never carries any of
+    a set of argument values, compared folded. Reused by test-agent-mcp-scope."""
     return re.compile(
         rf'^!\("{re.escape(prof.aud_prefix)}\.(?P<role>[a-z]+)\.(?P<cls>public|internal)" in jwt\.aud'
         r' && default\(mcp\.tool\.target, ""\) == "(?P<target>[a-z0-9-]+)"'
         r' && default\(mcp\.tool\.name, ""\) == "(?P<tool>[a-z0-9_]+)"\)'
-        r' \|\| default\(mcp\.tool\.arguments\.(?P<arg>[A-Za-z_][A-Za-z0-9_]*), ""\)\.lowerAscii\(\)'
-        r' != "(?P<value>[a-z0-9._/-]+)"$')
+        r' \|\| !\(default\(mcp\.tool\.arguments\.(?P<arg>[A-Za-z_][A-Za-z0-9_]*), ""\)\.lowerAscii\(\)'
+        r' in \[(?P<values>"[a-z0-9._/-]+"(?:, "[a-z0-9._/-]+")*)\]\)$')
 
 
 def meta(obj):
@@ -493,6 +493,8 @@ def check_mcp_authz(objs):
                     out.append(f"AG6: {ref(p)} expression is not one complete alternative: {e}")
                 elif m.group("cls") not in classes:
                     out.append(f"AG6: {ref(p)} grants a {m.group('cls')} audience on {sorted(classes)} routes: {e}")
+    # This loop validates the argument policies that exist; that a constrained profile has one is the scope
+    # suite's job (EXPECTED_ARGUMENT_RULES) and the drift suite's (P1 R5, R6): do not rely on AG6 alone.
     mcp_backends = {key(b) for b in kind(objs, "AgentgatewayBackend") if spec_of(b).get("mcp")}
     for g, prof in profiled(objs):
         grammar = argument_rule(prof)

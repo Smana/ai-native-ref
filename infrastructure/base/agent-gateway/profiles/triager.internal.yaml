@@ -9,7 +9,7 @@ tools:
     - search_flux_docs
     - get_flux_instance
     - get_kubernetes_api_versions
-    - {name: get_kubernetes_resources, when: 'mcp.tool.arguments.kind != "Secret"'}
+    - {name: get_kubernetes_resources, when: 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]'}
     - get_kubernetes_metrics
     - get_kubernetes_logs
   mcp-victoriametrics:

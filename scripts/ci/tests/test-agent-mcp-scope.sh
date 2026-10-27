@@ -40,12 +40,13 @@ VL_TOOLS = {"documentation", "query", "hits", "facets", "field_names", "field_va
             "stream_field_values"}
 
 # SP2 §3: the same room tools on both listeners; room_handoff is not a reviewer's,
-# room_verdict is not an implementer's or a triager's.
-ROOM_TOOLS = {"room_read", "room_post", "room_progress", "room_handoff", "room_verdict"}
+# room_verdict is not an implementer's or a triager's. room_judge is the implementer harness's
+# completion judge (the broker refuses the model's own call).
+ROOM_TOOLS = {"room_read", "room_post", "room_progress", "room_handoff", "room_verdict", "room_judge"}
 ROOM_GRANTS = {
-    "implementer": {"room_read", "room_post", "room_progress", "room_handoff"},
+    "implementer": {"room_read", "room_post", "room_progress", "room_handoff", "room_judge"},
     "reviewer": {"room_read", "room_post", "room_progress", "room_verdict"},
-    "tester": ROOM_TOOLS,
+    "tester": {"room_read", "room_post", "room_progress", "room_handoff", "room_verdict"},
     "triager": {"room_read", "room_post", "room_progress", "room_handoff"},
 }
 

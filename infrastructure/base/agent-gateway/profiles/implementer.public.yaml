@@ -15,3 +15,4 @@ tools:
     - room_post
     - room_progress
     - room_handoff
+    - room_judge

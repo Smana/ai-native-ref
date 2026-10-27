@@ -228,7 +228,7 @@ reads `default`'s row, off), then `factory/ready`.
 | Layer | Switch (`loops.docs`, or `classes.docs` per repository) | Design |
 |---|---|---|
 | 1. Scoper | `scope: scoper` | [scoper](../../superpowers/specs/2026-10-22-scoper-design.md#gate) |
-| 2. Loop policy | `stallSteps: 20`, `continuations: 2`, `judge: tier-light` | [loops](../../superpowers/specs/2026-10-21-loops-and-teams-design.md), [harness reference](../../../website/content/docs/platform/ai-platform/agents/harness.md#loop-policy) |
+| 2. Loop policy | `stallSteps: 60`, `continuations: 2`, `judge: tier-light` | [loops](../../superpowers/specs/2026-10-21-loops-and-teams-design.md), [harness reference](../../../website/content/docs/platform/ai-platform/agents/harness.md#loop-policy) |
 | 3. Sandbox checks | `checks: true` | [sandbox checks](../../superpowers/specs/2026-10-22-sandbox-checks-design.md#gate) |
 
 Before layer 1: the pins carry agent-platform v0.23.2 and crossplane-configuration v0.9.20 or later
@@ -283,22 +283,25 @@ other line of that file and no other file changes. `task links` passes.
 
 Prerequisites: layer 1's proofs passed (the judge reads the scope's checks) and the capability profiles'
 sidecar ([#103](https://github.com/Smana/ai-native-ref/pull/103)) is merged and live: a command in the
-sandbox that posts to the identity proxy's `/judge/v1` reaches the judge alias. The row now reads
-`docs: {scope: scoper, stallSteps: 20, continuations: 2, judge: tier-light}`. The factory copies it
+sandbox that posts to the identity proxy's `/judge/v1` reaches the judge alias. Without the sidecar the
+judge call is refused (403 or 404) and silently skipped: the run ends as `finished`, as with no judge, and
+no error shows. Drills D and E run only after #103 is live; drill C (the stall rule) does not need it.
+The row now reads `docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light}`.
+The factory copies it
 into every implementer claim of the class: `kubectl -n agent-system get task <name> -o
 jsonpath='{.spec.loop}'` shows `stallSteps`, `continuations` and `judgeModel`.
 
 | # | Do | Expected reading |
 |---|---|---|
-| 1 | File drill issue C (a stall drill) and label it as in layer 1 | The implementer ends with no commit by step 20: the task is `Escalated`, reason `stalled`; the room holds the run's findings as a note; the issue carries the fixed narration with the reason category only; `agent_factory_loop_runs_total{end="stalled"}` is 1. The run's cost stays under the tier's `runUSD` |
+| 1 | In a commit of the session, set `loops.docs.stallSteps` to 20 for this drill. File drill issue C (a stall drill) and label it as in layer 1 | The implementer ends with no commit by step 20: the task is `Escalated`, reason `stalled`; the room holds the run's findings as a note; the issue carries the fixed narration with the reason category only; `agent_factory_loop_runs_total{end="stalled"}` is 1. The run's cost stays under the tier's `runUSD` |
 | 2 | File drill issue D (a clear issue whose first attempt misses a check) and label it | After the first run ends on its own, the judge answers `not_yet` against the scope's checks; the same conversation continues (the room shows one run's conversation, not a restart), at most twice |
 | 3 | On step 2's task, read the cache | `cache_read` over `input` for the continued steps is high (runbook 04, Part E); a continuation that restarted the conversation reads as a cold prefix |
 | 4 | An issue whose acceptance cannot be met (drill E) | The judge answers `impossible`: `Escalated`, reason `judge_impossible`, the judge's text only in the room, the issue carries the category only |
 | 5 | Read the reviewer's role in the room on any of the runs above | The reviewer's brief and calls hold no implementer transcript |
 | 6 | Read the counters | `agent_factory_loop_runs_total` by `end` (`finished`, `stalled`, `not_met`, `judge_impossible`) matches the runs above |
 
-After the drill, set `stallSteps` from the accepted runs' step counts (the default is 80) in a follow-up
-commit; 20 is a drill value and would stop a legitimate run.
+After the drill, put `stallSteps` back to 60 (a real docs run takes 15 to 40 steps before its first
+commit; do not go under about 50), then set it from the accepted runs' step counts.
 
 **Drill C, a stall** (a task that sends the run searching without ever committing):
 
@@ -325,10 +328,10 @@ Body:
 Add one row for the loop policy to the table in website/content/docs/platform/ai-platform/status.md
 named "Loop policy drill".
 Acceptance: (1) the table gains exactly one row, named "Loop policy drill"; (2) the row's last cell
-is "drill, remove after the session" and `task docs` passes; (3) no other line of any file changes.
+is "drill, remove after the session" and `task links` passes; (3) no other line of any file changes.
 ```
 
-**Drill E, an impossible acceptance** (the judge answers `impossible`, a human takes over):
+**Drill E, an impossible acceptance** (the judge should answer `impossible`, a human takes over). The judge may answer `not_yet` first and `impossible` after a continuation: either order passes if the task ends `Escalated` with `judge_impossible`. A task that ends `not_met` (continuations spent) is recorded as observed, not as a pass:
 
 ```text
 Title: docs: link the runbooks README to a page that does not exist

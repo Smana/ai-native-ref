@@ -306,18 +306,17 @@ data:
       # attributable (runbooks README, "v3 loop and sandbox layers"). A row is read whole, never merged with default's.
       loops:
         default: {scope: off}
-        # Scoper (v3 feature 1, live proofs 1-3): a public triager run scopes a labelled issue, or asks
-        # its author the one question it cannot answer. docs is declared by both repositories, so the
-        # row reads for both; a repository's steering note (.github/agent-factory/steering/docs.md)
-        # is optional.
-        # Loop policy (v3 feature 2): any of the three keys switches the class's loop on, and a row is
-        # read whole, so the scoper's key stays on it. stallSteps 20 is the drill's low limit (default
-        # 80, 1..500): a run with no commit by then stops and posts its findings; set it from the
-        # accepted runs' history afterwards. continuations 2: a not_yet continues the same
-        # conversation at most twice (0..5). judge tier-light: the completion judge's alias (the claim's
-        # judgeModel), reading the scoper's acceptance checks; the identity proxy's /judge/v1 route
-        # needs the capability profiles' P4 sidecar (#103) merged first.
-        docs: {scope: scoper, stallSteps: 20, continuations: 2, judge: tier-light}
+        # docs, the gcp-0 session's class (both repositories declare it, so the row reads for both). A
+        # row is read whole: the scoper's key stays on it. Scoper (v3 feature 1): a public triager
+        # run scopes a labelled issue, or asks its author the one question it cannot answer; a
+        # repository's steering note (.github/agent-factory/steering/docs.md) is optional. Loop
+        # policy (feature 2): any of the three keys switches the loop on. stallSteps 60 (default 80,
+        # 1..500): a run with no commit by then stops and posts its findings; the stall drill sets a
+        # lower value for itself. continuations 2: a not_yet continues the same conversation at most
+        # twice (0..5). judge tier-light: the completion judge's alias (the claim's judgeModel),
+        # reading the scoper's checks; without the capability profiles' P4 sidecar (#103) its
+        # /judge/v1 route is refused and the judge is silently skipped.
+        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light}
       # loops.<class>.search: true offers that class's implementer runs the search tool (agent-platform
       # v3 feature 5): a read-only child on the run's token, 40 iterations, 300k tokens, 300 s, six a
       # run. No class has it (D4): a gcp-0 session switches one on for the paired live gate (SQ5).

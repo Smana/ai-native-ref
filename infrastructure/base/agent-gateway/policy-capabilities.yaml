@@ -61,3 +61,23 @@ spec:
         matchExpressions:
           - 'jwt.sub.startsWith("system:serviceaccount:agents:")'
           - '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : json(request.body).model).with(m, ("agent-router.implementer.internal" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"]) || ("agent-router.reviewer.internal" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"]) || ("agent-router.tester.internal" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"]) || ("agent-router.triager.internal" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"]))'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: capabilities-mcp-internal
+  namespace: agent-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: agentgateway-mcp-internal
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - 'jwt.sub.startsWith("system:serviceaccount:agents:")'
+          - '!("agent-router.reviewer.internal" in jwt.aud && default(mcp.tool.target, "") == "flux-operator-mcp" && default(mcp.tool.name, "") == "get_kubernetes_resources") || default(mcp.tool.arguments.kind, "").lowerAscii() != "secret"'
+          - '!("agent-router.tester.internal" in jwt.aud && default(mcp.tool.target, "") == "flux-operator-mcp" && default(mcp.tool.name, "") == "get_kubernetes_resources") || default(mcp.tool.arguments.kind, "").lowerAscii() != "secret"'
+          - '!("agent-router.triager.internal" in jwt.aud && default(mcp.tool.target, "") == "flux-operator-mcp" && default(mcp.tool.name, "") == "get_kubernetes_resources") || default(mcp.tool.arguments.kind, "").lowerAscii() != "secret"'

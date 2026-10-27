@@ -1,5 +1,6 @@
 # Rendered into mcp.yaml by scripts/ci/gen-capabilities.py --write (capability profiles design).
 # models is rendered into policy-capabilities.yaml (P2): the aliases this role may call.
+# A tool's when is rendered into policy-capabilities.yaml (P3): a call carrying the value it excludes answers 403.
 role: triager
 dataClass: internal
 models: [agent-default, tier-light, tier-standard, tier-frontier]
@@ -8,7 +9,7 @@ tools:
     - search_flux_docs
     - get_flux_instance
     - get_kubernetes_api_versions
-    - get_kubernetes_resources
+    - {name: get_kubernetes_resources, when: 'mcp.tool.arguments.kind != "Secret"'}
     - get_kubernetes_metrics
     - get_kubernetes_logs
   mcp-victoriametrics:

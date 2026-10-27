@@ -112,7 +112,7 @@ version 4 (H4 gains the listener). Then:
 
 | Where | Change |
 |---|---|
-| gcp-0's broker config copy, `infrastructure/gcp-0/room-broker/config.yaml` | `human.mcp.enabled: true`. It is required by `human.mcp.sponsored`, and it also opens human `/mcp` on the tailnet (L10). Then `human.mcp.sponsored: [{name: slack-app, clientIDFile: /etc/room-broker/sponsored/slack-app-client-id}]`, and the `webhooks` entry of the commented example in `infrastructure/base/room-broker/config.yaml` (full `room.*` event names, `secretFile`) |
+| gcp-0's broker config copy, `infrastructure/gcp-0/room-broker/config.yaml` | `human.mcp.enabled` is already on, since v0.23.1 (it is required by `human.mcp.sponsored`, and it opens human `/mcp` on the tailnet, to roomctl's token only). Add `human.mcp.sponsored: [{name: slack-app, clientIDFile: /etc/room-broker/sponsored/slack-app-client-id}]`, and the `webhooks` entry of the commented example in `infrastructure/base/room-broker/config.yaml` (full `room.*` event names, `secretFile`) |
 | `scripts/ci/tests/test-room-broker-suspend.py` | Widen the parity: gcp-0's copy may differ from base in `suspend`, `webhooks` and `human.mcp` alone |
 | The factory's gcp-0 values | A new ConfigMap, `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml`, appended to the HelmRelease's `valuesFrom` as `helm-values-suspend.yaml` is (Helm deep-merges, so `config.api.sponsored` lands); the off-test's glob then needs that file exempted. It holds `projectIDFile: /etc/agent-factory-sponsored/project-id` and `api.sponsored` with the owner as `sponsor`, the owner's Slack id linked (`onBehalfOf.slack: {"T…/U…": <login>}`), `dailyUSD: 5`, `maxCostUSD: 2`. It needs `meter.prices`. The commented example is in `tooling/base/agent-factory/helm-values-configmap.yaml`. The factory mounts `/etc/agent-factory-sponsored/` with the keys `<name>-client-id` and `project-id`; the broker mounts its own at `/etc/room-broker/sponsored` |
 | The App's config | A `configMapGenerator` with `behavior: replace` in `tooling/gcp-0/agent-factory/slack-app/`. It replaces the whole `config.yaml`, so the gcp-0 file is a full copy of base's with `teamID` and `channels` filled (each channel's `maxCostUSD` at most the principal's `maxCostUSD: 2`, for example `0.5`). The App refuses to start until both are filled. `brokerURL` stays `http://room-broker.agent-system.svc.cluster.local:8080`, with no path: the App appends `/mcp` |
@@ -221,7 +221,7 @@ App reads only at start.
 
 ## 8. Off again
 
-1. Revert the declarations in the ai-native-ref switch-on PR: the broker's `human.mcp` and `webhooks`, the
+1. Revert the declarations in the ai-native-ref switch-on PR: the broker's `human.mcp.sponsored` (keep `human.mcp.enabled`, on since v0.23.1) and `webhooks`, the
    factory's values file, the App's config, the Kustomization, the egress patch and the parity widening.
    **Keep** `HOST_REF` and HOST-CONTRACT v4: the listener stays in the host (it serves 404s), and
    removing it is a host PR. Regenerate the egress (`gen-webhook-egress.py --write .`), restore the two

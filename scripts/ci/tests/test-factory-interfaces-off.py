@@ -3,7 +3,7 @@
 """Factory interfaces part 2 ships every switch off (D4, R30, L3', L8).
 
 On the real tree: no cluster applies the Slack App's manifests; no broker config declares a webhook
-or a sponsored human MCP client, and no factory values declare a sponsored API client; the factory's
+or a sponsored human MCP client, no repository may start from a session (human.mcp.sessionStart), and no factory values declare a sponsored API client; the factory's
 public route is still the one POST /v1/runs, and the Slack App's is the one POST /slack/events.
 A switch-on lands in a gcp-0 session's copy (runbook 18), never here.
 """
@@ -53,6 +53,8 @@ for cfg in sorted(ROOT.glob("infrastructure/*/room-broker/config.yaml")):
             problems.append(f"{rel} declares webhooks (D4)")
         if "sponsored" in ((doc.get("human") or {}).get("mcp") or {}):
             problems.append(f"{rel} declares human.mcp.sponsored (D4)")
+        if ((doc.get("human") or {}).get("mcp") or {}).get("sessionStart"):
+            problems.append(f"{rel} lists human.mcp.sessionStart (D4: a gcp-0 session's copy only, runbook 19)")
 
 
 def sponsored_in(node, parent=None):
@@ -125,4 +127,4 @@ else:
 if problems:
     print("\n".join(problems))
     sys.exit(1)
-print("PASS: the Slack App is unwired, no webhook or sponsored client is declared, both routes are one POST")
+print("PASS: the Slack App is unwired, no webhook, sponsored client or session start is declared, both routes are one POST")

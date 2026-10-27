@@ -65,7 +65,8 @@ the spec's "The switch" shows. `/mcp` admits only roomctl's token and sponsored 
   `waiting for a human`, `running`, `queued`, `done`, `failed`, `stopped`; "a form field, never a tool
   argument".
 - **Versions:** ai-native-ref pins agent-platform **v0.22.0** (PR J, #116). The release this plan
-  adopts is **v0.23.0**, so `vX.Y.Z` below is `v0.23.0`. The diff base is always the tag pinned now,
+  adopts is **v0.23.0**, so `vX.Y.Z` below is `v0.23.0`. (As built: the v0.23.0 tag failed CI and
+published nothing, so **v0.23.1** is the release pinned.) The diff base is always the tag pinned now,
   read from the repository, never a literal.
 - **Commits:** conventional, in English, no trailers.
 

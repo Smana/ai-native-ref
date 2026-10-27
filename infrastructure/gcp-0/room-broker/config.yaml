@@ -41,6 +41,10 @@ human:
   access:
     readerFile: /etc/room-broker/zitadel-reader/reader.json
     ttl: 5m
+  # The developer's MCP server (base's copy says why): none starts from a session until runbook 19 lists one.
+  mcp:
+    enabled: true
+    sessionStart: []
 # v2 suspend (warm-sandboxes S3): a suspendable run in an attended room whose approval has
 # waited this long in an idle room is suspended, and resumed once nothing waits. It patches
 # through the room-broker-suspend grant, fenced by Kyverno's agentrun-broker-patch-limit.

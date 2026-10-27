@@ -1,7 +1,7 @@
 # v3 feature 13: the factory from your coding agent
 
 **Date:** 2026-10-25 · **Status:** design approved by the owner section by section 2026-10-25; this
-written spec awaits the owner's review · **Part of:** the
+written spec awaits the owner's review; built in agent-platform v0.23.1; live proofs wait for a gcp-0 session (runbook 19) · **Part of:** the
 [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features), as feature 13 by owner decision
 [D7](2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-25), which amends D1 ("outcomes first"). It builds on feature 9's MCP
 server ([factory interfaces](2026-10-21-factory-interfaces-design.md)), amends
@@ -37,7 +37,7 @@ Copilot CLI and Cursor are documented, best-effort.
 | The skill | `factory-handoff`, shell only (`gh`, `roomctl status`, `rooms`, `post`, `doctor`): "Never apply a label yourself". `roomctl skill install [dir]` writes it stamped with the binary's version | `internal/roomctl/skill/factory-handoff/SKILL.md`, `internal/roomctl/skill/skill.go:26` |
 | A drifted copy | cloud-native-ref commits the skill at `roomctl-version: "v0.11.0"`, from before `roomctl mcp` shipped (v0.17.0, [agent-platform#172](https://github.com/Smana/agent-platform/pull/172)) | cloud-native-ref `.agents/skills/factory-handoff/SKILL.md` |
 | The start rule | A `factory/ready` label starts a task only when its labeller is in the repository's maintainers and holds write on GitHub (v2 D5). Any other label is narrated `unauthorised_labeller` | `internal/factory/intake/`, `internal/factory/narrate/narrate.go:217` |
-| Broker config | `human.mcp.enabled`, `human.mcp.sponsored`. Both off in this repository's committed configs: only runbook 18's gcp-0 session turns `/mcp` on | `internal/config/config.go:63`; this repository's `infrastructure/base/room-broker/config.yaml` |
+| Broker config | `human.mcp.enabled`, `human.mcp.sponsored`. Off in this repository's committed configs when this design was written; the adopt PR (6) turns `/mcp` on in base with `sessionStart` empty, and `sponsored` stays empty | `internal/config/config.go:63`; this repository's `infrastructure/base/room-broker/config.yaml` |
 | Decisions in force | [ADR-0049](../../../website/content/docs/decisions/0049-room-client-and-human-auth.md): no approving or steering from a client an agent can drive. Local-first D1 (starting stays the developer's label), D2 (no MCP server; stale since [agent-platform#172](https://github.com/Smana/agent-platform/pull/172)), D3 (a deterministic summary), D6 (GitHub's notifications). Interfaces F3, F7 and F8 | the linked designs |
 
 ## Decisions

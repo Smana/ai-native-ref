@@ -2,7 +2,7 @@
 title: User guide
 weight: 10
 description: "How a maintainer hands an issue to the agent factory, follows it, steers it and stops it, shown on one real task."
-lastVerified: 2026-10-27
+lastVerified: 2026-10-28
 aliases:
   - /docs/platform/agent-factory/user-guide/
 ---
@@ -24,7 +24,7 @@ New to the vocabulary (run, role, sandbox, room)? Read
 |---|---|
 | Access to the tailnet | The room UI, Grafana and the factory's API are private |
 | Your OS trusting the platform's root CA | The room page and `roomctl` talk to private endpoints signed by it. Without it, `roomctl` fails with `x509: certificate signed by unknown authority`. Fetch and trust it as in [runbook 11's prerequisites](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#prerequisites) |
-| SSO membership in `agents-member` | To watch rooms and runs, and to start a run by hand. Requesting `internal` work or a `triager` run needs `agents-admin`. A valid login that still 403s on the room UI: see the [FAQ](#frequently-asked-questions) |
+| SSO membership in `agents-member` | To watch rooms and runs, and to start a run by hand. Requesting `internal` work or a `triager` run needs `agents-admin`. A valid login that still 403s on the room UI: see the [FAQ]({{< relref "/docs/platform/ai-platform/agents/faq.md#sso-403" >}}) |
 | Your GitHub account linked to your ZITADEL user | You see a room only if GitHub lets you read its repository: see [who sees a room](#who-sees-a-room) |
 | Maintainer rights on the repository | Labels and reviews are how you steer. The agents never merge on their own, except for the low-risk classes below |
 | `roomctl configure` then `roomctl login`, once ([commands](#from-a-terminal-roomctl)) | To follow tasks from a terminal or from your coding agent, and to start a run by hand: `task agent:run` sends the factory the token it prints, and the run is yours |
@@ -441,45 +441,19 @@ that room. It holds a run to its end: before the harness stops, even when its no
 asks the room-bridge to read its log to the last event
 ([F11](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#live-findings), fixed and verified on `aws-0` on 2026-10-07).
 
-## Frequently asked questions
+## Frequently asked questions {#faq}
 
-**Can an agent merge to `main`, or push anywhere else?**
-No. Its GitHub App may push only `agent/**` branches and no tags, enforced by two repository rulesets. Merging is
-the human's, except for the two low-risk classes above, which go through a separate App.
-That confinement is per repository, not per run: every run pushes as the same App, so one run can
-push to another's `agent/**` branch. The footer is provenance, never authorisation: the merge gate
-merges only the commit the task's own run reported in its room, with every reviewer approval naming
-that commit.
+{{< callout type="info" >}}
+**The [FAQ]({{< relref "/docs/platform/ai-platform/agents/faq.md" >}}) owns the questions.** It
+answers the six that used to sit here — merging and pushing, secrets, internet access, loops, gVisor
+and the SSO 403 — and the ones this page never answered: who the factory is for, what it costs to
+adopt, what it may not be trusted with, and what Maku is.
+{{< /callout >}}
 
-**Can it read our secrets?**
-The sandbox holds no long-lived credential. Its GitHub token is minted per run, scoped to one
-repository and one role, and revoked when the run ends (at worst it expires within an hour). Model and
-tool calls carry a run token that the gateway verifies. It has no access to Kubernetes Secrets. An
-`internal` run can read logs and pod specs over the read-only MCP tools, and those can contain
-secrets.
+Two of those answers belong beside the walkthrough above, so they stay here as pointers:
 
-**Can it reach the internet?**
-Only the hosts its network policy names: GitHub, the gateway and, with `--profiles`, package
-registries. Everything else is dropped.
-
-**What if it loops or goes off track?**
-Its deadline or the run meter ends it, and you can delete it. The stop ConfigMap ends every task.
-Every step is in the step log, the room and the trace.
-
-**Why gVisor?**
-The agent runs arbitrary commands. gVisor answers their system calls in user space, so a kernel
-exploit hits gVisor, not the node. Escaping takes a gVisor bug as well; the node pool is dedicated
-and tainted to limit what that would reach.
-
-**I logged in with SSO and the room UI still gives me a 403. Why?**
-oauth2-proxy and the broker admit a token only when its `groups` claim names `agents-member` or
-`agents-admin`. A 403 after a valid login means the claim names neither, and two things put it there:
-
-1. the `groupsFromRoles` ZITADEL Action, which turns your project roles into that claim. A broken
-   or edited Action drops it from every token;
-2. a grant of one of those roles to your user. A fresh ZITADEL holds no grants (gcp-0 mints one
-   every build), and a user exists only after their first login, so log in once, then run
-   `scripts/provision/zitadel-oidc-clients.sh --grant agents-member=<your email>` (or
-   `agents-admin=` to own and approve).
-
-Check the Action first (it fails for everyone at once), then your grant (it fails for you alone).
+- **A 403 after a valid SSO login** is a missing `groups` claim: the
+  [FAQ's answer]({{< relref "/docs/platform/ai-platform/agents/faq.md#sso-403" >}}) names both causes
+  and how to tell them apart.
+- **Watching a room you cannot see** is usually an unlinked GitHub account: see
+  [who sees a room](#who-sees-a-room).

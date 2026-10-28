@@ -2,7 +2,7 @@
 title: Agents
 weight: 20
 description: "The agent factory: autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes end to end."
-lastVerified: 2026-10-17
+lastVerified: 2026-10-28
 aliases:
   - /docs/platform/agent-factory/
 ---
@@ -26,6 +26,32 @@ joining the agents' room. Only policy-defined low-risk changes merge themselves;
 waits for a human.
 
 Which alternatives were considered, and why these choices? See
+[Alternatives considered]({{< relref "/docs/platform/ai-platform/agents/alternatives.md" >}}).
+
+## Meet Maku
+
+{{< maku demo="https://blog.ogenki.io/agent-platform/" >}}
+**Maku** is the product's name, chosen on 2026-10-27: the Japanese 幕, *maku* — a curtain, and by
+extension a tent or a screen. The product story borrows the theatre, not the translation: the curtain
+opens on a run, the run performs inside a deliberately bounded space, people watch and can step in,
+and the curtain closes on a record nobody can rewrite. It is a metaphor, not a claim — the
+guarantees are the sandbox, per-run identity, budgets, policy and the merge gate, never the name.
+
+Only the product is named Maku: `agent-platform` keeps the repository, module, binaries, images,
+charts, APIs and CRDs, and `ai-native-ref` keeps this deployable platform — its manifests, policies,
+dashboards, runbooks and this site. The record, with the word's meaning and the brand guardrails, is
+in [agent-platform's naming page](https://github.com/Smana/agent-platform/blob/main/docs/naming.md).
+
+{{< cards >}}
+  {{< card link="/docs/platform/ai-platform/agents/factory.md" title="A purpose-built core" icon="cube" subtitle="The factory, the rooms, the CLI and the harness entrypoint are ours: one contract across five layers, per-run identity, and rooms that attribute every participant." >}}
+  {{< card link="/docs/platform/ai-platform/agents/alternatives.md#where-each-tool-fits" title="Open foundations" icon="chip" subtitle="Kubernetes, agent-sandbox, gVisor, OpenHands, agentgateway, Kueue, PostgreSQL, policy-bot and Flux do the work they already do well." >}}
+  {{< card link="/docs/platform/ai-platform/agents/alternatives.md#what-would-make-us-reconsider" title="Custom only where necessary" icon="adjustments" subtitle="Each custom layer names its alternatives and the trigger that would retire it, so adopting one is a swap behind a boundary, not a rewrite." >}}
+{{< /cards >}}
+{{< /maku >}}
+
+The beginner's questions — what it is for, what it costs, what it cannot do — are answered in the
+[FAQ]({{< relref "/docs/platform/ai-platform/agents/faq.md" >}}). Why each layer is ours, and what
+would make us drop it, is in
 [Alternatives considered]({{< relref "/docs/platform/ai-platform/agents/alternatives.md" >}}).
 
 ## New here? The ideas in two minutes
@@ -85,6 +111,7 @@ deployed, or planned.
 | [Gateways]({{< relref "/docs/platform/ai-platform/gateways.md#the-agent-gateway-agent-runs" >}}) | The agent gateway: per-run identity, models, MCP tools, token exchange |
 | [Observability]({{< relref "/docs/platform/ai-platform/observability.md#agents" >}}) | Per-run traces, step logs, `gen_ai` metrics, `AgentRun` state, dashboards |
 | [User guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md" >}}) | What a developer does with it |
+| [FAQ]({{< relref "/docs/platform/ai-platform/agents/faq.md" >}}) | The beginner's questions: whether it is for you, what adoption needs, what it costs, what it may not be trusted with, what Maku is |
 
 Everything that runs on the cluster is open source. The external services are GitHub and the model
 providers.

@@ -147,11 +147,15 @@ fix still owes.**
 
 The 2026-10-02 snapshot (2.2) predates the keys written since, so expect gaps. Write each one that
 `bao kv list -mount=agents` lacks, using the [owner actions](README.md#owner-actions-in-order)
-(2, 2b, 4, 4b, 4c):
+(2, 2b, 2c, 4, 4b, 4c):
 
 ```bash
 bao kv put -mount=agents zai api_key=-
 bao kv put -mount=agents anthropic api_key=-
+# Feature 15, public data only: the Kimi Code subscription key (api.kimi.ai/coding/v1, flat rate)
+# and Mistral's (billing must be active first: pay-as-you-go, $20 cap). Selectable, never a default.
+bao kv put -mount=agents moonshot api_key=-
+bao kv put -mount=agents mistral api_key=-
 bao kv put -mount=agents github-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem>
@@ -170,6 +174,28 @@ Without `merger-app` the factory pod never starts.
 `agents/factory-slack-app` is written by the owner from the Slack App's console (the bot token, the
 signing secret and the bot's `U…` user id) and read by the ExternalSecret `factory-slack-app`. It is
 optional until the App is switched on ([runbook 18](18-factory-interfaces.md)).
+
+### Feature 15 providers, a smoke through the gateway
+
+Once the two keys are seeded, with a public run's token (the identity proxy's `x-ar-model` pin is
+what routes; no class names these aliases yet, because `loops.<class>.models` waits on agent-platform):
+
+```bash
+# GW = the public listener's address inside the cluster; TOKEN = a public role's run token
+for A in kimi-frontier mistral-standard mistral-light; do
+  curl -sS "$GW/v1/chat/completions" -H "authorization: Bearer $TOKEN" -H "x-ar-model: $A" \
+    -H 'content-type: application/json' \
+    -d '{"model":"agent-default","max_tokens":2048,"messages":[{"role":"user","content":"say ok"}]}' \
+    | jq '{model, usage}'
+done
+```
+
+Pass: each answers 200 with a `usage.prompt_tokens_details.cached_tokens` on the second identical call.
+Kimi needs a generous `max_tokens`: its `reasoning_content` spends it before `content`. The same call on
+an internal token answers 403, and Hubble shows no flow to `api.kimi.ai` or `api.mistral.ai` from a run pod.
+Kimi is a flat-rate plan (tokens metered, nominal price, owner-accepted risk: plan terms aim at coding
+tools, rate limits are personal) and processed in China, so public data only. Mistral is EU, public
+only until the owner approves internal.
 
 ## 6. [OWNER] Go-live commit
 

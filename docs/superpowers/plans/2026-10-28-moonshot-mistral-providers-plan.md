@@ -27,7 +27,16 @@ Docker (the wire test), Go and kubebuilder (agent-platform), KCL (crossplane-con
 **Out of this plan:** every item in the design's "Not in scope" list. No class row is added to
 `loops`: a row is the owner's switch, set for the live session and removed after it.
 
-## Task 0 [OWNER]: probe the providers (about $0.02, before any build)
+## Task 0 [OWNER]: probe the providers (done 2026-10-28)
+
+**Results**, which amend everything below (the design's amendment section has the table): Kimi is the
+owner's Kimi Code subscription at `https://api.kimi.ai/coding/v1`, model `k3.1-pro`, a flat-rate plan
+priced nominally; the cached-token field is the standard one (go); `reasoning_content` eats
+`max_tokens`; Mistral passes on the paid plan (cache field `prompt_tokens_details.cached_tokens`; Small cached on the 2nd call, Medium showed 0, unverified); Moonshot data is
+processed in China (public only) and Mistral's in the EU. `loops.<class>.models` (Task 2) is pending
+behind agent-platform's rebrand code freeze.
+
+The original steps, kept for the record:
 
 Run it from the owner's shell with the agents' own keys, and never in the cluster. Its output
 fills the `[verify]` values below, and the executor never sees a key.
@@ -40,10 +49,10 @@ fills the `[verify]` values below, and the executor never sees a key.
   ```
 
 - [ ] **Step 2: list the models.** Record the exact ids for Medium 3.5 and Small 4, and confirm
-  `kimi-k3.1-pro`:
+  `k3.1-pro`:
 
   ```bash
-  curl -s https://api.moonshot.ai/v1/models -H "Authorization: Bearer $MOONSHOT" | jq -r '.data[].id'
+  curl -s https://api.kimi.ai/coding/v1/models -H "Authorization: Bearer $MOONSHOT" | jq -r '.data[].id'
   curl -s https://api.mistral.ai/v1/models  -H "Authorization: Bearer $MISTRAL"  | jq -r '.data[].id' | grep -E 'medium|small'
   ```
 
@@ -73,7 +82,7 @@ Work in a worktree from `origin/main`.
 - Modify `infrastructure/base/agent-gateway/llm.yaml`: add the HTTPRoute `agentgateway-models`
   rules `moonshot` and `mistral` (`PathPrefix /v1` plus header `x-ar-model` `Exact`, one match per
   alias), and the alias table in the header comment.
-- Modify `infrastructure/base/agent-gateway/network-policy.yaml`: add `api.moonshot.ai` and
+- Modify `infrastructure/base/agent-gateway/network-policy.yaml`: add `api.kimi.ai` and
   `api.mistral.ai` to the providers' `toFQDNs`.
 - Modify `tooling/base/agent-factory/helm-values-configmap.yaml`: add the three `meter.prices`
   rows, with `source` and `checkedAt` from Task 0.

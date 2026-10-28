@@ -25,6 +25,13 @@
 #   tier-frontier   glm-5.3          claude-opus-5-5
 #   agent-default   glm-5.3          claude-opus-5-5
 #
+# Feature 15, selectable and never a default, public listener only, reached by a pinned
+# x-ar-model (the rules `moonshot` and `mistral` below; backends in moonshot.yaml, mistral.yaml):
+#
+#   kimi-frontier      k3.1-pro             Kimi Code subscription (flat rate, China)
+#   mistral-standard   mistral-medium-2604  Mistral (EU)
+#   mistral-light      mistral-small-2603   Mistral (EU)
+#
 # 1.6: "use the OpenAI provider only for the OpenAI API". A custom provider that
 # advertises Chat Completions with its full path (a base without a path now
 # means `/`), and typed routes only (#3853). Z.ai is not known to serve
@@ -130,6 +137,44 @@ spec:
         - group: agentgateway.dev
           kind: AgentgatewayBackend
           name: zai
+    # Feature 15: a call whose pinned alias names another provider. Gateway API ranks a rule
+    # with header matches above the same path without them, so `openai` below keeps every
+    # other call. Public listener only (this route), and the alias must be in the role's
+    # profile (capabilities-public). A body-only alias (no x-ar-model) still lands on Z.ai,
+    # whose `model` transformation nulls it: 400, never a model.
+    - name: moonshot
+      matches:
+        - path:
+            type: PathPrefix
+            value: /v1
+          headers:
+            - name: x-ar-model
+              type: Exact
+              value: kimi-frontier
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: moonshot
+    - name: mistral
+      matches:
+        - path:
+            type: PathPrefix
+            value: /v1
+          headers:
+            - name: x-ar-model
+              type: Exact
+              value: mistral-standard
+        - path:
+            type: PathPrefix
+            value: /v1
+          headers:
+            - name: x-ar-model
+              type: Exact
+              value: mistral-light
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: mistral
     - name: openai
       matches:
         - path:

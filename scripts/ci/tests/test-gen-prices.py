@@ -37,6 +37,9 @@ DESIGN = {
     "glm-5.3": ("1.40", "4.40", "-1.14", "0.00"),
     "glm-5.3-flashx": ("0.37", "1.25", "-0.295", "0.00"),
     "glm-5.3-flash": ("0.15", "0.50", "-0.12", "0.00"),
+    "k3.1-pro": ("2.00", "10.00", "-1.80", "0.00"),
+    "mistral-medium-2604": ("1.50", "7.50", "-1.35", "0.00"),
+    "mistral-small-2603": ("0.15", "0.60", "-0.135", "0.00"),
     "claude-opus-5-5": ("4.00", "20.00", "-3.80", "1.00"),
     "claude-sonnet-5-5": ("2.00", "10.00", "-1.90", "0.50"),
     "claude-haiku-5-5": ("0.50", "2.50", "-0.45", "0.125"),
@@ -117,7 +120,7 @@ print("the rendering (design offline proof 2)")
 with tree() as t:
     got, n = charges_in(t)
     check("four rows per model, in meter.prices' order, at the design's charges",
-          got == DESIGN and list(got) == list(DESIGN) and n == 24, str(got))
+          got == DESIGN and list(got) == list(DESIGN) and n == 36, str(got))
     text = rules(t).read_text()
     check("no glm-5.2 and no llm_gateway:price_usd_per_mtoken",
           "glm-5.2" not in text and "price_usd_per_mtoken" not in text)
@@ -135,10 +138,13 @@ with tree() as t:
           and list(cm["data"]) == ["catalog.json"], str(cm["metadata"]))
     anthropic = cat["providers"]["anthropic"]["models"]
     zai = cat["providers"]["zai"]["models"]
-    check("six rows: Anthropic under anthropic, GLM under zai, nothing else",
-          list(cat["providers"]) == ["anthropic", "zai"] and list(anthropic) == [
+    check("nine rows: Anthropic under anthropic, GLM under zai, Kimi under moonshot, Mistral under mistral (the "
+          "providerOverride each backend sets), nothing else",
+          list(cat["providers"]) == ["anthropic", "zai", "moonshot", "mistral"] and list(anthropic) == [
               "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"] and list(zai) == [
-              "glm-5.3", "glm-5.3-flashx", "glm-5.3-flash"], str(cat))
+              "glm-5.3", "glm-5.3-flashx", "glm-5.3-flash"]
+          and list(cat["providers"]["moonshot"]["models"]) == ["k3.1-pro"]
+          and list(cat["providers"]["mistral"]["models"]) == ["mistral-medium-2604", "mistral-small-2603"], str(cat))
     check("the rates are the table's values as strings, USD per million",
           anthropic["claude-opus-5-5"] == {"rates": {"input": "4.00", "output": "20.00", "cacheRead": "0.20", "cacheWrite": "5.00"}}
           and anthropic["claude-haiku-5-5"]["rates"] == {"input": "0.50", "output": "2.50", "cacheRead": "0.05", "cacheWrite": "0.625"},
@@ -231,7 +237,7 @@ with tree() as t:
     got, n = charges_in(t)
     i = before.index("    - name: llm-gateway-budgets")
     check("--write inserts its comment and four rules at the group's end, and nothing else",
-          code == 0 and n == 28 and after[:i] == before[:i] and after[i + 21:] == before[i:]
+          code == 0 and n == 40 and after[:i] == before[:i] and after[i + 21:] == before[i:]
           and after[i] == "        # claude-mythos-5: input 25.00, cacheRead 2.50, cacheWrite 31.25, output 125.00",
           "\n".join(after[i - 1:i + 2]))
     check("its charges", got["claude-mythos-5"] == ("25.00", "125.00", "-22.50", "6.25"), str(got["claude-mythos-5"]))

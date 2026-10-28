@@ -30,7 +30,11 @@ POC = ("agw-poc", "agent-router-agw")
 B6 = 'jwt.aud.exists(a, a.endsWith(".internal")) ? "anthropic" : "none"'
 ZAI_PAGE = {"source": "https://docs.z.ai/guides/overview/pricing", "checkedAt": "2026-10-16"}
 CLAUDE_PAGE = {"source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-10-16"}
-PRICES = {"glm-5.3": {"input": 1.40, "cacheRead": 0.26, "output": 4.40, **ZAI_PAGE},
+PAGE = {"source": "https://example.test/pricing", "checkedAt": "2026-10-28"}
+PRICES = {"k3.1-pro": {"input": 2, "cacheRead": 0.2, "cacheWrite": 2, "output": 10, **PAGE},
+          "mistral-medium-2604": {"input": 1.5, "cacheRead": 0.15, "output": 7.5, **PAGE},
+          "mistral-small-2603": {"input": 0.15, "cacheRead": 0.015, "output": 0.6, **PAGE},
+          "glm-5.3": {"input": 1.40, "cacheRead": 0.26, "output": 4.40, **ZAI_PAGE},
           "glm-5.3-flash": {"input": 0.15, "cacheRead": 0.03, "output": 0.50, **ZAI_PAGE},
           "claude-opus-5-5": {"input": 4, "cacheRead": 0.20, "cacheWrite": 5, "output": 20, **CLAUDE_PAGE},
           "claude-haiku-5-5": {"input": 0.50, "cacheRead": 0.05, "cacheWrite": 0.625, "output": 2.50, **CLAUDE_PAGE}}
@@ -754,6 +758,87 @@ expect("a tier pinning a model a role refuses fails", tier_model("tier-frontier"
 expect("no frontend buffer fails", lambda o: o.remove(find(o, "AgentgatewayPolicy", "frontend")), "AG14", "maxBufferSize")
 expect("a whole-route authorization reaches /v1/models and fails", lambda o: spec_at(
     o, "AgentgatewayPolicy", "capabilities-public", "targetRefs")[0].pop("sectionName"), "AG14", "403 before its 404")
+
+print("AG5, AG12, AG14 selectable providers (feature 15): public only, one tier of names each")
+PROVIDER_FIXTURES = {
+    "moonshot": ("api.kimi.ai", "/coding/v1/chat/completions", {"kimi-frontier": "k3.1-pro"}),
+    "mistral": ("api.mistral.ai", "/v1/chat/completions",
+                {"mistral-standard": "mistral-medium-2604", "mistral-light": "mistral-small-2603"}),
+}
+
+
+def add_provider(o, name, route="agent-models", aliases=None, override=None, covered=True):
+    """A provider backend as moonshot.yaml and mistral.yaml define it, and its header-matched rule on a route."""
+    host, path, own = PROVIDER_FIXTURES[name]
+    names = aliases if aliases is not None else own
+    o.append(obj("AgentgatewayBackend", "agent-system", name, {
+        "ai": {"provider": {"custom": {"providerOverride": override or name,
+                                       "formats": [{"type": "Completions", "path": path}]},
+                            "host": host, "port": 443}},
+        "policies": {"auth": {"secretRef": {"name": f"agents-{name}-api-key", "key": "apiKey"}},
+                     "ai": {"routes": {"/v1/chat/completions": "Completions"},
+                            "modelAliases": dict(names),
+                            "transformations": [{"field": "model", "expression": gate.model_allowlist(sorted(own))}]}}}))
+    spec_at(o, "HTTPRoute", route, "rules").insert(1, {
+        "name": name, "matches": [{"path": {"type": "PathPrefix", "value": "/v1"},
+                                   "headers": [{"name": "x-ar-model", "type": "Exact", "value": n}]} for n in own],
+        "backendRefs": [{"group": "agentgateway.dev", "kind": "AgentgatewayBackend", "name": name,
+                         "namespace": "agent-system"}]})
+    if covered:
+        cap = "capabilities-public" if route == "agent-models" else "capabilities-internal"
+        spec_at(o, "AgentgatewayPolicy", cap, "targetRefs").append(
+            {"group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "name": route, "sectionName": name})
+
+
+def both_providers(o):
+    add_provider(o, "moonshot")
+    add_provider(o, "mistral")
+
+
+good = copy.deepcopy(compliant())
+both_providers(good)
+got = gate.run(good)
+check("moonshot and mistral on public, each aliasing its own names, pass", got == [], f"got {got}")
+expect("moonshot on the internal listener fails", lambda o: add_provider(o, "moonshot", "agent-models-internal"),
+       "AG5", "Moonshot is public-only")
+expect("mistral on the internal listener fails", lambda o: add_provider(o, "mistral", "agent-models-internal"),
+       "AG5", "Mistral is public-only")
+expect("a mistral backend that also aliases tier-light fails",
+       lambda o: add_provider(o, "mistral", aliases={"mistral-standard": "x", "mistral-light": "y", "tier-light": "z"}),
+       "AG12", "must alias exactly ['mistral-light', 'mistral-standard']")
+expect("a moonshot backend aliasing an agent name fails",
+       lambda o: add_provider(o, "moonshot", aliases={"agent-default": "k3.1-pro"}), "AG12", "must alias exactly")
+expect("a provider backend with providerOverride kimi fails", lambda o: add_provider(o, "moonshot", override="kimi"),
+       "AG5", "providerOverride: moonshot")
+expect("a provider backend with no typed routes fails",
+       lambda o: (add_provider(o, "mistral"), find(o, "AgentgatewayBackend", "mistral")["spec"]["policies"]["ai"]
+                  .__setitem__("routes", {"/v1/chat/completions": "Passthrough"})), "AG11", "Mistral takes typed routes only")
+
+
+def internal_lists(o, name):
+    both_providers(o)
+    m = caps(o, "internal")["policy"]["matchExpressions"]
+    m[1] = m[1].replace('["agent-default"]', f'["agent-default", "{name}"]')
+
+
+expect("an internal alternative listing kimi-frontier fails", lambda o: internal_lists(o, "kimi-frontier"),
+       "AG14", "one model Require")
+expect("an internal alternative listing mistral-light fails", lambda o: internal_lists(o, "mistral-light"),
+       "AG14", "one model Require")
+
+
+def public_lists(o):
+    both_providers(o)
+    m = caps(o, "public")["policy"]["matchExpressions"]
+    m[1] = m[1].replace('["agent-default"]', '["agent-default", "kimi-frontier", "mistral-light", "mistral-standard"]')
+
+
+got = gate.run(copy.deepcopy(compliant()))
+objs = copy.deepcopy(compliant())
+public_lists(objs)
+check("a public alternative listing the provider aliases passes", gate.run(objs) == [], f"got {gate.run(objs)}")
+expect("a rule on a provider backend with no capabilities policy fails", lambda o: add_provider(o, "moonshot", covered=False),
+       "AG14", "has 0 route-level")
 
 print("AG6 argument rules (capability profiles P3)")
 

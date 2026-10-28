@@ -1,0 +1,58 @@
+# mistral on agentgateway, public listener only (feature 15, F15). Selectable, never a default:
+# only a call that pins one of its aliases in x-ar-model reaches it (llm.yaml's header-matched
+# rule), and policy-capabilities.yaml refuses the alias to any role whose profile does not list it.
+# The key is the agents' OWN, read from OpenBao agents/mistral (the ExternalSecret below).
+#
+# Mistral processes in the EU (Paris): public only until the owner approves internal data.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: mistral
+  namespace: agent-system
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (agent-model-catalog) and the series' provider label.
+        providerOverride: mistral
+        formats:
+          - type: Completions
+            path: /v1/chat/completions
+      host: api.mistral.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-mistral-api-key
+        key: apiKey
+    tls:
+      sni: api.mistral.ai
+    ai:
+      routes:
+        /v1/chat/completions: Completions
+      modelAliases:
+        mistral-standard: mistral-medium-2604
+        mistral-light: mistral-small-2603
+      transformations:
+        - field: model
+          expression: '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : llmRequest.model).with(m, m in ["mistral-light", "mistral-standard"] ? m : null)'
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: agents-mistral-api-key
+  namespace: agent-system
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: agents-secrets
+  target:
+    name: agents-mistral-api-key
+    creationPolicy: Owner
+    deletionPolicy: Retain
+  data:
+    - secretKey: apiKey  # pragma: allowlist secret
+      remoteRef:
+        key: mistral
+        property: api_key  # pragma: allowlist secret

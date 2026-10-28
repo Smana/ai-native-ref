@@ -18,6 +18,8 @@ resources:
   - network-policy.yaml
   - llm.yaml
   - anthropic.yaml
+  - moonshot.yaml
+  - mistral.yaml
   - mcp.yaml
   - sts.yaml
   - github.yaml

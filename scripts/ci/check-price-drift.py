@@ -38,6 +38,8 @@ CATALOGS = {
 }
 ZAI = "https://docs.z.ai/guides/overview/pricing"
 ANTHROPIC = "https://platform.claude.com/docs/en/about-claude/pricing"
+KIMI = "https://platform.kimi.ai/docs/pricing/chat"
+MISTRAL = "https://mistral.ai/pricing"
 
 # Each meter.prices row's key in each catalog, and the provider page a human confirms it on (the
 # row's `source` replaces `page` once rows carry one). genai-prices and models.dev keys are
@@ -51,6 +53,13 @@ MAPPING = {
                        "models.dev": "zai/glm-5.3-flashx"},
     "glm-5.3-flash": {"page": ZAI, "genai-prices": "zai/GLM-5.3-Flash", "LiteLLM": "zai/glm-5.3-flash",
                       "models.dev": "zai/glm-5.3-flash"},
+    # k3.1-pro is nominal (flat-rate Kimi Code plan): the catalogs carry the list price it copies.
+    "k3.1-pro": {"page": KIMI, "genai-prices": "moonshotai/kimi-k3.1-pro", "LiteLLM": "moonshot/kimi-k3.1-pro",
+                 "models.dev": "moonshotai/kimi-k3.1-pro"},
+    "mistral-medium-2604": {"page": MISTRAL, "genai-prices": "mistral/mistral-medium-2604",
+                            "LiteLLM": "mistral/mistral-medium-2604", "models.dev": "mistral/mistral-medium-2604"},
+    "mistral-small-2603": {"page": MISTRAL, "genai-prices": "mistral/mistral-small-2603",
+                           "LiteLLM": "mistral/mistral-small-2603", "models.dev": "mistral/mistral-small-2603"},
     "claude-opus-5-5": {"page": ANTHROPIC, "genai-prices": "anthropic/claude-opus-5-5",
                         "LiteLLM": "claude-opus-5-5", "models.dev": "anthropic/claude-opus-5-5"},
     "claude-sonnet-5-5": {"page": ANTHROPIC, "genai-prices": "anthropic/claude-sonnet-5-5",
@@ -62,6 +71,7 @@ MAPPING = {
 # night it appears, one, so the entry is dropped here and the row compared.
 ABSENT = {
     ("glm-5.3-flashx", "LiteLLM"): "LiteLLM lists GLM-5.3-FlashX under tencent/ only",
+    ("mistral-medium-2604", "genai-prices"): "genai-prices lists Mistral Small 2603 but not Medium 2604 (checked 2026-10-28)",
 }
 # Rows held at a context tier on purpose, by the tier's threshold in prompt tokens. Haiku 5.5: the
 # over-100K rate, which an agent's context soon reaches; over-counting is a cap's safe direction.

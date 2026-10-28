@@ -81,6 +81,69 @@ spec:
           labels:
             gen_ai_request_model: "glm-5.3-flash"
             gen_ai_token_type: cache_creation_input
+        # k3.1-pro: input 2.00, cacheRead 0.20, cacheWrite 2.00, output 10.00
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(2.00)
+          labels:
+            gen_ai_request_model: "k3.1-pro"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(10.00)
+          labels:
+            gen_ai_request_model: "k3.1-pro"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-1.80)
+          labels:
+            gen_ai_request_model: "k3.1-pro"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.00)
+          labels:
+            gen_ai_request_model: "k3.1-pro"
+            gen_ai_token_type: cache_creation_input
+        # mistral-medium-2604: input 1.50, cacheRead 0.15, output 7.50; writes cost as input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(1.50)
+          labels:
+            gen_ai_request_model: "mistral-medium-2604"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(7.50)
+          labels:
+            gen_ai_request_model: "mistral-medium-2604"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-1.35)
+          labels:
+            gen_ai_request_model: "mistral-medium-2604"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.00)
+          labels:
+            gen_ai_request_model: "mistral-medium-2604"
+            gen_ai_token_type: cache_creation_input
+        # mistral-small-2603: input 0.15, cacheRead 0.015, output 0.60; writes cost as input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.15)
+          labels:
+            gen_ai_request_model: "mistral-small-2603"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.60)
+          labels:
+            gen_ai_request_model: "mistral-small-2603"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-0.135)
+          labels:
+            gen_ai_request_model: "mistral-small-2603"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.00)
+          labels:
+            gen_ai_request_model: "mistral-small-2603"
+            gen_ai_token_type: cache_creation_input
         # claude-opus-5-5: input 4.00, cacheRead 0.20, cacheWrite 5.00, output 20.00
         - record: llm_gateway:charge_usd_per_mtoken
           expr: vector(4.00)

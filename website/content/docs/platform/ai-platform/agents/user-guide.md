@@ -175,20 +175,36 @@ follow it and bring its branch back without leaving the session. The broker rend
 so every client shows the same text ([ADR-0059]({{< relref "/docs/decisions/0059-factory-from-your-coding-agent.md" >}})).
 
 **Set it up.** It needs `roomctl` v0.23.1 or later, configured and logged in (see
-[From a terminal](#from-a-terminal-roomctl)).
+[From a terminal](#from-a-terminal-roomctl)), then three steps:
 
-```bash
-roomctl setup claude        # or opencode, codex, gemini, cursor, copilot
-roomctl doctor              # every check ok
-```
+1. **Install for your client.** `setup` is user-level: it registers `roomctl mcp` as the `factory`
+   MCP server and writes the `factory-handoff` skill where that client reads skills. One command
+   each:
 
-`setup` is user-level: it registers `roomctl mcp` as the `factory` MCP server and writes the
-`factory-handoff` skill where that client reads skills. `--project` writes both into the repository
-instead, for a team that commits them (Copilot's project MCP config is the `mcp.json` file in the repository's `.github` folder), and
-`--print` shows every command and file without doing anything. It is idempotent. It runs the
-client's own `mcp add` when that is on the PATH and otherwise prints the snippet to paste: it never
-edits a config file itself. Gemini CLI connects a local (stdio) server only in a folder you trust;
-`roomctl setup gemini` reminds you.
+   | Client | Command |
+   |---|---|
+   | Claude Code | `roomctl setup claude` |
+   | OpenCode | `roomctl setup opencode` |
+   | Codex CLI | `roomctl setup codex` |
+   | Gemini CLI | `roomctl setup gemini` |
+   | Cursor | `roomctl setup cursor` |
+   | Copilot CLI | `roomctl setup copilot` |
+
+2. **Check the set-up.** `roomctl doctor`: every check `ok`.
+3. **Verify in the client.** A working registration lists the tools `rooms_list`, `room_summary`,
+   `room_changes`, `room_wait`, `room_checkout`, `issue_draft`, `issue_file` and the prompts
+   `handoff`, `status`, `inbox`.
+
+`setup`'s options and caveats:
+
+- `--project` writes both into the repository instead, for a team that commits them (Copilot's
+  project MCP config is the `mcp.json` file in the repository's `.github` folder).
+- `--print` shows every command and file without doing anything.
+- It is idempotent.
+- It runs the client's own `mcp add` when that is on the PATH and otherwise prints the snippet to
+  paste: it never edits a config file itself.
+- Gemini CLI connects a local (stdio) server only in a folder you trust; `roomctl setup gemini`
+  reminds you.
 
 | You say | What happens |
 |---|---|

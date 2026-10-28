@@ -71,9 +71,9 @@ policy-bot's App `ogenki-merge-gate` goes on its own mount, with its webhook poi
 
 Without it `policy-bot` never starts, and every merge-gate decision is `human`/`policy_absent`.
 
-`anthropic` backs the internal tier on Claude. `merger-app` and the RunLore intake token
-(`runlore-intake`, [runbook README](../../docs/runbooks/agent-factory/README.md) action 4d) are
-mounted non-optionally: without them the factory pod never starts.
+`anthropic` backs the internal tier on Claude. `merger-app` is
+mounted non-optionally: without it the factory pod never starts. (The RunLore intake token,
+`runlore-intake`, was retired by feature 14's PR 7.)
 
 `factory-app` is the factory App `ogenki-agent-factory`'s key (SP3's, created early). From SP2
 phase 3 the room broker posts reviewers' verdicts with it; without it the broker still runs, and

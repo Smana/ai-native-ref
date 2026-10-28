@@ -34,7 +34,8 @@ data:
         # RunLore, the factory's one internal principal (feature 14, RA2): internal data, the investigate
         # template, today's gates. The dollar values: an investigate task (one triager run at tier
         # standard, $2.55 a run) fits maxCostUSD 2 only below the run cap; confirm against the stage 1
-        # session's spend before raising them. verification stays false until stage 2 (PR 7).
+        # session's spend before raising them. verification: true since stage 2 (PR 7): the factory takes
+        # RunLore's verdict on a fix as a monitor signal (agent-platform v0.28.0).
         internalPrincipals:
           - name: runlore
             clientIDFile: /etc/agent-factory-sponsored/runlore-client-id
@@ -45,3 +46,4 @@ data:
             maxOpenTasks: 3
             minConfidence: 0.75
             dailyTasks: 5
+            verification: true

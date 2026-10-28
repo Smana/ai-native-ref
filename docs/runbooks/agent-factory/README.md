@@ -160,23 +160,12 @@ Expected: `refs/heads/main`; both `Ready=True`, `Suspended=False`.
 | 4 | GitHub App `ogenki-agents` on `Smana`, installed on `Smana/cloud-native-ref` only | runbook 05, 07 | `bao kv put -mount=agents github-app app_id=<id> private_key=@<pem file>` |
 | 4b | The `factory-app` GitHub App key, read by SP3's ExternalSecret `agent-factory-github` | the `agent-factory` Kustomization | `bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem file>` |
 | 4c | The merger App `ogenki-agent-merger` key, read by the ExternalSecret `agent-factory-merger`. The App: Contents write, Checks read, Statuses read, Pull requests write, Metadata read, webhook off, installed on `Smana/cloud-native-ref` only (R16) | the `agent-factory` Deployment, which mounts it non-optionally | `bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem file>` |
-| 4d | The RunLore intake token: one generated value at two paths, the factory's (`agent-factory-intake`) and RunLore's (R45) | the `agent-factory` Deployment, which mounts it non-optionally; RunLore's posts to `/intake/runlore` | below |
+| 4d | Retired by feature 14's PR 7: the RunLore intake token (`runlore-intake`, `platform/runlore/factory-intake`) is no longer read; RunLore is a standard client ([runbook 20](20-runlore-agent-to-agent.md)). Delete both paths once PR 7 runs | — | — |
 | 5 | A trivial issue URL (e.g. a broken relative link) | runbook 07 SC-04 | — |
 
 These keys (2, 2b, 4, 4b, 4c) are the platform's one owner-written exception: GitHub, Z.ai and Anthropic issue
 them, and the AWS snapshot cannot be restored across KMS seals (GCP parity). Once per GCP lineage.
-Without 4c or 4d the factory pod never starts: its Secret volumes are not optional.
-
-Action 4d generates the value in place, so nothing prints it and it never reaches a process's argv:
-
-```bash
-t="$(openssl rand -hex 32)"
-printf '{"token":"%s"}' "$t" | bao kv put -mount=agents runlore-intake - >/dev/null
-printf '{"token":"%s"}' "$t" | bao kv put -mount=platform runlore/factory-intake - >/dev/null
-unset t
-bao kv get -format=json -mount=agents runlore-intake | jq -r '.data.data | keys | join(",")'             # token
-bao kv get -format=json -mount=platform runlore/factory-intake | jq -r '.data.data | keys | join(",")'  # token
-```
+Without 4c the factory pod never starts: its Secret volumes are not optional.
 
 Action 1 is already applied by the management stack. See
 [`clusters/gcp-0-agent-platform/README.md`](../../../clusters/gcp-0-agent-platform/README.md#resume)

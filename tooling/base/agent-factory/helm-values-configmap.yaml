@@ -46,6 +46,12 @@ data:
             tests: {}
             dashboards: {}
             scripts: {}
+            # Feature 14's seeded fix (runbook 20): an alerting rule RunLore found broken. No switch: a
+            # maintainer merges, the monitor watches. RunLore's verdict is a signal for 2h after the merge;
+            # a persisting one is a regression, which with the breaker's maxFollowUps: 1 pauses the class.
+            alert-rules:
+              allowedFiles: ['^observability/.+\.ya?ml$']
+              monitor: {verification: {within: 2h}, followUpWindow: 2h}
             # Shadow (merge gate classes MC14, runbook 15 §2): intake and decisions, nothing armed.
             # Its fence repeats the host's
             # `low-risk: docs-links` rule, which approves its pull requests until `low-risk:
@@ -256,14 +262,6 @@ data:
         #     maxCostUSD: <in (0, dailyUSD]>
         #     onBehalfOf:
         #       slack: {"<team id>/<user id>": <maintainer login>}
-      # The RunLore intake (FR-9, §1). The strict parser requires every key below; the token
-      # is mounted from the agent-factory-intake ExternalSecret. OD-9 filters findings here.
-      runlore:
-        listen: ":8080"
-        tokenFile: /etc/agent-factory-intake/token
-        minConfidence: 0.75  # OD-9
-        dailyCap: 5          # OD-9
-        repository: Smana/cloud-native-ref  # where its issues go, whatever the caller asks
       poll: {issues: 60s, tasks: 30s, meter: 30s}
       # The template comes from the class and the tier (pair for review, FR-11); no default template or tier (R8).
       defaults: {dataClass: public, predictedClass: review}

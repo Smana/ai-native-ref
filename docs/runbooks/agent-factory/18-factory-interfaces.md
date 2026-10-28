@@ -120,7 +120,7 @@ version 4 (H4 gains the listener). Then:
 | The App's config | A `configMapGenerator` with `behavior: replace` in `tooling/gcp-0/agent-factory/slack-app/`. It replaces the whole `config.yaml`, so the gcp-0 file is a full copy of base's with `teamID` and `channels` filled (each channel's `maxCostUSD` at most the principal's `maxCostUSD: 2`, for example `0.5`). The App refuses to start until both are filled. `brokerURL` stays `http://room-broker.agent-system.svc.cluster.local:8080`, with no path: the App appends `/mcp` |
 | The webhook egress | `python3 -I scripts/ci/gen-webhook-egress.py --write .` writes `infrastructure/gcp-0/room-broker/network-policy-webhooks-patch.yaml`; list it under the gcp-0 overlay's `patches` |
 | `clusters/gcp-0-agent-platform/tooling-factory-slack-app.yaml` | A Flux Kustomization, listed by that cluster's `kustomization.yaml` (block below) |
-| Self-serve link (agent-platform v0.29.9) | Both sides opt in: the broker's `human.slackLink: {principal: slack-app, teamID, repository}` (gcp-0's copy; the parity test then also lets `human.slackLink` differ) and the factory's `onBehalfOf.slackLinks: true`, beside the `onBehalfOf.slack` map, which wins for the users it lists. The release's migration (`slack_links`) reaches the database with the `atlasSchema.ref` pin. In the Slack console, `users:read` is optional (the link page then names the user by handle); an App created earlier adds it under OAuth & Permissions and reinstalls |
+| Self-serve link (agent-platform v0.29.9) | Broker `human.slackLink` and factory `onBehalfOf.slackLinks: true`: see [runbook 22](22-slack.md#6-who-may-file) |
 | `scripts/ci/tests/test-factory-interfaces-off.py` | Drop clause 1 for gcp-0, and clause 2 for gcp-0's copies |
 
 ```yaml
@@ -201,9 +201,6 @@ In a served channel, post `@factory` with a draft.
 | Do | Expected |
 |---|---|
 | A check mark from a second, unlinked Slack user | `Not filed: not_linked`, saying to mention the App with `link` |
-| That user mentions `@factory link` | An ephemeral answer, seen by them alone, with `https://rooms.<domain>/link/slack?code=…` (single use, 10 minutes) |
-| They open it signed in to ZITADEL, and press **Link** | The page names their Slack handle and GitHub login; afterwards a check mark from them is filed sponsored by their login if it is a maintainer of the repository, else `not_a_maintainer`. Code reused or expired: refused on the page |
-| `@factory unlink`, then a check mark | The link is gone: `not_linked` again |
 | A check mark from the owner | The issue is filed (factory-authored, no label, the footer naming the sponsor); a Task with `source.kind: api` names the App and the owner; the thread receives `Triaged`, `A run started`, `Pull request #… opened` and `Ended` |
 | The run asks an approval | The thread shows the room link; the approval is given on the room page |
 | `conversations.replies(ts=<reply>, limit=1)` | Returns the reply, not the parent |

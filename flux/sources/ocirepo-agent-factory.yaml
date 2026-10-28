@@ -10,8 +10,8 @@ spec:
   # Flux pulls the digest (it wins over the tag), so a re-pushed tag changes nothing. The tag
   # stays for Renovate and for readers.
   ref:
-    tag: "0.29.6"  # agent-platform v0.29.6
-    digest: sha256:06e29eabdf8be2c251aaca2189581788ec5b0e893a9480c28e3ec7bf66bdb717
+    tag: "0.29.8"  # agent-platform v0.29.8
+    digest: sha256:bd78510d2053fbe1adc7665538fa1ee9a12da88bd562043a14632c83627d6060
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy

@@ -63,10 +63,10 @@ for cfg in sorted(ROOT.glob("infrastructure/*/room-broker/config.yaml")):
 
 
 def sponsored_in(node, parent=None):
-    """True when an `api` mapping holds `sponsored`, or a JSON patch path names api/sponsored, at any depth,
+    """True when an `api` mapping holds `sponsored` or `internalPrincipals`, or a JSON patch path names either, at any depth,
     through ConfigMap data and kustomize patch strings (themselves YAML) alike."""
     if isinstance(node, str):
-        if "api/sponsored" in node:
+        if "api/sponsored" in node or "api/internalPrincipals" in node:
             return True
         try:
             inner = yaml.safe_load(node)
@@ -74,7 +74,7 @@ def sponsored_in(node, parent=None):
             return False
         return isinstance(inner, (dict, list)) and sponsored_in(inner, parent)
     if isinstance(node, dict):
-        if parent == "api" and "sponsored" in node:
+        if parent == "api" and ("sponsored" in node or "internalPrincipals" in node):
             return True
         return any(sponsored_in(v, k) for k, v in node.items())
     if isinstance(node, list):
@@ -91,7 +91,7 @@ for path in sorted(ROOT.glob("tooling/*/agent-factory/**/*.yaml")):
     if rel.as_posix() == f"tooling/{SWITCHED_ON}/agent-factory/helm-values-sponsored.yaml":
         continue
     if sponsored_in(load(str(rel))):
-        problems.append(f"{rel} declares api.sponsored (D4)")
+        problems.append(f"{rel} declares api.sponsored or api.internalPrincipals (D4)")
 
 # The App appends /mcp itself: a brokerURL with a path would call /mcp/mcp.
 app_cfg = yaml.safe_load((ROOT / "tooling/base/agent-factory/slack-app/config.yaml").read_text())

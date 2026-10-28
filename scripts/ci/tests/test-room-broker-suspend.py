@@ -7,7 +7,7 @@ renders the factory's sandbox.suspend.enabled; any other cluster has none of the
 half-on cluster (a grant with no trigger, or suspendable runs nobody suspends) fails here.
 The grant, patch on agentruns, lives only in room-broker/suspend; the broker's own RBAC
 never patches or updates a run; base's config never enables suspend, and gcp-0's copy of it
-differs in suspend, webhooks and human.mcp alone; and the Kyverno limit that fences the grant is always there, for
+differs in suspend, webhooks, human.mcp and human.slackLink alone; and the Kyverno limit that fences the grant is always there, for
 the broker alone, naming exactly the three suspend annotations."""
 import pathlib
 import subprocess
@@ -93,13 +93,13 @@ gcp = yaml.safe_load((ROOT / "infrastructure/gcp-0/room-broker/config.yaml").rea
 
 
 def minus_switches(cfg):
-    """The config without the keys a gcp-0 session may declare: suspend, webhooks, human.mcp."""
+    """The config without the keys a gcp-0 session may declare: suspend, webhooks, human.mcp, human.slackLink."""
     out = {k: v for k, v in cfg.items() if k not in ("suspend", "webhooks")}
-    out["human"] = {k: v for k, v in out["human"].items() if k != "mcp"}
+    out["human"] = {k: v for k, v in out["human"].items() if k not in ("mcp", "slackLink")}
     return out
 
 
-checks["gcp-0's broker config is base's but for suspend, webhooks and human.mcp"] = (
+checks["gcp-0's broker config is base's but for suspend, webhooks, human.mcp and human.slackLink"] = (
     minus_switches(gcp) == minus_switches(config))
 checks["gcp-0's human.mcp stays enabled"] = (gcp["human"]["mcp"].get("enabled") is True)
 

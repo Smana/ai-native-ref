@@ -390,9 +390,14 @@ without leaving Slack. Approvals and steering stay on the room page.
 | You want to… | Do this |
 |---|---|
 | Draft an issue | Mention **`@factory`** in a served channel: line 1 is `<owner/repo> <title>`, the rest is the body. The App replies with the draft, or with the template's refusal |
-| File it and start the work | A linked maintainer adds a check mark (`✅`) to the **bot's draft**. A second check mark files nothing; a check mark from a user who is not linked answers `Not filed: not_linked` |
+| Link your Slack user, once | Mention **`@factory link`**: the App answers **only you** with a one-time link (10 minutes). Open it, sign in, and confirm **Link** (never confirm a link someone sent you). **`@factory unlink`** removes it |
+| File it and start the work | A linked maintainer adds a check mark (`✅`) to the **bot's draft**. A second check mark files nothing; a check mark from a user who is not linked answers `Not filed: not_linked`, with the line that says to mention `link` |
 | Follow it | The thread receives short state lines: `Triaged`, `A run started`, `Pull request #… opened`, `Ended`, with the room's link. Never what the agents wrote |
 | Answer a question, approve or steer | On the **room page**: the thread only links it |
+
+The link needs your GitHub account linked to your ZITADEL user ([who sees a room](#who-sees-a-room)); it
+grants nothing a maintainer of the repository did not have, and the task is sponsored by your **current**
+GitHub login. Users the factory's config lists by hand keep that entry whatever they link.
 
 The task is filed by the factory App, with no label and a footer naming its sponsor; its Task names the
 App and you. Its budget is the channel's `maxCostUSD`.

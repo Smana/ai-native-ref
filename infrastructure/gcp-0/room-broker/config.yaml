@@ -1,5 +1,5 @@
-# gcp-0's copy of ../../base/room-broker/config.yaml, plus suspend, human.mcp.sponsored and
-# sessionStart (runbooks 18, 19) and webhooks (runbook 18): the overlay's generator replaces the base
+# gcp-0's copy of ../../base/room-broker/config.yaml, plus suspend, human.mcp.sponsored,
+# human.slackLink and sessionStart (runbooks 18, 19) and webhooks (runbook 18): the overlay's generator replaces the base
 # file, since a ConfigMap key is one string no patch can extend.
 # test-room-broker-suspend.py fails when it differs from base in anything but those.
 # The broker's one config file (agent-platform internal/config), Flux-substituted.
@@ -60,6 +60,14 @@ human:
     sponsored:
       - name: slack-app
         clientIDFile: /etc/room-broker/sponsored/slack-app-client-id
+  # The Slack self-serve link (agent-platform v0.29.9, docs/slack.md): `@factory link` mints a code, the
+  # signed-in human confirms it on /link/slack. The principal is human.mcp.sponsored's slack-app, the team
+  # the App's own, the repository the one whose GitHub App installation names the account's login. Needs
+  # human.access above. The factory's side is onBehalfOf.slackLinks (helm-values-sponsored.yaml).
+  slackLink:
+    principal: slack-app
+    teamID: T07J97G2K2P
+    repository: Smana/ai-native-ref
 # v2 suspend (warm-sandboxes S3): a suspendable run in an attended room whose approval has
 # waited this long in an idle room is suspended, and resumed once nothing waits. It patches
 # through the room-broker-suspend grant, fenced by Kyverno's agentrun-broker-patch-limit.

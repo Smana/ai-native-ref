@@ -123,6 +123,11 @@ spec:
         secretName: room-broker-webhook-slack-app  # pragma: allowlist secret
         optional: true
         defaultMode: 0440
+    - name: webhook-runlore
+      secret:
+        secretName: room-broker-webhook-runlore  # pragma: allowlist secret
+        optional: true
+        defaultMode: 0440
   extraVolumeMounts:
     - name: config
       mountPath: /etc/room-broker/config
@@ -147,6 +152,9 @@ spec:
       readOnly: true
     - name: webhook-slack-app
       mountPath: /etc/room-broker/webhooks/slack-app
+      readOnly: true
+    - name: webhook-runlore
+      mountPath: /etc/room-broker/webhooks/runlore
       readOnly: true
   networkPolicies:
     enabled: false

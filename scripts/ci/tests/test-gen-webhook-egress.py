@@ -117,6 +117,15 @@ check("targetPort named is refused", err and "ns/svc" in err and "8081" in err a
 check("a port the Service does not expose is refused", gen.service_error(sub, svc({"port": 80})) is not None)
 check("a wrong selector is refused", gen.service_error(sub, svc({"port": 8081}, selector={"app": "svc"})) is not None)
 
+# G7: RunLore's Service is the host chart's (HOST-CONTRACT H8): runlore/runlore on 8080, its backend 8080.
+host = gen.HOST_SERVICES[("runlore", "runlore")]
+rl = {"name": "runlore", "network": "cluster", "url": "http://runlore.runlore.svc.cluster.local:8080/factory/webhook"}
+check("RunLore's host Service carries its rule", gen.service_error(rl, host) is None)
+check("RunLore's rule is its namespace and name on 8080",
+      gen.rule(rl) == {"toEndpoints": [{"matchLabels": {"io.kubernetes.pod.namespace": "runlore", "app.kubernetes.io/name": "runlore"}}],
+                       "toPorts": [{"ports": [{"port": "8080", "protocol": "TCP"}]}]})
+check("a host Service is only the contract's", set(gen.HOST_SERVICES) == {("runlore", "runlore")})
+
 # Ruling 4: an overlay that replaces base's config and names no webhooks has no subscribers.
 with_subs = {"webhooks": cfg["webhooks"][:2]}
 patch = gen.overlay_patch(with_subs, {})

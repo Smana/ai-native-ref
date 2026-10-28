@@ -8,6 +8,7 @@ kind: Kustomization
 # run bridges trust (Secret Manager's entry, as security/gcp-0/agent-secrets).
 resources:
   - ../../base/room-broker
+  - externalsecret-webhook-runlore.yaml
 
 # This config.yaml is base's plus suspend.enabled, human.mcp.sponsored and sessionStart, and webhooks.
 configMapGenerator:

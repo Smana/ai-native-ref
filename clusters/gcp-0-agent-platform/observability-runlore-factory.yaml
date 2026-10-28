@@ -11,9 +11,13 @@ spec:
   prune: true
   interval: 5m0s
   timeout: 2m0s
-  path: ./observability/base/runlore-factory
+  path: ./observability/gcp-0/agent-platform/runlore-factory
   sourceRef:
     kind: OCIRepository
     name: ai-native-ref
+  postBuild:
+    substituteFrom:
+      - kind: ConfigMap
+        name: gke-gcp-0-vars
   dependsOn:
     - name: agent-factory

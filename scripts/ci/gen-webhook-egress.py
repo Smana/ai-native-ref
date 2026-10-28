@@ -19,7 +19,8 @@ or drift in either fails.
 The URL rules mirror the broker's (config.go validate and validateInternet) and its dial guard's
 host refusals: a `${var}` label is accepted as is, Flux substitutes this policy as it does the config.
 Each cluster subscriber must name a Service, somewhere in this repository's manifests, whose selector
-is its app.kubernetes.io/name.
+is its app.kubernetes.io/name; the one exception is HOST_SERVICES, a Service the host's chart renders
+(HOST-CONTRACT H8: RunLore's).
 
 A cluster subscriber's Service port must equal its targetPort, or have none: Cilium enforces `toPorts`
 on the backend port, so a differing or named targetPort is refused rather than resolved. An overlay
@@ -142,6 +143,12 @@ def service_error(subscriber, spec):
     return None
 
 
+# Services the host renders from a chart, so no manifest here names them, which HOST-CONTRACT pins.
+# H8: RunLore's Service `runlore` in `runlore` serves the broker's webhooks on 8080, its pods' port 8080
+# (the chart's targetPort `http` is the container port 8080, so Cilium's backend port is 8080 too).
+HOST_SERVICES = {("runlore", "runlore"): {"selector": {"app.kubernetes.io/name": "runlore"}, "ports": [{"port": 8080}]}}
+
+
 def dump(doc, yaml, header=HEADER):
     return header + "---\n" + yaml.safe_dump(doc, sort_keys=False)
 
@@ -207,7 +214,7 @@ def main(argv):
             if listed:
                 late.append(f"{rel}/kustomization.yaml: lists {PATCH}, which this overlay does not need")
     if not errors:
-        have = services(root, yaml)
+        have = {**HOST_SERVICES, **services(root, yaml)}
         for where, cfg in configs.items():
             for s in (cfg.get("webhooks") or []):
                 if s.get("network") != "cluster":

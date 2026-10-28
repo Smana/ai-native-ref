@@ -29,12 +29,12 @@ spec:
             app.kubernetes.io/name: room-broker
       toPorts:
         - ports: [{port: "8082", protocol: TCP}]
-    - fromEndpoints:  # RunLore: its templated notifier on 8080 until feature 14's PR 7, and POST /v1/tasks on 8082
+    - fromEndpoints:  # RunLore: POST /v1/tasks on 8082 (its templated notifier on 8080 retired with feature 14's PR 7)
         - matchLabels:
             io.kubernetes.pod.namespace: runlore
             app.kubernetes.io/name: runlore
       toPorts:
-        - ports: [{port: "8080", protocol: TCP}, {port: "8082", protocol: TCP}]
+        - ports: [{port: "8082", protocol: TCP}]
   egress:
     - toEndpoints:
         - matchLabels:

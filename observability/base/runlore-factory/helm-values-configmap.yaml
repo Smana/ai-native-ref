@@ -16,7 +16,6 @@ data:
       - secretRef: {name: runlore-credentials}
       - secretRef: {name: runlore-slack}
       - secretRef: {name: runlore-webhook}
-      - secretRef: {name: runlore-factory-intake}
       # Feature 14: RunLore's client credentials and the webhook key. Optional: where the key is absent,
       # the env is empty and RunLore's client stays off.
       - secretRef: {name: runlore-factory-principal, optional: true}
@@ -32,3 +31,9 @@ data:
         repository: Smana/cloud-native-ref
         max_cost_usd: 2
         webhook: {secret_env: FACTORY_WEBHOOK_KEY}  # pragma: allowlist secret
+        # Stage 2 (RA8): after a fix merges RunLore soaks 30m, then asks Alertmanager whether the alert
+        # still fires and reports the verdict to the factory.
+        soak: 30m
+        verify:
+          alertmanager_url: http://vmalertmanager-victoria-metrics-k8s-stack.observability.svc:9093
+          max_steps: 6

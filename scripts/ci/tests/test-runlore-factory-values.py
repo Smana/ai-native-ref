@@ -2,7 +2,7 @@
 # requires: python3
 """RunLore's factory values (feature 14): the client calls POST /v1/tasks on the factory's API port, every
 env name it reads comes from a Secret the envFrom list mounts, the list restates the host's three entries
-first (lists replace, TW7), and no templated notifier calls /intake/runlore (G4)."""
+first (lists replace, TW7), no templated notifier calls /intake/runlore (G4), and stage 2 (verification, soak, the old intake retired)."""
 import pathlib
 import sys
 
@@ -42,6 +42,27 @@ for cluster in ("aws-0", "gcp-0"):
     ks = yaml.safe_load((ROOT / f"clusters/{cluster}-agent-platform/observability-runlore-factory.yaml").read_text())
     if not (ks["spec"].get("postBuild") or {}).get("substituteFrom"):
         problems.append(f"{cluster}: the runlore-factory Kustomization substitutes ${{identity_provider_url}}")
+if factory.get("soak") != "30m" or not (factory.get("verify") or {}).get("alertmanager_url", "").startswith(
+        "http://vmalertmanager-victoria-metrics-k8s-stack.observability.svc:9093"):
+    problems.append("stage 2: factory.soak 30m and verify.alertmanager_url on the host's Alertmanager")
+if any(e["secretRef"]["name"] == "runlore-factory-intake" for e in env_from) or (DIR / "externalsecret-intake.yaml").exists():
+    problems.append("RA8: the intake bearer is retired")
+fvalues = yaml.safe_load(yaml.safe_load((ROOT / "tooling/base/agent-factory/helm-values-configmap.yaml").read_text())["data"]["values.yaml"])
+if "runlore" in fvalues["config"]:
+    problems.append("RA8: the factory's runlore block is retired")
+alert = fvalues["config"]["repositories"][0]["classes"].get("alert-rules") or {}
+if (alert.get("monitor") or {}).get("verification") != {"within": "2h"}:
+    problems.append("the seeded fix's class watches RunLore's verdict for 2h")
+cnp = yaml.safe_load((ROOT / "tooling/base/agent-factory/network-policy.yaml").read_text())
+rl = [r for r in cnp["spec"]["ingress"] if any((e.get("matchLabels") or {}).get("io.kubernetes.pod.namespace") == "runlore"
+                                               for e in r.get("fromEndpoints", []))]
+if [p["port"] for r in rl for p in r["toPorts"][0]["ports"]] != ["8082"]:
+    problems.append("RunLore reaches the factory on 8082 only")
+gp = yaml.safe_load((ROOT / "tooling/gcp-0/agent-factory/helm-values-sponsored.yaml").read_text())
+gv = yaml.safe_load(gp["data"][next(iter(gp["data"]))])
+ip = [p for p in gv["config"]["api"]["internalPrincipals"] if p["name"] == "runlore"]
+if not ip or ip[0].get("verification") is not True:
+    problems.append("gcp-0's runlore principal has verification: true")
 if problems:
     print("\n".join(problems))
     sys.exit(1)

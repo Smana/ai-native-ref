@@ -127,6 +127,8 @@ export AI_NATIVE_REF_DIR=~/Sources/ai-native-ref
 - **A run that must still exist later needs a paced task.** An "Idle. Do nothing" task now finishes in
   about a minute, and the pod goes with it. Use `Run 'sleep N' in the terminal, then finish.`
 
+To rotate the merger GitHub App's private key, see [09-app-key-compromise.md](09-app-key-compromise.md).
+
 ## Runbook 00: one-time cluster setup
 
 ### What is already in place

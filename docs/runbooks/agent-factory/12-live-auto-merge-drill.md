@@ -89,7 +89,7 @@ flowchart LR
   10 newer `docs-links` merges by maintainers push it out of the window. No `would-arm` comment, and so
   no tally progress for G4, until then. After a rebuild only labelled merges count, so the pause lasts
   until 10 merges made after the rebuild.
-- **Live means `{live: true}`.** `{}` is "neither": a label only, the gate hands off `class_mismatch`.
+- **Live means `{live: true}`.** `{}` is "neither": a label only, the gate hands off `class_unarmed` (`class_mismatch` before agent-platform v0.28.1).
 - **Both classes go live in one commit** (D5): a live class with a shadow `revert` would wait for a
   human to merge its own revert.
 - **A missing App grant stops every merger call.** Once a class is live, the factory asks the
@@ -197,7 +197,7 @@ kubectl get task -n agent-system "$TASK" -w -o jsonpath='{.status.phase} {.statu
 ```
 
 Expected: `AwaitingCI` (waits while checks run) → `AutoMerging` → `Verifying`. Any other ending (a
-`human` verdict with `class_mismatch`, `head_unreported`, `policy_*`, `verdict_stale`) is a
+`human` verdict with `class_mismatch`, `class_unarmed`, `head_unreported`, `policy_*`, `verdict_stale`) is a
 finding: record the reason and stop at Step 6. A hand-off of a finished run is final: the run
 cannot hand off again, so a maintainer merges or closes the PR.
 

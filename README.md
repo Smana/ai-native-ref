@@ -10,7 +10,10 @@ human. Beside the agents, the cluster can serve open-weights models on its own G
 OpenAI-compatible endpoint, for your editor or chat client.
 
 This repository is the deployable platform (Flux manifests, policies, alerts, dashboards), its
-documentation and its runbooks. Documentation: **[airef.ogenki.io](https://airef.ogenki.io/)**.
+documentation and its runbooks. Documentation: **[airef.ogenki.io](https://airef.ogenki.io/)** — and
+if you are weighing it up rather than reading it, start with the
+**[FAQ](https://airef.ogenki.io/docs/platform/ai-platform/agents/faq/)**: what it is for, who it is
+not for, what adoption needs, and what it costs.
 
 ## Why it exists
 

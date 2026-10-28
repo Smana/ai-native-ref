@@ -665,3 +665,231 @@ pre.mermaid { cursor: zoom-in; }
   .anr-hero-video { display: none; }
   .anr-hero-poster { display: block; }
 }
+
+/* ── The Maku band ──────────────────────────────────────────────────────────
+ *
+ * Rendered by layouts/_shortcodes/maku.html, on Agents → the "Meet Maku" section only.
+ *
+ * Why it carries its own palette. Maku is the product the factory is called, and its brand kit
+ * (Smana/agent-platform, docs/assets/brand) is deliberately not this site's ogenki palette: Ink,
+ * Surface, Paper, and a violet Core. Left in the site's own colours the band would read as one more
+ * callout; borrowing the brand's four makes the section read as the product's, which is the point of
+ * a "meet the thing" band. The tokens below are those four, plus what the kit leaves to us: a muted
+ * text colour per theme, a card surface lifted off the band, and a link colour per theme.
+ *
+ * Contrast, measured rather than assumed (WCAG 2.1):
+ *   light: Ink #0A0A0F on Paper #F3F2FA 17.8:1 · muted #5B5A6B on Paper 6.0:1
+ *   dark:  Paper #F3F2FA on #12121A 16.5:1 · muted #9B9AAE on #12121A 7.5:1
+ *   Core #8B5CF6 is 3.8:1 on Paper and 4.3:1 on the dark band: a graphical accent (the mark, the
+ *   card icon, the hover border) and never body text. The kit says the same thing ("Core is for the
+ *   mark and decorative accents, not normal text").
+ * Links take the Core family rather than the site's link colour, so the band speaks one accent:
+ * violet-700 #6D28D9 is 6.4:1 on Paper, violet-400 #A78BFA is 6.8:1 on the dark band. The site
+ * keeps --cnref-link everywhere else.
+ *
+ * Both variants of the mark and of the screenshot are in the HTML because the site's theme toggle
+ * flips a class instead of the OS preference; `.anr-maku-on-light` / `.anr-maku-on-dark` swap them.
+ * Only one is ever laid out, so the reserved width/height on each <img> cannot double-count.
+ */
+:root {
+  --maku-bg: #f3f2fa;   /* Paper */
+  --maku-fg: #0a0a0f;   /* Ink */
+  --maku-muted: #5b5a6b;
+  --maku-card: #ffffff;
+  --maku-line: rgb(10 10 15 / 12%);
+  --maku-core: #8b5cf6;
+  --maku-glow: rgb(139 92 246 / 16%);
+  --maku-link: #6d28d9; /* violet-700 — 6.4:1 on Paper */
+  /* Pure black, never a tinted neutral: a slate outline picks up the band's lavender and reads as
+   * dirt along the image edge. */
+  --maku-outline: rgb(0 0 0 / 10%);
+  --maku-card-shadow: 0 1px 2px rgb(0 0 0 / 5%), 0 10px 24px -16px rgb(0 0 0 / 18%);
+  --maku-card-shadow-hover: 0 2px 4px rgb(0 0 0 / 6%), 0 14px 30px -16px rgb(0 0 0 / 22%);
+}
+
+.dark {
+  --maku-bg: #12121a;
+  --maku-fg: #f3f2fa;
+  --maku-muted: #9b9aae;
+  --maku-card: #1c1c27;
+  --maku-line: rgb(243 242 250 / 14%);
+  --maku-glow: rgb(139 92 246 / 22%);
+  --maku-link: #a78bfa; /* violet-400 — 6.8:1 on the dark band */
+}
+
+.anr-maku {
+  position: relative;
+  isolation: isolate;
+  margin: 2.5rem 0;
+  padding: clamp(1.25rem, 3.5vw, 2.25rem);
+  border: 1px solid var(--maku-line);
+  border-radius: 1rem;
+  background: var(--maku-bg);
+  color: var(--maku-fg);
+  overflow: hidden;
+}
+
+/* The Core's glow, the only decorative element: off the top-right corner, behind everything
+ * (z-index -1, inside the band's own stacking context). It carries no meaning, so losing it costs a
+ * reader nothing. */
+.anr-maku::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -8rem;
+  right: -4rem;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--maku-glow), transparent 68%);
+  pointer-events: none;
+}
+
+.anr-maku-head {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.anr-maku .anr-maku-mark {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  /* Hextra's prose rule gives every <img> `margin-inline: auto`; inside this flex row that would
+   * push the mark to the row's centre and drag the name away from it. */
+  margin: 0;
+}
+
+/* The name sits beside the mark as one lockup; the band's padding is what keeps the clearspace the
+ * kit asks for around the mark, not the gap. */
+.anr-maku-id {
+  min-width: 0;
+}
+
+.anr-maku .anr-maku-name {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em; /* the kit's wordmark tracking */
+}
+
+.anr-maku .anr-maku-tagline {
+  margin: 0.125rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--maku-muted);
+}
+
+.anr-maku-shot {
+  margin: 1.5rem 0 0;
+}
+
+.anr-maku-shot a {
+  display: block;
+  border-radius: 0.625rem;
+}
+
+.anr-maku-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border: 1px solid var(--maku-outline);
+  border-radius: 0.625rem;
+  background: var(--maku-card);
+}
+
+.anr-maku-shot a:focus-visible img {
+  outline: 2px solid var(--maku-core);
+  outline-offset: 3px;
+}
+
+.anr-maku a {
+  color: var(--maku-link);
+}
+
+.anr-maku .anr-maku-shot figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--maku-muted);
+  /* Hextra centres a figure's caption. In a photo essay that is right; here the caption is a lead-in
+   * to the band's prose, and it has to share that prose's left edge. */
+  text-align: left;
+}
+
+/* The figure carries no bottom margin of its own, so the prose under it needs no helper — this is
+ * the one rule that keeps the first paragraph off the caption. */
+.anr-maku .anr-maku-body > :first-child {
+  margin-top: 1.5rem;
+}
+
+/* The three cards are Hextra's own (`cards`/`card`), recoloured onto the band. Their Tailwind
+ * utilities are single-class selectors, so these two-class rules win on specificity wherever
+ * custom.css happens to land in the bundle. */
+.anr-maku .hextra-card {
+  background: var(--maku-card);
+  border-color: var(--maku-line);
+  color: var(--maku-fg);
+  box-shadow: var(--maku-card-shadow);
+}
+
+.anr-maku .hextra-card:hover {
+  border-color: var(--maku-core);
+  background: var(--maku-card);
+  box-shadow: var(--maku-card-shadow-hover);
+}
+
+.anr-maku .hextra-card-icon {
+  color: var(--maku-fg);
+}
+
+.anr-maku .hextra-card-icon svg {
+  color: var(--maku-core);
+}
+
+.anr-maku .hextra-card .hextra-card-subtitle {
+  color: var(--maku-muted);
+  /* The theme clamps a card subtitle to three lines, which is right for a grid of teasers and wrong
+     here: these three sentences are the section's argument, and each one has to end. */
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+/* Both selectors carry two classes: `.anr-maku-shot img` above is class-plus-type, and a bare
+ * `.anr-maku-on-dark` would lose to it — which is how both screenshots stacked on the first render.
+ */
+.anr-maku .anr-maku-on-dark {
+  display: none;
+}
+
+.dark .anr-maku .anr-maku-on-light {
+  display: none;
+}
+
+.dark .anr-maku .anr-maku-on-dark {
+  display: block;
+}
+
+@media (max-width: 30rem) {
+  .anr-maku .anr-maku-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .anr-maku .anr-maku-name {
+    font-size: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anr-maku .hextra-card {
+    transition: none;
+  }
+
+  .anr-maku .hextra-card:hover {
+    transform: none;
+  }
+}

@@ -1,0 +1,47 @@
+{{- /* The Maku band on the Agents overview: the product name and its tagline, a real room in both
+       themes, then whatever the page puts inside it (prose, cards).
+
+       Why a shortcode and not raw HTML in the page: the light/dark pairs need one place that owns
+       both files, and the inner content has to stay Markdown (rendered with RenderString) so the
+       cards below it are Hextra's own.
+
+       The theme toggle sets a class, not the OS preference, so both variants are emitted and
+       swapped in CSS — see `.anr-maku` in assets/css/custom.css. `<picture>` with a
+       prefers-color-scheme source would follow the OS and disagree with the toggle.
+
+       `demo` is the only parameter, and it is required: the interactive demo a reader can open
+       instead of squinting at a screenshot. An empty href renders a link back to the page itself,
+       so its absence fails the build rather than shipping. */ -}}
+{{- $demo := .Get "demo" -}}
+{{- if not $demo -}}
+  {{- errorf "shortcode maku: the demo parameter is required (page %s)" .Page.Path -}}
+{{- end -}}
+<div class="anr-maku">
+  <div class="anr-maku-head">
+    <img class="anr-maku-mark anr-maku-on-light" src="{{ "images/maku/maku-mark-light.svg" | relURL }}"
+         alt="" width="44" height="44" aria-hidden="true">
+    <img class="anr-maku-mark anr-maku-on-dark" src="{{ "images/maku/maku-mark-dark.svg" | relURL }}"
+         alt="" width="44" height="44" aria-hidden="true">
+    <div class="anr-maku-id">
+      <p class="anr-maku-name">maku</p>
+      <p class="anr-maku-tagline">A controlled stage for delegated agent work</p>
+    </div>
+  </div>
+  <figure class="anr-maku-shot">
+    <a href="{{ $demo }}" rel="noopener">
+      <img class="anr-maku-on-light" src="{{ "images/maku/room-light.png" | relURL }}"
+           alt="The room page of a real factory task: the task's chips with its budget, its pull request and the reviewer's verdict; the reviewer's claim after a CI retry; the triager's scope note; the run's tool calls; and the composer, under the Maku header."
+           width="1280" height="800" loading="lazy" decoding="async">
+      <img class="anr-maku-on-dark" src="{{ "images/maku/room-dark.png" | relURL }}"
+           alt="The room page of a real factory task: the task's chips with its budget, its pull request and the reviewer's verdict; the reviewer's claim after a CI retry; the triager's scope note; the run's tool calls; and the composer, under the Maku header."
+           width="1280" height="800" loading="lazy" decoding="async">
+    </a>
+    <figcaption>
+      A real room on this platform, as the browser shows it: every step of every run, the agents'
+      claims labelled as claims, and what waits for a person.
+      {{ with $demo }}<a href="{{ . }}" rel="noopener">Open the interactive demo</a> — no account,
+      nothing to install.{{ end }}
+    </figcaption>
+  </figure>
+  <div class="anr-maku-body">{{ .Inner | .Page.RenderString }}</div>
+</div>

@@ -236,3 +236,5 @@ App reads only at start.
 
 4. Confirm the emitter is idle: `rooms_webhook_deliveries_total` stops moving and there is no
    `rooms_webhook_disabled` series (the broker's `/metrics`, or the metrics store).
+
+See also: [the test-first tester](21-test-first-tester.md).

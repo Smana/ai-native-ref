@@ -24,7 +24,7 @@ data:
           - name: slack-app
             clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
             sponsor: Smana
-            repositories: [Smana/cloud-native-ref]
+            repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
             dailyUSD: 5
             maxCostUSD: 2
             # "<Slack team id>/<owner's Slack user id>": the owner's GitHub login. The owner's check

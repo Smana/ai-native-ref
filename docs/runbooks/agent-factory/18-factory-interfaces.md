@@ -2,7 +2,9 @@
 
 Switches on the factory's second interface set on gcp-0: a sponsored principal (a ZITADEL machine user
 that files tasks through intake `api`), the broker's signed webhooks, and the Slack App
-(`factory-slack-app`). Design: [factory interfaces](../../superpowers/specs/2026-10-21-factory-interfaces-design.md).
+(`factory-slack-app`). The webhooks are a shared switch: a second subscriber, RunLore, is switched on by
+[runbook 20](20-runlore-agent-to-agent.md). Design:
+[factory interfaces](../../superpowers/specs/2026-10-21-factory-interfaces-design.md).
 Everything ships off (D4): no cluster lists the App, no config declares a principal or a subscriber, and
 `tooling/base/agent-factory/slack-app/` and `tooling/gcp-0/agent-factory/slack-app/` are applied by nothing.
 A session declares the switches in gcp-0's own copies and removes them after. See [README.md](README.md)
@@ -112,7 +114,7 @@ version 4 (H4 gains the listener). Then:
 
 | Where | Change |
 |---|---|
-| gcp-0's broker config copy, `infrastructure/gcp-0/room-broker/config.yaml` | `human.mcp.enabled` is already on, since v0.23.1 (it is required by `human.mcp.sponsored`, and it opens human `/mcp` on the tailnet, to roomctl's token only). Add `human.mcp.sponsored: [{name: slack-app, clientIDFile: /etc/room-broker/sponsored/slack-app-client-id}]`, and the `webhooks` entry of the commented example in `infrastructure/base/room-broker/config.yaml` (full `room.*` event names, `secretFile`) |
+| gcp-0's broker config copy, `infrastructure/gcp-0/room-broker/config.yaml` | `human.mcp.enabled` is already on, since v0.23.1 (it is required by `human.mcp.sponsored`, and it opens human `/mcp` on the tailnet, to roomctl's token only). Add `human.mcp.sponsored: [{name: slack-app, clientIDFile: /etc/room-broker/sponsored/slack-app-client-id}]`, and the `webhooks` entry of the commented example in `infrastructure/base/room-broker/config.yaml` (full `room.*` event names, `secretFile`) — the same entry that [runbook 20](20-runlore-agent-to-agent.md) adds for its subscriber |
 | `scripts/ci/tests/test-room-broker-suspend.py` | Widen the parity: gcp-0's copy may differ from base in `suspend`, `webhooks` and `human.mcp` alone |
 | The factory's gcp-0 values | A new ConfigMap, `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml`, appended to the HelmRelease's `valuesFrom` as `helm-values-suspend.yaml` is (Helm deep-merges, so `config.api.sponsored` lands); the off-test's glob then needs that file exempted. It holds `projectIDFile: /etc/agent-factory-sponsored/project-id` and `api.sponsored` with the owner as `sponsor`, the owner's Slack id linked (`onBehalfOf.slack: {"T…/U…": <login>}`), `dailyUSD: 5`, `maxCostUSD: 2`. It needs `meter.prices`. The commented example is in `tooling/base/agent-factory/helm-values-configmap.yaml`. The factory mounts `/etc/agent-factory-sponsored/` with the keys `<name>-client-id` and `project-id`; the broker mounts its own at `/etc/room-broker/sponsored` |
 | The App's config | A `configMapGenerator` with `behavior: replace` in `tooling/gcp-0/agent-factory/slack-app/`. It replaces the whole `config.yaml`, so the gcp-0 file is a full copy of base's with `teamID` and `channels` filled (each channel's `maxCostUSD` at most the principal's `maxCostUSD: 2`, for example `0.5`). The App refuses to start until both are filled. `brokerURL` stays `http://room-broker.agent-system.svc.cluster.local:8080`, with no path: the App appends `/mcp` |

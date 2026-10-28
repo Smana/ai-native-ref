@@ -328,8 +328,10 @@ data:
         # design SL3). split needs scope: scoper on the same row, and a row is read whole, so the scoper
         # is on for scripts too. maxChildren 4 (2..5); familyUSD 20.40, the parent's and every part's
         # runs together (four standard tasks, SP3); childTier standard (SP5). Back off with the session's
-        # last commit (D4): remove the row.
-        scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard}}
+        # last commit (D4): remove the row. anyTier: true offers the splitter to every scripts task
+        # (agent-platform v0.29.11): gcp-0 deploys no classifier, so no task is ever frontier and the
+        # default would never offer it; the splitter design's SP1 option (b), as an explicit opt-in.
+        scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}}
       # search: true on the docs row (above) offers that class's implementer runs the search tool
       # (agent-platform v3 feature 5): a read-only child on the run's token, 40 iterations, 300k
       # tokens, 300 s, six a run. No other class has it (D4): the gcp-0 session of 2026-10-27 flips

@@ -226,6 +226,11 @@ declared by both repositories, so each switch reads for `Smana/ai-native-ref` an
 public. A maintainer labels it `class:docs` first (without the label the task's class is `review`, which
 reads `default`'s row, off), then `factory/ready`.
 
+The drills' issue texts live on the operator's machine (`~/.cache/v3/drills/`), not here: the agents
+read this README, and on the 2026-10-27 session they recognised the drills from it ("this task is the
+repository's own Drill E") and answered the drill rather than the issue. This page keeps each drill's
+name, purpose and expected outcome; reword a drill's text before it runs again.
+
 | Layer | Switch (`loops.docs`, or `classes.docs` per repository) | Design |
 |---|---|---|
 | 1. Scoper | `scope: scoper` | [scoper](../../superpowers/specs/2026-10-22-scoper-design.md#gate) |
@@ -256,29 +261,11 @@ branch, which exists on ai-native-ref and not yet on cloud-native-ref. To prove 
 
 **Drill A, a vague issue** the scoper can still bound (title and body, ready to file on ai-native-ref). If it asks a question instead of scoping, record it, answer by an edit as in step 3, and take the second task as step 1's evidence:
 
-```text
-Title: docs: the runbooks README is out of date
-
-Body:
-The Status section of docs/runbooks/agent-factory/README.md looks stale. Please bring it up to date.
-```
+Text: `~/.cache/v3/drills/drill-a.md`, on the operator's machine, never in a repository the agents read.
 
 **Drill B, no acceptance check, should bounce:**
 
-```text
-Title: docs: define "room" in the runbooks README
-
-Body:
-The runbooks README uses the word "room" without saying what it is. Add a definition.
-```
-
-Edit for step 3 (append, then re-label):
-
-```text
-Acceptance: docs/runbooks/agent-factory/README.md gains one sentence under "Prerequisites (all
-runbooks)" that defines a room as the per-task workspace the broker serves at rooms.<domain>. No
-other line of that file and no other file changes. `task links` passes.
-```
+Text: `~/.cache/v3/drills/drill-b.md`, on the operator's machine, never in a repository the agents read.
 
 ### Layer 2: the loop policy
 
@@ -306,15 +293,7 @@ commit; do not go under about 50), then set it from the accepted runs' step coun
 
 **Drill C, a stall** (a task that sends the run searching without ever committing):
 
-```text
-Title: docs: find every mention of the old agent-gateway route name
-
-Body:
-Somewhere in this repository's docs and website content a route of the agent gateway is still named
-by an old name, and I do not remember which. Find every such mention and change it to the current
-name. Read the whole docs tree before changing anything, and explain what you found in the pull request.
-Acceptance: no file under docs/ or website/content/ names the old route.
-```
+Text: `~/.cache/v3/drills/drill-c.md`, on the operator's machine, never in a repository the agents read.
 
 The route's old name does not exist, so the run reads and never finds a line to change; at step 20 the
 stall rule stops it. If it commits a change, pick a stricter wording ("or change nothing and say so")
@@ -322,25 +301,11 @@ and file it again.
 
 **Drill D, a continuation** (acceptance with two checks; the second is easy to miss):
 
-```text
-Title: docs: add a drill row to the status table
-
-Body:
-Add one row for the loop policy to the table in website/content/docs/platform/ai-platform/status.md
-named "Loop policy drill".
-Acceptance: (1) the table gains exactly one row, named "Loop policy drill"; (2) the row's last cell
-is "drill, remove after the session" and `task links` passes; (3) no other line of any file changes.
-```
+Text: `~/.cache/v3/drills/drill-d.md`, on the operator's machine, never in a repository the agents read.
 
 **Drill E, an impossible acceptance** (the judge should answer `impossible`, a human takes over). The judge may answer `not_yet` first and `impossible` after a continuation: either order passes if the task ends `Escalated` with `judge_impossible`. A task that ends `not_met` (continuations spent) is recorded as observed, not as a pass:
 
-```text
-Title: docs: link the runbooks README to a page that does not exist
-
-Body:
-Add to docs/runbooks/agent-factory/README.md a link to docs/runbooks/agent-factory/99-nonexistent.md.
-Acceptance: `task links` passes with that link in place, and 99-nonexistent.md is not created.
-```
+Text: `~/.cache/v3/drills/drill-e.md`, on the operator's machine, never in a repository the agents read.
 
 ### Layer 3: the sandbox checks
 
@@ -365,29 +330,11 @@ under a `scripts` class switch in a later session.
 
 **Drill F, a seeded defect on ai-native-ref:**
 
-```text
-Title: docs: add a pointer from the runbooks README to the steering note
-
-Body:
-In docs/runbooks/agent-factory/README.md, under "Prerequisites (all runbooks)", add one sentence that
-links to .github/agent-factory/steering/docs.md with the relative link
-[the docs steering note](../../../.github/agent-factory/steering/docs.mdx). Write the link exactly as
-given on your first commit, then run the checks, and fix what they report before you push.
-Acceptance: the sentence exists, `task links` passes, no other line changes.
-```
+Text: `~/.cache/v3/drills/drill-f.md`, on the operator's machine, never in a repository the agents read.
 
 **Drill G, a seeded defect on cloud-native-ref:**
 
-```text
-Title: docs: add a pointer from the README to the agent checks
-
-Body:
-In README.md, under its contribution section, add one sentence that links to
-.github/agent-checks.yaml with the relative link [agent checks](.github/agent-checks.yml).
-Write the link exactly as given on your first commit, then run the checks, and fix what they report
-before you push.
-Acceptance: the sentence exists, `./scripts/ci/validate-links.sh` passes, no other line changes.
-```
+Text: `~/.cache/v3/drills/drill-g.md`, on the operator's machine, never in a repository the agents read.
 
 Both links end in a wrong extension (`.mdx`, `.yml`): the `links` step reports each before the push,
 and the pushed head carries the corrected link.
@@ -407,47 +354,15 @@ layers 1 and 2 passed, so a difference between the arms is the tool's alone.
 
 **Drill H1, a multi-file lookup** (the answer is spread over several files, so searching beats reading):
 
-```text
-Title: docs: list the runbooks that mention the room broker
-
-Body:
-Add a "Related runbooks" line at the end of docs/runbooks/agent-factory/13-rooms-restore.md that
-names every runbook in docs/runbooks/agent-factory/ whose text contains the words "room broker".
-
-## Acceptance
-- The new line lists exactly the runbook files (by file name) that contain "room broker", found by
-  searching the directory.
-- No other line of any file changes and `task links` passes.
-```
+Text: `~/.cache/v3/drills/drill-h1.md`, on the operator's machine, never in a repository the agents read.
 
 **Drill H2, a rename sweep:**
 
-```text
-Title: docs: say "factory" where the status page still says "dark factory"
-
-Body:
-In website/content/docs/platform/ai-platform/status.md, replace the phrase "dark factory" by
-"factory" wherever it appears, except inside a link target or a code span.
-
-## Acceptance
-- No "dark factory" is left in that file outside a link target or a code span.
-- No other file changes and `task links` passes.
-```
+Text: `~/.cache/v3/drills/drill-h2.md`, on the operator's machine, never in a repository the agents read.
 
 **Drill H3, a cross-reference:**
 
-```text
-Title: docs: point the splitter runbook at the spec that defines the family budget
-
-Body:
-In docs/runbooks/agent-factory/17-splitter.md, section 4, add one sentence naming the decision id
-(SLn) in docs/superpowers/specs/2026-10-23-splitter-design.md that defines the family budget, with a
-relative link to that spec.
-
-## Acceptance
-- The sentence cites the right decision id and links to the spec; `task links` passes.
-- No other line of any file changes.
-```
+Text: `~/.cache/v3/drills/drill-h3.md`, on the operator's machine, never in a repository the agents read.
 
 Cost: six runs for the three pairs, each capped by the docs tier's task cap (standard: $5.10); a docs
 run costs about $0.50 to $1.50 and a search adds at most the child's 300k tokens, so the layer is
@@ -463,37 +378,11 @@ needs the scoper), the factory App holds `issues: write`. File the cohort on clo
 
 **Drill S1, a hard issue of three separable parts:**
 
-```text
-Title: scripts: a report of the Flux Kustomizations that are not ready
-
-Body:
-Add scripts/ops/k8s/flux-not-ready.sh, which lists the Flux Kustomizations whose Ready condition is not
-True as "<namespace>/<name>: <message>" lines, one per line, exit 0 whatever the count. Add a test for
-it that runs it against a canned `kubectl get -o json` fixture, and a one-line entry for it in
-scripts/README.md.
-
-## Acceptance
-- scripts/ops/k8s/flux-not-ready.sh exists, is executable and passes shellcheck.
-- Its test passes against the fixture and fails when the fixture's not-ready item is removed.
-- scripts/README.md lists the script in one line and `./scripts/ci/validate-links.sh` passes.
-```
+Text: `~/.cache/v3/drills/drill-s1.md`, on the operator's machine, never in a repository the agents read.
 
 **Drill S2, a second hard issue:**
 
-```text
-Title: scripts: a check that every ops script has a header comment
-
-Body:
-Add scripts/ops/check-script-headers.sh, which fails (exit 1) and names each shell script under
-scripts/ops/ whose first comment line does not state what the script does. Add a test with two fixture
-scripts, one with a header and one without. Run it over the repository and add the missing header to
-every script it names, one sentence each.
-
-## Acceptance
-- scripts/ops/check-script-headers.sh exists, is executable and passes shellcheck.
-- Its test passes: exit 0 on the headed fixture, exit 1 naming the headless one.
-- Run over scripts/ops/ it exits 0, and the headers added are the only other changes.
-```
+Text: `~/.cache/v3/drills/drill-s2.md`, on the operator's machine, never in a repository the agents read.
 
 Step 4 of runbook 17 (`/factory retry` on a second proposal) uses S2's proposal; steps 1 to 3 and 5
 use S1's. Cost: a family is capped at familyUSD $20.40 per issue, so the two issues are $40.80 at the
@@ -522,32 +411,11 @@ passes "Test contract 🧪"; the gate reads `contract_modified` if the implement
 
 **Drill T1, testable behaviour** (a pure function with a clear contract):
 
-```text
-Title: scripts: a helper that turns a Flux Kustomization list into "<namespace>/<name>" lines
-
-Body:
-Add scripts/ops/k8s/lib-kustomization-names.sh with a function `kustomization_names` that reads
-`kubectl get kustomizations -A -o json` on stdin and prints "<namespace>/<name>" per item, sorted.
-
-## Acceptance
-- With a two-item fixture the function prints the two lines sorted.
-- With an empty list it prints nothing and returns 0.
-- The test for it fails before the function exists and passes after.
-```
+Text: `~/.cache/v3/drills/drill-t1.md`, on the operator's machine, never in a repository the agents read.
 
 **Drill T2, not testable** (the tester should end `not_testable`, the implementer runs without a contract):
 
-```text
-Title: scripts: reword the header of the CSI volume reclaim script
-
-Body:
-Reword the first comment line of scripts/ops/k8s/reclaim-csi-volumes.sh so it names the script's
-purpose in one sentence.
-
-## Acceptance
-- The first comment line is one sentence naming what the script checks.
-- No other line changes and shellcheck passes.
-```
+Text: `~/.cache/v3/drills/drill-t2.md`, on the operator's machine, never in a repository the agents read.
 
 Cost: the tester run is a writer on the task's caps, so each drill is one tester run plus the implementer
 and reviewer, about $2 to $4 expected and $5.10 (standard) at the task cap: two drills stay inside

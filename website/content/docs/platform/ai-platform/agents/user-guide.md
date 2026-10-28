@@ -465,7 +465,7 @@ registries. Everything else is dropped.
 **What if it loops or goes off track?**
 Its deadline or the run meter ends it, and you can delete it. The stop ConfigMap ends every task.
 Every step is in the step log, the room and the trace. If a room stalls, the
-[factory FAQ](https://github.com/Smana/ai-native-ref/blob/main/docs/ops/factory-faq.md) covers it.
+[factory FAQ](docs/ops/factory-faq.md) covers it.
 
 **Why gVisor?**
 The agent runs arbitrary commands. gVisor answers their system calls in user space, so a kernel

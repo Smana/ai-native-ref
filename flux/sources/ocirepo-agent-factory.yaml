@@ -6,12 +6,12 @@ metadata:
   namespace: agent-system
 spec:
   interval: 12h
-  url: oci://ghcr.io/smana/charts/agent-factory
+  url: oci://ghcr.io/smana/charts/maku-factory
   # Flux pulls the digest (it wins over the tag), so a re-pushed tag changes nothing. The tag
   # stays for Renovate and for readers.
   ref:
-    tag: "0.29.12"  # agent-platform v0.29.12
-    digest: sha256:b192c94b0da4181cdb84312e218b9859af87b6f770430f72a109a405a93589e7
+    tag: "0.30.0"  # maku v0.30.0
+    digest: sha256:95d6f8da5536571d84856e20f168cce405ced77afb3775274cab176365059055
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy

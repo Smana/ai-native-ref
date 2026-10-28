@@ -26,6 +26,14 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: agentgateway-models
+      sectionName: moonshot
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: agentgateway-models
+      sectionName: mistral
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: agentgateway-models
       sectionName: openai
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
@@ -37,7 +45,7 @@ spec:
       policy:
         matchExpressions:
           - 'jwt.sub.startsWith("system:serviceaccount:agents:")'
-          - '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : json(request.body).model).with(m, ("agent-router.implementer.public" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"]) || ("agent-router.reviewer.public" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"]) || ("agent-router.tester.public" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"]) || ("agent-router.triager.public" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"]))'
+          - '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : json(request.body).model).with(m, ("agent-router.implementer.public" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier", "kimi-frontier", "mistral-standard", "mistral-light"]) || ("agent-router.reviewer.public" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier", "kimi-frontier", "mistral-standard", "mistral-light"]) || ("agent-router.tester.public" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier", "kimi-frontier", "mistral-standard", "mistral-light"]) || ("agent-router.triager.public" in jwt.aud && m in ["agent-default", "tier-light", "tier-standard", "tier-frontier", "kimi-frontier", "mistral-standard", "mistral-light"]))'
 ---
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy

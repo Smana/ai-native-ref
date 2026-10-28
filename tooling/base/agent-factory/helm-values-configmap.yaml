@@ -358,6 +358,12 @@ data:
           glm-5.3: {input: 1.40, cacheRead: 0.26, output: 4.40, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
           glm-5.3-flashx: {input: 0.37, cacheRead: 0.075, output: 1.25, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
           glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+          # Feature 15, selectable providers (public only). k3.1-pro is NOMINAL: the owner's Kimi Code
+          # subscription is flat-rate (marginal USD 0), and the row is the list price so a run's USD
+          # cap bounds its tokens; a figure here is a token-weighted unit, not a bill.
+          k3.1-pro: {input: 2.00, cacheRead: 0.20, cacheWrite: 2.00, output: 10.00, source: "https://platform.kimi.ai/docs/pricing/chat", checkedAt: "2026-10-28"}
+          mistral-medium-2604: {input: 1.50, cacheRead: 0.15, output: 7.50, source: "https://mistral.ai/pricing", checkedAt: "2026-10-28"}
+          mistral-small-2603: {input: 0.15, cacheRead: 0.015, output: 0.60, source: "https://mistral.ai/pricing", checkedAt: "2026-10-28"}
           claude-opus-5-5: {input: 4.00, cacheRead: 0.20, cacheWrite: 5.00, output: 20.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
           claude-sonnet-5-5: {input: 2.00, cacheRead: 0.10, cacheWrite: 2.50, output: 10.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
           claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}

@@ -54,6 +54,9 @@ CAPABILITIES = GATEWAY / "policy-capabilities.yaml"
 IDENTITY = GATEWAY / "policies-identity.yaml"
 GATEWAY_NAME = "agent-router"
 AUD_PREFIX = "agent-router"
+# Feature 15: the selectable providers' aliases. Their backends are reachable from the public listener
+# only (AG5), so an internal profile may not name one; AG14 checks the rendered rule against the manifests.
+PROVIDER_ALIASES = ("kimi-frontier", "mistral-light", "mistral-standard")
 KEYS = ("role", "dataClass", "models", "tools")
 # Rendered from the agent-capability-profiles ConfigMap step on; refused until then.
 CONFIGMAP_KEYS = ("egress", "readOnly")
@@ -163,6 +166,10 @@ def load_profile(root, path, targets, aliases, errors):
         twice = sorted({n for n in models if models.count(n) > 1})
         if twice:
             errors.append(f"{rel}: models lists {', '.join(twice)} twice")
+        provider = [n for n in models if n in PROVIDER_ALIASES] if doc.get("dataClass") != "public" else []
+        if provider:
+            errors.append(f"{rel}: models names {', '.join(provider)}, a selectable provider alias (feature 15): "
+                          "Moonshot and Mistral serve public data only, so only a public profile may list one")
         unserved = [n for n in models if n not in aliases]
         if unserved:
             errors.append(f"{rel}: models names {', '.join(unserved)}, which no LLM backend serves {sorted(aliases)}")

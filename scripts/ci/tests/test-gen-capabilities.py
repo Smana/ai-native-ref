@@ -179,8 +179,9 @@ with tree() as t:
     got = rules(t)
     check("one policy per listener with LLM routes, public first", list(got) == ["capabilities-public", "capabilities-internal"],
           str(list(got)))
-    check("each targets its LLM rules but never the /v1/models one",
-          all(sections == ["openai", "anthropic"] for sections, _ in got.values()), str(got))
+    check("each targets its LLM rules but never the /v1/models one: public also the provider rules (feature 15)",
+          got["capabilities-public"][0] == ["moonshot", "mistral", "openai", "anthropic"]
+          and got["capabilities-internal"][0] == ["openai", "anthropic"], str(got))
     check("each repeats its listener's Require first",
           all(exprs[0] == 'jwt.sub.startsWith("system:serviceaccount:agents:")' and len(exprs) == 2
               for _, exprs in got.values()), str(got))
@@ -244,7 +245,7 @@ check("an argument rule binds one audience, target and tool, and folds the value
 print("drift (design gate 5)")
 with tree() as t:
     text = caps(t).read_text()
-    caps(t).write_text(text.replace(', "tier-frontier"]) || ("agent-router.reviewer.public"', ']) || ("agent-router.reviewer.public"', 1))
+    caps(t).write_text(text.replace(', "mistral-light"]) || ("agent-router.reviewer.public"', ']) || ("agent-router.reviewer.public"', 1))
     code, out = run(t)
     check("policy-capabilities.yaml edited by hand fails, with the diff and the fix",
           caps(t).read_text() != text and code == 1 and "policy-capabilities.yaml (rendered from" in out and "--write" in out, out)
@@ -334,6 +335,11 @@ for name, change, needle in [
      "'room read', which is not a tool name"),
     ("a role that disagrees with its file name", on("reviewer.public.yaml", lambda d: d.update(role="tester")),
      "reviewer.public.yaml: a profile is named <role>.<dataClass>.yaml"),
+    ("an internal profile naming a provider alias (feature 15)",
+     on("reviewer.internal.yaml", lambda d: d["models"].append("kimi-frontier")),
+     "reviewer.internal.yaml: models names kimi-frontier, a selectable provider alias"),
+    ("an internal profile naming a Mistral alias", on("tester.internal.yaml", lambda d: d["models"].append("mistral-light")),
+     "models names mistral-light, a selectable provider alias"),
     ("a profile without tools", on("reviewer.public.yaml", lambda d: d.pop("tools")), "missing tools"),
     ("a .yml file reads like a rule but grants nothing", stray_yml,
      "profiles/reviewer.public.yml: only <role>.<dataClass>.yaml files are profiles"),

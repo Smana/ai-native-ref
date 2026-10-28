@@ -2,7 +2,7 @@
 # models is rendered into policy-capabilities.yaml (P2): the aliases this role may call.
 role: triager
 dataClass: public
-models: [agent-default, tier-light, tier-standard, tier-frontier]
+models: [agent-default, tier-light, tier-standard, tier-frontier, kimi-frontier, mistral-standard, mistral-light]
 tools:
   flux-operator-mcp:
     - search_flux_docs

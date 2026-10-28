@@ -132,7 +132,10 @@ SHUTDOWN = {"min": 10, "max": 660}
 UNTYPED_ROUTES = {"Detect", "Passthrough"}
 ROUTE_KINDS = ("HTTPRoute", "GRPCRoute")
 # ADR-0054: the listeners each provider may serve.
-PROVIDER_LISTENERS = {"Z.ai": {"public"}, "Anthropic": {"internal"}}
+PROVIDER_LISTENERS = {"Z.ai": {"public"}, "Anthropic": {"internal"}, "Moonshot": {"public"}, "Mistral": {"public"}}
+# The providers agentgateway has no built-in for: each uses provider.custom, and its providerOverride is the
+# catalog key agent-model-catalog prices it under (gen-prices.py PROVIDERS) and the series' provider label.
+CUSTOM_PROVIDERS = {"Z.ai": "zai", "Moonshot": "moonshot", "Mistral": "mistral"}
 # Design D11, OD-6, J-AC2: USD is the policy unit, and a rate-limit descriptor
 # needs an integer, so a request costs its price in reference tokens ($1.70 per
 # M), priced by the meter's own table, or its total tokens when the model has no
@@ -160,9 +163,19 @@ def billable_cost(prices):
             f" + double(default(llm.outputTokens, 0)) * r[3]) / {REF_USD_PER_M})) : uint(llm.totalTokens))")
 # Design D8, plan I.1: the agent names, on every agent-router listener.
 AGENT_MODELS = ("agent-default", "tier-light", "tier-standard", "tier-frontier")
+# Feature 15: the selectable providers' own aliases, one tier each, public listener only. A backend serves
+# exactly its names: Z.ai and Anthropic the four agent names, Kimi Code and Mistral their own.
+BACKEND_MODELS = {"Z.ai": AGENT_MODELS, "Anthropic": AGENT_MODELS, "Moonshot": ("kimi-frontier",),
+                  "Mistral": ("mistral-light", "mistral-standard")}
 MODEL_HEADER = "x-ar-model"
-MODEL_ALLOWLIST = (f'("{MODEL_HEADER}" in request.headers ? request.headers["{MODEL_HEADER}"] : llmRequest.model)'
-                   f".with(m, m in {json.dumps(list(AGENT_MODELS))} ? m : null)")
+
+
+def model_allowlist(names):
+    return (f'("{MODEL_HEADER}" in request.headers ? request.headers["{MODEL_HEADER}"] : llmRequest.model)'
+            f".with(m, m in {json.dumps(list(names))} ? m : null)")
+
+
+MODEL_ALLOWLIST = model_allowlist(AGENT_MODELS)
 # AG14: the model a call reaches, read where the route's authorization runs, before the backend parses
 # the body (1.6 has no llm.requestModel there): the header MODEL_ALLOWLIST reads, else the body's.
 EFFECTIVE_MODEL = (f'("{MODEL_HEADER}" in request.headers ? request.headers["{MODEL_HEADER}"] '
@@ -326,12 +339,27 @@ def is_zai(backend):
                                          or "zai" in str(meta(backend).get("name", "")))
 
 
+def _host_or_name(backend, domains, word):
+    hosts = [str(p.get("host", "")) for p in providers(backend)]
+    return bool(providers(backend)) and (any(h in domains or h.endswith(tuple("." + d for d in domains)) for h in hosts)
+                                         or word in str(meta(backend).get("name", "")))
+
+
+def is_moonshot(backend):
+    return _host_or_name(backend, ("kimi.ai", "moonshot.ai", "moonshot.cn"), "moonshot")
+
+
+def is_mistral(backend):
+    return _host_or_name(backend, ("mistral.ai",), "mistral")
+
+
 def is_anthropic(backend):
     return any("anthropic" in p or str(p.get("host", "")).endswith("anthropic.com") for p in providers(backend))
 
 
 def provider_name(backend):
-    return "Z.ai" if is_zai(backend) else "Anthropic" if is_anthropic(backend) else None
+    return ("Z.ai" if is_zai(backend) else "Anthropic" if is_anthropic(backend)
+            else "Moonshot" if is_moonshot(backend) else "Mistral" if is_mistral(backend) else None)
 
 
 def check_gateway(objs):
@@ -471,11 +499,15 @@ def check_zai_provider(objs):
     # Only the required Gateway loads agent-model-catalog (parameters.yaml): the aws-0 PoC prices nothing.
     priced = {b for g, prof in profiled(objs) if prof.required for r in routes_on(objs, g) for b in backend_refs(r)}
     for b in kind(objs, "AgentgatewayBackend"):
-        if is_zai(b) and any("custom" not in p for p in providers(b)):
-            out.append(f"AG5: {ref(b)} serves Z.ai without provider.custom (1.6: openai is for the OpenAI API only)")
-        elif is_zai(b) and key(b) in priced and any((p.get("custom") or {}).get("providerOverride") != "zai" for p in providers(b)):
-            out.append(f"AG5: {ref(b)} serves Z.ai without provider.custom.providerOverride: zai "
-                       "(the catalog key agent-model-catalog prices GLM under)")
+        name = provider_name(b)
+        if name not in CUSTOM_PROVIDERS:
+            continue
+        override = CUSTOM_PROVIDERS[name]
+        if any("custom" not in p for p in providers(b)):
+            out.append(f"AG5: {ref(b)} serves {name} without provider.custom (1.6: openai is for the OpenAI API only)")
+        elif key(b) in priced and any((p.get("custom") or {}).get("providerOverride") != override for p in providers(b)):
+            out.append(f"AG5: {ref(b)} serves {name} without provider.custom.providerOverride: {override} "
+                       f"(the catalog key agent-model-catalog prices {name} under)")
     return out
 
 
@@ -782,14 +814,15 @@ def check_provider_paths(objs):
             pathed = prov.get("path") or prov.get("pathPrefix") or (formats and all(f.get("path") for f in formats))
             if not pathed:
                 out.append(f"AG11: {ref(b)} overrides host {prov['host']} without a path; 1.6 sends `/`")
-        if not is_zai(b):
+        name = provider_name(b)
+        if name not in CUSTOM_PROVIDERS:
             continue
         routes = ((spec_of(b).get("policies") or {}).get("ai") or {}).get("routes") or {}
         if not routes:
-            out.append(f"AG11: {ref(b)} serves Z.ai without typed policies.ai.routes (#3853)")
+            out.append(f"AG11: {ref(b)} serves {name} without typed policies.ai.routes (#3853)")
         for path, typ in routes.items():
             if typ in UNTYPED_ROUTES:
-                out.append(f"AG11: {ref(b)} routes {path} as {typ}; Z.ai takes typed routes only (#3853)")
+                out.append(f"AG11: {ref(b)} routes {path} as {typ}; {name} takes typed routes only (#3853)")
     return out
 
 
@@ -826,11 +859,13 @@ def check_model_pinning(objs):
         wild = sorted(n for n in aliases if "*" in n)
         if wild:
             out.append(f"AG12: {ref(b)} aliases {wild}: a catch-all gives an unlisted name a model")
-        if set(aliases) - set(wild) != set(AGENT_MODELS):
-            out.append(f"AG12: {ref(b)} must alias exactly {list(AGENT_MODELS)}, got {sorted(aliases)}")
+        served = BACKEND_MODELS.get(provider_name(b), AGENT_MODELS)
+        if set(aliases) - set(wild) != set(served):
+            out.append(f"AG12: {ref(b)} must alias exactly {sorted(served)}, got {sorted(aliases)}")
         xfm = {t.get("field"): t.get("expression") for t in ai.get("transformations") or []}
-        if xfm.get("model") != MODEL_ALLOWLIST:
-            out.append(f"AG12: {ref(b)} needs the `model` transformation {MODEL_ALLOWLIST!r} to refuse "
+        allowlist = model_allowlist(sorted(served) if served is not AGENT_MODELS else served)
+        if xfm.get("model") != allowlist:
+            out.append(f"AG12: {ref(b)} needs the `model` transformation {allowlist!r} to refuse "
                        "unlisted names before any upstream call")
         for field in MODEL_MUTATIONS:
             if "model" in (ai.get(field) or {}):
@@ -858,7 +893,7 @@ def removes(node, header):
 ALTERNATIVE = re.compile(r'\("(?P<aud>[^"]+)" in jwt\.aud && m in (?P<models>\[[^\]]*\])\)')
 
 
-def model_rule_ok(expr, auds):
+def model_rule_ok(expr, auds, served=AGENT_MODELS):
     """One model Require, exactly as gen-capabilities.py renders it: EFFECTIVE_MODEL bound to m, one
     `(aud in jwt.aud && m in [...])` alternative per audience, joined by ||, nothing before or after."""
     head, tail = f"{EFFECTIVE_MODEL}.with(m, ", ")"
@@ -874,9 +909,20 @@ def model_rule_ok(expr, auds):
         except ValueError:  # a non-literal entry such as `m`, which would open the rule
             return False
         if not (isinstance(models, list) and models and all(isinstance(x, str) for x in models)
-                and len(set(models)) == len(models) and set(models) <= set(AGENT_MODELS)):
+                and len(set(models)) == len(models) and set(models) <= set(served)):
             return False
     return True
+
+
+def listener_names(objs, g, listener):
+    """The aliases the LLM backends behind a listener's rules serve: what an alternative of that listener may list
+    (AG14). A provider alias is public-only because only the public listener reaches its backend (AG5)."""
+    by_key = {key(b): b for b in kind(objs, "AgentgatewayBackend") if providers(b)}
+    names = set()
+    for r in routes_on(objs, g):
+        if listener in listeners_of(r, g):
+            names |= {n for b in backend_refs(r) if b in by_key for n in ai_policy(spec_of(by_key[b])).get("modelAliases") or {}}
+    return names
 
 
 def check_model_authz(objs):
@@ -928,7 +974,7 @@ def check_model_authz(objs):
                     if authz.get("action") != "Require" or sub_prefix(prof) not in exprs:
                         out.append(f"AG14: {ref(p)} must Require {sub_prefix(prof)}: the listener's rule, repeated")
                     rules = [e for e in exprs if e.startswith(EFFECTIVE_MODEL)]
-                    if len(rules) != 1 or not model_rule_ok(rules[0], sorted(audiences(prof, listener))):
+                    if len(rules) != 1 or not model_rule_ok(rules[0], sorted(audiences(prof, listener)), listener_names(objs, g, listener)):
                         out.append(f"AG14: {ref(p)} needs one model Require over {EFFECTIVE_MODEL} with an alternative "
                                    f"for each of {sorted(audiences(prof, listener))}")
                         continue

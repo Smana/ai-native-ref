@@ -10,6 +10,23 @@ This design was checked against this repository at `6cc5f7d`, agent-platform `or
 pins it. Provider facts were read on 2026-10-28; anything marked **unverified** comes from a
 third-party page and must be confirmed before its row is merged ([plan](../plans/2026-10-28-moonshot-mistral-providers-plan.md), Task 0).
 
+## Amendment, 2026-10-28: owner decisions and the Task 0 probe
+
+This section supersedes any line below that contradicts it.
+
+| Topic | Result |
+|---|---|
+| Kimi access | The owner's **Kimi Code subscription** (as in their OpenCode, provider `kimi-code-plan-global`): base URL `https://api.kimi.ai/coding/v1`, OpenAI-compatible. `api.moonshot.ai` answers 401 for this key. Backend host `api.kimi.ai`, path `/coding/v1/chat/completions`. The backend keeps the name and `providerOverride` `moonshot` |
+| Kimi model | `k3.1-pro` (also served: `k3.1-pro-highspeed`, `k3`, `k3-256k`, `kimi-for-coding`). The alias stays `kimi-frontier` and now maps to `k3.1-pro`. Q1 (weights license) no longer gates the route: the model is served by the subscription |
+| Kimi accounting | A **flat-rate plan**. The meter records tokens, and the marginal USD is 0. `meter.prices` rows must be positive, and a run's caps are USD, so the row carries a **nominal price**, the list price, labelled as such in its `source`: a USD figure in the meter is a token-weighted unit, not a bill. Caps therefore act on tokens, not dollars. The provider-side cost is the subscription |
+| Owner-accepted risk | The plan's terms are aimed at coding tools, and its rate limits are personal. A 429 or a plan change can stop every Kimi run. Public data only |
+| Kimi cache field | Verified: the second identical call returned `usage.cached_tokens: 1420` **and** `usage.prompt_tokens_details.cached_tokens: 1420`. The standard field works, so the F5 go/no-go is go |
+| Kimi reasoning | Replies carry `message.reasoning_content`, which consumes `max_tokens` before `content` (with `max_tokens` 16 the content was empty). The harness and the gateway must allow enough output tokens, and reasoning must be passed back on tool turns (F9) |
+| Mistral | **Task 0 passes** (the owner moved the workspace to the paid plan; the first call had answered 429 code 1300 before). `mistral-small-2603`, `mistral-medium-2604` and `mistral-medium-latest` answer. `usage` carries `prompt_tokens`, `completion_tokens`, `prompt_tokens_details.cached_tokens`, `completion_tokens_details.reasoning_tokens` and `service_tier`: the cache read is the standard field. Small cached 1312 of 1341 prompt tokens on the 2nd identical call; Medium and `-latest` showed 0 on the 2nd call (**unverified**: Medium may need a longer prompt to cache; priced as designed). The model list also holds `mistral-large-4` / `mistral-large-2512`, closed weights, so still out (D2). A $20 console cap stays the owner's backstop |
+| Q4, processing region | Moonshot is processed in China: public data only, and never proposed for internal. Mistral is EU (Paris): public only until the owner approves internal |
+| Keys | Seeded by the owner at OpenBao `agents/moonshot` and `agents/mistral`, field `api_key` |
+| Scope | `loops.<class>.models` (agent-platform) is pending: that repository is in a rebrand code freeze. The gateway half ships first and is testable with `x-ar-model` alone |
+
 ## Outcome
 
 A public class can run a role on Moonshot's Kimi or on Mistral by setting one config value, with no
@@ -63,7 +80,7 @@ Completions only, as Z.ai's backend does (1.6 keeps `openai` for the OpenAI API)
 
 | Backend | Host and path | `providerOverride` | Key Secret |
 |---|---|---|---|
-| `moonshot` | `api.moonshot.ai`, `/v1/chat/completions` | `moonshot` | `agents-moonshot-api-key` |
+| `moonshot` | `api.kimi.ai`, `/coding/v1/chat/completions` | `moonshot` | `agents-moonshot-api-key` |
 | `mistral` | `api.mistral.ai`, `/v1/chat/completions` | `mistral` | `agents-mistral-api-key` |
 
 Routing. The `public` listener's HTTPRoute `agentgateway-models` gains two rules on the
@@ -88,7 +105,7 @@ Each alias names its provider and its tier, and serves that tier only:
 
 | Alias | Model (pinned, dated id) | Tier it serves | Weights | Context |
 |---|---|---|---|---|
-| `kimi-frontier` | `kimi-k3.1-pro` | frontier | Due 2026-11-04, license not yet announced (**unverified**; see Q1) | 1M |
+| `kimi-frontier` | `k3.1-pro` (Kimi Code subscription) | frontier | Weights due 2026-11-04, license not yet announced (not a gate, see the amendment) | 1M |
 | `mistral-standard` | `mistral-medium-2604` (Mistral Medium 3.5; id **unverified**) | standard | Open, Modified MIT (Mistral's model card) | 256K |
 | `mistral-light` | `mistral-small-2603` (Mistral Small 4; id **unverified**) | light | Open, Apache 2.0 (Mistral's models overview) | not verified |
 
@@ -161,7 +178,7 @@ Three rows in `meter.prices`, in USD per million tokens. Each row names its sour
 
 | Row | input | cacheRead | cacheWrite | output | Source, status |
 |---|---|---|---|---|---|
-| `kimi-k3.1-pro` | 2.00 | 0.20 | (input, see Q3) | 10.00 | Third-party pages citing the 2026-10-23 launch. Moonshot's own pricing table did not render: **unverified** |
+| `k3.1-pro` | 2.00 | 0.20 | (input) | 10.00 | **Nominal** (flat-rate Kimi Code plan, marginal USD 0): the list price, kept so the caps bound tokens. Cache field verified in the probe |
 | `mistral-medium-2604` | 1.50 | 0.15 | (none) | 7.50 | Input and output from Mistral's model card. Cached input is 10% of input per Mistral's prompt-caching page |
 | `mistral-small-2603` | 0.15 | 0.015 | (none) | 0.60 | Aggregators: **unverified**. 10% cache rule as above |
 
@@ -171,7 +188,7 @@ times its output. That is why these aliases are opt-in and never a default.
 
 **Generators.**
 
-- `gen-prices.py` `PROVIDERS` gains `("kimi-", "moonshot")` and `("mistral-", "mistral")`. The
+- `gen-prices.py` `PROVIDERS` gains `("k3.", "moonshot"), ("kimi-", "moonshot")` and `("mistral-", "mistral")`. The
   catalog's provider keys must equal the backends' `providerOverride`, or the cross-check's lookup
   is `Missing`.
 - `check-price-drift.py` `MAPPING` gains each row's keys in genai-prices, LiteLLM and models.dev,
@@ -212,7 +229,7 @@ bao kv put -mount=agents mistral  api_key=-   # console.mistral.ai, an agents-on
 
 ### F7. Egress
 
-`network-policy.yaml`'s provider `toFQDNs` gains `api.moonshot.ai` and `api.mistral.ai`, on port
+`network-policy.yaml`'s provider `toFQDNs` gains `api.kimi.ai` and `api.mistral.ai`, on port
 443, from the data plane only. The run CNP is unchanged, because runs reach the gateway and never a
 provider.
 
@@ -242,6 +259,7 @@ it. What does change:
 | **Mistral: strict request schema.** It is historically 422 on unknown fields; whether it accepts `reasoning_effort` (sent in `extra_body`) is **unverified** | Every call refused 422 | The probe checks it. If it is refused, the `mistral` backend's transformations null `reasoning_effort` |
 | **Mistral: tool-call ids.** Mistral requires 9-character alphanumeric ids | Ids Mistral generated replay fine. An id the SDK synthesises (a condenser summary, an injected tool result) would be refused | Live smoke with a condensation forced by a low threshold. If it fails, it is an agent-platform harness fix |
 | **Mistral: message order** (a `user` turn straight after a `tool` turn was refused in older releases; **unverified** today) | 400 on the second turn of a continuation | The live smoke covers a judge continuation (`not_yet`) |
+| AG5 identifies a provider by backend host or name (pre-existing weakness, shared with Z.ai) | A backend with an unrecognised host and name escapes the public-only check | `providerOverride` is also checked against the catalog key, and AG12 pins each backend's aliases; documented, not widened here |
 | Moonshot cache field not counted | A tenfold overcount stops runs early | Task 0 probe, before the build (F5) |
 | Moonshot cache writes billed but not reported | The meter undercounts writes | The probe reads the usage object. Provider-side reconciliation (truthful costs, recommendation 6) is the backstop |
 
@@ -297,7 +315,7 @@ Acceptance numbers are recorded, not gated: the bake-off is still Later (D6).
 
 | # | Question | Default if unanswered |
 |---|---|---|
-| Q1 | `kimi-k3.1-pro`'s weights are promised for 2026-11-04 and their license is unannounced. Is D2 met by published weights under the Kimi license family? If not, should the alias pin `kimi-k3` (open, Kimi K3 License, reported at $3.00 / $0.30 / $15.00) instead? | The route and the price ship, but no class row names `kimi-frontier`, and its live run waits, until the weights and their license are published |
+| Q1 | `k3.1-pro`'s weights are promised for 2026-11-04 and their license is unannounced. Is D2 met by published weights under the Kimi license family? If not, should the alias pin `kimi-k3` (open, Kimi K3 License, reported at $3.00 / $0.30 / $15.00) instead? | The route and the price ship, but no class row names `kimi-frontier`, and its live run waits, until the weights and their license are published |
 | Q2 | Your accounts: is a Moonshot account opened before 2026-10-31 needed for anything (K2 access)? Which usage tier on each console? | No K2. A paid tier on each, with a console spend cap of $20 a month |
 | Q3 | The Task 0 probe needs the two keys and about $0.02 of calls, before the build. Will you seed `agents/moonshot` and `agents/mistral` now, or at the gcp-0 session? | Now, from your shell. The probe runs with `curl` from your machine, never in the cluster |
 | Q4 | Where Moonshot data is processed (its platform's region and retention terms). Public data only, so this is not blocking, but it is recorded for the later internal approval | Recorded as an open item in D9 |

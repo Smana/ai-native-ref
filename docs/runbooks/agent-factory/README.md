@@ -80,6 +80,7 @@ Mixes rounds 4 to 6 (from `580042e6` on). Round 6 took issue #2112 to PR #2114 (
 | [18-factory-interfaces.md](18-factory-interfaces.md) | Factory interfaces, the switch-on: a sponsored principal filing through intake `api`, the broker's signed webhooks and the Slack App; live proofs 2 to 5, then off again | Yes — the owner's go, the Slack App's console, a host PR for the public listener | ~3 h |
 | [19-factory-from-your-agent.md](19-factory-from-your-agent.md) | The factory from your coding agent, live proofs 1 to 5 in Claude Code and OpenCode: start from the form, wait for an approval, the card and `room_changes`, the checkout, a hostile note shown inert; then off again | Yes — the owner's go, the cloud-native-ref skill-copy PR merged first | ~2 h |
 | [20-runlore-agent-to-agent.md](20-runlore-agent-to-agent.md) | RunLore as the factory's internal principal, stage 1, live proofs 1 to 3: the paths open, one incident filed as an `investigate` task and replayed idempotently, the old intake silent | Yes — the owner's go, the ZITADEL sync and the webhook key seeded (runbook 14), a maintainer's `factory/publish` label created | ~2 h |
+| [21-test-first-tester.md](21-test-first-tester.md) | The tester's contract on a seeded `scripts` issue, the hook and row 2c, a renamed holdout | Yes — F1 to F5 live and the owner's go | ~2 h |
 
 **Out of scope:** SC-15/SC-16 (gVisor overhead ratio and `validate-manifests.sh`/`task check`
 exit codes) are already closed by the phase-0 spike and by CI — no live step adds evidence.

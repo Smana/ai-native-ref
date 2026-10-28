@@ -63,6 +63,14 @@ sequenceDiagram
   Note over AR: exit 0 on finished, 1 otherwise
 ```
 
+### The tester's run
+
+A tester run writes tests under the repository's test paths and commits them. The harness then runs
+them red on the base, signs the commit and pushes it, or answers once (`not_testable`) and pushes
+nothing. The implementer that follows cannot commit a change to those files, and is told when they
+still fail. The model itself never pushes. It is off everywhere: `testFirst` is `false` for every
+class, so no run takes this path yet.
+
 {{< details title="What the step log looks like" closed="true" >}}
 One line per action, never its output, redacted for tokens. It is what you read most.
 
@@ -188,6 +196,14 @@ for $2.65.
 | `execution_status=stuck` | The same action or error repeated: fix the tool, host or test it trips on |
 | `LLMServiceUnavailableError` after `model retry 2/2` | The provider failed 3 times: `/factory retry` |
 | Steps take minutes, calls fail at 300 s | `reasoning_effort` is not reaching the model: check the request body |
+
+### The tester's contract
+
+| You see | Do this |
+|---|---|
+| `contract_not_red`, "the runner could not run" | The toolchain, not the tester: fix the sandbox's runner, then retry |
+| `contract_outside_tests` | The tester wrote outside the repository's test paths: the commit is dropped, read the room |
+| `not_testable` | The tester answered once that the issue has no test to write: a human decides |
 
 ### Environment and rooms
 

@@ -120,6 +120,7 @@ version 4 (H4 gains the listener). Then:
 | The App's config | A `configMapGenerator` with `behavior: replace` in `tooling/gcp-0/agent-factory/slack-app/`. It replaces the whole `config.yaml`, so the gcp-0 file is a full copy of base's with `teamID` and `channels` filled (each channel's `maxCostUSD` at most the principal's `maxCostUSD: 2`, for example `0.5`). The App refuses to start until both are filled. `brokerURL` stays `http://room-broker.agent-system.svc.cluster.local:8080`, with no path: the App appends `/mcp` |
 | The webhook egress | `python3 -I scripts/ci/gen-webhook-egress.py --write .` writes `infrastructure/gcp-0/room-broker/network-policy-webhooks-patch.yaml`; list it under the gcp-0 overlay's `patches` |
 | `clusters/gcp-0-agent-platform/tooling-factory-slack-app.yaml` | A Flux Kustomization, listed by that cluster's `kustomization.yaml` (block below) |
+| Self-serve link (agent-platform v0.29.9) | Broker `human.slackLink` and factory `onBehalfOf.slackLinks: true`: see [runbook 22](22-slack.md#6-who-may-file) |
 | `scripts/ci/tests/test-factory-interfaces-off.py` | Drop clause 1 for gcp-0, and clause 2 for gcp-0's copies |
 
 ```yaml
@@ -199,7 +200,7 @@ In a served channel, post `@factory` with a draft.
 
 | Do | Expected |
 |---|---|
-| A check mark from a second, unlinked Slack user | `Not filed: not_linked` |
+| A check mark from a second, unlinked Slack user | `Not filed: not_linked`, saying to mention the App with `link` |
 | A check mark from the owner | The issue is filed (factory-authored, no label, the footer naming the sponsor); a Task with `source.kind: api` names the App and the owner; the thread receives `Triaged`, `A run started`, `Pull request #… opened` and `Ended` |
 | The run asks an approval | The thread shows the room link; the approval is given on the room page |
 | `conversations.replies(ts=<reply>, limit=1)` | Returns the reply, not the parent |

@@ -387,7 +387,7 @@ part closed without landing ends the family and the remaining parts are never cr
 With the factory's Slack App on (off today, and one workspace's), a thread can hand work to the factory
 without leaving Slack. You write a mention, the App drafts the issue, you tune the draft by replying,
 and a maintainer's check mark files it. Approvals and steering stay on the room page. Setting the App up
-is the operator's job: [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md).
+is the operator's job: [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md).
 
 ```mermaid
 sequenceDiagram
@@ -403,6 +403,14 @@ sequenceDiagram
   S-->>U: Filed #N, room link
   F-->>S: Triaged, run started, PR opened, waiting, ended
 ```
+
+### Link your Slack user, once
+
+Before your ✅ files anything, the factory must know whose GitHub account you are. Mention **`@factory link`** in
+a served channel: the App answers **only you** with a one-time link (valid 10 minutes, never send it to anyone).
+Open it, sign in to the rooms page, and press **Link** after checking that the Slack user and your GitHub login
+are yours. Your ✅ then files in the name of your **current** GitHub login, and only if it is a maintainer of the
+repository. **`@factory unlink`** removes the link. Someone the operator lists in git keeps that entry.
 
 ### Write a mention
 
@@ -478,12 +486,16 @@ Then the thread shows, in this order:
 | `Draft not posted: it is too long to file from Slack` | The draft is over what Slack can carry | Shorten it, or file from the web UI |
 | `Change refused: …` | A reply broke the same rules | Reply again with the fix |
 | `This draft was replaced by a newer one: react on the latest draft.` | You reacted to an older draft | React on the last draft of the thread |
-| `Not filed: not_linked` | Your Slack account is not linked to a GitHub login | Ask the operator to add you ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md)) |
+| `Not filed: not_linked` | Your Slack account is not linked to a GitHub login | Mention `@factory link` and confirm the page it answers ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#6-who-may-file)) |
 | `Not filed: not_a_maintainer` | Your linked login is not a maintainer | A maintainer reacts instead |
 | `Not filed: max_cost_over_principal` / `principal_budget_exhausted` | The channel's cap or the App's day budget is over | Wait for the next day, or ask the operator |
-| `Not filed: repository_not_allowed` | The factory does not accept that repository from Slack | Ask the operator ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md)) |
+| `Not filed: repository_not_allowed` | The factory does not accept that repository from Slack | Ask the operator ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#5-declare-the-channel-in-git)) |
 | `Not filed: the factory could not be reached, react again to retry` | A passing failure | React again |
 | Nothing at all | The channel or repository is not served, or the bot is not in the channel | Invite `@factory`, check the channel with the operator |
+
+The link needs your GitHub account linked to your ZITADEL user ([who sees a room](#who-sees-a-room)); it
+grants nothing a maintainer of the repository did not have, and the task is sponsored by your **current**
+GitHub login. Users the factory's config lists by hand keep that entry whatever they link.
 
 The task is filed by the factory App, with no label and a footer naming its sponsor; its Task names the
 App and you. Its budget is the channel's `maxCostUSD`.

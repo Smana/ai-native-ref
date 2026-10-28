@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.29.8, the chart's appVersion.
+      # agent-platform v0.29.9, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.29.8@sha256:d360992ff4485e089d0d5691219688fe101e281528f1cf748963ea167c998ce6"
+      tag: "v0.29.9@sha256:223887d979e64cc42dced57468502125a2ce96080dbabbf7428488fb7d249232"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.
@@ -46,7 +46,8 @@ data:
             tests: {}
             dashboards: {}
             # TO4: the bench's variant turns testFirst on; it needs checks: true (R17)
-            scripts: {checks: false, testFirst: false}
+            # session switch for runbook 21's drills (2026-10-28); back to false after
+            scripts: {checks: true, testFirst: true}
             review: {checks: false, testFirst: false}
             # Feature 14's seeded fix (runbook 20): an alerting rule RunLore found broken. No switch: a
             # maintainer merges, the monitor watches. RunLore's verdict is a signal for 2h after the merge;

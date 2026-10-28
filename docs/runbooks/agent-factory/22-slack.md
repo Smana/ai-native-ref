@@ -168,20 +168,32 @@ all succeed, and `kubectl -n agent-system logs deploy/factory-slack-app | head` 
 
 ## 6. Who may file
 
-Nobody links an account on their own. A Slack user may file only when git says whose they are, in
-`helm-values-sponsored.yaml`:
+A Slack user may file only when the factory knows whose GitHub account they are, in one of two ways.
+
+**Self-serve link** (agent-platform v0.29.9; gcp-0 has it on). It needs both sides: the broker's
+`human.slackLink: {principal: slack-app, teamID: <T…>, repository: <owner/name>}` in
+`infrastructure/<cloud>/room-broker/config.yaml` (it needs `human.access`), and `slackLinks: true` under the
+principal's `onBehalfOf` in `helm-values-sponsored.yaml`. The user mentions `@factory link`, opens the
+ephemeral one-time URL (10 minutes), signs in and presses **Link**; `@factory unlink` removes it. The link
+names the ZITADEL account, and the factory reads its **current** GitHub login at each use. The release's
+`slack_links` migration arrives with the `atlasSchema.ref` pin. `users:read` in the Slack App is optional
+(without it the page shows the user's id only).
+
+**Git** (always wins over a link), in `helm-values-sponsored.yaml`:
 
 ```yaml
 onBehalfOf:
   slack: {"T07J97G2K2P/U07JY4EQNDN": Smana, "T07J97G2K2P/U0ANOTHER": other-login}
+  slackLinks: true
 ```
 
-Key: `<team id>/<Slack member id>`. Value: the GitHub login, which must also be in the factory's
+Key: `<team id>/<Slack member id>`. Value: the GitHub login. Either way the login must be in the factory's
 `maintainers` list (`tooling/base/agent-factory/helm-values-configmap.yaml`), or the refusal is
-`not_a_maintainer`. A Slack user who is not listed gets `Not filed: not_linked`. Add them in the same
-kind of PR as step 5 (the factory rolls on a change).
+`not_a_maintainer`. A Slack user with neither gets `Not filed: not_linked`. A git entry goes in the same kind
+of PR as step 5 (the factory rolls on a change).
 
-Check: the person's check mark files the issue (step 7); an unlisted user's answers `not_linked`.
+Check: a second user mentions `@factory link`, confirms the page, and their check mark files (step 7); before
+that, their check mark answers `not_linked`; after `@factory unlink`, `not_linked` again.
 
 ## 7. Verify end to end
 

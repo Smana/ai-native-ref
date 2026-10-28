@@ -31,6 +31,10 @@ data:
             # mark files an issue in their name; an unlinked Slack user is refused (not_linked).
             onBehalfOf:
               slack: {"T07J97G2K2P/U07JY4EQNDN": Smana}
+              # Self-serve link (agent-platform v0.29.9): a Slack user this map omits is looked up in the
+              # broker's link records (human.slackLink, infrastructure/gcp-0/room-broker/config.yaml). The
+              # map above wins for the users it lists.
+              slackLinks: true
         # RunLore, the factory's one internal principal (feature 14, RA2): internal data, the investigate
         # template, today's gates. The dollar values: an investigate task (one triager run at tier
         # standard, $2.55 a run) fits maxCostUSD 2 only below the run cap; confirm against the stage 1

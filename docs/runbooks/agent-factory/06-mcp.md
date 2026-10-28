@@ -170,3 +170,4 @@ kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 | 5 — RBAC | `no` (secrets), `yes` (pods/log) | `can-i get secrets --as=...flux-operator-mcp -A` → `no`; `can-i get pods/log` → `yes` | PASS | <!-- pragma: allowlist secret -->
 
 See also: [the factory from your coding agent](19-factory-from-your-agent.md).
+RunLore files tasks through the same API: see [runbook 20](20-runlore-agent-to-agent.mdx).

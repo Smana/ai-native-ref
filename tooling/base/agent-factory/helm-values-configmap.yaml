@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.29.9, the chart's appVersion.
+      # agent-platform v0.29.10, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.29.9@sha256:223887d979e64cc42dced57468502125a2ce96080dbabbf7428488fb7d249232"
+      tag: "v0.29.10@sha256:bee5c7a1ee0856611222c85c3254c58c6b8e9e391f2b359cb1766de9b50f0f9f"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.

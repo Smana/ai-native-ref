@@ -10,13 +10,15 @@ spec:
   # Flux pulls the digest (it wins over the tag), so a re-pushed tag changes nothing. The tag
   # stays for Renovate and for readers.
   ref:
-    tag: "0.29.9"  # agent-platform v0.29.9
-    digest: sha256:9612a71ac966eda8ceabd4bb7d54be90c508dad34958d5ec686d5845747b7df0
+    tag: "0.29.10"  # agent-platform v0.29.10
+    digest: sha256:a31d0aef863790c747fd3449cf519dec54cd0d2f0a536ff9b79cdaaad5af0546
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
+  # One identity: Flux refuses several. It takes both repository names across the maku rename
+  # (agent-platform v0.29.x and maku v0.30.0+); a follow-up after phase 2 narrows it to maku.
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: "^https://token\\.actions\\.githubusercontent\\.com$"
-        subject: "^https://github\\.com/Smana/agent-platform/\\.github/workflows/release\\.yaml@refs/tags/v.*$"
+        subject: "^https://github\\.com/Smana/(agent-platform|maku)/\\.github/workflows/release\\.yaml@refs/tags/v.*$"

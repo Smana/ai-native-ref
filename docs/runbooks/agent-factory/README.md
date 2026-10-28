@@ -6,6 +6,7 @@ Start with [Runbook 00](#runbook-00-one-time-cluster-setup): the cluster is alre
 owner actions gate most runbooks.
 
 `roomctl setup <client>` installs the factory MCP server and the `factory-handoff` skill for that coding agent client (`claude`, `opencode`, ...); see [Runbook 19](19-factory-from-your-agent.md).
+When a run's sandbox is lost mid-run (spot reclaim, eviction, node loss), [10-disruption.md](10-disruption.md) covers how the factory checkpoints and resumes it.
 
 ## Status (2026-10-17)
 

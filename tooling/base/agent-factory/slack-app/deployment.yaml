@@ -29,8 +29,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: factory-slack-app
-          # agent-platform v0.25.0, by digest, with the factory's and the broker's pins.
-          image: ghcr.io/smana/factory-slack-app:v0.25.0@sha256:6684aac51ad094d0b3eff13576c1e4fb223b246986e2c950bfc69a3e556dcc0f
+          # agent-platform v0.27.0, by digest, with the factory's and the broker's pins.
+          image: ghcr.io/smana/factory-slack-app:v0.27.0@sha256:e60df01eb28a839b30fd01adcf0a500699532c8b8b0747d99fba7a46c6c3066d
           args: ["--config", "/etc/factory-slack-app/config/config.yaml"]
           ports:
             - {name: events, containerPort: 8080}

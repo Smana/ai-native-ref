@@ -22,4 +22,4 @@ namespace: agent-system
 # Fill teamID as <T...> and channels as <channel id>: {repositories: [owner/name], maxCostUSD: <at least 0.01>}.
 teamID: T07J97G2K2P
 channels:
-  C0CC4M8SNVD: {repositories: [Smana/cloud-native-ref], maxCostUSD: 0.5}
+  C0CC4M8SNVD: {repositories: [Smana/cloud-native-ref, Smana/ai-native-ref], maxCostUSD: 0.5}

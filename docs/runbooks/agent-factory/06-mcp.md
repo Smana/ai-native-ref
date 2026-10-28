@@ -168,3 +168,5 @@ kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 | 4 — `internal` tools | Implementer: no logs tool; full VM set; VL docs only | 5 flux tools (`search_flux_docs`, `get_flux_instance`, `get_kubernetes_api_versions`, `get_kubernetes_resources`, `get_kubernetes_metrics`, no `get_kubernetes_logs`); all 13 `mcp-victoriametrics` tools; only `mcp-victorialogs__documentation` | PASS |
 | 5 — SC-12 denial | Refused | `flux-operator-mcp__get_kubernetes_logs` call → `access denied`, HTTP 403 (the bare, unprefixed name instead fails with a generic 400 before authz runs — see correction above) | PASS |
 | 5 — RBAC | `no` (secrets), `yes` (pods/log) | `can-i get secrets --as=...flux-operator-mcp -A` → `no`; `can-i get pods/log` → `yes` | PASS | <!-- pragma: allowlist secret -->
+
+See also: [the factory from your coding agent](19-factory-from-your-agent.md).

@@ -157,6 +157,12 @@ bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents factory-slack-app bot-token=- signing-secret=- bot-user-id=<U…>
 # runlore-intake + platform/runlore/factory-intake: README action 4d
+# Feature 14 (runbook 20): one webhook key, two mounts: the broker reads agents/, RunLore platform/.
+KEY=$(openssl rand -base64 48 | tr -d '\n')
+bao kv put -mount=agents runlore-webhook signing-key="$KEY"
+bao kv put -mount=platform runlore/factory-webhook signing-key="$KEY"
+unset KEY
+# runlore-factory-principal and agents-runlore-principal: zitadel-oidc-clients.sh sync --apply (host)
 ```
 
 Without `merger-app` or `runlore-intake` the factory pod never starts.

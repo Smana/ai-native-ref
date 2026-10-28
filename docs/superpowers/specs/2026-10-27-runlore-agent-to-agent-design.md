@@ -1,6 +1,6 @@
 # v3 feature 14: agent-to-agent work with RunLore
 
-**Date:** 2026-10-27 · **Status:** design approved by the owner 2026-10-27 ("yes, go with your
+**Date:** 2026-10-27 · **Status:** stage 1 built (PRs 1–4); design approved by the owner 2026-10-27 ("yes, go with your
 recommendation"); RA9 and RA10, on a fact the approval did not have
 ([below](#what-the-approval-did-not-have)), decided by the owner the same day: publish in one click · **Part of:** the
 [v3 roadmap](2026-10-19-v3-roadmap-design.md#the-features), as feature 14 by owner decision

@@ -6,7 +6,8 @@ added, the [Later](#later) section now pointing at agent-platform's designs; **a
 feature 12 (spend per identity) added and the work ordered offline first
 ([D4, D5](#owner-decisions-2026-10-22)); **amended 2026-10-25**: feature 13 (the factory from your
 coding agent) added ([D7](#owner-decisions-2026-10-25)); **amended 2026-10-27**: feature 14
-(agent-to-agent work with RunLore) added ([D8](#owner-decisions-2026-10-27)). Each feature gets its own design before it is built ·
+(agent-to-agent work with RunLore) added ([D8](#owner-decisions-2026-10-27)); **amended 2026-10-28**: feature 15
+(Moonshot and Mistral as selectable providers, public data only) added ([D9](#owner-decisions-2026-10-28)). Each feature gets its own design before it is built ·
 **Part of:** the roadmap on the
 [status page](../../../website/content/docs/platform/ai-platform/status.md#roadmap)
 
@@ -49,6 +50,12 @@ issues.
 | # | Decision | Consequence |
 |---|---|---|
 | D8 | **Agent-to-agent work with RunLore** becomes feature 14, in two stages: **B**, RunLore as a standard client of the factory, then **A**, RunLore verifies the fix. RunLore is an internal principal, a small explicit extension beside the sponsored principals, which stay public-only | It builds on the interfaces (9) and the post-merge monitor (8), and retires `/intake/runlore` once stage 1 is proven live. It is judged on its own live proofs, a seeded incident verified `resolved` and one ending `persisting` with its class paused, not on [the metrics below](#how-v3-is-judged) |
+
+## Owner decisions, 2026-10-28 {#owner-decisions-2026-10-28}
+
+| # | Decision | Consequence |
+|---|---|---|
+| D9 | **Moonshot (Kimi) and Mistral become selectable providers**, feature 15: gateway routes, prices and one alias per tier, picked by a class or role in config, **with no default changed**. **Public data only**: both are new processors, so they serve public repositories and tasks until the owner approves them for internal data. This is the "second processor the owner approves" of feature 7, for public data; D2 still holds, so only open-weight models are aliased | The bake-off (7) stays Later with the bench (D6): D9 approves the processors, not a winner. Feature 15 is judged on its own proofs, one live run per provider with its cost read from the meter, not on [the metrics below](#how-v3-is-judged) |
 
 ## Why these features
 
@@ -98,7 +105,7 @@ flowchart LR
 | 4 | **Test-first tester** ([design](2026-10-22-test-first-tester-design.md)) | Where the change has testable behaviour, the tester runs before the implementer and writes the failing test that becomes its contract | Acceptance rises on routine issues |
 | 5 | **Search as a tool** ([design](2026-10-23-search-tool-design.md), [plan](https://github.com/Smana/agent-platform/blob/main/docs/superpowers/plans/2026-10-23-search-tool-plan.md)) | Inside the implementer, a read-only search subagent with a fresh context returns a short summary, instead of the implementer reading the repository itself | Steps or cost drop at equal acceptance |
 | 6 | **Splitter** | A hard issue becomes sub-issues, each with its own verifier and each run through the existing templates on its own branch. The parent closes when its children merge | Some hard-set issues land through their sub-issues |
-| 7 | **Open-weight bake-off** (Later with the bench, if a sponsor funds the bench sessions) | The models Z.ai serves first; another open family only through a second processor the owner approves. The winner per class sets the tier's model; a stalled run may restart on the larger model with a verified handoff. Internal work picks Sonnet or Opus per task and tries Anthropic's advisor tool | One model beats GLM-5.3 on cost per accepted PR |
+| 7 | **Open-weight bake-off** (Later with the bench, if a sponsor funds the bench sessions) | The models Z.ai serves first; another open family only through a second processor the owner approves (since [D9](#owner-decisions-2026-10-28), Moonshot and Mistral for public data, feature 15). The winner per class sets the tier's model; a stalled run may restart on the larger model with a verified handoff. Internal work picks Sonnet or Opus per task and tries Anthropic's advisor tool | One model beats GLM-5.3 on cost per accepted PR |
 | 8 | **More auto-merge classes** ([design](2026-10-22-merge-gate-classes-design.md)) | Beyond link fixes (lint fixes, dependency bumps with green CI), as declarative risk tiers, each proven by a drill like the link-fix one | Each class holds the breaker's revert budget over its window |
 
 Features 1–3 and 5 are independent of one another; 0 and 7 are Later (D6). The test-first tester needs the
@@ -107,13 +114,14 @@ scoper's bounded-task format; new auto-merge classes need the scoper or the test
 verifiable.
 
 Features 9 to 11 come from the [v3 review](2026-10-21-v3-review.md#5-amendments-proposed); feature
-12 from D5; feature 13 from [D7](#owner-decisions-2026-10-25); feature 14 from [D8](#owner-decisions-2026-10-27):
+12 from D5; feature 13 from [D7](#owner-decisions-2026-10-25); feature 14 from [D8](#owner-decisions-2026-10-27); feature 15 from [D9](#owner-decisions-2026-10-28):
 
 | # | Feature | What changes | Gate |
 |---|---|---|---|
 | 12 | **Spend per identity** ([design](2026-10-22-spend-per-identity-design.md)) | A dashboard per charged principal (`github:<login>` for a person, `system:<name>` for a sponsored principal, with its sponsor): dollars against its daily cap and the fleet's day, tokens by type and the cache-read share, runs, rooms and tasks, pull requests opened, merged and reverted, cost per accepted PR, refusals and revocations, the time runs waited on that person, and a sponsored principal's `max_cost` against its spend. The factory exports spend and runs per charged principal (its `chargedTo`), which the gateway's per-run series cannot give | Offline: the factory's per-principal series sum to the meter's run costs. Live: for a day, each principal's spend on the dashboard matches the meter's ledger |
 | 13 | **The factory from your coding agent** ([design](2026-10-25-factory-from-your-agent-design.md), [plan](https://github.com/Smana/agent-platform/blob/main/docs/superpowers/plans/2026-10-25-factory-from-your-agent-plan.md), [adopt plan](../plans/2026-10-25-factory-from-your-agent-adopt-plan.md)) | Start, follow and bring back room work from any terminal coding agent without leaving it. The broker renders four views (rooms overview, room card, runs line, what changed) as the MCP tools' text. `issue_file`'s form gains "start the factory now", applied with the developer's own `gh` and switched per repository. `room_wait` follows a room, `room_checkout` brings its branch back into a new worktree, and `roomctl setup <client>` installs the MCP server and the skill. Approvals stay on the room page | Offline: golden views with hostile notes, the MCP contract, `room_wait`, `room_checkout` and `setup --print`. Live, in Claude Code and OpenCode: start from the form, wait for an approval, the card, the checkout, a hostile note rendered inert |
 | 14 | **Agent-to-agent work with RunLore** ([design](2026-10-27-runlore-agent-to-agent-design.md)) | RunLore hands an incident to the factory through `POST /v1/tasks` as an internal principal (sponsor, ceiling, daily cap, the 0.75 and 5-a-day gates), follows the work through signed webhooks into its Slack incident thread, and replaces `/intake/runlore`. After the fix merges and a soak, it re-checks the alert and posts `resolved` or `persisting`; the post-merge monitor takes it as a signal, and `persisting` pauses the class and opens a follow-up | Offline: the client against a fake factory, webhook signature, replay and dedup, the verification endpoint's authz, the monitor's decision tables. Live: a seeded incident verified `resolved`; a second ending `persisting`, its class paused |
+| 15 | **Moonshot and Mistral as selectable providers, public data only** ([D9](#owner-decisions-2026-10-28); [design](2026-10-28-moonshot-mistral-providers-design.md), [plan](../plans/2026-10-28-moonshot-mistral-providers-plan.md)) | Two gateway backends on the `public` listener only, reached by the run's pinned alias: `kimi-frontier` (Kimi K3.1 Pro), `mistral-standard` (Mistral Medium 3.5) and `mistral-light` (Mistral Small 4), each serving its own tier. Their prices go in `meter.prices`, their keys are the agents' own (`agents/moonshot`, `agents/mistral`, seeded by the owner), and their FQDNs are allowed from the data plane only. A class picks an alias per role and tier (`loops.<class>.models`) for public tasks; no default changes, and internal tasks never reach either provider | Offline: the gateway gates refuse either provider from `internal` and a provider alias in an internal profile; the wire test routes each alias to its fake upstream and counts its cache reads; the factory refuses an alias on another tier. Live: one public run per provider, its cost read from the meter within 1% of the gateway's counter, and an internal token naming `kimi-frontier` refused 403 |
 
 ### Order of work {#order-of-work}
 
@@ -140,7 +148,7 @@ flowchart LR
 Within the offline track: checks in the sandbox (3) precede the tester (4); the profiles' per-run
 model pin (P4) precedes the loop policy's judge, which calls through it; daily caps in dollars precede
 the sponsored principals and the Slack intake; the interfaces' MCP server (9) precedes feature 13,
-which extends it, and feature 13's live proofs join the platform session's checklist. Feature 14's
+which extends it, and feature 13's live proofs join the platform session's checklist. Feature 15 needs the per-run pin (P4), which routes it, and its live proofs join a platform session's checklist. Feature 14's
 stage B follows the interfaces (9); its stage A follows the post-merge monitor (8) and stage B's own
 live proofs, which retire `/intake/runlore` first.
 
@@ -223,4 +231,4 @@ hardening (an agent that only writes through validated outputs, as GitHub's agen
 | The routine half of the corpus: which classes, sampled how | Bench design |
 | How the sandbox gets the repository's toolchain: `mise` from the repository's own pins, or an image per repository | Design of feature 3 |
 | N, the stall limit's step count | The factory's history: the step distribution of accepted runs (D6) |
-| A second open-weight processor for the bake-off | Owner, only if Z.ai's models are not enough |
+| A second open-weight processor for the bake-off | Answered by [D9](#owner-decisions-2026-10-28): Moonshot and Mistral, for public data |

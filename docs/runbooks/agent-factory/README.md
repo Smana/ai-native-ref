@@ -89,6 +89,7 @@ CA paths under `opentofu/` and `task agent:run` are the host's. The probe and ch
 here, so `AI_NATIVE_REF_DIR` names an `ai-native-ref` checkout; the host's `task agent:run` calls
 `$AI_NATIVE_REF_DIR/scripts/ops/k8s/agent-run.sh` with the host's CA. gcp-0 is the live target; the
 aws variants are kept for the next aws-0 rebuild.
+A **room** is the per-task workspace the room broker serves at `rooms.<domain>`: one shared log of messages, handoffs and notes for a single factory task, reached at `https://rooms.<domain>/r/<id>`.
 
 ```bash
 CLOUD=gcp    # or aws

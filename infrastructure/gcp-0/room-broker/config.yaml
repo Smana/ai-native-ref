@@ -37,6 +37,14 @@ human:
   groups:
     admin: agents-admin
     member: agents-member
+  # The room page's Dashboards chip (agent-platform v0.29.3): the browser fills {room} and {run}
+  # with the room's own ids; a {run} link shows only once the room has a run. v0.29.2's strict
+  # decoder refuses this key, so it only ever lands with the v0.29.3 pin.
+  dashboards:
+    - label: Room metrics
+      url: https://grafana.${private_domain_name}/d/agent-room/agent-room?var-room={room}
+    - label: Run
+      url: https://grafana.${private_domain_name}/d/agent-run/agent-run?var-run={run}
   # D7: room access is read from GitHub-link ZITADEL grants. v0.7.x's strict decoder
   # refuses this key, so it only ever lands with the v0.8.0 pin.
   access:

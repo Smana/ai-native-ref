@@ -1,8 +1,7 @@
 # Merged into RunLore's values only while the agent-platform umbrella ships it (optional
 # valuesFrom, the SECOND entry after runlore-base-values -- lists replace, never merge, so
 # this envFrom must own the WHOLE list and restate the base's three entries; TW7).
-# notify.templated POSTs every finding to the factory, which keeps the actionable
-# ones (§1, OD-9).
+# RunLore's factory client (feature 14) calls POST /v1/tasks as its internal principal.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -18,13 +17,18 @@ data:
       - secretRef: {name: runlore-slack}
       - secretRef: {name: runlore-webhook}
       - secretRef: {name: runlore-factory-intake}
+      # Feature 14: RunLore's client credentials and the webhook key. Optional: where the key is absent,
+      # the env is empty and RunLore's client stays off.
+      - secretRef: {name: runlore-factory-principal, optional: true}
     config:
-      notify:
-        templated:
-          - name: agent-factory
-            url_env: AGENT_FACTORY_INTAKE_URL
-            token_env: AGENT_FACTORY_INTAKE_TOKEN  # pragma: allowlist secret
-            template: |
-              {"title": {{ toJSON .Title }}, "verdict": {{ toJSON .Verdict }}, "confidence": {{ .Confidence }},
-               "alert_name": {{ toJSON .AlertName }}, "resource_ref": {{ toJSON .ResourceRef }},
-               "severity": {{ toJSON .Severity }}, "cluster": {{ toJSON .Cluster }}, "text": {{ toJSON .Text }}}
+      # RunLore hands each finding to the factory as its internal principal (feature 14): the factory
+      # holds every gate (0.75, five a day), RunLore sends them all.
+      factory:
+        url: http://agent-factory.agent-system.svc.cluster.local:8082
+        token_url: ${identity_provider_url}/oauth/v2/token
+        client_id_env: FACTORY_CLIENT_ID
+        client_secret_env: FACTORY_CLIENT_SECRET  # pragma: allowlist secret
+        project_id_env: FACTORY_PROJECT_ID
+        repository: Smana/cloud-native-ref
+        max_cost_usd: 2
+        webhook: {secret_env: FACTORY_WEBHOOK_KEY}  # pragma: allowlist secret

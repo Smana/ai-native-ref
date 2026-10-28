@@ -15,5 +15,9 @@ spec:
   sourceRef:
     kind: OCIRepository
     name: ai-native-ref
+  postBuild:
+    substituteFrom:
+      - kind: ConfigMap
+        name: eks-aws-0-vars
   dependsOn:
     - name: agent-factory

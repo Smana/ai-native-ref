@@ -6,4 +6,5 @@ kind: Kustomization
 # umbrella, so a cluster without it renders RunLore exactly as before.
 resources:
   - externalsecret-intake.yaml
+  - externalsecret-principal.yaml
   - helm-values-configmap.yaml

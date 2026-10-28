@@ -174,7 +174,26 @@ def check_models():
         check(renames.get("gen_ai_request_model (uniqueValues)") == "model", f"{title}: the column is named model")
 
 
-for run in (check_folder, check_drilldown, check_colours, check_sponsored, check_gateway_ratio, check_trace_pipeline, check_models):
+def check_effort():
+    # rooms_run_info{run, model, effort} (broker, one series per live run): the effort column of the room's runs table,
+    # the run page's facts table and the fleet's breakdown; max_over_time over the range, since a finished run has no series.
+    room = panels("grafana-dashboard-agent-room.yaml")["Runs of this room"]
+    check(any(t["refId"] == "I" and "rooms_run_info" in t["expr"] and "max_over_time" in t["expr"] and "effort" in t["expr"] for t in room["targets"]), "Runs of this room: query I reads the effort of rooms_run_info over the range")
+    group = next((tr for tr in room["transformations"] if tr["id"] == "groupBy"), {})
+    check("effort" in group.get("options", {}).get("fields", {}), "Runs of this room: effort is aggregated per run")
+    keep = next(tr for tr in room["transformations"] if tr["id"] == "filterFieldsByName")["options"]["include"]["names"]
+    check("effort" in keep, "Runs of this room: the effort column is kept")
+    renames = next((tr for tr in room["transformations"][::-1] if tr["id"] == "organize"), {}).get("options", {}).get("renameByName", {})
+    check(renames.get("effort (lastNotNull)") == "effort", "Runs of this room: the column is named effort")
+    run = panels("grafana-dashboard-agent-run.yaml")["Run"]
+    check(any("rooms_run_info" in t["expr"] and "max_over_time" in t["expr"] and 'run="${run}"' in t["expr"] for t in run["targets"]), "Run: a query reads this run's effort from rooms_run_info")
+    names = next(t for t in run["transformations"] if t["id"] == "filterFieldsByName")["options"]["include"]["names"]
+    check("effort" in names and "model" in names, "Run: effort and the claimed model are in the facts table")
+    fleet = panels("grafana-dashboard-agent-fleet.yaml").get("Runs by effort")
+    check(fleet is not None and all("rooms_run_info" in t["expr"] and "max_over_time" in t["expr"] and "by (effort)" in t["expr"] for t in fleet["targets"]), "fleet: Runs by effort counts rooms_run_info by effort over the range")
+
+
+for run in (check_folder, check_drilldown, check_colours, check_sponsored, check_gateway_ratio, check_trace_pipeline, check_models, check_effort):
     run()
 if errors:
     print("\n".join(errors), file=sys.stderr)

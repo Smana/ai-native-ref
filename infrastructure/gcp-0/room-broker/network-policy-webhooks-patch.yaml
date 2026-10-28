@@ -20,3 +20,11 @@ spec:
     - ports:
       - port: '8081'
         protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        io.kubernetes.pod.namespace: runlore
+        app.kubernetes.io/name: runlore
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: TCP

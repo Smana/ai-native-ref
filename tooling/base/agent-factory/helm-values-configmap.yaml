@@ -46,7 +46,8 @@ data:
             tests: {}
             dashboards: {}
             # TO4: the bench's variant turns testFirst on; it needs checks: true (R17)
-            scripts: {checks: false, testFirst: false}
+            # session switch for runbook 21's drills (2026-10-28); back to false after
+            scripts: {checks: true, testFirst: true}
             review: {checks: false, testFirst: false}
             # Feature 14's seeded fix (runbook 20): an alerting rule RunLore found broken. No switch: a
             # maintainer merges, the monitor watches. RunLore's verdict is a signal for 2h after the merge;

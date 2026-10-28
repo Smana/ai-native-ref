@@ -46,7 +46,7 @@ CATALOG_KEY = "catalog.json"
 PARAMETERS = pathlib.PurePosixPath("infrastructure/base/agent-gateway/parameters.yaml")
 CATALOG_NAMESPACE = "agent-gateway"
 # The provider key agentgateway looks a model up under, by the model name's family.
-PROVIDERS = (("claude-", "anthropic"), ("glm-", "zai"), ("k3", "moonshot"), ("mistral-", "mistral"))
+PROVIDERS = (("claude-", "anthropic"), ("glm-", "zai"), ("k3.", "moonshot"), ("kimi-", "moonshot"), ("mistral-", "mistral"))
 CATALOG_FIELDS = ("input", "output", "cacheRead", "cacheWrite")
 GROUP = "llm-gateway-prices"
 INTERVAL = "5m"

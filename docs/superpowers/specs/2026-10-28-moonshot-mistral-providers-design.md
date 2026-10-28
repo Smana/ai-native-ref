@@ -188,7 +188,7 @@ times its output. That is why these aliases are opt-in and never a default.
 
 **Generators.**
 
-- `gen-prices.py` `PROVIDERS` gains `("k3", "moonshot"), ("kimi-", "moonshot")` and `("mistral-", "mistral")`. The
+- `gen-prices.py` `PROVIDERS` gains `("k3.", "moonshot"), ("kimi-", "moonshot")` and `("mistral-", "mistral")`. The
   catalog's provider keys must equal the backends' `providerOverride`, or the cross-check's lookup
   is `Missing`.
 - `check-price-drift.py` `MAPPING` gains each row's keys in genai-prices, LiteLLM and models.dev,
@@ -259,6 +259,7 @@ it. What does change:
 | **Mistral: strict request schema.** It is historically 422 on unknown fields; whether it accepts `reasoning_effort` (sent in `extra_body`) is **unverified** | Every call refused 422 | The probe checks it. If it is refused, the `mistral` backend's transformations null `reasoning_effort` |
 | **Mistral: tool-call ids.** Mistral requires 9-character alphanumeric ids | Ids Mistral generated replay fine. An id the SDK synthesises (a condenser summary, an injected tool result) would be refused | Live smoke with a condensation forced by a low threshold. If it fails, it is an agent-platform harness fix |
 | **Mistral: message order** (a `user` turn straight after a `tool` turn was refused in older releases; **unverified** today) | 400 on the second turn of a continuation | The live smoke covers a judge continuation (`not_yet`) |
+| AG5 identifies a provider by backend host or name (pre-existing weakness, shared with Z.ai) | A backend with an unrecognised host and name escapes the public-only check | `providerOverride` is also checked against the catalog key, and AG12 pins each backend's aliases; documented, not widened here |
 | Moonshot cache field not counted | A tenfold overcount stops runs early | Task 0 probe, before the build (F5) |
 | Moonshot cache writes billed but not reported | The meter undercounts writes | The probe reads the usage object. Provider-side reconciliation (truthful costs, recommendation 6) is the backstop |
 

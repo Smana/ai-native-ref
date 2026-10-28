@@ -15,8 +15,10 @@ spec:
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
+  # One identity: Flux refuses several. It takes both repository names across the maku rename
+  # (agent-platform v0.29.x and maku v0.30.0+); a follow-up after phase 2 narrows it to maku.
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: "^https://token\\.actions\\.githubusercontent\\.com$"
-        subject: "^https://github\\.com/Smana/agent-platform/\\.github/workflows/release\\.yaml@refs/tags/v.*$"
+        subject: "^https://github\\.com/Smana/(agent-platform|maku)/\\.github/workflows/release\\.yaml@refs/tags/v.*$"

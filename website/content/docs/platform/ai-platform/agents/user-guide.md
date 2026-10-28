@@ -485,6 +485,9 @@ Then the thread shows, in this order:
 | `Not filed: the factory could not be reached, react again to retry` | A passing failure | React again |
 | Nothing at all | The channel or repository is not served, or the bot is not in the channel | Invite `@factory`, check the channel with the operator |
 
+Anything the table does not cover is in the
+[rooms FAQ](https://github.com/Smana/ai-native-ref/blob/main/docs/rooms-faq.md).
+
 The task is filed by the factory App, with no label and a footer naming its sponsor; its Task names the
 App and you. Its budget is the channel's `maxCostUSD`.
 

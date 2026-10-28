@@ -26,7 +26,7 @@ no gVisor RuntimeClass child here (GKE provides it, GP-9).
 | `agent-factory` | `tooling/gcp-0/agent-factory` | The factory: Task CRD and controller, issue intake, run meter (SP3) |
 | `policy-bot` | `tooling/gcp-0/policy-bot` | The merge gate: policy-bot, its public hook and tailnet UI (SP3, ADR-0045) |
 | `agent-observability` | `observability/gcp-0/agent-platform` | VMRules, the dashboards (`agent-platform`, `agent-run`, `agent-fleet`) and the agent trace collector |
-| `runlore-factory` | `observability/base/runlore-factory` | RunLore's notifier and intake token, merged into the host's RunLore through its optional `valuesFrom` (SP3 §1) |
+| `runlore-factory` | `observability/gcp-0/runlore-factory` | RunLore's factory client (feature 14) and the old intake token, merged into the host's RunLore through its optional `valuesFrom` (SP3 §1) |
 
 `AgentGvisorPoolNearLimit` and the dashboard's pool-usage panel read Karpenter metrics, so they stay
 silent here. A full `agents-gvisor` pool, or the cluster ceiling in `gke/init/variables.tfvars`,

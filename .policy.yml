@@ -49,7 +49,7 @@ approval_rules:
           - '^infrastructure/aws-0/agent-model-routing/'
           - '^observability/base/agent-platform/'
           - '^observability/base/runlore-factory/'
-          - '^observability/(aws-0|gcp-0)/agent-platform/'
+          - '^observability/(aws-0|gcp-0)/(agent-platform|runlore-factory)/'
           - '^tooling/base/(agent-factory|policy-bot)/'
           - '^tooling/(aws-0|gcp-0)/agent-factory/'
           - '^scripts/ci/'                    # the gates CI runs, assert-agent-gateway.py included
@@ -89,7 +89,7 @@ approval_rules:
           - '^infrastructure/aws-0/agent-model-routing/'
           - '^observability/base/agent-platform/'
           - '^observability/base/runlore-factory/'
-          - '^observability/(aws-0|gcp-0)/agent-platform/'
+          - '^observability/(aws-0|gcp-0)/(agent-platform|runlore-factory)/'
           - '^tooling/base/(agent-factory|policy-bot)/'
           - '^tooling/(aws-0|gcp-0)/agent-factory/'
           - '^scripts/ci/'

@@ -387,7 +387,7 @@ part closed without landing ends the family and the remaining parts are never cr
 With the factory's Slack App on (off today, and one workspace's), a thread can hand work to the factory
 without leaving Slack. You write a mention, the App drafts the issue, you tune the draft by replying,
 and a maintainer's check mark files it. Approvals and steering stay on the room page. Setting the App up
-is the operator's job: [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md).
+is the operator's job: [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md).
 
 ```mermaid
 sequenceDiagram
@@ -478,10 +478,10 @@ Then the thread shows, in this order:
 | `Draft not posted: it is too long to file from Slack` | The draft is over what Slack can carry | Shorten it, or file from the web UI |
 | `Change refused: …` | A reply broke the same rules | Reply again with the fix |
 | `This draft was replaced by a newer one: react on the latest draft.` | You reacted to an older draft | React on the last draft of the thread |
-| `Not filed: not_linked` | Your Slack account is not linked to a GitHub login | Ask the operator to add you ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#6-who-may-file)) |
+| `Not filed: not_linked` | Your Slack account is not linked to a GitHub login | Ask the operator to add you ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md)) |
 | `Not filed: not_a_maintainer` | Your linked login is not a maintainer | A maintainer reacts instead |
 | `Not filed: max_cost_over_principal` / `principal_budget_exhausted` | The channel's cap or the App's day budget is over | Wait for the next day, or ask the operator |
-| `Not filed: repository_not_allowed` | The factory does not accept that repository from Slack | Ask the operator ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#5-declare-the-channel-in-git)) |
+| `Not filed: repository_not_allowed` | The factory does not accept that repository from Slack | Ask the operator ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md)) |
 | `Not filed: the factory could not be reached, react again to retry` | A passing failure | React again |
 | Nothing at all | The channel or repository is not served, or the bot is not in the channel | Invite `@factory`, check the channel with the operator |
 

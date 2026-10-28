@@ -147,7 +147,7 @@ fix still owes.**
 
 The 2026-10-02 snapshot (2.2) predates the keys written since, so expect gaps. Write each one that
 `bao kv list -mount=agents` lacks, using the [owner actions](README.md#owner-actions-in-order)
-(2, 2b, 4, 4b, 4c, 4d):
+(2, 2b, 4, 4b, 4c):
 
 ```bash
 bao kv put -mount=agents zai api_key=-
@@ -156,7 +156,7 @@ bao kv put -mount=agents github-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents factory-slack-app bot-token=- signing-secret=- bot-user-id=<U…>
-# runlore-intake + platform/runlore/factory-intake: README action 4d
+# runlore-intake + platform/runlore/factory-intake: retired by feature 14's PR 7 (README action 4d)
 # Feature 14 (runbook 20): one webhook key, two mounts: the broker reads agents/, RunLore platform/.
 KEY=$(openssl rand -base64 48 | tr -d '\n')
 bao kv put -mount=agents runlore-webhook signing-key="$KEY"
@@ -165,7 +165,7 @@ unset KEY
 # runlore-factory-principal and agents-runlore-principal: zitadel-oidc-clients.sh sync --apply (host)
 ```
 
-Without `merger-app` or `runlore-intake` the factory pod never starts.
+Without `merger-app` the factory pod never starts.
 
 `agents/factory-slack-app` is written by the owner from the Slack App's console (the bot token, the
 signing secret and the bot's `U…` user id) and read by the ExternalSecret `factory-slack-app`. It is

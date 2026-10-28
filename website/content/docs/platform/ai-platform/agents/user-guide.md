@@ -382,17 +382,108 @@ a pull request through `pair` and the class's merge gate. The next part opens wh
 merged, and the parent closes on the last merge. A part that stops waits for a re-label or a close; a
 part closed without landing ends the family and the remaining parts are never created.
 
-## From Slack {#from-slack}
+## Using the factory from Slack {#from-slack}
 
 With the factory's Slack App on (off today, and one workspace's), a thread can hand work to the factory
-without leaving Slack. Approvals and steering stay on the room page.
+without leaving Slack. You write a mention, the App drafts the issue, you tune the draft by replying,
+and a maintainer's check mark files it. Approvals and steering stay on the room page. Setting the App up
+is the operator's job: [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md).
 
-| You want to… | Do this |
+```mermaid
+sequenceDiagram
+  participant U as You
+  participant S as Slack thread
+  participant F as The factory
+  U->>S: @factory owner/repo what
+  S-->>U: Draft (title, what is wrong, acceptance)
+  U->>S: Reply: Title / Should / Acceptance / text
+  S-->>U: A newer draft
+  U->>S: A maintainer reacts ✅ on the latest draft
+  S->>F: File the issue
+  S-->>U: Filed #N, room link
+  F-->>S: Triaged, run started, PR opened, waiting, ended
+```
+
+### Write a mention
+
+One line is enough:
+
+```text
+@factory Smana/ai-native-ref docs: runbook 18 never says where the key lives
+```
+
+Add lines when you have more to say:
+
+```text
+@factory Smana/ai-native-ref docs: runbook 18 never says where the key lives
+The runbook names the factory's API but not where its key is stored.
+Should: say which Secret holds it.
+Acceptance: docs/runbooks/18.md gains one line naming the Secret.
+```
+
+| Part | Rule |
 |---|---|
-| Draft an issue | Mention **`@factory`** in a served channel: line 1 is `<owner/repo> <title>`, the rest is the body. The App replies with the draft, or with the template's refusal |
-| File it and start the work | A linked maintainer adds a check mark (`✅`) to the **bot's draft**. A second check mark files nothing; a check mark from a user who is not linked answers `Not filed: not_linked` |
-| Follow it | The thread receives short state lines: `Triaged`, `A run started`, `Pull request #… opened`, `Ended`, with the room's link. Never what the agents wrote |
-| Answer a question, approve or steer | On the **room page**: the thread only links it |
+| Line 1 | `<owner/repo> <title>`. In a channel that serves one repository you may leave the repository out |
+| Title | `docs: …`, `fix(agents): …`. Without an area, the App adds `docs: ` (when you mention a doc, runbook or README) or `chore: ` |
+| Other lines | They become "What is wrong". With none, the title does |
+| `Should:` (or `Expected:`, `Want:`) | What it should be |
+| `Acceptance:` (or `Done when:`, `Check:`) | How we know it is done, up to the end of the message. Without one, the factory's scoper asks on the issue |
+
+Enter or Shift+Enter in Slack does not matter any more: type it as it comes.
+
+### Edit the draft
+
+Reply **in the draft's thread**. Only the person who wrote the mention can edit, and only until the issue
+is filed. Each reply makes a new draft below the old one.
+
+| Reply | Effect |
+|---|---|
+| `Title: docs: new title` | Replaces the title |
+| `Should: …` | Replaces "What it should be" |
+| `Acceptance: …` (or `Done when:`) | Replaces the acceptance check, several lines allowed |
+| Any other text | Added to "What is wrong" |
+
+### File it
+
+A **maintainer reacts ✅** on the **latest** draft: hover the message, **Add reaction**, pick
+`white_check_mark`. Typing ✅ as a message does not file anything yet (a fix is coming in a release);
+react for now. One issue per thread: a second ✅ answers `Already filed` with the room link.
+
+Then the thread shows, in this order:
+
+| Line | Means |
+|---|---|
+| `Filed #N for @you; the factory starts it. Room: …` | The issue exists, and the room page link is yours to open |
+| `Triaged.` / `A run started.` | The work is under way |
+| `Pull request #… opened.` / `A review verdict is on #…` | A PR is ready for review |
+| `The work waits for a human (…)` | The run needs an answer or an approval: open the room page |
+| `#… merged.` / `#… reverted.` | The PR landed or was undone |
+| `A budget was reached (…)` | The run hit its cap and stopped |
+| `Ended, state: …` | The room is closed |
+
+### What needs you, and where
+
+| Need | Where |
+|---|---|
+| Merge a pull request | GitHub |
+| Approve a step, answer a question, steer or stop | The room page (the link in the thread). Nothing you write in the thread reaches the run |
+| Change the draft | The draft's thread, before the ✅ |
+
+### When it says no
+
+| You see | Why | Fix |
+|---|---|---|
+| `Draft refused: line 1 must be the repository, a space, then the title. Try: …` | The channel serves several repositories (or the line is malformed) and line 1 has none | Copy the `Try:` line, with the repository you mean (the list is in the message) |
+| `Draft refused: …` (other text) | The issue template's rule, quoted from the factory (empty title, no area, a heading missing) | Fix what it names and mention again |
+| `Draft not posted: it is too long to file from Slack` | The draft is over what Slack can carry | Shorten it, or file from the web UI |
+| `Change refused: …` | A reply broke the same rules | Reply again with the fix |
+| `This draft was replaced by a newer one: react on the latest draft.` | You reacted to an older draft | React on the last draft of the thread |
+| `Not filed: not_linked` | Your Slack account is not linked to a GitHub login | Ask the operator to add you ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#6-who-may-file)) |
+| `Not filed: not_a_maintainer` | Your linked login is not a maintainer | A maintainer reacts instead |
+| `Not filed: max_cost_over_principal` / `principal_budget_exhausted` | The channel's cap or the App's day budget is over | Wait for the next day, or ask the operator |
+| `Not filed: repository_not_allowed` | The factory does not accept that repository from Slack | Ask the operator ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#5-declare-the-channel-in-git)) |
+| `Not filed: the factory could not be reached, react again to retry` | A passing failure | React again |
+| Nothing at all | The channel or repository is not served, or the bot is not in the channel | Invite `@factory`, check the channel with the operator |
 
 The task is filed by the factory App, with no label and a footer naming its sponsor; its Task names the
 App and you. Its budget is the channel's `maxCostUSD`.

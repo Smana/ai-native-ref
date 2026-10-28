@@ -33,7 +33,7 @@ spec:
     url: https://github.com/Smana/agent-platform
     # A v* ref resolves as a tag, anything else as a branch, never a SHA: the release tag
     # of the broker image, so the schema and the binary match.
-    ref: v0.29.9
+    ref: v0.29.10
     path: internal/store/migrations
   # The next bootstrap restores the last teardown's log; `bootstrap` is immutable once
   # the Cluster exists. `rooms-pre-destroy` is the alias the host's destroy hook

@@ -1,7 +1,7 @@
 # Host contract
 
-**Contract version 4**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
-at the commit in [`HOST_REF`](HOST_REF). Copied from the design on 2026-10-23. Changes from 3: H4 gains the `factory-slack` listener of `platform-public` on gcp-0 (routes from `agent-system` only), for the Slack App's Events API (runbook 18). Changes from 2: H5
+**Contract version 5**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
+at the commit in [`HOST_REF`](HOST_REF). Copied from the design on 2026-10-23. Changes from 4: H5 ZITADEL names the `runlore` machine user and its two keys; H8 names RunLore's factory paths (feature 14). Changes from 3: H4 gains the `factory-slack` listener of `platform-public` on gcp-0 (routes from `agent-system` only), for the Slack App's Events API (runbook 18). Changes from 2: H5
 ZITADEL names the `factory-slack-app` machine user (client credentials, no project role) and where
 its client id, secret and project id are. Changes from 1: H1 Source names both signing
 identities, the aws-0 un-suspend patch and the children's sources; H1 Feature branches is a pin edit
@@ -73,7 +73,7 @@ Grafana dashboard variables (`${datasource}`, `${model}`) are not Flux substitut
 | Namespaces | The host creates `agents`, `agent-system`, `agent-gateway`, `llm`, `llm-gateway`, `envoy-ai-gateway-system`, `envoy-gateway-system` and `merge-gate`, with their PSA labels (`agents` is `restricted`) |
 | OpenBao | Mounts `agents` and `merge-gate` (both clouds), with the policies in `opentofu/<cloud>/openbao/management` and the JWT auth roles at `jwt/${cluster_name}` from `opentofu/<cloud>/{eks,gke}/configure/openbao.tf` that the `agents-secrets` and `merge-gate-secrets` stores log in with |
 | Stores | `ai-native-ref` creates its own namespaced stores (`agents-secrets`, `merge-gate-secrets`); it reads the cluster-wide `openbao-platform` store only where it does today, and the CA from `openbao-ca` |
-| ZITADEL | The rooms and `roomctl` OIDC clients, the `factory-slack-app` machine user (client credentials, no project role; its client id, secret and project id at `agents/factory-slack-principal`), and the link-only GitHub IdP, provisioned by the host's scripts |
+| ZITADEL | The rooms and `roomctl` OIDC clients, the `factory-slack-app` machine user (client credentials, no project role; its client id, secret and project id at `agents/factory-slack-principal`), the `runlore` machine user (client credentials, no project role; its full key at `platform/runlore/factory-principal`, its client id and project id at `agents/runlore-principal`), and the link-only GitHub IdP, provisioned by the host's scripts |
 | PKI | The OpenBao PKI role signs certificates for the broker's in-cluster and private names (F7) |
 | Workload identity | EKS Pod Identity (never IRSA) and GKE Workload Identity, through the `EPI` and `GCPWorkloadIdentity` compositions |
 
@@ -96,7 +96,10 @@ VictoriaMetrics accepts `VMServiceScrape` and `VMRule`, grafana-operator accepts
 in folders the AI platform names, the trace collector's OTLP endpoint is reachable, and the
 datasource names in H2's `observability` are stable. The host's RunLore HelmRelease reads the
 ConfigMap `runlore-factory-values` in `runlore` through `valuesFrom` with `optional: true`, so it
-deploys without the AI platform.
+deploys without the AI platform. RunLore's Service `runlore` in `runlore` serves the
+room broker's webhooks on 8080 at `/factory/webhook`; RunLore's egress reaches the factory
+(`agent-system`, `agent-factory`, 8082) and Alertmanager (`observability`, 9093), and its ingress
+admits `agent-system`'s `room-broker`.
 
 ### What `ai-native-ref` guarantees back
 

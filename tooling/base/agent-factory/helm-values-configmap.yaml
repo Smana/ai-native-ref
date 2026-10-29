@@ -323,13 +323,7 @@ data:
         # twice (0..5). judge tier-light: the completion judge's alias (the claim's judgeModel),
         # reading the scoper's checks; without the capability profiles' P4 sidecar (#103) its
         # /judge/v1 route is refused and the judge is silently skipped.
-        # Feature 15's live session (2026-10-29), the owner's switch, removed after it: a docs task's
-        # reviewer (the other tier, frontier) runs on Kimi and its implementer (standard) on Mistral
-        # Medium. Public tasks only: maku pins no provider alias on an internal task. Mistral answers
-        # with plain string content only because the gateway sends it reasoning_effort "none"
-        # (agent-gateway/mistral.yaml): with reasoning on, agentgateway cannot parse its response.
-        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true,
-               models: {implementer: {standard: mistral-standard}, reviewer: {frontier: kimi-frontier}}}
+        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}
         # scripts: the splitter's class for the gcp-0 session of 2026-10-27 (runbook 17 §2, splitter
         # design SL3). split needs scope: scoper on the same row, and a row is read whole, so the scoper
         # is on for scripts too. maxChildren 4 (2..5); familyUSD 20.40, the parent's and every part's

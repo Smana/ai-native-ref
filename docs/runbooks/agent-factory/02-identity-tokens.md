@@ -55,7 +55,7 @@ Expected on agentgateway: `none→public 401`, `sts→public 401`, `internal→p
 `public→internal 401` (verify on next run: not yet recorded on the real Gateway), `public→public 404`,
 `self-signed→public 401`, `forged-header 200`.
 
-A wrong audience is now a `401`, not Envoy's `403`: each listener's `jwtAuthentication` lists only
+A wrong audience is a `401` on agentgateway (Envoy answered `403`): each listener's `jwtAuthentication` lists only
 its own audiences (`infrastructure/base/agent-gateway/policies-identity.yaml`). The `403` is kept for
 a correct-audience token whose `sub` is outside namespace `agents` (the listener's `authorization`
 rule), which the probe cannot mint; `scripts/ops/k8s/agentgateway-poc-live-check.sh --gateway real`
@@ -76,8 +76,7 @@ never `agent:forged`; rejected rows carry `log.reason` `JwtAuth` and no `x_ar_ag
 names the Z.ai route, `agentgateway-models` in `agent-system` (verify on next run: the exact value
 format of the log field is not recorded).
 
-**What this proves:** SC-05 — 401 for missing/self-signed tokens, 403 for a valid token of the wrong
-audience, and the identity header is always server-derived, never client-supplied.
+**What this proves:** SC-05 — 401 for a missing, self-signed or wrong-audience token, and the identity header is always server-derived, never client-supplied.
 
 ### Step 3 — Q8: no channel from the harness into the proxy admin API
 
@@ -85,11 +84,6 @@ Note: the probe pod has no `identity-proxy` sidecar of its own, and its `probe` 
 (`curlimages/curl`) has no `python3` either — this specific check needs a real run's pod. Repeat it
 against a run created in Part B instead (Step 4 there), or against runbook 01's run if it is still
 alive:
-
-> Corrected 2026-09-27: removed the `p "python3 ..."` invocation against the probe pod that
-> preceded this note in the original text — `curlimages/curl` has no `python3`, so it only ever
-> produced `sh: python3: not found` (verified live), never a real signal. The command below,
-> against a real run's `harness` container, is the only one that proves anything for Q8.
 
 ```bash
 kubectl exec -n agents <run-name> -c harness -- /usr/local/bin/python -c "import socket,os; s=socket.socket(); r=s.connect_ex(('127.0.0.1',9901)); print('9901:', 'refused' if r else 'OPEN'); print('admin socket visible:', os.path.exists('/tmp/envoy-admin.sock')); print('hot-restart socket:', 'envoy_domain_socket' in open('/proc/net/unix').read())"
@@ -111,7 +105,7 @@ kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
 ## Part B — R2 (token TTL) and SC-07 (revocation timings)
 
 Uses a short, real run so its tokens' TTL is small enough to observe expiry within this session
-(`expirationSeconds = max(600, maxMinutes × 60)`, R2). The factory now sizes every run: a run started
+(`expirationSeconds = max(600, maxMinutes × 60)`, R2). The factory sizes every run: a run started
 with `task agent:run` belongs to no task, carries no tier, and gets a fixed 120-minute limit
 (SP3 §R47), which the R2 floor of 600 s keeps observable.
 
@@ -127,14 +121,9 @@ kubectl apply -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml && kubect
 
 `$GHT` and `$GWT` never leave the shell as printed text — only used as header values below.
 
-> Corrected 2026-09-27: verified live that this run's harness has no admin-API channel (Q8 passed
-> on this run's pod, `xplane-run-7q5pwvmp`). Only `$GHT` (via `git-credential-agent`) was refused by
-> this session's permission classifier ("Credential Materialization") — `$GWT` (via `kubectl create
-> token`) is a plain Kubernetes API call and was **not** blocked; it was captured and used for the
-> gateway-token-death timing in Step 2 below, never printed. Recorded `$GHT` as BLOCKED (permission);
-> the owner must capture and use it interactively (see the runbook's Results table for the exact
-> command). The pod-death half of Step 2 does not need either token: pod gone 3 s after `kubectl
-> delete agentrun --wait=false`.
+> `$GHT` (through `git-credential-agent`) materialises a GitHub credential: an agent's permission
+> classifier may refuse it, so the owner captures it in an interactive session. `$GWT` is a plain
+> Kubernetes API call. The pod-death half of Step 2 needs neither token.
 
 ### Step 2 — delete the claim and time each credential's death (SC-07)
 

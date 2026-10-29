@@ -1,9 +1,9 @@
 # 11 — v1 and local-first UX validation
 
 Proves the [local-first UX design](../../superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)
-([ADR-0056](../../../website/content/docs/decisions/0056-local-first-factory-ux.md)) on a cluster pinned to the
-Maku `v0.8.0` release, and closes SP3 Task 10.6 Step 2 (one task end to end on release pins).
-Written on aws-0; [runbook 14](14-gcp-0-session.md) step 8 runs it on gcp-0 with `CLOUD=gcp`.
+([ADR-0056](../../../website/content/docs/decisions/0056-local-first-factory-ux.md)) on a cluster on Maku release
+pins (`v0.8.0` or later), and one task end to end on those pins (SP3 Task 10.6 Step 2).
+[Runbook 14](14-gcp-0-session.md) step 8 runs it on gcp-0 with `CLOUD=gcp`.
 See [README.md](README.md) for `CLOUD`; run [00](README.md#runbook-00-one-time-cluster-setup) first.
 
 ## Prerequisites
@@ -27,7 +27,7 @@ See [README.md](README.md) for `CLOUD`; run [00](README.md#runbook-00-one-time-c
   esac
   ```
 
-- `maku` `v0.8.0`, verified: `sha256sum -c --ignore-missing maku.sha256`, then `maku configure` and `maku login`
+- `maku`, the release the cluster runs, verified: `sha256sum -c --ignore-missing maku.sha256`, then `maku configure` and `maku login`
   as an `agents-admin` (the room list's *CLI setup* view prints the values).
 - A second identity, a ZITADEL user who is **not** `agents-admin`, with `maku` logged in on its own config. Call it `dev2`.
 - A **private** test repo `dev2` cannot read, with a factory task in it. Call it `<private-repo>`.
@@ -243,7 +243,7 @@ Expected: release pins only (no `-pr<N>` suffix); the happy path runs `… Await
 opened by `app/ogenki-agents`, a reviewer verdict on it, and the room page and `maku status` agreeing. The other terminal
 phases (`Rejected`, `NoOp`, `Reverted`, `Escalated`, `Closed`, `Stopped`) are a fail for this step.
 
-**What this proves:** the whole path works on released artifacts, and unblocks FR-10's merge.
+**What this proves:** the whole path works on released artifacts.
 
 ## Results
 

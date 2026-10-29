@@ -38,7 +38,7 @@ generator's. An empty output means the flag moved: read the pod's args by hand.
 ### Step 1 — the routes are accepted
 
 ```bash
-flux get kustomizations -n flux-system agent-mcp agent-gateway
+flux get kustomizations -n flux-system | grep -E '^(agent-mcp|agent-gateway)[[:space:]]'
 kubectl get httproute -n agent-system agentgateway-mcp-public agentgateway-mcp-internal \
   -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.parents[*].conditions[?(@.type=="Accepted")].status}{"\n"}{end}'
 ```

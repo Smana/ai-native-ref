@@ -50,12 +50,14 @@ Most edits need no engine knowledge:
 
 | To change… | Edit |
 |---|---|
-| Timings, captions, node wording, the URL | `src/scenes/agent-factory.storyboard.ts` |
+| Timings, captions, node wording, the URL | `src/scenes/<clip>.storyboard.ts` |
 | Colours, fonts, canvas size | `src/components/theme.ts` |
 | An icon | `assets/icons/glyphs/<name>.svg`, then copy it to `assets/icons/` (see the README there) |
-| Positions and choreography | `src/scenes/agent-factory.ts` |
+| Positions and choreography | `src/scenes/<clip>.ts` |
 
-Beats are named (`hook`, `intake`, `identity`, `pr`, `outro`). Each has a
+Clips: `agent-factory` (v1/v2, one task end to end, with a title card for the feed) and
+`agent-factory-v3` (the scoper, the split, the loop policy and the judgement roles; no title card,
+1080×1280, made for the harness docs page and loops from an empty cluster). Beats are named per clip (for example `hook`, `intake`, `identity`, `pr`, `outro`). Each has a
 `start`, an `end` and a caption. The scene schedules every animation relative to its
 beat's `start`, so moving a beat moves its contents.
 
@@ -87,5 +89,5 @@ Components, in `src/components/`:
 Every property is a `Track`: a list of keyframes evaluated as a pure function of time
 (`src/engine/tween.ts`). Any frame renders independently, so stills and slices are exact.
 
-Conventions: cyan is the platform, amber is reserved for planned work, grey is humans and third
-parties (GitHub). Dim what is no longer the active path; keep at most ten nodes on screen.
+Conventions: cyan is the run and the platform, violet is a judgement role (scoper, judge, reviewer),
+amber is reserved for planned work, grey is humans and third parties (GitHub). Dim what is no longer the active path; keep at most ten nodes on screen.

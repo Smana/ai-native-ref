@@ -12,6 +12,7 @@ const tintCanvas = document.createElement('canvas');
 
 export const ICON_NAMES = [
   'person', 'github', 'tag', 'eye', 'factory', 'cube', 'shield', 'key', 'branch', 'brain', 'tools', 'cluster', 'chart',
+  'scope', 'scale', 'search', 'checklist',
 ] as const;
 export type IconName = (typeof ICON_NAMES)[number];
 
@@ -221,5 +222,65 @@ const glyphs: Record<IconName, (ctx: Ctx) => void> = {
     ctx.lineTo(10, 10);
     ctx.stroke();
     for (const [x, h] of [[-7, 6], [-1, 12], [5, 9]]) ctx.fillRect(x, 10 - h, 4, h);
+  },
+  scope(ctx) {
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -11);
+    ctx.lineTo(0, -5);
+    ctx.moveTo(0, 5);
+    ctx.lineTo(0, 11);
+    ctx.moveTo(-11, 0);
+    ctx.lineTo(-5, 0);
+    ctx.moveTo(5, 0);
+    ctx.lineTo(11, 0);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  },
+  scale(ctx) {
+    ctx.beginPath();
+    ctx.moveTo(0, -10);
+    ctx.lineTo(0, 10);
+    ctx.moveTo(-6, 10);
+    ctx.lineTo(6, 10);
+    ctx.moveTo(-10, -6);
+    ctx.lineTo(10, -6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-10, -6);
+    ctx.lineTo(-13.5, 2);
+    ctx.lineTo(-6.5, 2);
+    ctx.closePath();
+    ctx.moveTo(10, -6);
+    ctx.lineTo(6.5, 2);
+    ctx.lineTo(13.5, 2);
+    ctx.closePath();
+    ctx.stroke();
+  },
+  search(ctx) {
+    ctx.beginPath();
+    ctx.arc(-2.5, -2.5, 7, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(2.5, 2.5);
+    ctx.lineTo(10, 10);
+    ctx.stroke();
+  },
+  checklist(ctx) {
+    for (const y of [-7, 0, 7]) {
+      ctx.beginPath();
+      ctx.moveTo(-10, y + 0.5);
+      ctx.lineTo(-7.5, y + 3);
+      ctx.lineTo(-4, y - 2.5);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(10, y);
+      ctx.stroke();
+    }
   },
 };

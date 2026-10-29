@@ -1,15 +1,18 @@
 # Host contract
 
 **Contract version 5**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
-at the commit in [`HOST_REF`](HOST_REF). Copied from the design on 2026-10-23. Changes from 4: H5 ZITADEL names the `runlore` machine user and its two keys; H8 names RunLore's factory paths (feature 14). Changes from 3: H4 gains the `factory-slack` listener of `platform-public` on gcp-0 (routes from `agent-system` only), for the Slack App's Events API (runbook 18). Changes from 2: H5
-ZITADEL names the `factory-slack-app` machine user (client credentials, no project role) and where
-its client id, secret and project id are. Changes from 1: H1 Source names both signing
-identities, the aws-0 un-suspend patch and the children's sources; H1 Feature branches is a pin edit
-on the branch, not a variable; H3 drops `ai_native_ref_tag`.
+at the commit in [`HOST_REF`](HOST_REF).
 
 What `cloud-native-ref` guarantees, and `ai-native-ref` may rely on. Copied from the AI platform
-split design, §2 (ADR-0057). Changing an item is a breaking change for both repositories: it lands
+split design, §2 (ADR-0057), on 2026-10-23. Changing an item is a breaking change for both repositories: it lands
 with a version bump of the pin and a note in both.
+
+| Version | Changes |
+|---|---|
+| 5 | H5 ZITADEL names the `runlore` machine user and its two keys; H8 names RunLore's factory paths (feature 14) |
+| 4 | H4 gains the `factory-slack` listener of `platform-public` on gcp-0 (routes from `agent-system` only), for the Slack App's Events API (runbook 18) |
+| 3 | H5 ZITADEL names the `factory-slack-app` machine user (client credentials, no project role) and where its client id, secret and project id are |
+| 2 | H1 Source names both signing identities, the aws-0 un-suspend patch and the children's sources; H1 Feature branches is a pin edit on the branch, not a variable; H3 drops `ai_native_ref_tag` |
 
 ### H1 · Flux
 

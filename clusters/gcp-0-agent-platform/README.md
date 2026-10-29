@@ -1,10 +1,11 @@
 # gcp-0 agent platform (opt-in)
 
-Children of the `agent-platform` umbrella (`../gcp-0/agent-platform.yaml`), live on gcp-0: the host's
-go-live commit un-suspends it, with `ai-gateway` and the source, and names gcp-0 as the factory.
+Children of the `agent-platform` umbrella (`../gcp-0/agent-platform.yaml`). The host's go-live
+commit un-suspends it, with `ai-gateway` and the source, and names gcp-0 as the factory. gcp-0 ran
+the factory until its teardown on 2026-10-29; this is what the next bootstrap applies.
 GCP parity with `aws-0-agent-platform/`: the sandbox pool is OpenTofu (`gke/init` `sandbox.tf`,
 `agents-gvisor`) and GKE ships the `gvisor` RuntimeClass itself, so there is no node-pool child and
-no gVisor RuntimeClass child here (GKE provides it, GP-9).
+no gVisor RuntimeClass child here (GP-9).
 
 | Child Kustomization | Path | Holds |
 |---|---|---|
@@ -12,21 +13,22 @@ no gVisor RuntimeClass child here (GKE provides it, GP-9).
 | `agent-runtime` | `infrastructure/base/agent-runtime` | identity-proxy ConfigMap, `agents` default deny |
 | `agent-policies` | `security/base/agent-policies` | Kyverno admission and GC for runs |
 | `agent-secrets` | `security/gcp-0/agent-secrets` | `SecretStore agents-secrets` -> the `agents` mount |
-| `agent-router` | `infrastructure/gcp-0/agent-router` | `agent-router` Gateway, JWT per listener, the agents' Z.ai backend |
+| `agent-router` | `infrastructure/gcp-0/agent-router` | The agents' provider keys (Z.ai, Anthropic) that agentgateway's backends read. Envoy's agent router was removed in phase H |
 | `agentgateway` | `infrastructure/gcp-0/agentgateway` | agentgateway controller and CRDs in `agentgateway-system` (ADR-0053) |
-| `agent-gateway` | `infrastructure/gcp-0/agent-gateway` | The agent router on agentgateway, beside `agent-router` until the cutover: Gateway `agent-gateway/agent-router`, JWT per listener, B1-B2 in shadow on its own rate-limit server and Valkey |
-| `octo-sts` | `security/gcp-0/octo-sts` | GitHub token exchange for the agents' App, reached only through agent-router's `sts` listener |
+| `agent-gateway` | `infrastructure/gcp-0/agent-gateway` | The agent router on agentgateway: Gateway `agent-gateway/agent-router`, JWT per listener, capability profiles, budgets B1, B2 and B6 enforced on its own rate-limit server and Valkey |
+| `octo-sts` | `security/gcp-0/octo-sts` | GitHub token exchange for the agents' App, reached only through the agent router's `sts` listener |
 | `merge-gate-secrets` | `security/gcp-0/merge-gate-secrets` | `SecretStore merge-gate-secrets` -> the `merge-gate` mount, policy-bot's App secret (SP3 R44) |
-| `agent-mcp` | `infrastructure/gcp-0/agent-mcp` | Flux, VictoriaMetrics, VictoriaLogs MCP servers and their MCPRoutes |
-| `room-broker` | `infrastructure/gcp-0/room-broker` | Room CRD, broker, room log (CNPG), retention, and from phase 2 oauth2-proxy (SP2) |
-| `room-broker-suspend` | `infrastructure/base/room-broker/suspend` | `patch` on `agentruns`, for the broker's suspend trigger (v2 warm-sandboxes S3). On with the broker's `suspend.enabled` (`infrastructure/gcp-0/room-broker/config.yaml`) and the factory's `sandbox.suspend.enabled` (`tooling/gcp-0/agent-factory/helm-values-suspend.yaml`); live proof in [runbook 01, Step 8](../../docs/runbooks/agent-factory/01-runtime-sandbox.md#step-8--suspend-and-resume-a-waiting-run-gcp-0) |
+| `agent-mcp` | `infrastructure/gcp-0/agent-mcp` | Flux, VictoriaMetrics and VictoriaLogs MCP servers |
+| `room-broker` | `infrastructure/gcp-0/room-broker` | Room CRD (`rooms.maku.ogenki.io`), broker, room log (CNPG), retention, oauth2-proxy |
+| `room-broker-suspend` | `infrastructure/base/room-broker/suspend` | `patch` on `agentruns`, for the broker's suspend trigger. On with the broker's `suspend.enabled` (`infrastructure/gcp-0/room-broker/config.yaml`) and the factory's `sandbox.suspend.enabled` (`tooling/gcp-0/agent-factory/helm-values-suspend.yaml`); live proof in [runbook 01, Step 8](../../docs/runbooks/agent-factory/01-runtime-sandbox.md#step-8--suspend-and-resume-a-waiting-run-gcp-0) |
 | `kueue` | `infrastructure/gcp-0/kueue` | Kueue controller: admits sandbox pods by integration, pod-only, `agents` namespace only (SP3) |
 | `kueue-queues` | `infrastructure/base/kueue-queues` | ResourceFlavor, the `agents-factory`/`agents-interactive` ClusterQueues and their LocalQueues (SP3) |
-| `agents-headroom` | `infrastructure/base/karpenter-nodepools-agents/headroom` | One preemptible pod keeping a warm `agents-gvisor` node with the run images pulled (v2 warm sandboxes, step 1). Off by default (`replicas: 0`); on, it holds one `e2-standard-8` up |
+| `agents-headroom` | `infrastructure/base/karpenter-nodepools-agents/headroom` | One preemptible pod keeping a warm `agents-gvisor` node with the run images pulled. Off by default (`replicas: 0`); on, it holds one `e2-standard-8` up |
 | `agent-factory` | `tooling/gcp-0/agent-factory` | The factory: Task CRD and controller, issue intake, run meter (SP3) |
+| `tooling-factory-slack-app` | `tooling/gcp-0/agent-factory/slack-app` | `maku-slack`, the Slack App, with gcp-0's team and channels (runbooks 18, 22) |
 | `policy-bot` | `tooling/gcp-0/policy-bot` | The merge gate: policy-bot, its public hook and tailnet UI (SP3, ADR-0045) |
-| `agent-observability` | `observability/gcp-0/agent-platform` | VMRules, the dashboards (`agent-platform`, `agent-run`, `agent-fleet`) and the agent trace collector |
-| `runlore-factory` | `observability/gcp-0/agent-platform/runlore-factory` | RunLore's factory client (feature 14) and the old intake token, merged into the host's RunLore through its optional `valuesFrom` (SP3 §1) |
+| `agent-observability` | `observability/gcp-0/agent-platform` | VMRules, the Agents folder's dashboards (overview, fleet, factory, gateway, identity, room, run) and the agent trace collector |
+| `runlore-factory` | `observability/gcp-0/agent-platform/runlore-factory` | RunLore's factory client (feature 14): its principal and values, merged into the host's RunLore through its optional `valuesFrom` (H8) |
 
 `AgentGvisorPoolNearLimit` and the dashboard's pool-usage panel read Karpenter metrics, so they stay
 silent here. A full `agents-gvisor` pool, or the cluster ceiling in `gke/init/variables.tfvars`,
@@ -71,14 +73,10 @@ policy-bot's App `ogenki-merge-gate` goes on its own mount, with its webhook poi
 
 Without it `policy-bot` never starts, and every merge-gate decision is `human`/`policy_absent`.
 
-`anthropic` backs the internal tier on Claude. `merger-app` is
-mounted non-optionally: without it the factory pod never starts. (The RunLore intake token,
-`runlore-intake`, was retired by feature 14's PR 7.)
-
-`factory-app` is the factory App `ogenki-agent-factory`'s key (SP3's, created early). From SP2
-phase 3 the room broker posts reviewers' verdicts with it; without it the broker still runs, and
-the verdicts stay in the room instead of reaching the pull request.
-
+`anthropic` backs the internal tier on Claude. `merger-app` is mounted non-optionally: without it
+the factory pod never starts. `factory-app` is the factory App `ogenki-agent-factory`'s key: the room
+broker posts reviewers' verdicts with it; without it the verdicts stay in the room instead of
+reaching the pull request.
 
 ## Teardown
 

@@ -27,10 +27,10 @@ Three canonical client surfaces consume the platform. Each has a defined role:
 | Client | Role | Backing model | Migration spec |
 |---|---|---|---|
 | **OpenCode TUI** | Experimental occasional-use coding-agent client (Claude Code stays primary) | `xplane-qwen-coder` (primary); per-subagent dispatch (qwen3-8b for review/plan/Explore) | [`Smana/opencode-config`](https://github.com/Smana/opencode-config) — `docs/2026-05-05-opencode-migration-design.md` |
-| **Continue VSCode** | IDE inline FIM tab-completion + chat | `xplane-qwen-coder-fim` (FIM); `xplane-qwen-coder` (chat) | per-laptop config in [`docs/coding-clients.md`](https://cnref.ogenki.io/docs/platform/ai-platform/coding-clients/) |
+| **Continue VSCode** | IDE inline FIM tab-completion + chat | `xplane-qwen-coder-fim` (FIM); `xplane-qwen-coder` (chat) | per-laptop config in [Coding clients](https://airef.ogenki.io/docs/platform/ai-platform/coding-clients/) |
 | **OpenWebUI** | Web chat for non-coding general questions | `MoM` (SR cascade routes by domain) | configured via `apps/base/openwebui/app.yaml` |
 
-Once enabled, see [`docs/coding-clients.md`](https://cnref.ogenki.io/docs/platform/ai-platform/coding-clients/)
+Once enabled, see [Coding clients](https://airef.ogenki.io/docs/platform/ai-platform/coding-clients/)
 for copy-paste configuration and verification with `curl` (covers
 common failure modes: 404 model-not-found, missing/invalid API key,
 tab-complete falling back to chat).
@@ -56,7 +56,7 @@ end-to-end deploy. See `opentofu/aws/llm-platform/README.md`.
 
 ### AWS Secrets Manager bootstrap
 
-Moved to [`../aws-0-ai-gateway/README.md`](../aws-0-ai-gateway/README.md#secrets-this-layer-reads) —
+See [`../aws-0-ai-gateway/README.md`](../aws-0-ai-gateway/README.md#secrets-this-layer-reads):
 `platform-llm-api-keys` backs the gateway layer's own auth, not just this umbrella's apps.
 
 ## Disable (preserve cluster state)
@@ -102,7 +102,7 @@ TM_LLM_PLATFORM_ENABLED=true terramate script run --reverse destroy
 ```
 
 **Data preserved** (orphan policy on the Crossplane Bucket MR — see
-`apps/base/ai/llm/s3-bucket.yaml`,
+`apps/aws-0/llm/s3-bucket.yaml`,
 `infrastructure/base/cloudnative-pg/s3-bucket.yaml`,
 `security/base/openbao-snapshot/s3-bucket.yaml`):
 
@@ -114,7 +114,7 @@ The S3 Files filesystem (`fs-...`) and access points are *not*
 preserved — they're recreated on the next deploy, and the underlying
 S3 bucket data is what they re-mount.
 
-## Fleet shape (post foundation-showcase trim — design doc 2026-05-06)
+## Fleet shape
 
 | Claim | Model | Role | Replicas |
 |---|---|---|---|
@@ -192,4 +192,4 @@ curl -s https://llm.priv.aws.ogenki.io/v1/chat/completions \
 
 **To add a new adapter**: edit `loraAdapters:` in `apps/base/ai/llm/qwen-coder.yaml` and let Flux reconcile. That is the whole change — `xplane-qwen-coder` is `gateway.enabled`, so the composition renders the `AIServiceBackend` and the per-adapter pin rule for you. Do **not** hand-edit `ai-gateway-routes/route.yaml`; qwen-coder's entries were removed from it, and editing that file for this claim is a no-op. The preload Job re-runs when the claim spec changes, pulling the adapter from HF into the shared S3 Files PVC; vLLM picks it up on the next pod restart.
 
-**Cost / scaling impact**: the adapters share the base pod's single L4 — that is the point of LoRA. The base pod is `min=1, max=2` (always warm), so adapter requests pay no cold-start cost. Per-request inference overhead from `--enable-lora` and the added preload time have not been measured on this platform; earlier figures quoted here were unsourced and have been removed rather than repeated.
+**Cost / scaling impact**: the adapters share the base pod's single L4 — that is the point of LoRA. The base pod is `min=1, max=2` (always warm), so adapter requests pay no cold-start cost. Per-request overhead from `--enable-lora` and the added preload time are not measured on this platform.

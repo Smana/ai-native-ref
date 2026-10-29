@@ -1,11 +1,9 @@
 # AI gateway — Flux umbrella
 
-Aggregated by `../aws-0/ai-gateway.yaml`, **released on aws-0** (`suspend: false`) since 2026-10-16,
-when aws-0 was also torn down. It was suspended by default (programme OD-3, amended 2026-09-26) until
-a suspended umbrella was found to freeze its children's own specs. gcp-0's twin is live and carries
-the agent factory today. CPU only. It is
-what lets agents run on frontier models with no GPU node; `llm-platform` and `agent-platform` depend
-on it.
+Aggregated by `../aws-0/ai-gateway.yaml`, released on aws-0 (`suspend: false`): a suspended
+umbrella freezes its children's own specs. aws-0 was torn down on 2026-10-16; gcp-0 has the same
+umbrella (`../gcp-0-ai-gateway/`). CPU only. It lets agents run on frontier models with no GPU
+node; `llm-platform` and `agent-platform` depend on it.
 
 Nothing to seed per rebuild; `platform-llm-api-keys` is a one-time, per-account entry (below). The
 Z.ai key comes from `platform/runlore/credentials`, which OpenBao restores from its snapshot
@@ -13,9 +11,10 @@ lineage on every rebuild, and the rate-limit password is generated in-cluster.
 
 | Child Kustomization | Path | Holds |
 |---|---|---|
+| `ai-sources` | `clusters/aws-0-ai-gateway/sources` | The AI-owned Flux sources (`flux/sources/`) |
 | `envoy-gateway` | `infrastructure/aws-0/envoy-gateway` | Envoy Gateway, its global rate limit, and the Valkey KVStore behind it |
-| `envoy-ai-gateway` | `infrastructure/base/envoy-ai-gateway` | Agent Router, the human/system Gateway `ai-gateway`, API-key auth, and the Semantic Router `EnvoyPatchPolicy` |
-| `vllm-semantic-router` | `infrastructure/base/vllm-semantic-router` | The Semantic Router (`MoM`) |
+| `envoy-ai-gateway` | `infrastructure/aws-0/envoy-ai-gateway` | Agent Router, the human/system Gateway `ai-gateway`, API-key auth, and the Semantic Router `EnvoyPatchPolicy` |
+| `vllm-semantic-router` | `infrastructure/aws-0/vllm-semantic-router` | The Semantic Router (`MoM`) |
 | `llm-gateway` | `infrastructure/base/llm-gateway` | Frontier routes and backends in namespace llm-gateway, token budgets B3–B5, price rules |
 
 ## Secrets this layer reads

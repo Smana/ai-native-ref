@@ -7,12 +7,12 @@ auto-discover the children and bypass the umbrella's `spec.suspend: true` gate. 
 defaults to `spec.suspend: true`, so none of these children — and therefore none of the
 LLM-platform resources — are created on a fresh cluster.
 
-GCP analogue of `clusters/aws-0-llm-platform/`. See [ADR-0021](https://github.com/Smana/cloud-native-ref/blob/main/website/content/docs/decisions/0021-gcs-fuse-for-model-weights-on-gcp.md)
+GCP analogue of `clusters/aws-0-llm-platform/`. See [ADR-0021](../../website/content/docs/decisions/0021-gcs-fuse-for-model-weights-on-gcp.md)
 for why the weights path differs from `aws-0`.
 
 The gateway layer — `envoy-gateway`, `envoy-ai-gateway`, `vllm-semantic-router` and
 `llm-gateway` — is the separate `ai-gateway` umbrella (`../gcp-0/ai-gateway.yaml` →
-`../gcp-0-ai-gateway/`), live on gcp-0 for the agent factory. `llm-platform` depends on it. Those children kept their names when they moved out of this directory, so the
+`../gcp-0-ai-gateway/`), which the agent factory also needs. `llm-platform` depends on it. Those children kept their names when they moved out of this directory, so the
 `dependsOn` edges this directory's children have on them still resolve.
 
 | Child Kustomization | Path | Resources |
@@ -35,42 +35,31 @@ The gateway layer — `envoy-gateway`, `envoy-ai-gateway`, `vllm-semantic-router
   `runtimeClassName` at all (see the header comment in `infrastructure/gcp-0/computeclass/gpu-l4.yaml`)
   — there is nothing this child would even be gating.
 
-## Status: it HAS run now, and the run found four blockers
+## Status: blocked on GPU quota
 
-This section used to say two blockers were closed and only an absence of evidence remained.
-The umbrella was resumed for the first time on **2026-08-28**, and that resume found **four more**
-— three in the Composition, one outside Kubernetes entirely. Three are fixed; the fourth is not
-ours to fix.
+The umbrella was resumed once, on **2026-08-28**. That run found four blockers:
 
 | Found on the first resume | Status |
 |---|---|
 | Pods carried no `gke-gcsfuse/volumes` annotation, so GKE injected no FUSE sidecar | fixed in `crossplane-configuration` **v0.4.4** |
 | The CiliumNetworkPolicy was AWS-shaped: no egress to the GKE metadata server, so the sidecar could never authenticate | fixed in **v0.4.5** |
 | `runtimeClassName: nvidia` (Bottlerocket-only, and *rejected* by GKE) plus a Karpenter nodeSelector and a missing Cilium toleration | fixed in **v0.4.6** |
-| `GPUS_ALL_REGIONS` quota is **0** on the project | **open** — a Google quota request, nothing in this repo can route around it |
+| `GPUS_ALL_REGIONS` quota is **0** on the project | **open**: a Google quota request; nothing in this repo can route around it |
 
-**How far it got.** Steps 1 and 2 of the failure order below both pass: the per-claim
-`GCPWorkloadIdentity` reached `Ready`, the FUSE mount worked, and the preload Job **completed with
-the weights written to GCS**. Step 3 was never reached: the serving pod is created and accepted by
-node auto-provisioning, and then `TriggeredScaleUp` fails with `GCE quota exceeded`.
+The per-claim `GCPWorkloadIdentity` reached `Ready`, the FUSE mount worked, and the preload Job
+wrote the weights to `gs://<project>-ogenki-llm-models/xplane-qwen3-8b/`. The serving pod is then
+accepted by node auto-provisioning, and `TriggeredScaleUp` fails with `GCE quota exceeded`. Nothing
+bills in that state: no GPU node is ever provisioned. All three Composition defects were already
+described in `infrastructure/gcp-0/computeclass/gpu-l4.yaml` before the Composition was written; a
+render-time check against that file would have caught them.
 
-Worth noting for anyone repeating this: all three Composition defects were already documented in
-this repository *before* the Composition was written — `infrastructure/gcp-0/computeclass/gpu-l4.yaml`
-states the ComputeClass selector, the absent RuntimeClass and both required tolerations. The
-knowledge existed; the code did not read it. A render-time check comparing Composition output against
-that file would have caught all three at once.
+Two constraints the platform meets:
 
-### The two original blockers, both still closed
-
-- ~~**Serving pods cannot read the weights bucket.**~~ **CLOSED at the pinned version.**
-  The constraint itself is real and unchanged: the Cloud Storage FUSE CSI driver authenticates as
-  the *mounting pod's own* Kubernetes ServiceAccount via Workload Identity Federation for GKE, not
-  the node's default identity. So each `InferenceService` claim's serving ServiceAccount needs its
-  own read-only `GCPWorkloadIdentity` — the role AWS's per-claim read-only EPI plays. This README
-  previously said the composition had no GCP support for that. It does, in
-  `crossplane-configuration` **v0.4.6, the version already pinned** in
-  `infrastructure/base/crossplane/configuration-gcp/configuration-packages.yaml`. Read back from
-  that tag's own golden fixture (`tests/golden/inferenceservice-gcp.yaml`), a claim renders:
+- **Serving pods read the bucket as themselves.** The Cloud Storage FUSE CSI driver authenticates
+  as the mounting pod's own ServiceAccount (Workload Identity Federation for GKE), not the node's.
+  Each `InferenceService` claim renders its own read-only `GCPWorkloadIdentity`, the role AWS's
+  per-claim read-only EPI plays (golden fixture `tests/golden/inferenceservice-gcp.yaml` in
+  `crossplane-configuration`):
 
   ```yaml
   kind: ServiceAccount                       # per-claim, namespace llm
@@ -86,41 +75,18 @@ that file would have caught all three at once.
       name: xplane-<model>
   ```
 
-  No pin bump is needed. **This is a static check against the pinned package, not a cluster
-  result** — the mount has never been performed on a running GKE node, and that is exactly what a
-  first resume tests.
-- ~~**KEDA is not installed on `gcp-0`.**~~ **CLOSED.** `infrastructure/gcp-0/kustomization.yaml`
-  now pulls `../base/keda` — the same shared base `aws-0` uses, verified cloud-neutral first (no
-  IRSA, no IAM roles, no ARNs, and its CiliumNetworkPolicy addresses `toEntities: kube-apiserver`
-  rather than a CIDR). The `InferenceService` composition's per-claim `ScaledObject` (SPEC-001) has
-  a controller to reconcile it.
+- **KEDA runs on gcp-0.** `infrastructure/gcp-0/kustomization.yaml` pulls the shared `../base/keda`,
+  so the composition's per-claim `ScaledObject` (SPEC-001) has a controller. Unlike `aws-0`, gcp-0's
+  `infrastructure` Kustomization health-checks nothing, KEDA included: a check on KEDA alone would
+  wedge everything downstream of it.
 
-  One difference from `aws-0` worth knowing: `gcp-0`'s `infrastructure` Kustomization does **not**
-  health-check KEDA's HelmRelease, where `aws-0`'s does. It health-checks nothing today, and adding
-  a check for KEDA alone would make the whole path block on it — a KEDA failure would wedge
-  everything downstream, including resources that do not use it. Worth revisiting when the umbrella
-  is actually resumed.
+The umbrella ships suspended: an L4 and a multi-gigabyte HuggingFace preload should be a deliberate
+act. **What to watch on a resume**, in the order it can fail:
 
-It still ships suspended, because an L4 and a multi-gigabyte HuggingFace preload should be a
-deliberate act rather than a default.
-
-The reason is **cost and an open quota** — not breakage in this repository. Everything the platform
-controls now works up to the GPU; `GPUS_ALL_REGIONS: 0` is what stops it, and until that is raised a
-resume will reach `Pending` on the serving pod and stay there. Nothing bills in that state: the pod
-is rejected before a GPU node is ever provisioned, which is why the failed run cost nothing.
-
-**What to watch on a resume**, in the order it can fail. Steps 1 and 2 are now evidenced on a live
-cluster; step 3 is still unproven:
-
-1. The `GCPWorkloadIdentity` per claim reaches `Synced=True Ready=True` — the binding exists.
-2. The serving pod actually mounts the bucket. A failure here is the FUSE identity path, and it
-   surfaces as the pod stuck mounting, not as anything naming Workload Identity.
-3. vLLM reads the weights and reports the model ready.
-
-Getting past (2) is the thing this README could not previously promise. It can now: the
-2026-08-28 resume completed the preload and left the weights in
-`gs://<project>-ogenki-llm-models/xplane-qwen3-8b/`. (3) remains unproven, and will stay that way
-until the GPU quota is raised.
+1. The `GCPWorkloadIdentity` per claim reaches `Synced=True Ready=True` (proven 2026-08-28).
+2. The serving pod mounts the bucket. A failure here is the FUSE identity path, and it surfaces as
+   the pod stuck mounting, not as anything naming Workload Identity (proven 2026-08-28).
+3. vLLM reads the weights and reports the model ready (unproven until the GPU quota is raised).
 
 ## Enable
 

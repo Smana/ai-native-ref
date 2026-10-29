@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/maku-factory
-      # maku v0.30.2, the chart's appVersion.
+      # maku v0.30.3, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
-      tag: "v0.30.2@sha256:231b8c67cea4c1006d91181bbe8e25df57ad32d4ab3a77a9ac9bf0678be4f80d"
+      tag: "v0.30.3@sha256:58a5a9e0ba3c3cc1bbde377e50b855e794e9c09bdbdd0abcc707eba299175f88"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.
@@ -324,8 +324,10 @@ data:
         # reading the scoper's checks; without the capability profiles' P4 sidecar (#103) its
         # /judge/v1 route is refused and the judge is silently skipped.
         # Feature 15's live session (2026-10-29), the owner's switch, removed after it: a docs task's
-        # implementer (standard tier) runs on Mistral and its reviewer (the other tier, frontier) on Kimi.
-        # Public tasks only: maku pins no provider alias on an internal task.
+        # reviewer (the other tier, frontier) runs on Kimi and its implementer (standard) on Mistral
+        # Medium. Public tasks only: maku pins no provider alias on an internal task. Mistral answers
+        # with plain string content only because the gateway sends it reasoning_effort "none"
+        # (agent-gateway/mistral.yaml): with reasoning on, agentgateway cannot parse its response.
         docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true,
                models: {implementer: {standard: mistral-standard}, reviewer: {frontier: kimi-frontier}}}
         # scripts: the splitter's class for the gcp-0 session of 2026-10-27 (runbook 17 §2, splitter

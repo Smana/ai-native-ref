@@ -19,6 +19,7 @@ export const theme = {
   // cyan = what runs today, amber = the v2 roadmap.
   cyan: '#22d3ee',
   amber: '#f5a524',
+  violet: '#a78bfa', // judgement roles: scoper, judge, reviewer
 
   fonts: {
     // Install JetBrains Mono for the intended look; the others are fallbacks.

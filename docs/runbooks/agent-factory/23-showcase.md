@@ -79,11 +79,11 @@ The owner turns these on in one session commit and off in the session's last one
 |---|---|---|---|
 | The tester on `scripts` | cloud-native-ref's `repositories[].classes.scripts: {checks: true, testFirst: true}` in `tooling/base/agent-factory/helm-values-configmap.yaml` ([runbook 21 §0](21-test-first-tester.md#0-preconditions)) | Back to `{checks: false, testFirst: false}`, as [#199](https://github.com/Smana/ai-native-ref/pull/199) did | Scenario 1 |
 | A reviewer on Kimi for `docs` | The `docs` loops row gains `models: {reviewer: {frontier: kimi-frontier}}`; the row is read whole, so keep its other keys. Leave the Mistral implementer out | Remove `models`, as [#218](https://github.com/Smana/ai-native-ref/pull/218) did | Scenarios 2, 7 (optional) |
+| Session start (optional) | `human.mcp.sessionStart: [Smana/ai-native-ref]` in `infrastructure/gcp-0/room-broker/config.yaml` ([runbook 19](19-factory-from-your-agent.md)) | Back to `[]`, as [#230](https://github.com/Smana/ai-native-ref/pull/230) did | Scenario 1, to show the form's "start the factory now" |
 | RunLore | A cloud-native-ref PR that undoes [cnref#2643](https://github.com/Smana/cloud-native-ref/pull/2643): `./runlore` in `observability/gcp-0/kustomization.yaml` and Alertmanager's `runlore` route | Merge the equivalent of cnref#2643 again | Scenario 6 |
 
 Already on, nothing to switch: the scoper on `docs` and `scripts`, the splitter on `scripts`, the
-judge and search on `docs`, sandbox checks on `docs`, Slack, and starting from a session on
-`Smana/ai-native-ref` (the broker's `human.mcp.sessionStart`).
+judge and search on `docs`, sandbox checks on `docs`, and Slack.
 
 Check after Flux reconciles: `kubectl -n agent-system logs deploy/agent-factory | grep -c 'config warning'` → `0`.
 
@@ -128,8 +128,8 @@ sandbox and checks it; you merge.
 **Components:** `maku mcp` and the `factory-handoff` skill (Maku), `maku-factory`, OpenHands in gVisor,
 agentgateway, octo-sts.
 
-**Switches:** the tester on `scripts` (owner). Session start is offered on `Smana/ai-native-ref` only,
-and the tester runs on cloud-native-ref only, so on cloud-native-ref the form files the issue and the
+**Switches:** the tester on `scripts` (owner); session start, optional (owner). Session start can list
+`Smana/ai-native-ref` only for the demo, and the tester runs on cloud-native-ref only, so on cloud-native-ref the form files the issue and the
 developer starts it with `gh`.
 
 | # | Do | Point at |

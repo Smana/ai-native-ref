@@ -49,9 +49,9 @@ FLEET = 'principal="system:factory"'
 # A grouping, sort or rank that would line principals up against each other (SI7).
 RANKS = re.compile(r"\b(by|without)\s*\([^)]*\bprincipal\b|\b(topk|bottomk|sort|sort_desc|sort_by_label|sort_by_label_desc|limitk)\s*\(")
 # Counters and per-run series the page reads over a range: never increase() or rate() (SI11).
-COUNTED = ("agent_factory_charged_usd_total", "agent_factory_prs_opened_total", "agent_factory_pr_outcomes_total",
-           "agent_factory_admission_refusals_total", "agent_factory_run_revocations_total",
-           "agent_factory_human_wait_seconds_total", "agent_factory_max_cost_usd_total", "gen_ai_client_token_usage_sum")
+COUNTED = ("maku_factory_charged_usd_total", "maku_factory_prs_opened_total", "maku_factory_pr_outcomes_total",
+           "maku_factory_admission_refusals_total", "maku_factory_run_revocations_total",
+           "maku_factory_human_wait_seconds_total", "maku_factory_max_cost_usd_total", "gen_ai_client_token_usage_sum")
 WANT = {"Today, against its day", "The fleet's day", "Spend in the range", "Spend per day",
         "Tokens by type", "Cache-read share", "Runs · rooms · tasks", "Runs", "Pull requests opened · merged · reverted",
         "Cost per accepted PR", "Refusals", "Revocations", "Waiting for a human now", "Time waited", "Sponsor",
@@ -68,7 +68,7 @@ def check_identity():
     check("not a score" in b.get("description", ""), "the dashboard's description frames it as cost attribution")
     variables = {v["name"]: v for v in b.get("templating", {}).get("list", [])}
     var = variables.get("principal", {})
-    check(var.get("query") == "label_values(agent_factory_charged_usd_total, principal)", "principal comes from the charged counter")
+    check(var.get("query") == "label_values(maku_factory_charged_usd_total, principal)", "principal comes from the charged counter")
     check(var.get("multi") is False and var.get("includeAll") is False, "principal is single-valued, without All")
     check(set(variables) == {"datasource", "principal"}, f"no other variable: {sorted(variables)}")
     panels = {p["title"]: p for p in flat(b)}
@@ -95,7 +95,7 @@ def check_identity():
     check(day.get("interval") == "1d" and all("[1d] offset -1d)" in t["expr"] for t in day.get("targets", [])),
           "Spend per day reads each day forward from its UTC midnight ([1d] offset -1d), so today shows")
     runs = panels.get("Runs", {})
-    charge = 'max_over_time(agent_factory_run_charge_info{principal="${principal}"}[$__range])'
+    charge = 'max_over_time(maku_factory_run_charge_info{principal="${principal}"}[$__range])'
     for t in runs.get("targets", []):
         check(charge in t["expr"], f"Runs {t['refId']}: restricted to this principal's runs by the charge info")
     check("/d/agent-run/agent-run?var-run=${__value.text}" in json.dumps(runs.get("fieldConfig", {})),

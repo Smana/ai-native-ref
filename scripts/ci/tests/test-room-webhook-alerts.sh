@@ -2,7 +2,7 @@
 # requires: promtool python3
 #
 # RoomWebhookDisabled (factory interfaces F6), evaluated by promtool on synthetic series shaped as the
-# broker's scrape leaves them: rooms_webhook_disabled{subscriber} is 1 once three deliveries were given
+# broker's scrape leaves them: maku_rooms_webhook_disabled{subscriber} is 1 once three deliveries were given
 # up, until its generation is bumped. The alert fires after 1 minute of 1, stays silent at 0, and
 # resolves when the series returns to 0. Annotations are stripped from the copy promtool reads: it
 # compares them exactly, and test-agent-alert-annotations owns them.
@@ -28,7 +28,7 @@ rules[0].pop("annotations", None)
 yaml.safe_dump({"groups": [{"name": "agent-factory", "rules": rules}]}, open(os.environ["OUT"], "w"), sort_keys=False)
 PY
 
-S='rooms_webhook_disabled{namespace="agent-system", pod="room-broker-0", subscriber="slack-app"}'
+S='maku_rooms_webhook_disabled{namespace="agent-system", pod="room-broker-0", subscriber="slack-app"}'
 cat > "$tmp/tests.yaml" <<EOT
 rule_files: [rules.yaml]
 evaluation_interval: 30s

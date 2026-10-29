@@ -75,7 +75,7 @@ PY
 
 PANEL="$(cat "$tmp/panel.promql")"
 G='gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent="system:serviceaccount:agents:xplane-run-'
-M='agent_factory_meter_input_excludes_cache_runs_total{namespace="agent-system", pod="agent-factory-0"'
+M='maku_factory_meter_input_excludes_cache_runs_total{namespace="agent-system", pod="agent-factory-0"'
 cat > "$tmp/tests.yaml" <<EOF
 rule_files: [rules.yaml]
 evaluation_interval: 1m

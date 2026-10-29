@@ -75,7 +75,7 @@ def tokm(run, model, kind, values):
 
 
 def charge(run, principal, room=""):
-    return {"series": f'agent_factory_run_charge_info{{run="{run}", principal="{principal}", room="{room}", task="{room}"}}', "values": "1x30"}
+    return {"series": f'maku_factory_run_charge_info{{run="{run}", principal="{principal}", room="{room}", task="{room}"}}', "values": "1x30"}
 
 
 def mprice(model, kind, v):
@@ -107,9 +107,9 @@ series = [
     tokm("ffffffff", "m1", "input", "0 1000000x30"), tokm("ffffffff", "m2", "input", "0 500000x30"), tokm("ffffffff", "m2", "output", "0 100000x30"),
     mprice("m2", "input", 4), mprice("m2", "output", 20),
     # the broker-wide factory counters
-    {"series": 'agent_factory_pr_outcomes_total{outcome="auto_merged", class="deps"}', "values": "0 4x30"},
-    {"series": 'agent_factory_pr_outcomes_total{outcome="human_merged", class="review"}', "values": "0 2x30"},
-    {"series": 'agent_factory_prs_opened_total{principal="github:alice"}', "values": "0 7x30"},
+    {"series": 'maku_factory_pr_outcomes_total{outcome="auto_merged", class="deps"}', "values": "0 4x30"},
+    {"series": 'maku_factory_pr_outcomes_total{outcome="human_merged", class="review"}', "values": "0 2x30"},
+    {"series": 'maku_factory_prs_opened_total{principal="github:alice"}', "values": "0 7x30"},
 ]
 
 
@@ -175,7 +175,7 @@ tests = [{"interval": "1m", "input_series": series, "promql_expr_test": [
     rows(prep(expr("agents-overview", "PRs opened")), [{"value": 7}]),
     # SC-11 reads 0 (4 auto-merges, no revert), and 0 again with no auto-merge series at all
     rows(prep(expr("agent-factory", "Reverted after auto-merge (SC-11: ≤ 5 %)")), [{"value": 0}]),
-]}, {"interval": "1m", "input_series": [{"series": 'agent_factory_pr_outcomes_total{outcome="human_merged"}', "values": "0 1x30"}], "promql_expr_test": [
+]}, {"interval": "1m", "input_series": [{"series": 'maku_factory_pr_outcomes_total{outcome="human_merged"}', "values": "0 1x30"}], "promql_expr_test": [
     rows(prep(expr("agent-factory", "Reverted after auto-merge (SC-11: ≤ 5 %)")), [{"value": 0}]),
 ]}]
 open(os.path.join(out, "rules.yaml"), "w").write("groups: []\n")

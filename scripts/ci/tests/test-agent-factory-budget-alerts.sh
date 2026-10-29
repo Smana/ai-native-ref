@@ -2,7 +2,7 @@
 # requires: promtool python3
 #
 # The factory's daily budget alert (truthful costs TC8), evaluated by promtool on synthetic series
-# shaped as the factory's scrape leaves them: agent_factory_budget_{cap,spent}_usd{principal},
+# shaped as the factory's scrape leaves them: maku_factory_budget_{cap,spent}_usd{principal},
 # set by the meter's leader (agent-platform v0.17.1). AgentFactoryDailyBudgetHigh fires past 80% of
 # a principal's USD cap, not at it; a day overrun past its cap still fires, since spent is
 # unclamped; it resolves when the meter records the principal at 0 on the day's first tick.
@@ -30,8 +30,8 @@ rules[0].pop("annotations", None)
 yaml.safe_dump({"groups": [{"name": "agent-factory", "rules": rules}]}, open(os.environ["OUT"], "w"), sort_keys=False)
 PY
 
-C='agent_factory_budget_cap_usd{namespace="agent-system", pod="agent-factory-0", principal="'
-P='agent_factory_budget_spent_usd{namespace="agent-system", pod="agent-factory-0", principal="'
+C='maku_factory_budget_cap_usd{namespace="agent-system", pod="agent-factory-0", principal="'
+P='maku_factory_budget_spent_usd{namespace="agent-system", pod="agent-factory-0", principal="'
 cat > "$tmp/tests.yaml" <<EOT
 rule_files: [rules.yaml]
 evaluation_interval: 30s

@@ -498,7 +498,8 @@ grants nothing a maintainer of the repository did not have, and the task is spon
 GitHub login. Users the factory's config lists by hand keep that entry whatever they link.
 
 The task is filed by the factory App, with no label and a footer naming its sponsor; its Task names the
-App and you. Its budget is the channel's `maxCostUSD`.
+App and you. Its budget is the channel's `maxCostUSD`. The terms this section uses are defined in the
+[glossary](https://github.com/Smana/ai-native-ref/blob/main/docs/glossary.md).
 
 ## What the factory never does
 

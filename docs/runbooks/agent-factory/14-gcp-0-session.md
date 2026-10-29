@@ -178,7 +178,8 @@ optional until the App is switched on ([runbook 18](18-factory-interfaces.md)).
 ### Feature 15 providers, a smoke through the gateway
 
 Once the two keys are seeded, with a public run's token (the identity proxy's `x-ar-model` pin is
-what routes; no class names these aliases yet, because `loops.<class>.models` waits on Maku):
+what routes; a class names these aliases with `loops.<class>.models`, as `docs` does for feature 15's
+live session):
 
 ```bash
 # GW = the public listener's address inside the cluster; TOKEN = a public role's run token

@@ -160,15 +160,19 @@ Expected: `refs/heads/main`; both `Ready=True`, `Suspended=False`.
 | 1 | OpenBao policy `agents-secrets` + JWT role `agents-secrets` on `jwt/<cluster>` — applied by the `opentofu/$CLOUD/openbao/management` stack | `agent-secrets` → `agent-router` → `agent-mcp`, `octo-sts` (runbooks 02, 04–07) | see below |
 | 2 | The agents' Z.ai key | runbook 04 (frontier route), 07 | `bao kv put -mount=agents zai api_key=-` (key on stdin, never as an argument) |
 | 2b | The agents' Anthropic key, read by the ExternalSecret `agents-anthropic-api-key` | the internal tier on Claude (agentgateway's Anthropic backend) | `bao kv put -mount=agents anthropic api_key=-` |
-| 2c | The agents' own Kimi Code and Mistral keys (feature 15, public data only), and a spend cap on Mistral's console (pay-as-you-go, $20) | the selectable `kimi-frontier`, `mistral-standard`, `mistral-light` aliases | `bao kv put -mount=agents moonshot api_key=-` and `bao kv put -mount=agents mistral api_key=-` |
+| 2c | The agents' own Kimi Code and Mistral keys (feature 15, public data only), each capped on its console: Mistral's spend cap (pay-as-you-go, $20; billing active first), and Kimi Code's flat-rate plan as its cap | the selectable `kimi-frontier`, `mistral-standard`, `mistral-light` aliases, switched on per class with `loops.<class>.models` | `bao kv put -mount=agents moonshot api_key=-` and `bao kv put -mount=agents mistral api_key=-` |
 | 3 | Branch ruleset, **before** the App exists | runbook 05 | `task ops:github:agent-branch-ruleset -- Smana/cloud-native-ref` |
 | 4 | GitHub App `ogenki-agents` on `Smana`, installed on `Smana/cloud-native-ref` only | runbook 05, 07 | `bao kv put -mount=agents github-app app_id=<id> private_key=@<pem file>` |
 | 4b | The `factory-app` GitHub App key, read by SP3's ExternalSecret `agent-factory-github` | the `agent-factory` Kustomization | `bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem file>` |
 | 4c | The merger App `ogenki-agent-merger` key, read by the ExternalSecret `agent-factory-merger`. The App: Contents write, Checks read, Statuses read, Pull requests write, Metadata read, webhook off, installed on `Smana/cloud-native-ref` only (R16) | the `agent-factory` Deployment, which mounts it non-optionally | `bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem file>` |
 | 4d | Retired by feature 14's PR 7: the RunLore intake token (`runlore-intake`, `platform/runlore/factory-intake`) is no longer read; RunLore is a standard client ([runbook 20](20-runlore-agent-to-agent.md)). Delete both paths once PR 7 runs | — | — |
+| 4e | v3: the Slack App's keys (bot token, signing secret, bot user id), written from the Slack console | `maku-slack`, the Slack intake ([runbook 22](22-slack.md)) | `bao kv put -mount=agents factory-slack-app -` (one JSON document on stdin, [runbook 22 §2](22-slack.md#2-owner-store-the-keys-in-openbao)) |
+| 4f | v3: the machine users the Slack App and RunLore act as, created by the host's ZITADEL sync | intake `api`: the Slack App and RunLore as sponsored and internal principals ([runbook 18](18-factory-interfaces.md#1-prerequisites), [runbook 20](20-runlore-agent-to-agent.md#0-prerequisites)) | `zitadel-oidc-clients.sh sync --apply` on the host |
+| 4g | v3: one webhook signing key in two mounts, the broker's and RunLore's | the broker's signed webhooks to RunLore ([runbook 20](20-runlore-agent-to-agent.md)) | `bao kv put -mount=agents runlore-webhook signing-key=…` and `bao kv put -mount=platform runlore/factory-webhook signing-key=…`, the same key ([runbook 14 §5](14-gcp-0-session.md#5-owner-the-agents-keys-once-per-gcp-lineage)) |
+| 4h | v3: the `factory/publish` label on each repository RunLore files on | publishing RunLore's proposals ([runbook 20](20-runlore-agent-to-agent.md#0-prerequisites)) | `gh label create factory/publish -R <owner/repo>` |
 | 5 | A trivial issue URL (e.g. a broken relative link) | runbook 07 SC-04 | — |
 
-These keys (2, 2b, 4, 4b, 4c) are the platform's one owner-written exception: GitHub, Z.ai and Anthropic issue
+These keys (2, 2b, 2c, 4, 4b, 4c, 4e, 4g) are the platform's one owner-written exception: GitHub, Z.ai, Anthropic, Moonshot, Mistral and Slack issue
 them, and the AWS snapshot cannot be restored across KMS seals (GCP parity). Once per GCP lineage.
 Without 4c the factory pod never starts: its Secret volumes are not optional.
 
@@ -386,7 +390,11 @@ caps and exceed `factoryDailyUSD: 42.50` together with any other run that day: f
 days, or expect about $4 to $8 per family in practice (a scoper run, then up to four parts at about
 $1 to $2).
 
-### Layer 6: the test-first tester (blocked: no switch exists yet)
+### Layer 6: the test-first tester (proven 2026-10-29)
+
+**Since 2026-10-29** the switch exists and the tester is proven live on cloud-native-ref's `scripts`
+class, the `not_testable` case included: [runbook 21](21-test-first-tester.md) holds the drills and
+their results. The text below records why this layer was blocked on 2026-10-27.
 
 Design: [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) (TF1, TO4). Its
 switch is `repositories[].classes.scripts.testFirst: true` on cloud-native-ref only (TO4: none on

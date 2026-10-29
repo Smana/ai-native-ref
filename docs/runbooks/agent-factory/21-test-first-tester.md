@@ -65,4 +65,5 @@ branches; record the readings in the runbook's results section.
 
 ## 5. Results
 
-_To fill in by the session._
+_No reading recorded here yet._ The tester was proven live on cloud-native-ref's `scripts` class on
+2026-10-29, the `not_testable` case included. Record the next session's readings here.

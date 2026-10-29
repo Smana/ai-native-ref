@@ -24,7 +24,7 @@ flowchart LR
 - `kubectl` on the cluster, `aws` or `gcloud` read access to the CNPG bucket, a cloud-native-ref checkout.
 - For Part A, ai-native-ref's claim restores from `rooms-pre-destroy` on this cloud:
   `infrastructure/base/room-broker/sqlinstance.yaml`. aws-0 does; gcp-0 starts fresh until it is opted
-  in ([Step A0](#step-a0--gcp-0-opt-in)), so the 2026-10-17 gcp-0 rooms started empty.
+  in ([Step A0](#step-a0--gcp-0-opt-in)): not yet, so the next gcp-0 bootstrap starts with no rooms.
 
 ```bash
 case $CLOUD in
@@ -38,7 +38,7 @@ rooms_psql() {  # $1: namespace, $2: CNPG cluster name; reads stdin
 ```
 
 The fingerprint, the same query for every capture. One line per room (its event sequence,
-hashed), then the grants and the `maku_rooms_*` roles:
+hashed), then the grants and the `rooms_*` roles:
 
 ```bash
 cat > /tmp/rooms-fingerprint.sql <<'SQL'
@@ -126,7 +126,7 @@ its own); `True` and a timestamp. **RTO (database)** = Ready − creation. Then 
 kubectl get deploy -n agent-system room-broker -o jsonpath='{.status.readyReplicas}{"\n"}'
 ```
 
-Expected: ≥ 1, and the `maku_rooms_*` role logins work, which CNPG resets to this generation's
+Expected: ≥ 1, and the `rooms_*` role logins work, which CNPG resets to this generation's
 generated passwords (managed roles).
 
 ### Step A4 — compare
@@ -182,9 +182,9 @@ spec:
   storageSize: 20Gi
   postgresVersion: "18"
   credentials: {source: generated}
-  databases: [{name: rooms, owner: maku_rooms_owner}]
+  databases: [{name: rooms, owner: rooms_owner}]
   roles:
-    - {name: maku_rooms_owner, comment: drill, superuser: false}
+    - {name: rooms_owner, comment: drill, superuser: false}
     - {name: rooms_broker, comment: drill, superuser: false}
     - {name: rooms_retention, comment: drill, superuser: false}
   objectStoreRecovery: {bucketName: $BUCKET, path: $SEED}

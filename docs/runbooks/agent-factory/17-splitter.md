@@ -2,8 +2,9 @@
 
 Proves the splitter on gcp-0: a hard issue becomes sub-issues that land one by one, with the family's
 cost bounded and charged to the approver. Design:
-[splitter](../../superpowers/specs/2026-10-23-splitter-design.md). The switch ships off: no
-`loops.<class>.split` row exists, and a session adds one for this proof and removes it after. Run it
+[splitter](../../superpowers/specs/2026-10-23-splitter-design.md). The switch is the
+`loops.scripts.split` row: a session adds it for the proof and removes it after (D4). The source still
+holds it. Run it
 after the scoper's live proofs (the split needs `scope: scoper` on the same row). See
 [README.md](README.md) for `CLOUD`.
 
@@ -19,10 +20,11 @@ after the scoper's live proofs (the split needs `scope: scoper` on the same row)
 In `tooling/base/agent-factory/helm-values-configmap.yaml`, under `loops`:
 
 ```yaml
-      scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard}}
+      scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}}
 ```
 
-The session's last commit removes it.
+`anyTier: true` offers the splitter to every `scripts` task: gcp-0 deploys no classifier, so no task is
+ever `frontier`. The session's last commit removes the row.
 
 ## 3. Proofs
 

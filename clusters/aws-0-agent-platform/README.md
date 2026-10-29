@@ -1,32 +1,34 @@
 # aws-0 agent platform
 
 Children of the `agent-platform` umbrella (`../aws-0/agent-platform.yaml`), released on aws-0
-(`suspend: false`). aws-0 ran the factory until it was torn down on 2026-10-16; gcp-0's twin runs it
-now, and the ownership fence names `gcp-0`.
+(`suspend: false`). aws-0 ran the factory until its teardown on 2026-10-16; the ownership fence
+names `gcp-0`.
 Design: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md`.
 
 | Child Kustomization | Path | Holds |
 |---|---|---|
 | `agent-sandbox` | `infrastructure/base/agent-sandbox` | Sandbox CRD and controller in `agent-system` |
+| `kueue` | `infrastructure/aws-0/kueue` | Kueue controller (SP3) |
+| `kueue-queues` | `infrastructure/base/kueue-queues` | ResourceFlavor, ClusterQueues and LocalQueues (SP3) |
 | `agents-nodepool` | `infrastructure/base/karpenter-nodepools-agents` | `agents-gvisor` NodePool + EC2NodeClass |
 | `runtimeclass-gvisor` | `infrastructure/base/runtimeclass-gvisor` | RuntimeClass `gvisor` → `runsc` |
 | `agents-headroom` | `infrastructure/base/karpenter-nodepools-agents/headroom` | Preemptible placeholder: one warm `agents-gvisor` node, run images pulled. Off by default (`replicas: 0`) |
 | `agent-runtime` | `infrastructure/base/agent-runtime` | identity-proxy ConfigMap, `agents` default deny |
 | `agent-policies` | `security/base/agent-policies` | Kyverno admission and GC for runs |
-| `agent-secrets` | `security/base/agent-secrets` | `SecretStore agents-secrets` → the `agents` mount |
-| `agent-router` | `infrastructure/base/agent-router` | `agent-router` Gateway, JWT per listener, the agents' Z.ai backend |
-| `agentgateway` | `infrastructure/aws-0/agentgateway` | agentgateway controller and CRDs in `agentgateway-system` (ADR-0053); also the PoC's namespaces until phase H |
-| `agent-gateway` | `infrastructure/aws-0/agent-gateway` | The agent router on agentgateway, beside `agent-router` until the cutover: Gateway `agent-gateway/agent-router`, JWT per listener, B1-B2 in shadow on its own rate-limit server and Valkey |
-| `agentgateway-poc` | `infrastructure/aws-0/agentgateway-poc` | The PoC Gateway `agw-poc/agent-router-agw`, removed in phase H |
-| `octo-sts` | `security/base/octo-sts` | GitHub token exchange for the agents' App, reached only through agent-router's `sts` listener |
+| `agent-secrets` | `security/aws-0/agent-secrets` | `SecretStore agents-secrets` → the `agents` mount |
+| `agent-router` | `infrastructure/aws-0/agent-router` | The agents' provider keys (Z.ai, Anthropic) that agentgateway's backends read. Envoy's agent router was removed in phase H |
+| `agentgateway` | `infrastructure/aws-0/agentgateway` | agentgateway controller and CRDs in `agentgateway-system` (ADR-0053), plus the PoC's namespaces |
+| `agent-gateway` | `infrastructure/aws-0/agent-gateway` | The agent router on agentgateway: Gateway `agent-gateway/agent-router`, JWT per listener, budgets on its own rate-limit server and Valkey |
+| `agentgateway-poc` | `infrastructure/aws-0/agentgateway-poc` | The PoC Gateway `agw-poc/agent-router-agw` (aws-0 only) |
+| `octo-sts` | `security/aws-0/octo-sts` | GitHub token exchange for the agents' App, reached only through the agent router's `sts` listener |
 | `merge-gate-secrets` | `security/base/merge-gate-secrets` | `SecretStore merge-gate-secrets` → the `merge-gate` OpenBao mount (SP3, R44) |
-| `agent-mcp` | `infrastructure/base/agent-mcp` | Flux, VictoriaMetrics, VictoriaLogs MCP servers and their MCPRoutes |
-| `room-broker` | `infrastructure/aws-0/room-broker` | Room CRD, broker, room log (CNPG), retention, and from phase 2 oauth2-proxy (SP2) |
-| `room-broker-suspend` (unlisted) | `infrastructure/base/room-broker/suspend` | `patch` on `agentruns`, for the broker's suspend trigger (v2 warm-sandboxes S3). Listing it, with `suspend.enabled: true` in the broker config, turns suspend on |
+| `agent-mcp` | `infrastructure/aws-0/agent-mcp` | Flux, VictoriaMetrics and VictoriaLogs MCP servers |
+| `room-broker` | `infrastructure/aws-0/room-broker` | Room CRD (`rooms.maku.ogenki.io`), broker, room log (CNPG), retention, oauth2-proxy |
+| `room-broker-suspend` (unlisted) | `infrastructure/base/room-broker/suspend` | `patch` on `agentruns`, for the broker's suspend trigger. Listing it, with `suspend.enabled: true` in the broker config, turns suspend on |
 | `agent-factory` | `tooling/aws-0/agent-factory` | The factory: Task CRD and controller, issue intake, run meter (SP3) |
 | `policy-bot` | `tooling/base/policy-bot` | The merge gate: policy-bot, its public hook and tailnet UI (SP3, ADR-0045) |
-| `agent-observability` | `observability/aws-0/agent-platform` | VMRules, the dashboards (`agent-platform`, `agent-run`, `agent-fleet`) and the agent trace collector |
-| `runlore-factory` | `observability/base/runlore-factory` | RunLore's notifier and intake token, merged into RunLore's values only while this umbrella ships them (SP3 §1) |
+| `agent-observability` | `observability/aws-0/agent-platform` | VMRules, the Agents folder's dashboards and the agent trace collector |
+| `runlore-factory` | `observability/base/runlore-factory` | RunLore's factory client (feature 14), merged into RunLore's values only while this umbrella ships it |
 
 ## Resume
 
@@ -43,12 +45,9 @@ The owner prerequisites come next, in this order (ADR-0043): the branch and tag 
 key written to `github-app` on the `agents` mount. Without the key, `octo-sts` sits in
 `CreateContainerConfigError` and its child fails the health check.
 
-From SP2 phase 3, the factory App `ogenki-agent-factory` (SP3's, created early) is installed on
-`Smana/cloud-native-ref` with its key at `factory-app` on the `agents` mount. Without it, the room broker
-still runs, and reviewers' verdicts stay in the room instead of reaching the pull request.
-
-`--class internal` runs have no model route until SP4 PR 2, so such a run 404s on every model call;
-`agent-run.sh` still accepts it because the runbooks use it to test the internal listener.
+The factory App `ogenki-agent-factory` is installed on `Smana/cloud-native-ref` with its key at
+`factory-app` on the `agents` mount. Without it, the room broker still runs, and reviewers' verdicts
+stay in the room instead of reaching the pull request.
 
 ## Teardown
 

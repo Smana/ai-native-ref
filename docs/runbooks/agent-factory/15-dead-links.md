@@ -2,8 +2,8 @@
 
 Brings the merge gate's `dead-links` class from declared and off to shadow, then, on the owner's go, to
 one live drill. Design: [merge gate classes](../../superpowers/specs/2026-10-22-merge-gate-classes-design.md)
-(MC1 to MC14). The class is declared on both repositories and has no `live` or `shadow` key: until a
-session writes one, it has no intake and takes no decision. See [README.md](README.md) for `CLOUD`.
+(MC1 to MC14). The class is declared on both repositories and is in shadow on both (`shadow: true`,
+§2): it decides, never arms. A class with no `live` or `shadow` key has no intake and takes no decision. See [README.md](README.md) for `CLOUD`.
 
 ## 1. Prerequisites
 
@@ -28,8 +28,8 @@ session writes one, it has no intake and takes no decision. See [README.md](READ
 
 One commit: `dead-links: {…, shadow: true}` on the host's entry in
 `tooling/base/agent-factory/helm-values-configmap.yaml`, and the `link-rot` schedule removed (M4: the
-two schedules would fix the same links twice). The gcp-0 session of 2026-10-27 keeps `link-rot` beside
-the class until the breaker and revert proof of the live drill (§3) is done, then a host change removes it.
+two schedules would fix the same links twice). `link-rot` stays beside the class until the live drill's
+breaker and revert proof (§3) is done; then a host change removes it.
 
 | Proof | Reading |
 |---|---|

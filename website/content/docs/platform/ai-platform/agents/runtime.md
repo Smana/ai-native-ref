@@ -1,7 +1,7 @@
 ---
 title: Runtime
 weight: 10
-description: "Work in progress. How one AgentRun becomes an isolated, attributed run: a gVisor sandbox on each cloud, per-run identity, octo-sts, branch and tag rulesets, and default-deny network policy."
+description: "How one AgentRun becomes an isolated, attributed run: a gVisor sandbox on each cloud, per-run identity, octo-sts, branch and tag rulesets, and default-deny network policy."
 lastVerified: 2026-10-01
 ---
 

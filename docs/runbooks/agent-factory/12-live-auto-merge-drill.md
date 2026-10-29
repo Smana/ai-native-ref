@@ -4,15 +4,18 @@ Drills the first unattended merge to `main` and its revert, gate evidence G2 and
 [live auto-merge design](../../superpowers/specs/2026-10-16-v2-live-auto-merge-design.md) (D4).
 The factory merges to `main` without a human for the drill's duration: **run it only on the
 owner's go.** The drill runs on the factory that `Smana/cloud-native-ref`'s
-`.github/agent-factory.yaml` names (the ownership fence): `gcp-0` today, the only live cluster.
+`.github/agent-factory.yaml` names (the ownership fence): `gcp-0`.
 Every other factory renders the same values and never acts on the repository. See
 [README.md](README.md) for `CLOUD`.
 
+The source already holds the drill's config ([#21](https://github.com/Smana/ai-native-ref/pull/21)):
+`docs-links` and `revert` are `{live: true}` on cloud-native-ref with `autoMergesPerDay: 1`, so a fresh
+bootstrap is live for Markdown link fixes and their reverts. Step 1 is then a check, and Step 6 the
+owner's call.
+
 ## Owner's GitHub prerequisites
 
-Nothing below reaches the cluster. All three must hold before gcp-0 pins an artifact carrying
-ai-native-ref [#21](https://github.com/Smana/ai-native-ref/pull/21) (the drill config, merged on
-`main` since 2026-10-18 and in no release yet).
+Nothing below reaches the cluster. All three must hold before a factory runs the live classes.
 
 - [ ] **The merger App `ogenki-agent-merger` holds `issues: write` and `actions: write`, accepted on
   the installation.** `issues` writes the ledger labels (GitHub labels PRs through the issues API);
@@ -41,7 +44,7 @@ ai-native-ref [#21](https://github.com/Smana/ai-native-ref/pull/21) (the drill c
 
   Expected: `refs/heads/agent/**`, `refs/heads/main`, `refs/heads/revert-*`, `refs/heads/revert-*/**`.
 
-Observed on 2026-10-18: all three hold (the merger's installation reads `issues: write` and
+Last checked 2026-10-18, all three held (GitHub state, it survives a cluster rebuild: the merger's installation reads `issues: write` and
 `actions: write`; `agent-merge` 25335777 covers `main` and `revert-*` with the merger App 5187454 on
 its bypass list; `agent-branches` 24063626 excludes `main` and `revert-*`).
 
@@ -49,8 +52,7 @@ its bypass list; `agent-branches` 24063626 excludes `main` and `revert-*`).
 
 The gate's row 3 needs a `policy-bot: main` status posted by `merge.policyBotLogin`
 (`ogenki-merge-gate[bot]`). Without it every decision is `human` / `policy_absent` and the drill
-never arms: what gcp-0 decided until [#58](https://github.com/Smana/ai-native-ref/pull/58) put
-policy-bot there (it ran on aws-0 only).
+never arms. [#58](https://github.com/Smana/ai-native-ref/pull/58) puts policy-bot on gcp-0.
 
 - [ ] **policy-bot runs on gcp-0 and posts on cloud-native-ref's PRs.** Its OpenBao side is
   cloud-native-ref [#2504](https://github.com/Smana/cloud-native-ref/pull/2504) (the `merge-gate`
@@ -103,7 +105,7 @@ From a cloud-native-ref checkout, `kubectl` on the factory's cluster
 
 | # | Check | How |
 |---|---|---|
-| P1 | The factory runs Maku `v0.14.0` or later | cloud-native-ref pins ai-native-ref `v0.1.5` or later, and the pod runs that tag: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/agent-factory:v0.15.3@sha256:98e5…` at pin `v0.1.17` |
+| P1 | The factory runs Maku `v0.14.0` or later | The pod runs the tag `tooling/base/agent-factory/helm-values-configmap.yaml` pins: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/maku-factory:v<x.y.z>@sha256:…` |
 | P2 | The owner's GitHub prerequisites hold | The three boxes above ticked, and the mint test below returns `201` |
 | P2b | The merge gate runs on gcp-0 | [The box above](#the-merge-gate-runs-on-gcp-0) ticked: `policy-bot: main` from `ogenki-merge-gate[bot]` on a cloud-native-ref PR |
 | P3 | The factory is idle on `Smana/cloud-native-ref` | `kubectl get tasks -n agent-system` shows no task outside a final phase (`Done`, `Rejected`, `NoOp`, `Reverted`, `Closed`, `Stopped`) |
@@ -302,7 +304,7 @@ Expected: `verdict="arm", reason="armed"` once for `docs-links`; no `label the m
 | Anything looks wrong, any time | `factory/stop` on the control issue #2188 | The kill switch: every task stops, intake pauses. `factory/revert` is still honoured, but a task already `Stopped` cannot be reverted by the factory |
 | After the merge | `factory/revert` on the PR (Step 5) | The merger's revert PR. If it stalls, `merge.verifyFor` later its auto-merge is turned off: merge or close it by hand |
 | The merge is wrong and the factory is stopped | Revert it yourself (GitHub's **Revert** button) and merge that PR | The breaker cannot see it until you add `factory/revert-of:#<PR>` to it |
-| End the live window at once | Revert the cloud-native-ref pin bump (back to the previous artifact, already verified) | Both classes back in shadow within one Flux reconcile. Back to `v0.1.16`, policy-bot leaves gcp-0 too (it predates #58): cloud-native-ref's gate falls back to `policy_absent`, and ai-native-ref's PRs wait on `policy-bot: main` until a later pin restores it |
+| End the live window at once | Revert the cloud-native-ref pin bump (back to the previous artifact, already verified) | Both classes back in shadow within one Flux reconcile. A pin from before #58 takes policy-bot off gcp-0 too: cloud-native-ref's gate falls back to `policy_absent`, and ai-native-ref's PRs wait on `policy-bot: main` until a later pin restores it |
 
 ## Results
 

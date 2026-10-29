@@ -282,8 +282,8 @@ task escalated as "cannot be done as asked", with no false `met`, and a failing 
 
 **The switch** is the factory's `loops` key, one row per class (`default`, `review`, or a class a
 repository declares). A row that sets any of its three keys switches that class on. No row, or a row
-without them, is today's run (D4). **Only `docs` has a row here**: besides it, the values' `loops` key holds only
-`default: {scope: off}`, which switches nothing on.
+without them, is today's run (D4). **Only `docs` sets them**: `scripts` has a row for its scoper and splitter
+only, and `default: {scope: off}` switches nothing on.
 
 | Key | Default once a row exists | Bounds |
 |---|---|---|

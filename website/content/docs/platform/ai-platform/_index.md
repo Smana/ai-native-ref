@@ -2,7 +2,7 @@
 title: AI Platform
 weight: 50
 description: "Self-hosted model serving and the Agent Factory, which puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
-lastVerified: 2026-10-01
+lastVerified: 2026-10-29
 ---
 
 Two halves, one platform. **Serving** runs open-weights models on the cluster's own GPUs behind an
@@ -10,9 +10,9 @@ OpenAI-compatible gateway. **Agents** put models to work: a labelled issue becom
 run that opens a pull request, under its own identity and in a room humans can watch and steer.
 
 {{< callout type="warning" >}}
-**Serving is off by default, and the agents are a work in progress.** What runs where, what is proven live and what
-is planned lives on one page: [Status and roadmap]({{< relref "/docs/platform/ai-platform/status.md" >}}).
-Every other page here describes the design.
+**Serving is off by default. The Agent Factory's v3 is built and proven live, its release still a draft.**
+What is proven, what is left and what comes next live on one page:
+[Status and roadmap]({{< relref "/docs/platform/ai-platform/status.md" >}}). Every other page describes the design.
 {{< /callout >}}
 
 ## How the parts fit

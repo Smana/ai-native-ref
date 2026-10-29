@@ -2,7 +2,7 @@
 title: Gateways
 weight: 30
 description: "Two gateways, one per kind of caller: ai-gateway for humans and coding clients, the agent gateway for agent runs — identity, routing, and what they share."
-lastVerified: 2026-10-16
+lastVerified: 2026-10-29
 aliases:
   - /docs/platform/ai-platform/gateway-and-routing/
 ---
@@ -188,11 +188,13 @@ flowchart LR
   P -->|".internal JWT"| LI
   P -->|"octo-sts JWT"| LS
   LP -->|"/v1, /anthropic"| Z["Z.ai GLM-5.3<br/>backends zai, zai-anthropic"]
+  LP -->|"/v1, pinned alias only"| KM["Moonshot Kimi · Mistral<br/>public data only"]
+  LI -->|"model route"| A["Claude<br/>Anthropic API"]
   LP -->|"/mcp"| M["agent-mcp<br/>MCP federation"]
   LI -->|"/mcp"| M
   LS -->|"/sts/exchange"| O["octo-sts"]
   M --> T["flux-operator-mcp · mcp-victoriametrics<br/>mcp-victorialogs · room-broker"]
-  agw -.->|"B1, B2 in shadow"| RL["agent-ratelimit"] --> V[("Valkey<br/>xplane-agent-ratelimit")]
+  agw -.->|"B1, B2, B6 enforced"| RL["agent-ratelimit"] --> V[("Valkey<br/>xplane-agent-ratelimit")]
 ```
 
 ### Listeners and data classes
@@ -241,8 +243,9 @@ transformation makes. The rule reads the raw body, so a gzip request with no `x-
 403 too. The identity proxy sets it on every model path, over any value the harness
 sends: the run's alias (the claim's `spec.model`) on `/v1` and `/anthropic`, and the completion
 judge's on `/judge/v1` (`spec.loop.judgeModel`, or `none`, which the rule refuses, when the claim
-names no judge). Every profile lists the four aliases today, so the rule binds nothing until a
-role moves to its own size: narrowing a profile is the switch, and gate AG14 refuses one that would
+names no judge). Every profile lists the four tier aliases, and only the public ones add the
+provider aliases, so on tiers the rule binds nothing until a role moves to its own size: narrowing a
+profile is the switch, and gate AG14 refuses one that would
 refuse a model the factory's tiers pin.
 
 The arguments are generated too. A tool in a profile may read
@@ -275,8 +278,8 @@ human ones (`policy-budgets.yaml`, `ratelimit.yaml`, `kvstore.yaml`):
 They are a backstop: the factory's run meter stays the exact cap, and the gateway never refuses a
 call the factory would admit. Each call is charged at the meter's own prices, so a cache read
 costs its cache rate; gate AG8 holds the gateway's price expression and limits to the factory's
-values. They run in **shadow mode** until the owner flips one flag, `SHADOW_MODE` on the server:
-then a call over budget gets a `429` whose body, `agent_budget_exhausted`, the harness logs
+values. They are **enforced** since 2026-10-18 (`SHADOW_MODE: "false"` on the server): a call over
+budget gets a `429` whose body, `agent_budget_exhausted`, the harness logs
 ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)). The server is `envoyproxy/ratelimit` (`agent-ratelimit`) on the Valkey
 `KVStore` `xplane-agent-ratelimit`; if it is down the router fails open and `AgentRateLimitDown`
 fires. A per-replica backstop of 40M raw tokens per hour per `sub` always enforces, above the largest run

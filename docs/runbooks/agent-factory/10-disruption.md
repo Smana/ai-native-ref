@@ -7,7 +7,7 @@ for Step 7. See [README.md](README.md) for `CLOUD`; run [00](README.md#runbook-0
 
 ## Prerequisites
 
-- `integration/agent-factory` carries `feat/rooms-disruption` and `feat/factory-resume`.
+- The host runs its release pins: the composition reads run pods, the factory sets `resume.maxPerTask`.
 - No `AgentRun` is `Running` when Step 1's pool check is applied (it re-creates the pool's nodes).
 - A test issue on `Smana/cloud-native-ref` that a maintainer may label `factory/ready`.
 
@@ -24,7 +24,7 @@ gcloud container node-pools describe agents-gvisor --cluster gcp-0 --location eu
 kubectl get cm -n agent-system agent-factory-config -o jsonpath='{.data.config\.yaml}' | grep -A1 '^resume:'
 ```
 
-Expected: the `v0.7.2-pr<P>` package; `yes`; a version ≥ `1.35.0-gke.1171000`; `120	15`; `resume:` then `  maxPerTask: 2`.
+Expected: the released crossplane-configuration package the host pins; `yes`; a version ≥ `1.35.0-gke.1171000`; `120	15`; `resume:` then `  maxPerTask: 2`.
 
 **What this proves:** the composition, Crossplane's read of run pods, the pool's window and the cap are live.
 
@@ -78,9 +78,8 @@ _time:30m kubernetes.pod_name:"<RUN>" kubernetes.container_name:"harness" "agent
 Expected: five lines, in order `pause`, `checkpoint`, `final-read`, `stop`, `revoke`; `checkpoint done: pushed a checkpoint commit`;
 `final-read done: {"events": …, "unmirrored": 0, …}`; the five durations sum under 15 s. Record each duration.
 
-A node that shuts down (Step 3's preemption, Step 7's FIS) can take its log shipper with it before the last lines ship: on
-aws-0, 2026-10-07, VictoriaLogs ended 4 s before the run's shutdown began, as Vector ran at priority 0
-([#2242](https://github.com/Smana/cloud-native-ref/pull/2242) makes it node-critical). Capture the harness log live before you
+A node that shuts down (Step 3's preemption, Step 7's FIS) can take its log shipper with it before the last lines ship
+(seen on aws-0 with Vector at priority 0; [#2242](https://github.com/Smana/cloud-native-ref/pull/2242) makes it node-critical). Capture the harness log live before you
 disrupt the node, and read the five lines from that file:
 
 ```bash

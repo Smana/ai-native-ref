@@ -3,7 +3,8 @@
 Cluster-scoped objects come from `inventory.sh` diffs against `inventory-before.txt`, taken before
 any write. Namespaced ones live only in `ate-system`, `podcertificate-controller-system` and
 `substrate-spike`, and go with them. Objects the cluster derives (pods, ReplicaSets,
-CiliumEndpoints, PolicyReports, `default` ServiceAccounts, `kube-root-ca.crt`) are not listed.
+CiliumEndpoints, PolicyReports, `default` ServiceAccounts, `kube-root-ca.crt`) are not listed. The
+teardown was done on 2026-10-18.
 
 ## Outside the cluster
 

@@ -2,7 +2,7 @@
 title: Decisions
 weight: 60
 description: The AI platform's architecture decision records — what was chosen, and what it was chosen over.
-lastVerified: 2026-10-16
+lastVerified: 2026-10-29
 ---
 
 The records behind the AI platform: serving, the Agent Factory and the split from its host. They

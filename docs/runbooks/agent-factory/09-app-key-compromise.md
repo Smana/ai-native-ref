@@ -10,14 +10,14 @@ prerequisites.
 |---|---|---|---|
 | `ogenki-agents` | `agents/github-app` | octo-sts (`octo-sts-github-app`, `agent-system`) | push `agent/**`, open and comment on PRs |
 | `ogenki-agent-factory` | `agents/factory-app` | the factory (`agent-factory-github`) and the broker (SP2 P31), `agent-system` | comment, label and edit issues and PRs |
-| `ogenki-agent-merger` | `agents/merger-app` | the factory only (`agent-factory-merger`, `agent-system`) | after Task 10.7, merge any PR with 8 green checks and `policy-bot: main` `success`, and push `revert-*` and `agent/**` (R16); before it, push `agent/**` only |
+| `ogenki-agent-merger` | `agents/merger-app` | the factory only (`agent-factory-merger`, `agent-system`) | merge any PR with 8 green checks and `policy-bot: main` `success`, and push `revert-*` and `agent/**` (R16) |
 | `ogenki-merge-gate` | `merge-gate/policy-bot` | policy-bot (`policy-bot`, `merge-gate`) | post `policy-bot: main` `success` on any PR, so the gate stops meaning anything once `agent-merge-gate` is applied |
 
 ## Procedure, for any row
 
 1. **Stop.** Suspend the installation (`https://github.com/settings/installations` → the App →
    Suspend): every installation token fails at once. For the agents' App this is also the kill
-   switch's GitHub layer (Task 8.4 Step 5).
+   switch's GitHub layer.
 2. **Rotate.** In the App's settings, generate a new private key, then
    `bao kv patch -mount=<mount> <key> private_key=@<new>.pem && shred -u <new>.pem`, with the table's
    `<mount>/<key>` (`patch` keeps policy-bot's other fields).

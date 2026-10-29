@@ -99,14 +99,20 @@ Sources and the full record: [status](https://airef.ogenki.io/docs/platform/ai-p
 
 ## Status and roadmap
 
-**v3 is live on `gcp-0` as of 2026-10-29** (Maku v0.30.3, ai-native-ref v2.8.15). It aims at more accepted
-pull requests per dollar by shaping the task, not by changing the model. A scoper bounds each issue or
-asks its author; a test-first tester writes the contract; the implementer runs the repository's checks in the
-sandbox and asks a read-only search tool; a completion judge reads the result against its checks. Work arrives
-from a label, Slack, your coding agent (Claude Code, OpenCode) or RunLore, whose incidents come back as verified
-fixes. Capability profiles, cache alerts, spend per identity, the splitter, and Kimi and Mistral for public work
-are live; more auto-merge classes are built, in shadow. Every line, with its
-evidence and runbook: [status page](https://airef.ogenki.io/docs/platform/ai-platform/status/#roadmap).
+**v3 is built**: Maku v0.31.0 (CRD group `maku.ogenki.io`), ai-native-ref v2.8.18. The v3.0.0
+release is still a draft. v3 aims at more accepted pull requests per dollar by shaping the task, not
+by changing the model. A scoper bounds each issue or asks its author; a test-first tester writes the
+contract; the implementer runs the repository's checks in the sandbox and asks a read-only search
+tool; a completion judge reads the result against its checks; a splitter proposes parts for a task
+too big for one pull request. Work arrives from a label, Slack, your coding agent (Claude Code,
+OpenCode) or RunLore, whose alerts come back as verified fixes.
+
+All of it was proven live on `gcp-0` from 2026-10-27 to 2026-10-29, with capability profiles and
+Kimi K3.1 Pro for public work; Mistral works through the gateway but is not recommended as an
+implementer. `gcp-0` was torn down on 2026-10-29; the next session bootstraps fresh. Auto-merge is
+live for Markdown link fixes only; `dead-links` and `deps-patch` run in shadow, `deps-minor` in
+observe. Every line, with its evidence and runbook:
+[status page](https://airef.ogenki.io/docs/platform/ai-platform/status/#roadmap).
 
 We are **on the road to a dark factory**, one proven lane at a time: today a human writes the issue
 and approves the merge for most work, and one class ships with no human at all. What that means and
@@ -147,8 +153,8 @@ images. Installing on any Kubernetes cluster without that host is on the roadmap
 | `clusters/<cluster>-{ai-gateway,llm-platform,agent-platform}/` | The children of each of the host's three opt-in umbrellas |
 | `infrastructure/`, `security/`, `tooling/`, `observability/`, `apps/` | What those children apply |
 | `flux/sources/` | The AI-owned Flux sources, applied by the `ai-sources` child |
-| `website/` | The docs site, [airef.ogenki.io](https://airef.ogenki.io/), and the AI ADRs (the next is 0059) |
-| `scripts/ops/`, `scripts/docs/` | Maku ops: `task agent:run`, `task agentgateway:live-check`, `task factory:walkthrough`, the identity probe, the cohort sheet |
+| `website/` | The docs site, [airef.ogenki.io](https://airef.ogenki.io/), and the AI ADRs (the next is 0060) |
+| `scripts/ops/`, `scripts/docs/` | Factory ops: `task agent:run`, `task agentgateway:live-check`, `task factory:walkthrough`, the identity probe, the cohort sheet |
 | `docs/` | Runbooks, specs and plans, and the drawio sources of the diagrams |
 
 ## Turning it on in a cluster

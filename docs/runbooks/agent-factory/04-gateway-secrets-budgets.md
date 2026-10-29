@@ -4,7 +4,7 @@ Two independent gateways are in scope here. **Part A (SP1)** proves that no prov
 in namespace `agents`, and that the `agents-secrets` OpenBao role reads the `agents` mount and
 nothing else — plus the `internal`-listener half of SC-17 (an `internal` run has no route to Z.ai
 at all), and that the agents' budgets B1–B2 count on agentgateway's own rate-limit server.
-**Part D** turns those budgets from counting to refusing, behind one flag, refusing since 2026-10-18.
+**Part D** turns those budgets from counting to refusing, behind one flag (refusing in the source).
 **Part B (SP4 PR 1)** proves the human/system Gateway's frontier route answers real chat
 requests, its token usage is counted (in shadow mode, nothing is rejected on the real route), and a
 route-level rate-limit policy actually fires a 429 when its bucket is exhausted — the mechanism
@@ -32,8 +32,6 @@ kubectl get secretstore -n agent-system agents-secrets -o jsonpath='{.status.con
 kubectl get externalsecret -n agent-system agents-zai-api-key -o jsonpath='{.status.conditions[0].reason}{"\n"}'
 ```
 
-> Corrected 2026-09-27: `flux get kustomization` only reads the first positional name; list-then-grep.
-
 Expected: both `Ready=True`; `True`; `SecretSynced` (needs owner action 2).
 
 ### Step 2 — the gateway-name label exists (both data-plane CNPs depend on it)
@@ -55,9 +53,8 @@ session is meaningless until it's fixed.
 
 ### Step 3 — SC-10: no key in `agents`, and the store's reach
 
-> Note: the OpenBao capability probe (`bao write auth/jwt/$CLOUD-0/login ...`) mints a live OpenBao
-> token via a `bao write` call. This session's rules forbid any write to OpenBao, so this half of
-> the step is not run here — the owner must run it (see the Results table).
+> The OpenBao capability probe (`bao write auth/jwt/$CLOUD-0/login ...`) mints a live OpenBao token:
+> the owner runs this half, never an agent.
 
 ```bash
 kubectl get secrets -n agents -o name | grep -vx secret/room-broker-ca | wc -l
@@ -101,12 +98,11 @@ curl -sS --cacert opentofu/$CLOUD/openbao/management/.tls/ca.pem https://vl.priv
   'query=kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"agent-router" _time:15m | unpack_json | log.x_ar_agent:"system:serviceaccount:agents:agent-probe" AND log.http.path:~"chat/completions" | stats by (log.http.status, log.route) count() hits'
 ```
 
-Expected: `internal chat 404` — the Z.ai route (`agentgateway-models` in
-`infrastructure/base/agent-gateway/llm.yaml`) attaches to the `public` listener only; `internal` is served by the direct Anthropic API (key in OpenBao,
-gateway-injected; ADR-0054) once the agentgateway migration's phase I lands, with Bedrock/Vertex
-optional per cloud. The internal route does not exist on this cluster yet. In
-VictoriaLogs, a `404` row with an empty `log.route` and no row naming `agentgateway-models` (verify on
-next run: the empty-route form is not yet recorded on agentgateway).
+Expected: no VictoriaLogs row for the probe names `agentgateway-models`. The Z.ai route
+(`agentgateway-models` in `infrastructure/base/agent-gateway/llm.yaml`) attaches to the `public`
+listener only; `internal` is served by the Anthropic API directly (`anthropic.yaml`, key in OpenBao,
+gateway-injected; ADR-0054). Verify on next run: the `internal chat` status code is not yet recorded
+since the Anthropic route landed (it was `404` while `internal` had no route).
 
 **What this proves:** SC-17 (listener half) — an `internal`-class run has no path to Z.ai whatsoever,
 structurally (the route doesn't exist on that listener), not just by audience mismatch.
@@ -266,8 +262,8 @@ kubectl delete btp -n llm-gateway zz-budget-marker-probe --ignore-not-found
 as `maku_factory_run_revocations_total{reason="budget-principal-shadow", principal}`
 ([Maku: per-person caps](https://github.com/Smana/maku/blob/main/docs/factory.md#per-person-caps)).
 `AgentPersonCapShadowRefusal` (info) fires on each one. Turning on `enforcePrincipal` refuses on
-the person's day **and** on the fleet's, so both count. Since Maku v0.16.0 (#168), pinned here at v0.17.1, the days are in
-USD (`budgets.humanDailyUSD`, $8.50 a person), so the week's record starts again, in dollars.
+the person's day **and** on the fleet's, so both count. Since Maku v0.16.0 (#168) the days are in
+USD (`budgets.humanDailyUSD`, $8.50 a person).
 
 ### Step 1 — attribution is on
 
@@ -297,8 +293,8 @@ The query, decoded: `sum by (principal) (increase(maku_factory_run_revocations_t
 The gateway's budgets are a backstop under the factory's own caps: they hold if the factory
 misbehaves, and they never refuse a call the factory would admit. One flag turns them from
 counting to refusing: `SHADOW_MODE` on the `agent-ratelimit` Deployment
-(`infrastructure/base/agent-gateway/ratelimit.yaml`). It is `"false"` in the source since
-2026-10-18 ([#65](https://github.com/Smana/ai-native-ref/pull/65)), so a rebuild refuses too. No
+(`infrastructure/base/agent-gateway/ratelimit.yaml`). It is `"false"` in the source
+([#65](https://github.com/Smana/ai-native-ref/pull/65)), so a rebuild refuses too. No
 descriptor sets its own `shadow_mode` (gate AG8), so the flip is one line.
 
 | Bucket | Key | Limit per day (reference tokens, $1.70/M) | The factory's cap it sits above |
@@ -343,7 +339,7 @@ always refuses and uses the same body). A provider's own `429` keeps its body an
 kubectl get deploy -n agent-gateway agent-ratelimit -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="SHADOW_MODE")].value}{"\n"}'
 ```
 
-Expected: `false`, since 2026-10-18.
+Expected: `false`.
 
 ### Step 2 — the shadow record
 
@@ -419,13 +415,13 @@ for internal runs and neither alert fires. The drill (a run that sends no marker
 
 ## Part F — daily caps in dollars, the switch day
 
-From Maku v0.16.0 (#168), pinned here at v0.17.1, the factory's daily caps count dollars at `meter.prices`
+From Maku v0.16.0 (#168) the factory's daily caps count dollars at `meter.prices`
 ([truthful costs](../../superpowers/specs/2026-10-22-truthful-costs-design.md), TC5 to TC9). One
 ConfigMap per UTC day, `agent-factory-ledger-usd-<YYYYMMDD>`, holds `spent` (principal → micro-USD),
 `reserved.<runId>` (`maxMicroUSD`) and `settled.<runId>` (the micro-USD charged to that run that
 day). The first day starts at $0: nothing is carried over from the token ledger. Offline, `task
 check` holds the values, gates AG8 and AG10 and the alert (`test-agent-factory-budget-alerts`).
-These steps are the live half, for the first platform session on the release. Not run yet.
+These steps are the live half; no live run is recorded yet.
 
 ### Step 1 — the factory reads the USD keys
 

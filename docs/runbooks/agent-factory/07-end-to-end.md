@@ -20,8 +20,8 @@ ideally 01–06 first (they de-risk the pieces this one composes).
 kubectl get composition xagentruns.cloud.ogenki.io -o yaml | grep -o 'ghcr.io/smana/agent-harness:[^@"]*' | sort -u
 ```
 
-Expected: one line, the harness released by Maku. At crossplane-configuration `v0.9.15` that is
-`ghcr.io/smana/agent-harness:v0.15.2`.
+Expected: one line, `ghcr.io/smana/agent-harness:v<x.y.z>`: the harness of a Maku release, pinned by
+digest in the crossplane-configuration release the host runs.
 
 ## Step 2 — SC-04: an implementer run ends in a PR within 30 minutes
 
@@ -57,7 +57,7 @@ LONG=$(task agent:run -- --role implementer --class public \
 kubectl wait -n agents agentrun/$LONG --for=jsonpath='{.status.phase}'=Running --timeout=15m
 ```
 
-The factory now sizes the run: a run started with `task agent:run` belongs to no task, carries no
+The factory sizes the run: a run started with `task agent:run` belongs to no task, carries no
 tier, and runs for a fixed 120 minutes (SP3 §R47) — not a requested duration, so time Step 3's
 checks against that.
 

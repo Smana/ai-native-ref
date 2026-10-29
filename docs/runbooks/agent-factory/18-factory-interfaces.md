@@ -5,9 +5,10 @@ that files tasks through intake `api`), the broker's signed webhooks, and the Sl
 (`factory-slack-app`). The webhooks are a shared switch: a second subscriber, RunLore, is switched on by
 [runbook 20](20-runlore-agent-to-agent.md). Design:
 [factory interfaces](../../superpowers/specs/2026-10-21-factory-interfaces-design.md).
-Everything ships off (D4): no cluster lists the App, no config declares a principal or a subscriber, and
-`tooling/base/agent-factory/slack-app/` and `tooling/gcp-0/agent-factory/slack-app/` are applied by nothing.
-A session declares the switches in gcp-0's own copies and removes them after. See [README.md](README.md)
+The switch-on is merged: gcp-0's own copies declare the principal, the webhooks and the App
+(`clusters/gcp-0-agent-platform/tooling-factory-slack-app.yaml`), and the host carries the
+`factory-slack` listener (HOST-CONTRACT H4), so a fresh gcp-0 bootstrap brings them up. Sections 3
+and 4 record what the switch-on changed; section 8 turns it off (D4). See [README.md](README.md)
 for `CLOUD`.
 
 ```mermaid
@@ -43,8 +44,8 @@ flowchart LR
 - [ ] **[OWNER]** Noted: the team id (`T…`), the served channel ids (`C…`), the owner's Slack user id
   (`U…`) and the bot's `U…` user id (the App's page, "App Home", or `auth.test` with the bot token
   returns `user_id`).
-- [ ] **[OWNER]** The Slack keys are in the store ([runbook 14](14-gcp-0-session.md#5-owner-the-agents-keys-once-per-gcp-lineage)):
-  `bao kv put -mount=agents factory-slack-app bot-token=- signing-secret=- bot-user-id=<U…>`.
+- [ ] **[OWNER]** The Slack keys are in the store, `agents/factory-slack-app`: one JSON document on
+  stdin, [runbook 22 §2](22-slack.md#2-owner-store-the-keys-in-openbao).
 
 ## 2. The token: go or no-go for everything below
 

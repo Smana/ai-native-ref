@@ -89,7 +89,7 @@ flowchart LR
   10 newer `docs-links` merges by maintainers push it out of the window. No `would-arm` comment, and so
   no tally progress for G4, until then. After a rebuild only labelled merges count, so the pause lasts
   until 10 merges made after the rebuild.
-- **Live means `{live: true}`.** `{}` is "neither": a label only, the gate hands off `class_unarmed` (`class_mismatch` before agent-platform v0.28.1).
+- **Live means `{live: true}`.** `{}` is "neither": a label only, the gate hands off `class_unarmed` (`class_mismatch` before Maku v0.28.1).
 - **Both classes go live in one commit** (D5): a live class with a shadow `revert` would wait for a
   human to merge its own revert.
 - **A missing App grant stops every merger call.** Once a class is live, the factory asks the
@@ -103,7 +103,7 @@ From a cloud-native-ref checkout, `kubectl` on the factory's cluster
 
 | # | Check | How |
 |---|---|---|
-| P1 | The factory runs agent-platform `v0.14.0` or later | cloud-native-ref pins ai-native-ref `v0.1.5` or later, and the pod runs that tag: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/agent-factory:v0.15.3@sha256:98e5…` at pin `v0.1.17` |
+| P1 | The factory runs Maku `v0.14.0` or later | cloud-native-ref pins ai-native-ref `v0.1.5` or later, and the pod runs that tag: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/agent-factory:v0.15.3@sha256:98e5…` at pin `v0.1.17` |
 | P2 | The owner's GitHub prerequisites hold | The three boxes above ticked, and the mint test below returns `201` |
 | P2b | The merge gate runs on gcp-0 | [The box above](#the-merge-gate-runs-on-gcp-0) ticked: `policy-bot: main` from `ogenki-merge-gate[bot]` on a cloud-native-ref PR |
 | P3 | The factory is idle on `Smana/cloud-native-ref` | `kubectl get tasks -n agent-system` shows no task outside a final phase (`Done`, `Rejected`, `NoOp`, `Reverted`, `Closed`, `Stopped`) |
@@ -244,7 +244,7 @@ Expected:
 - the revert PR is authored by the merger App, titled `Revert "…"`, its body `Reverts #<PR> (agent factory task …)`;
 - it carries `factory/revert-of:#<PR>`, and native auto-merge is on (the `revert` class is live);
 - it ends `MERGED` by the merger once its required checks are green (and `policy-bot: main`, where
-  the `agent-merge-gate` ruleset requires it). Before agent-platform `v0.15.6` it stays `BLOCKED`
+  the `agent-merge-gate` ruleset requires it). Before Maku `v0.15.6` it stays `BLOCKED`
   ([finding 5](#findings)): merge it by hand;
 - the control issue #2188's newest comment: "an auto-merge of `docs-links` was reverted … goes to human review".
 
@@ -308,9 +308,9 @@ Expected: `verdict="arm", reason="armed"` once for `docs-links`; no `label the m
 
 ### 2026-10-18 (afternoon), gcp-0: G2 and G3
 
-ai-native-ref `v0.1.19`, agent-factory `v0.15.5` (agent-platform #154 and #157), both classes
+ai-native-ref `v0.1.19`, agent-factory `v0.15.5` (Maku #154 and #157), both classes
 `{live: true}`, `autoMergesPerDay: 1`. G2 passes unattended. G3 passes on every check except the
-revert's own merge, which waits on agent-platform [#158](https://github.com/Smana/agent-platform/pull/158)
+revert's own merge, which waits on Maku [#158](https://github.com/Smana/maku/pull/158)
 ([finding 5](#findings)). Step 6 is not run: the owner keeps both classes live at one merge a day,
 and #66 is closed.
 
@@ -357,19 +357,19 @@ now `/reference/api-types/httproute/`, 200).
 2. **R02 compares the full head SHA, and the handoff carried a short one.** The implementer's
    `room_handoff` reported `c3119614`; the gate compares it with the PR's 40-character head exactly,
    and the tool schema allowed `^[0-9a-f]{7,40}$`. The finished run could not hand off again, so the
-   hold was final. Fixed in agent-platform
-   [#154](https://github.com/Smana/agent-platform/pull/154) (`room_handoff` and `room_verdict`
+   hold was final. Fixed in Maku
+   [#154](https://github.com/Smana/maku/pull/154) (`room_handoff` and `room_verdict`
    require the full 40-hex SHA), released in `v0.15.4`.
 3. **R52 read the base at `main`'s tip, not the merge base.** When #2508 merged during the drill, a
    later PR's diff was read against a base that already held #2508's change, so `LinksOnly` saw lines
-   the PR never touched. Fixed in agent-platform [#157](https://github.com/Smana/agent-platform/pull/157):
+   the PR never touched. Fixed in Maku [#157](https://github.com/Smana/maku/pull/157):
    `Files` reads the base at the merge-base commit. Released in `v0.15.5`.
 4. **R52's code-fence scan never left a fence.** `fencesOf` kept its in-fence state after a closing
    fence, so every link below a code block read as code. Fixed in the same #157.
 5. **Native auto-merge never fires on a revert.** `agent-merge` restricts updates to `main` to its
    bypass actors, so GitHub reads every PR as `BLOCKED` and native auto-merge waits forever. The
    forward merge is unaffected: the merger merges at the decided head through its bypass. Fixed in
-   agent-platform [#158](https://github.com/Smana/agent-platform/pull/158): the revert watch merges a
+   Maku [#158](https://github.com/Smana/maku/pull/158): the revert watch merges a
    green revert the same way, and native auto-merge stays armed as the fallback for a factory that is
    down. Proven offline (`TestAGreenRevertIsMergedAtItsHead`); live at the next revert.
 

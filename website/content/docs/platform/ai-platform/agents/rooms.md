@@ -1,7 +1,7 @@
 ---
 title: Rooms
 weight: 20
-description: "Work in progress. The shared, append-only log of a task: the broker, the bridge, the web view, steering, room tools, approvals, and roomctl."
+description: "Work in progress. The shared, append-only log of a task: the broker, the bridge, the web view, steering, room tools, approvals, and maku."
 lastVerified: 2026-10-08
 ---
 
@@ -10,7 +10,7 @@ handoffs between roles. Humans watch it live, post into it and steer the running
 collaborate through it, never by prompting each other. This page describes the design; what runs
 today is on the [status page]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}).
 
-![Rooms. A developer's browser reaches the web view through oauth2-proxy and ZITADEL single sign-on; roomctl offers the same room from a terminal. Both talk to the room-broker, which keeps each task's append-only log in PostgreSQL through CloudNativePG, with LISTEN/NOTIFY fanning new entries out to every broker replica. In each agent run, the room-bridge sidecar polls the harness and streams its events to the broker over TLS with a room token only it holds, and carries steering back. The agents' room tools reach the broker through the agent gateway. The broker posts a reviewer's verdict on the GitHub pull request](/images/diagrams/ai-platform-4.svg)
+![Rooms. A developer's browser reaches the web view through oauth2-proxy and ZITADEL single sign-on; maku offers the same room from a terminal. Both talk to maku-broker, which keeps each task's append-only log in PostgreSQL through CloudNativePG, with LISTEN/NOTIFY fanning new entries out to every broker replica. In each agent run, the maku-bridge sidecar polls the harness and streams its events to the broker over TLS with a room token only it holds, and carries steering back. The agents' room tools reach the broker through the agent gateway. The broker posts a reviewer's verdict on the GitHub pull request](/images/diagrams/ai-platform-4.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 4.*
 
@@ -23,7 +23,7 @@ today is on the [status page]({{< relref "/docs/platform/ai-platform/status.md#l
 | Room bridge | A native sidecar in each run that joins a room | Polls the harness and streams its events to the broker over TLS, with a room token only it holds | The harness never talks to the broker, and never holds the room token |
 | Web view | A small TypeScript UI behind oauth2-proxy and [ZITADEL](https://zitadel.com) SSO | Watch a room live, post or queue a message, steer or interrupt the run, hand to another role, approve an action | Single sign-on with the platform's identity provider; no framework, strict content security policy |
 | Room tools | MCP tools served by the broker, through the agent router | Let agents read the room, post, hand over to another role, or record a verdict | Agents collaborate through the log, never by prompting each other |
-| `roomctl` | A CLI | The same room from a terminal | For people who live in the shell |
+| `maku` | A CLI | The same room from a terminal | For people who live in the shell |
 
 ## Steering, approvals and forks
 

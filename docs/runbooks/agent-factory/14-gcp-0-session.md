@@ -1,6 +1,6 @@
 # 14 — The gcp-0 session: a full test, then v2 and v2.1 on GCP
 
-This is an ordered checklist for bringing `gcp-0` up **alone** and running the agent factory on it. aws-0 is torn down.
+This is an ordered checklist for bringing `gcp-0` up **alone** and running the Agent Factory on it. aws-0 is torn down.
 Owner steps are marked **[OWNER]**. Everything else can be done by an agent holding the
 kubeconfig.
 
@@ -39,7 +39,7 @@ flowchart TD
 | 0.2 | **[OWNER]** The CPU quota fits the platform (sizing below) | `gcloud compute project-info describe --project ogenki-435905 --flatten=quotas --filter='quotas.metric=CPUS_ALL_REGIONS' --format='value(quotas.limit,quotas.usage)'` and `gcloud compute regions describe europe-west4 --project ogenki-435905 --flatten=quotas --filter='quotas.metric:(CPUS N2_CPUS E2_CPUS)' --format='table(quotas.metric,quotas.limit,quotas.usage)'` |
 | 0.3 | **[OWNER]** Shell inputs | `export TF_VAR_tailscale_api_key=…`, plus AWS credentials for `opentofu/shared/*` (state, Route53 federation) |
 | 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Required for the agent platform: `zitadel-github-idp`. Without it the deploy skips the GitHub link IdP and so never writes `room-broker-zitadel-reader`, the broker's link reader. It was absent on 2026-10-17. Optional: `github-gha-runner-scale-set-default` (GHA runners only) |
-| 0.5 | cloud-native-ref pins the releases under test, and the pin carries the gcp-0 fixes. These fixes are the factory's IdP egress, the warm headroom and the RunLore intake. ai-native-ref v0.1.9 carries them | `flux/sources/ocirepo-ai-native-ref.yaml` tag `v0.1.9`; agent-platform v0.15.2; crossplane-configuration v0.9.15 |
+| 0.5 | cloud-native-ref pins the releases under test, and the pin carries the gcp-0 fixes. These fixes are the factory's IdP egress, the warm headroom and the RunLore intake. ai-native-ref v0.1.9 carries them | `flux/sources/ocirepo-ai-native-ref.yaml` tag `v0.1.9`; Maku v0.15.2; crossplane-configuration v0.9.15 |
 | 0.6 | Optional, decided now: serve the Substrate spike's APIs | `TF_VAR_enable_pod_certificate_apis=true` on step 3. It is safe to turn on later, but turning it off later replaces the cluster. It needs a control plane on 1.35 or later: `gcloud container get-server-config --zone europe-west4-a --format='yaml(channels)'`. On 2026-10-17 STABLE was 1.35.6 and REGULAR 1.36.4, so either qualifies |
 
 ### CPU sizing
@@ -178,7 +178,7 @@ optional until the App is switched on ([runbook 18](18-factory-interfaces.md)).
 ### Feature 15 providers, a smoke through the gateway
 
 Once the two keys are seeded, with a public run's token (the identity proxy's `x-ar-model` pin is
-what routes; no class names these aliases yet, because `loops.<class>.models` waits on agent-platform):
+what routes; no class names these aliases yet, because `loops.<class>.models` waits on Maku):
 
 ```bash
 # GW = the public listener's address inside the cluster; TOKEN = a public role's run token
@@ -231,7 +231,7 @@ fails a CNP that lacks it.
 | # | Blocker | What proves it closed | Scripted |
 |---|---|---|---|
 | 7.1 | The factory reaches the identity provider over GKE's network. Its CNP's IdP rule is replaced by a portless `toEntities: [all]`, as the broker's and rooms-proxy's already are. **Passed on 2026-10-17** (`gcp-0-v21-checks.sh`, 20:11 UTC) | The factory pod runs on a node with no ZITADEL pod; a co-located pod succeeds under any policy. Its log has `agent-factory starting`: the human verifier is eager, so that line follows the JWKS fetch, and a failed fetch exits with `initial JWKS fetch`. The live CNP carries the portless rule. The broker's `rooms_authn_jwks_last_refresh_timestamp_seconds` for the IdP is under 6 h old, and neither `RoomAuthnJWKSStale` nor `RoomAuthnHumanIssuerNeverFetched` fires | Yes |
-| | | A `roomctl` call to the run-request API (`:8082`) is accepted | No: the owner's human token |
+| | | A `maku` call to the run-request API (`:8082`) is accepted | No: the owner's human token |
 | 7.2 | The E2 quota allows its nodes (sizing above). **Passed on 2026-10-17**: one node at go-live, two at 21:16 UTC under a forced preemption (a 5.6-vCPU stand-in for a `large` run, since the factory sizes every run `small`) | `agents-gvisor` holds the headroom pod at 1 node, then 2 for a `large` run. There is no `FailedScaleUp` or quota event, and no gVisor node outside `agents-gvisor` (the `nap-e2-standard-4` fallback). Events live about 1 h: run it right after the scale-up | Yes |
 
 ## 8. The full test: runbook 11 on gcp-0

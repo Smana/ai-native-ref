@@ -1,7 +1,7 @@
 ---
 title: AI Platform
 weight: 50
-description: "Self-hosted model serving and the agent factory that puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
+description: "Self-hosted model serving and the Agent Factory, which puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
 lastVerified: 2026-10-01
 ---
 

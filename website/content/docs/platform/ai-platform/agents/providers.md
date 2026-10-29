@@ -6,9 +6,11 @@ lastVerified: 2026-10-29
 ---
 
 Every run asks for `agent-default` unless its class picks otherwise: GLM-5.3 on Z.ai for public work,
-Claude for internal work. Two more providers are **built and deployed, for public data only**, and
-selectable per class. Nothing changes by default. Their live run is in progress (2026-10-29): see the
-[status page]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}}).
+Claude for internal work. Two more providers are **live, for public data only**, and selectable per class. Nothing changes by
+default. Proven on 2026-10-29 ([status page]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}})):
+a reviewer on Kimi and an implementer on Mistral Medium, each run's cost matching the gateway's within 1%.
+Mistral works but is **not recommended as an implementer yet**: its one live run spent its whole token
+budget (4.8M tokens) on a 5-line docs change.
 
 | Alias | Model | Tier | Processed in |
 |---|---|---|---|
@@ -25,7 +27,9 @@ list their aliases, and the factory applies a class's choice to public tasks onl
 
 ## Switch a class on
 
-One key on the class's `loops` row, in `tooling/base/agent-factory/helm-values-configmap.yaml`:
+`loops.<class>.models` is permanent; the rows that name a provider are not. The owner turns one on for a
+live session and off after it (the `docs` row's `models` of 2026-10-29 is removed by
+[#218](https://github.com/Smana/ai-native-ref/pull/218)). One key on the class's `loops` row, in `tooling/base/agent-factory/helm-values-configmap.yaml`:
 `models.<role>.<tier>` is the alias that role runs on for a public task of that tier.
 
 ```yaml
@@ -39,6 +43,11 @@ loops:
 | A role or tier without an entry keeps today's model | No default changes |
 | `loops.<class>.judge` may name `mistral-light` | The judge's field is already an alias |
 | Each run is priced at the provider's list price, cache reads included (`meter.prices`) | The run's dollar cap and spend per identity stay true |
+
+**Mistral reasons with `reasoning_effort: "none"`.** agentgateway v1.6.0 parses a Chat Completions
+message's `content` as a string only, and Mistral answers with a list of chunks when it reasons, so the
+`mistral` backend forces `reasoning_effort` to `"none"` (`infrastructure/base/agent-gateway/mistral.yaml`).
+Kimi is unaffected.
 
 A run never switches model mid-conversation, and there is no failover to another provider: a
 provider's 429 ends the run, as Z.ai's does.

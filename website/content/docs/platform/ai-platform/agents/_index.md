@@ -8,7 +8,7 @@ aliases:
 ---
 
 {{< callout type="info" >}}
-**v1 shipped on 2026-10-08, v2.0 on 2026-10-18; v3's features are live on `gcp-0` as of 2026-10-29** (Maku v0.30.2):
+**v1 shipped on 2026-10-08, v2.0 on 2026-10-18; v3's features are live on `gcp-0` as of 2026-10-29** (Maku v0.30.3):
 a labelled issue, a Slack thread, your coding agent or RunLore starts a task; a scoper bounds it, a tester writes
 its contract, the implementer checks its work in the sandbox, a judge reads it against its checks, and a reviewer
 gives its verdict. A human merges, except a link fix, which the merge gate merges on its own. Runs are metered,

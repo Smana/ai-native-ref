@@ -39,6 +39,8 @@ sequenceDiagram
 | React to a fix that did not hold | `persisting` labels the pull request `factory/monitor:regression`, opens a follow-up stub, and pauses the class like any other regression; clear the pause as for any class |
 
 The investigation stays internal: it runs on Claude, read-only, and starts no public work until a
-maintainer labels the proposal. The `persisting` case's own live proof is runbook 20's live 5.
+maintainer labels the proposal. The `persisting` case's own live proof is runbook 20's live 5. RunLore's link to the factory is a
+session switch: the owner turns it on for a live session and off after it
+([cloud-native-ref#2643](https://github.com/Smana/cloud-native-ref/pull/2643)).
 Operator steps, keys and proofs:
 [runbook 20](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/20-runlore-agent-to-agent.md).

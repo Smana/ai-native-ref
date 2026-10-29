@@ -99,13 +99,13 @@ Sources and the full record: [status](https://airef.ogenki.io/docs/platform/ai-p
 
 ## Status and roadmap
 
-**v3 is live on `gcp-0` as of 2026-10-29** (Maku v0.30.2, ai-native-ref v2.8.13). It aims at more accepted
+**v3 is live on `gcp-0` as of 2026-10-29** (Maku v0.30.3, ai-native-ref v2.8.15). It aims at more accepted
 pull requests per dollar by shaping the task, not by changing the model. A scoper bounds each issue or
 asks its author; a test-first tester writes the contract; the implementer runs the repository's checks in the
 sandbox and asks a read-only search tool; a completion judge reads the result against its checks. Work arrives
 from a label, Slack, your coding agent (Claude Code, OpenCode) or RunLore, whose incidents come back as verified
-fixes. Capability profiles, cache alerts and spend per identity are live. The splitter, more auto-merge classes
-(in shadow) and Kimi and Mistral for public work are built, their live proofs pending. Every line, with its
+fixes. Capability profiles, cache alerts, spend per identity, the splitter, and Kimi and Mistral for public work
+are live; more auto-merge classes are built, in shadow. Every line, with its
 evidence and runbook: [status page](https://airef.ogenki.io/docs/platform/ai-platform/status/#roadmap).
 
 We are **on the road to a dark factory**, one proven lane at a time: today a human writes the issue

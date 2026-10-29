@@ -8,7 +8,7 @@ aliases:
 ---
 
 {{< callout type="info" >}}
-**Live on `gcp-0` for two public repositories, with v3's features as of 2026-10-29 (Maku v0.30.2):** you label, or
+**Live on `gcp-0` for two public repositories, with v3's features as of 2026-10-29 (Maku v0.30.3):** you label, or
 file from Slack or your coding agent; the agents work; you review and merge. The merge gate is live for link fixes: it merges them with no human,
 at most once a day. The task below ran on 2026-10-07, before v1's release. What has landed, and what
 comes next, is on the
@@ -365,7 +365,7 @@ applies the factory's own rule to every note.
 
 ## When the factory proposes a split {#split}
 
-With the splitter on for a class (`scripts` today, beside the scoper; its live proof is pending), a hard issue may
+With the splitter on for a class (`scripts` today, beside the scoper; proven live on 2026-10-29), a hard issue may
 come back with a plan instead of a run: two to four parts, each with its own acceptance checks. The
 factory comments on the issue with the plan, labels it `factory/split-proposed` and waits. No part
 exists yet.

@@ -70,7 +70,8 @@ them red on the base, signs the commit and pushes it, or answers once (`not_test
 nothing. The implementer that follows cannot commit a change to those files, and is told when they
 still fail. The model itself never pushes. Proven live on 2026-10-29, the `not_testable` case
 included ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)).
-`testFirst: true` is set on `scripts` in cloud-native-ref only, a session switch; every other class
+`testFirst: true` on `scripts` in cloud-native-ref is a session switch: the owner turns it on for a
+live session and off after it ([#199](https://github.com/Smana/ai-native-ref/pull/199)); every other class
 runs without a tester ([run roles]({{< relref "/docs/platform/ai-platform/agents/roles.md#tester" >}})).
 
 {{< details title="What the step log looks like" closed="true" >}}

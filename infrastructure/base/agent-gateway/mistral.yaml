@@ -36,6 +36,13 @@ spec:
       transformations:
         - field: model
           expression: '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : llmRequest.model).with(m, m in ["mistral-light", "mistral-standard"] ? m : null)'
+        # Mistral's reasoning models answer reasoning_effort high with content as a list of chunks
+        # (thinking + text), and agentgateway (v1.6, still v1.7) parses content as a string only, so
+        # the run fails with 502 "invalid type: sequence" (F15 live run uyqiqv6e, 2026-10-29). "none"
+        # keeps content a string and the metering intact; Mistral reasoning stays off until upstream
+        # accepts the list. https://docs.mistral.ai/studio/conversations/reasoning.md
+        - field: reasoning_effort
+          expression: '"none"'
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret

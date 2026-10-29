@@ -64,7 +64,7 @@ spec:
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         # A stall or a 400 is a bridge/harness contract break, not load: alert on any.
         - alert: RoomBridgeHarnessStalled
-          expr: sum by (reason) (increase(rooms_bridge_harness_stalls_total[10m])) > 0
+          expr: sum by (reason) (increase(maku_rooms_bridge_harness_stalls_total[10m])) > 0
           labels:
             severity: warning
           annotations:
@@ -73,7 +73,7 @@ spec:
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#9-observability-and-constitution-compliance"
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         - alert: RoomBridgeItemsRefused
-          expr: sum(increase(rooms_bridge_items_stubbed_total{reason="refused"}[10m])) > 0
+          expr: sum(increase(maku_rooms_bridge_items_stubbed_total{reason="refused"}[10m])) > 0
           labels:
             severity: warning
           annotations:
@@ -85,7 +85,7 @@ spec:
         # tool output) or keys that collide once redacted. Expected now and then,
         # so info: a steady rate means a harness pattern worth a look, not a contract break.
         - alert: RoomBridgeItemsUnstorable
-          expr: sum by (reason) (increase(rooms_bridge_items_stubbed_total{reason=~"invalid_value|key_collision"}[1h])) > 0
+          expr: sum by (reason) (increase(maku_rooms_bridge_items_stubbed_total{reason=~"invalid_value|key_collision"}[1h])) > 0
           labels:
             severity: info
           annotations:

@@ -298,8 +298,12 @@ class resumes after three clean mature merges
 
 - [ ] **Step 3: The status page**
 
-Row 8's text gains, after "stay the one live class": ", and one maintainer approval merges any
-other agent pull request ([the human path](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-29-merge-gate-human-path-design.md), proof pending on aws-0)".
+Row 8's text gains, after "stay the one live class", the sentence below (the design's URL on
+`main` is valid once the design's PR, #233, has merged, which precedes this plan):
+
+```markdown
+, and one maintainer approval merges any other agent pull request ([the human path](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-29-merge-gate-human-path-design.md), proof pending on aws-0)
+```
 
 - [ ] **Step 4: Run the check**
 

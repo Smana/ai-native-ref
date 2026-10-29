@@ -16,7 +16,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 RBAC = ROOT / "infrastructure/base/room-broker/rbac.yaml"
 docs = [d for d in yaml.safe_load_all(RBAC.read_text()) if d]
 roles = [d for d in docs if d["kind"] == "Role" and d["metadata"]["namespace"] == "agent-system"]
-verbs = {v for d in roles for r in d["rules"] if "agents.ogenki.io" in r.get("apiGroups", [])
+verbs = {v for d in roles for r in d["rules"] if "maku.ogenki.io" in r.get("apiGroups", [])
          and "rooms" in r.get("resources", []) for v in r["verbs"]}
 want = {"get", "list", "watch", "create", "update"}
 if verbs != want:

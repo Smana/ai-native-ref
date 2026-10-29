@@ -22,7 +22,7 @@ export const labels = {
   github: { title: 'GitHub', sub: 'issue · pull request' },
   readyLabel: 'factory/ready',
   room: { title: 'Room', sub: 'watch · steer' },
-  factory: { title: 'Agent Factory', sub: 'issue → task' },
+  factory: { title: 'Maku', sub: 'issue → task' },
   run: { title: 'Agent run', sandbox: 'gVisor sandbox', inside: 'coding agent · OpenHands' },
   gateway: { title: 'agentgateway', sub: 'per-run identity · budgets' },
   models: { title: 'Models', sub: 'Z.ai GLM · Claude' },

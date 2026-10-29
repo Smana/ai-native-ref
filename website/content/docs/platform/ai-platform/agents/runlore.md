@@ -1,0 +1,46 @@
+---
+title: RunLore
+weight: 36
+description: "Agent to agent: RunLore hands an incident to the factory, follows the fix, and checks after the merge that the alert is gone."
+lastVerified: 2026-10-29
+---
+
+[RunLore](https://github.com/Smana/runlore) investigates alerts. With the factory it works agent to
+agent, through the factory's standard API, as an internal principal with a sponsor, a cost ceiling and
+a daily cap. **Live, proven end to end on 2026-10-29**: an alert, an `investigate` task, a proposal,
+`factory/publish`, a fix pull request, its merge, a soak, and the verdict `resolved` recorded on the
+task's monitor.
+
+```mermaid
+sequenceDiagram
+  participant A as Alertmanager
+  participant R as RunLore
+  participant F as The factory
+  actor M as Maintainer
+  A->>R: alert firing
+  R->>F: POST /v1/tasks (system:runlore, internal, investigate)
+  F-->>R: signed webhooks, into the Slack incident thread
+  F->>M: stub issue factory/proposed, with the proposal
+  M->>F: factory/publish
+  F->>M: the fix issue, unlabelled
+  M->>F: class label, then factory/ready
+  F->>M: fix pull request
+  M->>M: merge
+  R->>A: after the soak, is the alert still firing?
+  R->>F: resolved or persisting
+  F->>F: the task's monitor records it
+```
+
+| You want to… | Do this |
+|---|---|
+| Publish RunLore's proposal | Read the proposal on the stub issue (`factory/proposed`), then label it **`factory/publish`**: the factory files the fix issue, unlabelled, with a footer naming its origin |
+| Start the fix | Label the fix issue with its class (for an alerting rule, `class:alert-rules`), then `factory/ready` |
+| Read the verdict | `kubectl get task <fix> -o jsonpath='{.status.monitor}'`: `resolved` is healthy |
+| React to a fix that did not hold | `persisting` labels the pull request `factory/monitor:regression`, opens a follow-up stub, and pauses the class like any other regression; clear the pause as for any class |
+
+The investigation stays internal: it runs on Claude, read-only, and starts no public work until a
+maintainer labels the proposal. The `persisting` case's own live proof is runbook 20's live 5. RunLore's link to the factory is a
+session switch: the owner turns it on for a live session and off after it
+([cloud-native-ref#2643](https://github.com/Smana/cloud-native-ref/pull/2643)).
+Operator steps, keys and proofs:
+[runbook 20](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/20-runlore-agent-to-agent.md).

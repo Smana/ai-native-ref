@@ -1,44 +1,51 @@
 ---
 title: Status and roadmap
 weight: 60
-description: "What the AI platform does today, what is in progress, and what comes next."
-lastVerified: 2026-10-27
+description: "What the AI platform does today, what v3 shipped and proved, what is left, and what comes next."
+lastVerified: 2026-10-29
 aliases:
   - /docs/platform/agent-factory/status/
   - /docs/platform/ai-platform/roadmap/
 ---
 
 The other pages of this section describe the design. This page says what of it you can use today,
-what is being finished, and what comes next. The evidence behind each line is on the page it links to.
+what is being finished, and what comes next. The evidence behind each line is on the page or runbook
+it links to.
+
+**As of 2026-10-29**, on `gcp-0`: Maku v0.30.3, ai-native-ref v2.8.15, crossplane-configuration
+v0.9.28. The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor,
+octo-sts, RunLore, Kueue and others); [Maku](https://github.com/Smana/maku) is one of them: the factory
+controller, the rooms, the harness and bridge, the Slack app and the `maku` CLI.
 
 ```mermaid
 flowchart LR
-  subgraph landed["Landed"]
+  subgraph landed["v1 and v2: landed"]
     v1["Agent Factory v1"]
     rooms["Attended rooms"]
-    priv["Private repositories"]
-    internal["Internal work on Claude"]
     gw["agentgateway, model tiers"]
-    repo["Own repository and site"]
     cloud["The factory on gcp-0"]
-    warm["Warm sandboxes, off by default"]
-    second["A second repository"]
-    suspend["Suspend"]
-    merge["Live auto-merge"]
+    merge["Live auto-merge of link fixes"]
     budgets["Gateway budgets enforced"]
   end
-  subgraph progress["In progress"]
-    caps["Per-person caps"]
-  end
-  subgraph next["v3: built offline, live proofs next"]
-    scoper["Scoper and loop policy"]
+  subgraph v3live["v3: live and proven"]
+    scoper["Scoper and completion judge"]
     checks["Repository checks in the sandbox"]
     tester["Test-first tester"]
+    search["Search for agents"]
+    slack["Slack intake"]
+    runlore["RunLore agent to agent"]
+    profiles["Capability profiles, cache alerts, spend per identity"]
+    local["The factory from your coding agent"]
     split["Splitter"]
-    classes["More auto-merge classes"]
-    agent["The factory from your coding agent"]
+    providers["Moonshot and Mistral, public data only"]
   end
-  landed --> progress --> next
+  subgraph v3built["v3: built, live proof pending"]
+    classes["More auto-merge classes, in shadow"]
+  end
+  subgraph later["Later"]
+    bench["Eval bench and bake-off"]
+  end
+  landed --> v3live --> v3built --> later
 ```
 
 ## Landed {#landed}
@@ -65,65 +72,55 @@ v1 is a pilot, not yet dependable: its hardening is tracked on the **v1 hardenin
 [Maku](https://github.com/Smana/maku/milestone/1) and
 [cloud-native-ref](https://github.com/Smana/cloud-native-ref/milestone/1).
 
-## In progress {#in-progress}
-
-{{< callout type="info" >}}
-**Paused between releases.** v2.0 shipped on `gcp-0` on 2026-10-18, then `gcp-0` was torn down, its
-OpenBao snapshot and databases saved. A rebuild from the release pins restores it; the work below and
-v3 resume there, in the [order below](#before-v3).
-{{< /callout >}}
-
-| Feature | What is left |
-|---|---|
-| Per-person spend caps | Counting, not refusing. Compressed same-day test 2026-10-17: every run was charged to its person, and none would have been refused. The daily caps count dollars since Maku v0.16.0 (#168), pinned here at v0.25.0, cache reads at their own rate: a person's day is $8.50, the 5M-token default it replaces at the reference $1.70 per million. That is proven offline; the live proof and a longer record in dollars come before enforcing ([runbook 04](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)) |
-
-### Before v3 {#before-v3}
-
-1. Rebuild `gcp-0` from the release pins, after three teardown fixes the last teardown showed: the
-   load-balancer sweep also after an interactive confirmation, DNS records removed before their
-   addresses are released, and a check that the deploy runs the repository's pinned tool versions.
-2. Truthful costs: one price table with every copy generated from it, the metrics price rule first;
-   daily caps in dollars; a nightly check against public price catalogs; the gateway's per-request
-   cost as a cross-check; reconciliation with the provider's usage data
-   ([pricing research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-model-pricing-research.md)).
-3. Per-person caps: a longer shadow record before enforcing; v3's machine callers that start work wait on it.
-4. The breaker's live proof and the revert's unattended merge, at the next link-fix pull request and revert.
-5. The prompt cache's alert and wire test, **done** ([#95](https://github.com/Smana/ai-native-ref/pull/95)); each run's provenance recorded on its task, **R10 done** in Maku v0.17.1 (live proofs wait for the next `gcp-0` session) ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-run-provenance-design.md)); the docs
-   fixes and the dead triage config the review lists, **done** (R8 in Maku v0.25.0) ([R4, R8, R9](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-v3-review.md#2-issues-found)).
+## v3: what shipped {#roadmap}
 
 <span id="v2-roadmap"></span>
 
-## Roadmap: v3 {#roadmap}
-
 v3 makes the factory **land more accepted pull requests per dollar on the models it may use**. Public
 work stays on open-weight models and internal work on Claude, so the lever is the task, not the
-model: shape it to fit, measure every change, let the best open model win on our own issues. We are
-[on the road to a factory](#dark-factory), one proven lane at a time. Each
-feature is a go/no-go (the eval bench is [deferred](#later)) ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md), [how v3 is judged](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#how-v3-is-judged)).
-Reviewed against the field on 2026-10-21: the amendments and the owner's eight decisions are in the
-[review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-v3-review.md#decisions-for-the-owner), and the rows below carry them.
-Since 2026-10-22, v3 is built **offline first**, and every feature below is now built offline except the providers row, added on 2026-10-28 and still a design ({{< badge content="designed" color="blue" >}}): {{< badge content="built, off" color="yellow" >}} means merged behind a switch that is off; {{< badge content="built" color="green" >}} means it runs without one. The offline order: whatever can be proven without a cluster (unit,
-golden and container tests in CI, alert rule tests, drift gates) is built and merged before a
-platform runs, and the live gates then run together in sessions on `gcp-0`, each feature behind a
-switch that is off by default. Since the same day the eval bench is deferred to [Later](#later) until a sponsor funds its sessions: a class is switched on after its offline proofs pass and a live proof on real issues in a platform session, with acceptance and cost per accepted pull request read from the meter and the factory's outcomes, per identity with spend per identity ([order of work](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#order-of-work)).
+model: shape it to fit, check it before it is pushed, judge it against its acceptance checks
+([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md)).
+Every feature was built and proven offline first (unit, golden and container suites, rule tests,
+drift gates), then taken to a live proof on `gcp-0`; the table says which have passed it. Each one ships behind a per-class switch: a class runs a
+feature only where its row in the factory's config turns it on. Some switches are **session
+switches**: the owner turns them on for a live session and off after it. They are the `docs` row's
+`models` (Kimi, Mistral), the tester's `testFirst` on `scripts`, and RunLore, turned off again by
+[#218](https://github.com/Smana/ai-native-ref/pull/218), [#199](https://github.com/Smana/ai-native-ref/pull/199)
+and [cloud-native-ref#2643](https://github.com/Smana/cloud-native-ref/pull/2643). The mechanisms
+themselves, such as `loops.<class>.models`, are permanent.
 
-| Feature | What it does for you | Gate |
-|---|---|---|
-| Scoper ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-scoper-design.md)) {{< badge content="built, off" color="yellow" >}} | Rewrites a vague issue into a bounded task with acceptance criteria and the check that proves it, taken from a short steering note per class, or asks its author the question it could not answer. Its acceptance checks are what the judge below reads | Fewer wandering runs, acceptance not lower |
-| Loop policy {{< badge content="built, off" color="yellow" >}} | Shipped in Maku v0.17.1 and crossplane-configuration v0.9.18; the `docs` class has a row, for a gcp-0 session, and every other class is off ([how it works]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}})). A run with no commit by its step limit stops and posts what it found. After each run an independent judge with a fresh context says met, not yet or impossible against the scoper's checks; a not-yet continues the same conversation at most twice, so the prompt cache survives; an impossible goes to a human. The reviewer never reads the implementer's transcript, and its verdict carries the evidence it ran ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-loops-and-teams-design.md)) | Less spend on wandering runs, cost per accepted pull request not higher |
-| Repository checks in the sandbox ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-sandbox-checks-design.md)) {{< badge content="built, off" color="yellow" >}} | The agent runs the same checks as the CI before it pushes, so it fixes a failure without a CI round-trip. A feedback loop, not a second gate: the CI stays the only judge | Acceptance not lower, and the sandbox agreeing with the CI on at least 90% of final heads |
-| Test-first tester ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-test-first-tester-design.md)) {{< badge content="built, off" color="yellow" >}} | The tester writes the failing test first; it becomes the implementer's contract. A test counts only if it fails on the base and passes on the head, and every live class keeps holdout checks the implementer cannot read. Since 2026-10-23 the host's `Test contract 🧪` job ([cloud-native-ref#2550](https://github.com/Smana/cloud-native-ref/pull/2550)) reports, on every agent pull request in cloud-native-ref, whether the new tests fail on the base and pass on the head; nothing requires it yet. Since 2026-10-28, the factory can run the tester first per class (`testFirst`, off everywhere) and requires the contract on a task that has one; the entry classes name their holdouts | Acceptance rises on routine issues |
-| Search as a tool ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-23-search-tool-design.md)) {{< badge content="built, off" color="yellow" >}} | The implementer asks a read-only search helper with a fresh context, a child conversation on the run's own token with a hard budget, instead of reading the repository itself | Paired on six real issues of the class: acceptance not lower, steps or cost lower (SQ5) |
-| Splitter {{< badge content="built, off" color="yellow" >}} | A hard issue becomes sub-issues, each with its own check, built through the usual templates | Hard issues land through their sub-issues |
-| More auto-merge classes ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-merge-gate-classes-design.md)) {{< badge content="built, off" color="yellow" >}} | Beyond link fixes and reverts: first a class with a machine oracle (a scanner's alert starts the fix, the scanner's re-run is the proof), then dependency bumps limited to patch versions with a green CI. Each class is a declared risk tier, proven by a live drill, widened only on its own revert and follow-up-fix rates, and watched by a post-merge monitor that feeds the breaker. Switching a class on waits for its live drill on `gcp-0`. The vocabulary and `dead-links` ship switched off (Maku v0.19.0). The post-merge monitor watches `dead-links`' merges (v0.21.0). `deps-patch` ships switched off (v0.22.0): it adopts Renovate's patch bumps of Flux-deployed YAML, with `deps-minor` beside it in shadow only | Each class stays within the breaker's revert budget |
-| Factory interfaces {{< badge content="built, off" color="yellow" >}} | An MCP server on the rooms: your coding agent, a CI job or another agent lists rooms, reads a summary, follows a run, queues a note for its next run, forks a room and drafts an issue, with the standing maku has. A service account sponsored by a maintainer may also start work, under a mandatory cost ceiling and the maintainer's name. Signed webhooks, declared in the broker's config, tell your systems when a room needs you ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-factory-interfaces-design.md)) | Live proofs: a forged or replayed webhook is rejected, a start without a ceiling is refused |
-| Slack intake {{< badge content="built, off" color="yellow" >}} | `@factory` in a thread drafts the issue; a ✅ from a maintainer files it and starts the work; the thread follows the room. Approvals stay in the rooms web UI | Live proof: a ✅ from someone who is not a maintainer is refused |
-| Capability profiles {{< badge content="built, off" color="yellow" >}} | What each role may call, declared once per role and data class and compiled into the gateway's rules: the models a role may name, the tools and arguments it may use (the reviewer cannot read the implementer's transcript, no tool reads a Secret), and one model pinned per run. The profiles and the gateway's compiled rules are built; the sidecar half waits on a live session ([#103](https://github.com/Smana/ai-native-ref/pull/103)), and argument constraints (P3) are built: `get_kubernetes_resources` refused 403 at the gateway for `kind` `Secret`, `SecretList` or `secrets` (the server's own RBAC, which grants no Secret, stays the boundary), with its live check waiting on a gcp-0 session ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-capability-profiles-design.md)) | Live checks, and a gate that fails when the compiled rules drift from the profiles |
-| Prompt cache {{< badge content="built" color="green" >}} | The cache that cuts internal run costs by about three quarters, protected before it is tuned: an alert when the cache-read share drops, a wire test on the gateway's conversion of the harness's markers; then rarer condensation, and the 1-hour cache for attended runs once agentgateway carries the TTL ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-21-prompt-cache-design.md)) | An alert drill; the meter's cache-read share per step |
-| Spend per identity ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-spend-per-identity-design.md)) {{< badge content="built" color="green" >}} | One dashboard per person and per sponsored service account: dollars against its daily cap, tokens and cache-read share, runs and rooms, pull requests opened, merged and reverted, cost per accepted pull request, refusals, and how long its tasks waited for a human. A run started by a label counts for the person who labelled it ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-22)) | For a day, each identity's spend on the dashboard matches the meter's ledger |
-| The factory from your coding agent ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-25), [design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-25-factory-from-your-agent-design.md)) {{< badge content="built, off" color="yellow" >}} | Hand a side task to the factory, follow it and bring its branch back without leaving Claude Code, OpenCode or another terminal coding agent. One command sets it up. A form only you can answer files the issue and can start the work under your own label. Readable views show every room, and for each one its runs, spend, what needs you and what changed. Approvals stay on the room page | Live, in Claude Code and OpenCode: start from the form, follow to an approval, check the branch out, a hostile note shown inert |
-| Agent-to-agent work with RunLore ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-27)) | RunLore hands an incident to the factory through its standard API, follows the fix in its Slack incident thread, and once the fix is merged checks that the alert is gone. A fix that did not hold counts against its class like any other regression: the class pauses and a follow-up is opened. Built; live proofs in [runbook 20](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/20-runlore-agent-to-agent.md) | Live: a seeded incident verified resolved; a second whose fix does not hold pauses its class |
-| Moonshot and Mistral as selectable providers ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#owner-decisions-2026-10-28), [design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-28-moonshot-mistral-providers-design.md)) {{< badge content="designed" color="blue" >}} | A class can run a role on Kimi K3.1 Pro (frontier) or Mistral Medium 3.5 and Small 4 (standard and light) by setting one config value, for public work only. Nothing changes by default, and internal work never reaches either provider. Each run is priced at that provider's list price, cache reads included | Live: one public run per provider, its cost read from the meter; an internal call naming one refused |
+{{< badge content="live" color="green" >}} proven on `gcp-0` · {{< badge content="built" color="yellow" >}} deployed, its live proof pending · {{< badge content="later" color="gray" >}} deferred
+
+| # | Feature | State | How to use it | Runbook |
+|---|---|---|---|---|
+| 1 | Scoper {{< badge content="live" color="green" >}} | Proven live: a labelled issue becomes a bounded task with acceptance checks, or the factory asks its author the one question it could not answer (`factory/needs-author`) | [Run roles]({{< relref "/docs/platform/ai-platform/agents/roles.md#scoper" >}}), [when the factory asks]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#scoper-question" >}}) | [Layer 1](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md#layer-1-the-scoper) |
+| 2 | Completion judge {{< badge content="live" color="green" >}} | Proven live: a fresh-context judge says `met`, `not_yet` or `impossible` against the scoper's checks. An impossible task escalated as "cannot be done as asked", with no false `met`; a failing named check is never `met`. A `not_yet` continues the same conversation, each continuation time-boxed to 15 minutes | [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) | [Layer 2](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md#layer-2-the-loop-policy) |
+| 3 | Repository checks in the sandbox {{< badge content="live" color="green" >}} | Proven live: the implementer runs the repository's checks before it pushes. The drill's seeded defect was caught before the push, with 0 fix runs. The CI stays the only judge | `classes.<class>.checks: true` per repository ([reference]({{< relref "/docs/platform/ai-platform/agents/harness-reference.md#caps" >}})) | [Layer 3](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md#layer-3-the-sandbox-checks) |
+| 4 | Test-first tester {{< badge content="live" color="green" >}} | Proven live: the tester commits a failing test contract first; the implementer works to it and cannot change it. The `not_testable` case is proven too: no contract, and the implementer runs without one. The switch, `testFirst: true` on `scripts` in cloud-native-ref, is a session switch, off outside a live session | [The tester]({{< relref "/docs/platform/ai-platform/agents/roles.md#tester" >}}) | [21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md) |
+| 5 | Search for agents {{< badge content="live" color="green" >}} | Proven live: the implementer asks a read-only search tool with a fresh context instead of reading the repository itself, 3 calls in the drill | `loops.<class>.search: true` ([search]({{< relref "/docs/platform/ai-platform/agents/harness.md#search" >}})) | [Layer 4](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md#layer-4-the-search-tool) |
+| 6 | Splitter {{< badge content="live" color="green" >}} | Proven live on 2026-10-29 on Maku v0.30.3 ([cloud-native-ref#2672](https://github.com/Smana/cloud-native-ref/issues/2672)): the scoper proposed a split into 3 parts in 8 minutes, with a merge order (script, then dashboard, then docs, because the docs page names the others' paths). Accepting a split is a maintainer's act (`/factory split`) | [When the factory proposes a split]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#split" >}}) | [17](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/17-splitter.md) |
+| 7 | Open-weight bake-off {{< badge content="later" color="gray" >}} | Later, with the eval bench ([below](#later)). Moonshot and Mistral (15) are the second processors it would compare, approved for public data | — | — |
+| 8 | More auto-merge classes {{< badge content="built" color="yellow" >}} | Built, in shadow mode: `dead-links` and `deps-patch` record the decision they would make and arm nothing; `deps-minor` observes. A full day's live proof is deferred. Link fixes and their reverts stay the one live class | [Factory → merge gate]({{< relref "/docs/platform/ai-platform/agents/factory.md#dependency-bumps" >}}) | [15](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/15-dead-links.md), [16](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/16-deps-patch.md) |
+| 9 | Slack intake (`maku-slack`) {{< badge content="live" color="green" >}} | Proven live: a mention drafts the issue, a reply edits it, a maintainer's ✅ files it and starts the task, and the thread follows the room. Each user links once, self-serve, with `@factory link`. Approvals stay on the room page | [Slack]({{< relref "/docs/platform/ai-platform/agents/slack.md" >}}) | [22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md), [18](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/18-factory-interfaces.md) |
+| 10 | Capability profiles {{< badge content="live" color="green" >}} | Live: each role and data class has a model allow-list compiled into the gateway's rules, and every run, the judge included, is pinned to one model (P4). An internal run naming a public-only alias is refused at admission, proven live by a server dry-run; the gateway's own 403 for it is proven by the gates offline | [Run roles]({{< relref "/docs/platform/ai-platform/agents/roles.md#profiles" >}}) | [14 §5](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#feature-15-providers-a-smoke-through-the-gateway) |
+| 11 | Cache alerts {{< badge content="live" color="green" >}} | Proven live: every cache rule evaluates, 0 in error | [Observability]({{< relref "/docs/platform/ai-platform/observability.md" >}}) | [04 Part E](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share) |
+| 12 | Spend per identity {{< badge content="live" color="green" >}} | Live: one dashboard per person and per sponsored principal, with the gateway's per-request cost as a cross-check. The full day's match against the meter's ledger is deferred | [Routing and cost]({{< relref "/docs/platform/ai-platform/routing.md#costs" >}}) | [04 Part G](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-g--the-cost-cross-check) |
+| 13 | The factory from your coding agent {{< badge content="live" color="green" >}} | Claude Code and OpenCode drive the factory locally, through the `maku` CLI, its MCP server and the `factory-handoff` skill: file, start, follow and check a room's branch out | [Hand off from your coding agent]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#hand-off-from-your-coding-agent" >}}) | [19](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/19-factory-from-your-agent.md) |
+| 14 | RunLore agent to agent {{< badge content="live" color="green" >}} | Proven end to end: an alert, an `investigate` task, a proposal, `factory/publish`, a fix pull request, its merge, a soak, and the verdict `resolved` recorded on the task's monitor. RunLore's switch is a session switch, off outside a live session | [RunLore]({{< relref "/docs/platform/ai-platform/agents/runlore.md" >}}) | [20](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/20-runlore-agent-to-agent.md) |
+| 15 | Moonshot and Mistral {{< badge content="live" color="green" >}} | **Public data only**: Kimi K3.1 Pro (processed in China) and Mistral Medium and Small (EU), selectable per class with `loops.<class>.models`; internal tasks never get them. Proven live on 2026-10-29: a docs task's reviewer on `k3.1-pro`, ledger and gateway cost agreeing ($0.089596 against $0.0895964), 82% of input read from cache; an implementer on `mistral-medium-2604`, 190 calls, no 502, cost within 1%, 74% cache reads. Mistral works but is **not recommended as an implementer yet**: on its one live run it spent its whole token budget (4.8M tokens) on a 5-line docs change, so the reviewer never ran | [Providers]({{< relref "/docs/platform/ai-platform/agents/providers.md" >}}) | [14 §5](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#feature-15-providers-a-smoke-through-the-gateway) |
+| — | Room and intake UX {{< badge content="live" color="green" >}} | The approvals page; a status line per room in the room list; attended forks; the daily task cap refused at `POST /v1/tasks` with `429 daily_task_cap`; judge continuations time-boxed to 15 minutes | [The room page]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#the-room-page" >}}) | — |
+
+<span id="in-progress"></span>
+
+### What is left in v3 {#before-v3}
+
+| Item | What is left |
+|---|---|
+| More auto-merge classes (8) | A full day's live proof before a class leaves shadow; each class then waits for its own drill |
+| Spend per identity (12) | The full day's match between the dashboard and the meter's ledger |
+| Mistral as an implementer (15) | A run that finishes a routine task inside its budget before it is recommended |
+| Per-person caps | Counted, not refused: each person's day is $8.50, recorded in shadow until a longer record says enforcing is safe ([runbook 04, Part C](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week)) |
+| Releases | None is cut and no tag pushed without the owner's word |
 
 Not in v3: public work on Claude, a doc-writer or standalone architect agent, memory across tasks,
 parallel writers on one branch, switching models in the middle of a run ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#not-in-v3)), and
@@ -144,9 +141,9 @@ reviewed by humans ([StrongDM](https://factory.strongdm.ai/)).
 | 5 · Factory | No human in the loop | **One lane**: link fixes merge with no human, at most once a day, and a revert sends the class back to human review |
 
 We are not a factory yet, and we do not remove humans wholesale. Each class of change earns its
-way to lights-out on evidence: a live drill, a revert breaker, a budget. v3's next lane is a class
-with a machine oracle, then dependency bumps, and each one's own revert rate decides how wide it
-opens. Dropping human review is a consequential choice, not only a productivity one ([Stanford CodeX](https://law.stanford.edu/2026/02/08/built-by-agents-tested-by-agents-trusted-by-whom/)),
+way to lights-out on evidence: a live drill, a revert breaker, a budget. The next lanes, built in v3
+and in shadow, are a class with a machine oracle (`dead-links`) and patch dependency bumps
+(`deps-patch`); each one's own revert rate decides how wide it opens. Dropping human review is a consequential choice, not only a productivity one ([Stanford CodeX](https://law.stanford.edu/2026/02/08/built-by-agents-tested-by-agents-trusted-by-whom/)),
 which is why each lane is reversible by one label.
 
 ### Later {#later}

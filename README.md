@@ -56,7 +56,7 @@ says what works today, what does not yet, and what it costs.
 
 | Part | What it does |
 |---|---|
-| **Agent Factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory The Agent Factory is a bundle of open-source tools (agentgateway, OpenHands, gVisor, octo-sts, RunLore and others); [Maku](https://github.com/Smana/maku) provides its controller, rooms, harness and `maku` CLI |
+| **Agent Factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory. The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts, RunLore, Kueue and others); [Maku](https://github.com/Smana/maku) is one of them: the controller, rooms, harness and bridge, the Slack app and the `maku` CLI |
 | **Sandboxed runtime** | One gVisor pod per run, with a default-deny network policy, egress only to the hosts its profile allows, and a short-lived GitHub token scoped to its own branch |
 | **Rooms** | The append-only log of each task: watch, post, steer, approve, with approval deadlines and suspend while a person decides |
 | **Agent gateway** | Every model and tool call of a run goes through [agentgateway](https://agentgateway.dev): it checks the run's identity, enforces token budgets per run, fleet and provider, and routes to the model its tier names |
@@ -99,16 +99,14 @@ Sources and the full record: [status](https://airef.ogenki.io/docs/platform/ai-p
 
 ## Status and roadmap
 
-**v2.0 shipped on 2026-10-18** (`v2.0.1` is the latest release): the factory on GKE from signed
-release pins, live auto-merge of link fixes with a revert breaker, a second repository, budgets
-enforced at the gateway, suspend and resume, warm sandboxes (off by default) and its own repository
-and site. The reference cluster is **paused between releases**: torn down, its secrets, snapshots and
-databases saved, to be rebuilt from the release pins when work resumes.
-
-**v3 makes the factory land more accepted pull requests per dollar** on the models it may use: an
-eval bench first, then a scoper that turns vague issues into bounded tasks, a stall limit, a
-test-first tester, a splitter for hard issues, an open-weights model bake-off, and more change
-classes merging alone. Each is a go/no-go on the bench.
+**v3 is live on `gcp-0` as of 2026-10-29** (Maku v0.30.3, ai-native-ref v2.8.15). It aims at more accepted
+pull requests per dollar by shaping the task, not by changing the model. A scoper bounds each issue or
+asks its author; a test-first tester writes the contract; the implementer runs the repository's checks in the
+sandbox and asks a read-only search tool; a completion judge reads the result against its checks. Work arrives
+from a label, Slack, your coding agent (Claude Code, OpenCode) or RunLore, whose incidents come back as verified
+fixes. Capability profiles, cache alerts, spend per identity, the splitter, and Kimi and Mistral for public work
+are live; more auto-merge classes are built, in shadow. Every line, with its
+evidence and runbook: [status page](https://airef.ogenki.io/docs/platform/ai-platform/status/#roadmap).
 
 We are **on the road to a dark factory**, one proven lane at a time: today a human writes the issue
 and approves the merge for most work, and one class ships with no human at all. What that means and

@@ -32,6 +32,7 @@ repository pins, read on 2026-10-16.
 |---|---|---|
 | Agent model per data class (`public` → Z.ai, `internal` → Anthropic) | **Deployed, proven live** | [ADR-0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}), status *Landed* |
 | `tier-light`, `tier-standard`, `tier-frontier` served by the agent gateway | **Deployed**. No factory tier asks for them: every tier names `agent-default` | `llm.yaml`, `anthropic.yaml`, factory values |
+| `kimi-frontier`, `mistral-standard`, `mistral-light` on the `public` listener (v3 feature 15, 2026-10-29) | **Deployed**, public data only, selectable per class with `loops.<class>.models`; **proven live** on 2026-10-29, Mistral not yet recommended as an implementer | [Providers]({{< relref "/docs/platform/ai-platform/agents/providers.md" >}}) |
 | Triage classifier (`complexity-classifier`, C7) | **Design only**. The URL is configured and nothing answers it, so every task falls back to `standard` with `classifier: static` | factory values, live `Task` status |
 | 10% control group at `frontier` (`triage.controlPercent`) | **Deployed, live**: 2 of 12 tasks | live `Task` status |
 | Run meter priced in USD, cache reads at their own rate | **Deployed, proven live** | [plan, internal run](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/plans/2026-10-15-agent-router-agentgateway-plan.md#live-evidence-internal-run-2026-10-16) |

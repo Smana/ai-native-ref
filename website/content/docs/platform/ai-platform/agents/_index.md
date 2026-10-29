@@ -2,19 +2,19 @@
 title: Agents
 weight: 20
 description: "The Agent Factory: autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes end to end."
-lastVerified: 2026-10-17
+lastVerified: 2026-10-29
 aliases:
   - /docs/platform/agent-factory/
 ---
 
 {{< callout type="info" >}}
-**v1 shipped on 2026-10-08; v2.0 followed on 2026-10-18 (v2.0.1 the same day).** On `main`, proven on `gcp-0` (on `aws-0` until 2026-10-16), and paused between releases while `gcp-0` is torn down: a labelled issue becomes
-a reviewed pull request. A human merges it, except a link fix, which the merge gate merges on its own. Runs are metered, capped, resumed after a reclaim and
-stopped by the kill switch; people follow and approve in rooms, from the browser, a terminal or their
-coding agent. Three factory pull requests have merged end to end. It serves two public repositories,
-on one active cloud, with the merge gate live for link fixes. The
-hardening list and what comes next are on the
-[status page]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}).
+**v1 shipped on 2026-10-08, v2.0 on 2026-10-18; v3's features are live on `gcp-0` as of 2026-10-29** (Maku v0.30.3):
+a labelled issue, a Slack thread, your coding agent or RunLore starts a task; a scoper bounds it, a tester writes
+its contract, the implementer checks its work in the sandbox, a judge reads it against its checks, and a reviewer
+gives its verdict. A human merges, except a link fix, which the merge gate merges on its own. Runs are metered,
+capped, resumed after a reclaim and stopped by the kill switch; people follow and approve in rooms. What is proven,
+what is pending and what comes next are on the
+[status page]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}}).
 {{< /callout >}}
 
 ## What it is
@@ -25,7 +25,7 @@ open a pull request, and the factory narrates each step on the issue. Humans ste
 joining the agents' room. Only policy-defined low-risk changes merge themselves; everything else
 waits for a human.
 
-The Agent Factory is a bundle of open-source tools: agentgateway, OpenHands, gVisor, octo-sts, RunLore and others. [Maku](https://github.com/Smana/maku) is the piece that provides the factory controller, the rooms, the harness and the `maku` CLI.
+The Agent Factory is a bundle of open-source tools: Maku, agentgateway, OpenHands, gVisor, octo-sts, RunLore, Kueue and others. [Maku](https://github.com/Smana/maku) is one component of it: the factory controller, the rooms, the harness and bridge, the Slack app and the `maku` CLI.
 
 Which alternatives were considered, and why these choices? See
 [Alternatives considered]({{< relref "/docs/platform/ai-platform/agents/alternatives.md" >}}).
@@ -84,6 +84,10 @@ deployed, or planned.
 | [Harness reference]({{< relref "/docs/platform/ai-platform/agents/harness-reference.md" >}}) | Every setting of a run, from the factory's tiers to the OpenHands loop, with its value and status |
 | [Rooms]({{< relref "/docs/platform/ai-platform/agents/rooms.md" >}}) | The broker's append-only log, the bridge, the web view, steering, room tools, approvals |
 | [Factory]({{< relref "/docs/platform/ai-platform/agents/factory.md" >}}) | Intake, triage, teams, revise, the merge gate and the kill switch |
+| [Run roles]({{< relref "/docs/platform/ai-platform/agents/roles.md" >}}) | The scoper, tester, implementer, judge, search tool and reviewer, and what each may call |
+| [Slack]({{< relref "/docs/platform/ai-platform/agents/slack.md" >}}) | Hand work to the factory from a Slack thread |
+| [RunLore]({{< relref "/docs/platform/ai-platform/agents/runlore.md" >}}) | Agent to agent: an incident in, a verified fix out |
+| [Providers]({{< relref "/docs/platform/ai-platform/agents/providers.md" >}}) | Kimi and Mistral for public work, switched on per class |
 | [Gateways]({{< relref "/docs/platform/ai-platform/gateways.md#the-agent-gateway-agent-runs" >}}) | The agent gateway: per-run identity, models, MCP tools, token exchange |
 | [Observability]({{< relref "/docs/platform/ai-platform/observability.md#agents" >}}) | Per-run traces, step logs, `gen_ai` metrics, `AgentRun` state, dashboards |
 | [User guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md" >}}) | What a developer does with it |

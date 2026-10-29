@@ -2,14 +2,14 @@
 title: User guide
 weight: 10
 description: "How a maintainer hands an issue to the Agent Factory, follows it, steers it and stops it, shown on one real task."
-lastVerified: 2026-10-27
+lastVerified: 2026-10-29
 aliases:
   - /docs/platform/agent-factory/user-guide/
 ---
 
 {{< callout type="info" >}}
-**On `main` (v2.0.1), for two public repositories; paused between releases while `gcp-0` is torn down:** you label, the
-agents work, you review and merge. The merge gate is live for link fixes: it merges them with no human,
+**Live on `gcp-0` for two public repositories, with v3's features as of 2026-10-29 (Maku v0.30.3):** you label, or
+file from Slack or your coding agent; the agents work; you review and merge. The merge gate is live for link fixes: it merges them with no human,
 at most once a day. The task below ran on 2026-10-07, before v1's release. What has landed, and what
 comes next, is on the
 [status page]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}).
@@ -282,8 +282,8 @@ needs to confirm refuses. Before this existed, issue
 [#2266](https://github.com/Smana/cloud-native-ref/issues/2266) was filed by the skill on 2026-10-08 and
 merged as [#2267](https://github.com/Smana/cloud-native-ref/pull/2267).
 
-Starting from the session is off until a repository is listed in the broker's
-`human.mcp.sessionStart`; today none is.
+Starting from the session is offered only on the repositories listed in the broker's
+`human.mcp.sessionStart`; on `gcp-0` today that is `Smana/ai-native-ref`.
 
 ### From a terminal: `maku`
 
@@ -345,7 +345,7 @@ From top to bottom:
 
 ## When the factory asks a question {#scoper-question}
 
-With the scoper on for a class (off everywhere today), the factory reads an issue before it writes any
+With the scoper on for a class (the `docs` and `scripts` classes today), the factory reads an issue before it writes any
 code. When the issue leaves a question open, it comments on the issue with the question, the
 assumption it would make otherwise, and the label `factory/needs-author`; no run starts.
 
@@ -365,7 +365,7 @@ applies the factory's own rule to every note.
 
 ## When the factory proposes a split {#split}
 
-With the splitter on for a class (off everywhere today, and only beside the scoper), a hard issue may
+With the splitter on for a class (`scripts` today, beside the scoper; proven live on 2026-10-29), a hard issue may
 come back with a plan instead of a run: two to four parts, each with its own acceptance checks. The
 factory comments on the issue with the plan, labels it `factory/split-proposed` and waits. No part
 exists yet.
@@ -384,7 +384,7 @@ part closed without landing ends the family and the remaining parts are never cr
 
 ## Using the factory from Slack {#from-slack}
 
-With the factory's Slack App on (off today, and one workspace's), a thread can hand work to the factory
+With the factory's Slack App on (live on `gcp-0`, one workspace's), a thread can hand work to the factory
 without leaving Slack. You write a mention, the App drafts the issue, you tune the draft by replying,
 and a maintainer's check mark files it. Approvals and steering stay on the room page. Setting the App up
 is the operator's job: [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md).

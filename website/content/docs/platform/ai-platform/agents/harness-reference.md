@@ -17,7 +17,7 @@ Every knob of a run, layer by layer. How to use them is on
   {{< card link="#harness" title="Harness" icon="cog" subtitle="The loop's settings, baked into the image." >}}
 {{< /cards >}}
 
-**On `gcp-0`, 2026-10-18:** harness `v0.15.2`, composed by crossplane-configuration `v0.9.15`.
+**On `gcp-0`, 2026-10-29:** Maku `v0.30.3`, composed by crossplane-configuration `v0.9.28`.
 | Status | Meaning |
 |---|---|
 | {{< badge content="live" color="green" >}} | Seen working on a real run |
@@ -56,7 +56,7 @@ at $4.46 of $6.80, since 95% were cache reads. The gateway's per-run budget B1 i
 |---|---|---|
 | `solo` | implementer | — |
 | `pair` | implementer, reviewer | 2 |
-| `trio` | implementer, tester, reviewer | 2 |
+| `trio` | implementer, reviewer: `pair`'s shape until the bench; the tester runs first through `testFirst`, not the template | 2 |
 | `investigate` | triager: proposes an issue text, never writes | — |
 
 - `maxReviewRounds`: every revision or restarted review uses one. Out of rounds, the task escalates.
@@ -93,14 +93,14 @@ implementer's tier.
 | `caps.maxPendingMinutes` | 30 (5 … 480) | A run still `Pending` escalates as `run_unschedulable` |
 | `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="live" color="green" >}} aws-0 |
 | `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
-| `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since Maku v0.16.0, pinned here at v0.23.1). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
-| `loops.<class>` | only `default: {scope: off}`: **no class has a row (D4)** | The loop policy and the scope, off for every class. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
-| `loops.<class>.search` | absent: **off for every class (D4)** | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/harness.md#search" >}}) |
+| `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since Maku v0.16.0). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
+| `loops.<class>` | `default: {scope: off}`; `docs` (scoper, loop policy, search; provider `models` only in a live session) and `scripts` (scoper, splitter) | The loop policy and the scope, off for every class without a row. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
+| `loops.<class>.search` | `true` on `docs` only | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/harness.md#search" >}}) |
 
 ## Factory: what a brief holds {#brief}
 
 `loops.<class>.scope` picks the mode per class; `loops.default` covers a class with no row and
-`review`. Every class is `off` here (D4).
+`review`. `docs` and `scripts` are `scoper` here; every other class is `off`.
 
 | Brief | `off` | `steering` | `scoper` |
 |---|---|---|---|
@@ -113,7 +113,7 @@ implementer's tier.
 The steering note and the scope are never clipped. The snapshot is inlined whole while the brief stays
 within 16 KiB, else the brief tells the implementer to read it with `room_read`. The scope is an
 agent's text drawn from an untrusted issue: sanitised and fenced as the snapshot is. The steering note
-is fenced as trusted. {{< badge content="off" color="gray" >}}
+is fenced as trusted. {{< badge content="live" color="green" >}} on `docs` and `scripts`
 
 ## Run API: runs started by hand {#run-api}
 

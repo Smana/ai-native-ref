@@ -68,8 +68,11 @@ sequenceDiagram
 A tester run writes tests under the repository's test paths and commits them. The harness then runs
 them red on the base, signs the commit and pushes it, or answers once (`not_testable`) and pushes
 nothing. The implementer that follows cannot commit a change to those files, and is told when they
-still fail. The model itself never pushes. It is off everywhere: `testFirst` is `false` for every
-class, so no run takes this path yet.
+still fail. The model itself never pushes. Proven live on 2026-10-29, the `not_testable` case
+included ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)).
+`testFirst: true` on `scripts` in cloud-native-ref is a session switch: the owner turns it on for a
+live session and off after it ([#199](https://github.com/Smana/ai-native-ref/pull/199)); every other class
+runs without a tester ([run roles]({{< relref "/docs/platform/ai-platform/agents/roles.md#tester" >}})).
 
 {{< details title="What the step log looks like" closed="true" >}}
 One line per action, never its output, redacted for tokens. It is what you read most.
@@ -267,14 +270,15 @@ flowchart LR
 ## Loop policy {#loop-policy}
 
 The loop policy stops wandering runs and checks a finished run against the task's acceptance checks.
-{{< badge content="built, off" color="yellow" >}} The code ships (Maku v0.17.1,
-crossplane-configuration v0.9.18); only the `docs` class has a row (a gcp-0 session), so every other run behaves as before.
+{{< badge content="live" color="green" >}} Proven live on 2026-10-29 on the `docs` class: an impossible
+task escalated as "cannot be done as asked", with no false `met`, and a failing named check is never
+`met`. Only `docs` has a row, so every other run behaves as before.
 
 | Piece | What it does |
 |---|---|
 | Stall rule | An implementer run with no commit by `stallSteps` steps, or two continuations in a row that add none, stops and posts what it found |
 | Completion judge | After the run ends on its own, a fresh-context judge reads the acceptance checks and says `met`, `not_yet` or `impossible` |
-| Continuation | A `not_yet` continues the same conversation, so the prompt cache survives, at most `continuations` times |
+| Continuation | A `not_yet` continues the same conversation, so the prompt cache survives, at most `continuations` times, each time-boxed to 15 minutes |
 
 **The switch** is the factory's `loops` key, one row per class (`default`, `review`, or a class a
 repository declares). A row that sets any of its three keys switches that class on. No row, or a row
@@ -308,9 +312,9 @@ meter and the factory's outcomes then say whether cost per accepted pull request
 
 ## Search {#search}
 
-{{< badge content="built, off" color="yellow" >}} The implementer can ask a read-only helper one
-question about the repository instead of reading it file by file. The code ships (Maku
-v0.19.0); **no class has `search: true`**, so every run behaves as before.
+{{< badge content="live" color="green" >}} The implementer can ask a read-only helper one
+question about the repository instead of reading it file by file. Proven live on 2026-10-29 (3 calls
+in the drill); **only `docs` has `search: true`**, so every other run behaves as before.
 
 ```mermaid
 sequenceDiagram

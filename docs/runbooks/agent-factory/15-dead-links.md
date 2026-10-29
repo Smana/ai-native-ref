@@ -7,7 +7,7 @@ session writes one, it has no intake and takes no decision. See [README.md](READ
 
 ## 1. Prerequisites
 
-- [ ] agent-platform v0.21.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`): the
+- [ ] Maku v0.21.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`): the
   vocabulary (`allowedFiles`, `protectedFiles`, `modifyOnly`, `maxModifiedLines`, `diffShape`,
   `holdoutChecks`, `oracle`) and the `dead-links` probe, and the post-merge monitor.
 - [ ] The host's `dead-links` workflow (`.github/workflows/dead-links.yaml`) has run on `main` twice,

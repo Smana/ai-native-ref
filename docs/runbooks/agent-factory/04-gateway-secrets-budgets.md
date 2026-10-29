@@ -264,9 +264,9 @@ kubectl delete btp -n llm-gateway zz-budget-marker-probe --ignore-not-found
 `budgets.perPerson.enabled: true` with `enforcePrincipal: false` charges every run to its person
 (`github:<login>`) and to the fleet, and refuses nothing: a run past a day is admitted and counted
 as `agent_factory_run_revocations_total{reason="budget-principal-shadow", principal}`
-([agent-platform: per-person caps](https://github.com/Smana/agent-platform/blob/main/docs/factory.md#per-person-caps)).
+([Maku: per-person caps](https://github.com/Smana/maku/blob/main/docs/factory.md#per-person-caps)).
 `AgentPersonCapShadowRefusal` (info) fires on each one. Turning on `enforcePrincipal` refuses on
-the person's day **and** on the fleet's, so both count. Since agent-platform v0.16.0 (#168), pinned here at v0.17.1, the days are in
+the person's day **and** on the fleet's, so both count. Since Maku v0.16.0 (#168), pinned here at v0.17.1, the days are in
 USD (`budgets.humanDailyUSD`, $8.50 a person), so the week's record starts again, in dollars.
 
 ### Step 1 — attribution is on
@@ -289,7 +289,7 @@ The query, decoded: `sum by (principal) (increase(agent_factory_run_revocations_
 | Exit criterion (D8) | Then |
 |---|---|
 | 7 days since the release went live, Step 1 shows a person, and every Step 2 row is a run that *should* have been refused | Set `enforcePrincipal: true` |
-| A row is a false refusal: the wrong person charged, or a day filled by reservations the meter later released | Fix in agent-platform; the week restarts |
+| A row is a false refusal: the wrong person charged, or a day filled by reservations the meter later released | Fix in Maku; the week restarts |
 | Rows are correct but frequent for one person | Raise `perPerson.dailyUSD` (default `humanDailyUSD`) before enforcing; the week restarts |
 
 ## Part D — enforcing the agents' budgets
@@ -404,7 +404,7 @@ back on the way to Anthropic ([cache design](../../superpowers/specs/2026-10-21-
 |---|---|---|
 | `AgentCacheReadZero` (critical) | An internal run read nothing after 100k input tokens | Read the run's log for `prompt cache NOT applied`. None: the gateway stopped converting the marker, or the harness or SDK stopped sending it. If `test-agent-gateway-cache-wire` passes on the deployed digest, the gateway converts: look at the last harness pin change. A run whose steps are all more than 5 minutes apart also reads nothing (the cache lives 5 minutes). Stop a long run: `kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run` |
 | `AgentCacheReadShareLow` | Under 60% over 15 minutes, with 200k input in the window | One window after a condensation or a resume is expected. If it stays low, read the run's MCP tool lists: a federated target that fails is dropped from the list and re-added, and each change rewrites the cache |
-| `AgentCacheMarkerMissing` | The harness could not patch the SDK | Roll the harness pin back; the patch in agent-platform's `sitecustomize.py` needs the SDK's new method |
+| `AgentCacheMarkerMissing` | The harness could not patch the SDK | Roll the harness pin back; the patch in Maku's `sitecustomize.py` needs the SDK's new method |
 | `AgentMeterInputExcludesCache` | The meter read a model's `input` below its cache tokens: a gateway or the provider stopped counting cache tokens inside `input`. The meter prices such a run right; the run's *Cost (USD)* panel and `AnthropicFleetNearCap` under-count it, down to a negative figure, and the cache-read share can read above 100% | Run `test-agent-gateway-cache-wire` against the deployed agentgateway digest: a failure on the streamed reply is the gateway. If it passes, read one reply's `usage` from the provider of the model the alert names. Until it is fixed, read money from `agent_factory_run_cost_usd` |
 
 Offline, `task check` proves both sides: `test-agent-cache-alerts` evaluates the two metric alerts on
@@ -419,7 +419,7 @@ for internal runs and neither alert fires. The drill (a run that sends no marker
 
 ## Part F — daily caps in dollars, the switch day
 
-From agent-platform v0.16.0 (#168), pinned here at v0.17.1, the factory's daily caps count dollars at `meter.prices`
+From Maku v0.16.0 (#168), pinned here at v0.17.1, the factory's daily caps count dollars at `meter.prices`
 ([truthful costs](../../superpowers/specs/2026-10-22-truthful-costs-design.md), TC5 to TC9). One
 ConfigMap per UTC day, `agent-factory-ledger-usd-<YYYYMMDD>`, holds `spent` (principal → micro-USD),
 `reserved.<runId>` (`maxMicroUSD`) and `settled.<runId>` (the micro-USD charged to that run that
@@ -523,8 +523,8 @@ Which side is high decides the first suspect:
 
 | Suspect | Reads as | Check |
 |---|---|---|
-| [agent-platform#166](https://github.com/Smana/agent-platform/issues/166), a double charge: a settle write answered 504 that commits later | Ledger above gateway by one tick's spend. Fixed in agent-platform v0.25.0; any recurrence is a new bug | The run's `settled.<id>` against `status.usage.costMicroUSD` on the task (Part F, step 3) |
-| [agent-platform#167](https://github.com/Smana/agent-platform/issues/167), a lifted run's late spend lost across a failover | Ledger below gateway, by the run's last reading; only on a run first seen already ended, after a leader change | `kubectl get lease -n agent-system agent-factory.agents.ogenki.io`: did the holder change near the run's end? |
+| [maku#166](https://github.com/Smana/maku/issues/166), a double charge: a settle write answered 504 that commits later | Ledger above gateway by one tick's spend. Fixed in Maku v0.25.0; any recurrence is a new bug | The run's `settled.<id>` against `status.usage.costMicroUSD` on the task (Part F, step 3) |
+| [maku#167](https://github.com/Smana/maku/issues/167), a lifted run's late spend lost across a failover | Ledger below gateway, by the run's last reading; only on a run first seen already ended, after a leader change | `kubectl get lease -n agent-system agent-factory.agents.ogenki.io`: did the holder change near the run's end? |
 | A price row, in the table or the overlay | Both sides consistently off by the same ratio on one model | `scripts/ci/gen-prices.py` (exit 1 on drift); the catalog the proxy mounted against `meter.prices`; the run's *Cost by model* panel |
 | An unpriced lookup | Ledger above gateway, with `AgentGatewayCostUnpriced` firing | Above |
 | A run through Envoy | Left out of the alert by design (XC7); counted in the factory dashboard's *Runs outside the cross-check* | The router the run's gateway series belong to |
@@ -574,7 +574,7 @@ already existed at 61: this proves the alert on a live series. The new-series ca
 
 Each shadow week ran as a deliberate same-day test, by the owner's choice, because a week-long
 platform costs too much. The record covers six real `solo` tasks (19:56–21:35 UTC, one person,
-agent-platform v0.15.2). That is enough to show that nothing is wrongly refused. It is too short
+Maku v0.15.2). That is enough to show that nothing is wrongly refused. It is too short
 to show how often a real week would cross a limit, so the D8 exit criterion ("7 days") is **not**
 met: this round only shows the mechanism works.
 

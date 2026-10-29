@@ -1,11 +1,11 @@
-# Agent Factory live test session — gcp-0
+# Maku live test session — gcp-0
 
 Exercises SP1 (agent runtime and identity), SP4 PR 1 (AI gateway: frontier route and token budgets)
 and the agent observability work on the live test cluster `gcp-0`. Every command is copy-paste, and every step names its expected output.
 Start with [Runbook 00](#runbook-00-one-time-cluster-setup): the cluster is already deployed, but four
 owner actions gate most runbooks.
 
-`roomctl setup <client>` installs the factory MCP server and the `factory-handoff` skill for that coding agent client (`claude`, `opencode`, ...); see [Runbook 19](19-factory-from-your-agent.md).
+`maku setup <client>` installs the factory MCP server and the `factory-handoff` skill for that coding agent client (`claude`, `opencode`, ...); see [Runbook 19](19-factory-from-your-agent.md).
 When a run's sandbox is lost mid-run (spot reclaim, eviction, node loss), [10-disruption.md](10-disruption.md) covers how the factory checkpoints and resumes it.
 
 ## Status (2026-10-17)
@@ -70,7 +70,7 @@ Mixes rounds 4 to 6 (from `580042e6` on). Round 6 took issue #2112 to PR #2114 (
 | [08-observability.md](08-observability.md) | Agent-platform VMRules, dashboard, SP4 gateway metrics, the per-run view (SO-1…SO-5) | No | ~15 min |
 | [09-app-key-compromise.md](09-app-key-compromise.md) | The App key-compromise procedure (SD14): stop, rotate, reload, revoke, resume and audit, for all four Apps | Yes — the App's installation page and settings | ~20 min |
 | [10-disruption.md](10-disruption.md) | Disruption design acceptance 1–6 | Yes — a maintainer's `factory/ready`; aws-0 Step 7 needs IAM | ~60 min |
-| [11-v1-validation.md](11-v1-validation.md) | Local-first UX: the skill, `roomctl status`, the room page, zoomable diagrams, D7 room access, observability on one run, one task end to end on release pins | Yes — a maintainer's `factory/ready`; a second, non-admin identity and a private test repo | ~90 min |
+| [11-v1-validation.md](11-v1-validation.md) | Local-first UX: the skill, `maku status`, the room page, zoomable diagrams, D7 room access, observability on one run, one task end to end on release pins | Yes — a maintainer's `factory/ready`; a second, non-admin identity and a private test repo | ~90 min |
 | [12-live-auto-merge-drill.md](12-live-auto-merge-drill.md) | Design D4, gate G1–G3: the first unattended `docs-links` merge at the run-reported head, its revert and the breaker | Yes — the owner's go, the merger App's `issues: write` and `actions: write`, the `agent-merge` and `agent-branches` rulesets, policy-bot on gcp-0, a maintainer's `factory/ready` | ~2 h |
 | [13-rooms-restore.md](13-rooms-restore.md) | Issue #27: the rooms database restores from `rooms-pre-destroy` on a rebuild, and into a scratch namespace; RPO and RTO | Part A: a teardown and rebuild. Part B: the owner's go (writes a seed) | A: the rebuild + 10 min; B: ~30 min |
 | [14-gcp-0-session.md](14-gcp-0-session.md) | The ordered gcp-0 session: gcp-0 up alone, the v2.1 blockers live, runbook 11 as the full test, v2 on gcp-0, the Substrate spike | Yes — Google auth, the quota request, the identity-provider topology, the agents keys, the go-live commit | a day, plus the spike's two |
@@ -133,7 +133,7 @@ To rotate the merger GitHub App's private key, see [09-app-key-compromise.md](09
 
 ### What is already in place
 
-gcp-0 tracks cloud-native-ref's `main`, on release pins: the `ai-native-ref` source, agent-platform
+gcp-0 tracks cloud-native-ref's `main`, on release pins: the `ai-native-ref` source, Maku
 and crossplane-configuration. The go-live commit on `main` un-suspends the source and the
 `ai-gateway` and `agent-platform` umbrellas, and names `gcp-0` in the ownership fence. Rounds 7 and 9
 ran on the earlier `integration/agent-factory` branch instead.
@@ -194,9 +194,9 @@ flux get kustomizations -n flux-system | grep -E '^(agent-router|agent-mcp|octo-
 
 Expected: all four `Ready=True`.
 
-Runs use the harness released by `agent-platform`, pinned by digest in the composition
+Runs use the harness released by Maku, pinned by digest in the composition
 (`agent-harness:v0.15.2` at crossplane-configuration `v0.9.15`). A harness pre-release for a live gate
-is a pre-release `v*` tag on `agent-platform` (its `release.yaml`; tags are admin-only under the
+is a pre-release `v*` tag on Maku (its `release.yaml`; tags are admin-only under the
 release-tags ruleset) or the `-pr<N>.<sha8>` image its `ci.yaml` pushes for same-repo PRs;
 cloud-native-ref verifies only signatures from `release.yaml@refs/tags/v…`.
 
@@ -233,7 +233,7 @@ name, purpose and expected outcome; reword a drill's text before it runs again.
 | 2. Loop policy | `stallSteps: 60`, `continuations: 2`, `judge: tier-light` | [loops](../../superpowers/specs/2026-10-21-loops-and-teams-design.md), [harness reference](../../../website/content/docs/platform/ai-platform/agents/harness.md#loop-policy) |
 | 3. Sandbox checks | `checks: true` | [sandbox checks](../../superpowers/specs/2026-10-22-sandbox-checks-design.md#gate) |
 
-Before layer 1: the pins carry agent-platform v0.23.2 and crossplane-configuration v0.9.20 or later
+Before layer 1: the pins carry Maku v0.23.2 and crossplane-configuration v0.9.20 or later
 (`spec.loop` with `search`, `checks` and `judgeModel`), and `scripts/ops/k8s/gcp-0-platform-gates.sh`
 passes. Read a task with `kubectl -n agent-system get task <name> -o yaml`.
 
@@ -393,7 +393,7 @@ switch is `repositories[].classes.scripts.testFirst: true` on cloud-native-ref o
 ai-native-ref, whose tests live under the gate path `scripts/ci/`). **No commit sets it yet**, for two
 reasons found on 2026-10-27:
 
-- `testFirst` and `merge.contractCheck` are in no agent-platform release (v0.25.0's `Class` has no such
+- `testFirst` and `merge.contractCheck` are in no Maku release (v0.25.0's `Class` has no such
   key, and the factory's strict parse refuses an unknown one). Only the contract check (plan PR 1, the
   harness's `test-contract`) is built; the factory slice (plan PR 6) is not.
 - The host's `.github/chainguard/agent-tester.sts.yaml` grants `contents: read`; TO2 needs `contents: write`,

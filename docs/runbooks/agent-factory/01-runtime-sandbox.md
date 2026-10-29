@@ -231,7 +231,7 @@ same ServiceAccount and the same conversation.
 | Composition | crossplane-configuration ≥ v0.9.15 | A suspendable run: `workspace` on a PVC from the default class (`standard-rwo` on gcp-0), `AGENT_SUSPENDABLE=true` on the harness and the bridge, `operatingMode` from the `operating-mode` annotation |
 | Broker | `infrastructure/gcp-0/room-broker/config.yaml` | `suspend: {enabled: true, after: 5m}`: writes `operating-mode` + `remaining-seconds` at suspend, `operating-mode` + `resumed-at` at resume |
 | Grant | `room-broker-suspend` Kustomization | `patch` on `agentruns`, fenced by Kyverno's `agentrun-broker-patch-limit` to those three annotations of a suspendable run |
-| Harness and bridge | agent-platform ≥ v0.15.2 | agent-run reattaches the conversation it finds on the PVC; the bridge answers the reloaded confirmation from the room's decision |
+| Harness and bridge | Maku ≥ v0.15.2 | agent-run reattaches the conversation it finds on the PVC; the bridge answers the reloaded confirmation from the room's decision |
 
 ```bash
 flux get kustomizations -n flux-system room-broker-suspend room-broker agent-factory
@@ -345,7 +345,7 @@ and `NotFound` for the suspendable run's PVC.
 
 Notes:
 - The first attempt, `xplane-run-jede5jsq`, ended `BudgetExhausted`: the open-ended typo task, since reworded in Step 8.
-- Steering from the room page is impossible for a CLI-started run: Smana/agent-platform#147.
+- Steering from the room page is impossible for a CLI-started run: Smana/maku#147.
 - The broker's `run resumed` log line carries an empty `remainingSeconds` (cosmetic).
 
 ### Round 7 — gcp-0, 2026-09-30 (`integration/agent-factory` @ `a2c645ba`)

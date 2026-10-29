@@ -11,8 +11,8 @@ gcp-0's own copy for these proofs and empties it after. See [README.md](README.m
 sequenceDiagram
   actor Dev as Developer
   participant A as Claude Code or OpenCode
-  participant R as roomctl mcp
-  participant B as room-broker /mcp
+  participant R as maku mcp
+  participant B as maku-broker /mcp
   participant GH as GitHub
   Dev->>A: the handoff prompt (the client's slash spelling)
   A->>B: issue_draft (canStart)
@@ -30,9 +30,9 @@ sequenceDiagram
 
 ## 1. Prerequisites
 
-- [ ] **[OWNER]** agent-platform v0.23.1 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`), and
+- [ ] **[OWNER]** Maku v0.23.1 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`), and
   `human.mcp.enabled` on in base and gcp-0 (done by the pin PR).
-- [ ] `roomctl` v0.23.1 or later, configured and logged in (`roomctl doctor`: `dns`, `tls`, `login`, `github` ok).
+- [ ] `maku` v0.23.1 or later, configured and logged in (`maku doctor`: `dns`, `tls`, `login`, `github` ok).
 - [ ] Claude Code and OpenCode installed, each able to run a background subagent.
 - [ ] The cloud-native-ref pull request that removes the drifted v0.11.0 `factory-handoff` skill copy
   (design PR 7, plan Task 8) is merged. Until it is, the doctor's `skill` check FAILs in every
@@ -55,8 +55,8 @@ sequenceDiagram
 
 | # | Do | Expected |
 |---|---|---|
-| 1 | `roomctl setup claude`, then `roomctl setup opencode` | Each prints the MCP registration (the client's own `mcp add`, or the snippet to paste) and the skill directory it wrote |
-| 2 | `roomctl doctor` | Every check `ok`, `skill` included |
+| 1 | `maku setup claude`, then `maku setup opencode` | Each prints the MCP registration (the client's own `mcp add`, or the snippet to paste) and the skill directory it wrote |
+| 2 | `maku doctor` | Every check `ok`, `skill` included |
 | 3 | `opencode`'s config after setup | The server sits under `mcp.servers.factory`, the shape `opencode mcp add` writes, and opencode lists it as connected. **Record the opencode version.** A docs-shaped `mcp.factory` that opencode ignores is a FAIL for `setup`'s snippet |
 | 4 | In each client, list the MCP tools and prompts | `rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`, `issue_file`; prompts `handoff`, `status`, `inbox`. **Record the slash spelling** each client shows (`/factory:handoff` in OpenCode, `/mcp__factory__handoff` in Claude Code) |
 
@@ -73,17 +73,17 @@ Run each in Claude Code, then in OpenCode. Mark PASS or FAIL per client; a FAIL 
 | 2b | In a client with URL forms | The URL form opens the room page at the approval, and only for a URL on the rooms host that came from the broker | | |
 | 2c | Decide the approval on the room page, then "wait for it" again | The next wait returns on the pull request. Approvals stayed on the room page: no tool in the session approved | | |
 | 3a | `/factory:status` | The card shows the runs line and the spend in dollars, with states in words | | |
-| 3b | Force a resume (queue a note with `roomctl post <room> --queue`, or stop and restart the run), then ask for `room_changes` | The milestones appear; turns and tool calls are collapsed; a second call shows only what is new | | |
+| 3b | Force a resume (queue a note with `maku post <room> --queue`, or stop and restart the run), then ask for `room_changes` | The milestones appear; turns and tool calls are collapsed; a second call shows only what is new | | |
 | 3c | **L8.** The same card from `rooms_list` and `room_summary` | The client displays the Markdown `content` text, not the JSON `structuredContent`. If a client shows the JSON instead, record which and FAIL: the view is hidden | | |
 | 4a | `room_checkout` for the room | A new worktree appears beside the repository at the checked commit; the current checkout and its branch are untouched; a second call returns the same path | | |
 | 4b | Plant `.opencode/plugins/<file>` in the room's branch (a test branch the factory pushed, or a fork of it), then `room_checkout` | The form lists the file and defaults to no; answering no creates nothing | | |
-| 5 | Queue a hostile note (`roomctl post <room> --queue` with a link, a heading, a table row, an ANSI escape and a bidi character in the text), then show the card in both clients | Each appears as a quoted code span: no link, heading or table from the note, no escape in the terminal | | |
+| 5 | Queue a hostile note (`maku post <room> --queue` with a link, a heading, a table row, an ANSI escape and a bidi character in the text), then show the card in both clients | Each appears as a quoted code span: no link, heading or table from the note, no escape in the terminal | | |
 
 ### 3.1 Checks collected during the build
 
 | # | Do | Expected | Claude Code | OpenCode |
 |---|---|---|---|---|
-| a | Sign in with a deliberately wrong client id or a revoked token (`roomctl login`, then a tool call) | **Record ZITADEL's exact `invalid_client` wording** and what `roomctl doctor` and the tools return; the fix named must be one that works | | |
+| a | Sign in with a deliberately wrong client id or a revoked token (`maku login`, then a tool call) | **Record ZITADEL's exact `invalid_client` wording** and what `maku doctor` and the tools return; the fix named must be one that works | | |
 | b | Have a reviewer on a test PR delete their GitHub account (or use a known ghost user), then look at the card | **Record the login GitHub's GraphQL returns** for the deleted reviewer (a ghost, or null). The card must not crash or show an empty name | | |
 
 ## 4. Claude Code without forms

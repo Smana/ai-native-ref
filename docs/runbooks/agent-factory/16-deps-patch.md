@@ -9,7 +9,7 @@ adopt nothing and decide nothing. See [README.md](README.md) for `CLOUD`.
 
 ## 1. Prerequisites
 
-- [ ] agent-platform v0.22.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`): the adopted
+- [ ] Maku v0.22.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`): the adopted
   classes (`author.adopt`, `semver-patch`, `semver-minor`, `releaseAgeCheck`).
 - [ ] The host's `renovate` policy rule carries the gate list (cloud-native-ref PR I) on its `main`.
 - [ ] The merger App is installed with pull requests, contents and checks read on the host, and

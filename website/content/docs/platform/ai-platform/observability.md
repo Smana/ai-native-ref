@@ -62,6 +62,8 @@ only exists once the opt-in umbrella is resumed.
 One trace, one step log and one dashboard page per run, so a human can open any run and see where
 it stands, what it did, what it cost and where its time went.
 
+> **Metric names.** Maku v0.30.x emits each metric twice: under its old name (`agent_factory_*`, `rooms_*`) and under the new one (`maku_factory_*`, `maku_rooms_*`). The dashboards and alerts here still read the old names, and the old ones stop in v0.31.0, so a query on this page becomes its `maku_` twin when they move.
+
 | Component | Software | What it does |
 |---|---|---|
 | Logs | [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/) | Every run's step log and every gateway call, attributed to the run |

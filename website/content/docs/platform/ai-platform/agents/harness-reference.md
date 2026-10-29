@@ -76,7 +76,7 @@ The tier would come from the complexity classifier, which is {{< badge content="
 `standard`, except one in ten (`triage.controlPercent: 10`), the control group, on `frontier`.
 `defaults.template` and `defaults.tier` choose nothing at run time, but the factory still validates
 them at startup, as it requires `triage.classifierURL`: they leave the config only with an
-agent-platform release that drops them.
+Maku release that drops them.
 
 The reviewer runs on **the other tier**: `frontier` for a `standard` or `light` implementer,
 `standard` for a `frontier` one. It keeps the implementer's `maxTokens`. The tester keeps the
@@ -93,7 +93,7 @@ implementer's tier.
 | `caps.maxPendingMinutes` | 30 (5 … 480) | A run still `Pending` escalates as `run_unschedulable` |
 | `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="live" color="green" >}} aws-0 |
 | `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
-| `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since agent-platform v0.16.0, pinned here at v0.23.1). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
+| `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since Maku v0.16.0, pinned here at v0.23.1). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
 | `loops.<class>` | only `default: {scope: off}`: **no class has a row (D4)** | The loop policy and the scope, off for every class. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
 | `loops.<class>.search` | absent: **off for every class (D4)** | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/harness.md#search" >}}) |
 
@@ -141,7 +141,7 @@ Only `budget.maxTokens` can change on a live run. The factory always writes `siz
 | `budget.maxMinutes` | 120 (1 … 480) | The pod's deadline and the TTL of its tokens |
 | `size` | `small` | `small` 1→2 CPU, 2→4 GiB; `medium` ×2; `large` ×4 |
 | `egress.profiles` | `[]` | Package registries on top of GitHub; refused on `internal` |
-| `roomRef` | — | Adds the room-bridge sidecar and the room rules |
+| `roomRef` | — | Adds the maku-bridge sidecar (container `room-bridge`) and the room rules |
 | `suspendable` | — | `/workspace` on a PVC, so the run can be suspended |
 | `loop.checks` | — | Runs the repository's checks in the sandbox: `AGENT_CHECKS=1`, refused on `internal` |
 | `loop.search` | — | The `search` tool for an implementer: `AGENT_SEARCH=1`. Alone, no loop policy |
@@ -163,8 +163,8 @@ turns the claim into the pod. Nothing here is set per run.
 
 ## Harness {#harness}
 
-Set in [`agent_run.py`](https://github.com/Smana/agent-platform/blob/main/images/agent-harness/agent_run.py)
-and [`sitecustomize.py`](https://github.com/Smana/agent-platform/blob/main/images/agent-harness/site/sitecustomize.py),
+Set in [`agent_run.py`](https://github.com/Smana/maku/blob/main/images/maku-harness/agent_run.py)
+and [`sitecustomize.py`](https://github.com/Smana/maku/blob/main/images/maku-harness/site/sitecustomize.py),
 or left at the [SDK v1.49.6 defaults](https://github.com/OpenHands/software-agent-sdk/tree/v1.49.6/openhands-sdk/openhands/sdk).
 None is a claim field.
 

@@ -9,7 +9,7 @@ after the scoper's live proofs (the split needs `scope: scoper` on the same row)
 
 ## 1. Prerequisites
 
-- [ ] agent-platform v0.19.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`).
+- [ ] Maku v0.19.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`).
 - [ ] The scoper's live proofs passed: a class with `scope: scoper` bounces and scopes as designed.
 - [ ] The factory App holds `issues: write` (a child issue, the sub-issue link, closing the parent).
 - [ ] A hard-task cohort: two issues of class `scripts`, filed again as new issues.

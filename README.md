@@ -1,7 +1,7 @@
 # ai-native-ref
 
-**A governed agent factory and open-weights model serving, on your own Kubernetes cluster, deployed
-with GitOps.**
+**Maku, a governed agent platform, and open-weights model serving, on your own Kubernetes cluster,
+deployed with GitOps.**
 
 Label a GitHub issue and agents take it from there. An implementer works it in a sandbox under its
 own identity and budget, a reviewer checks the result, and a pull request comes out. You follow
@@ -21,7 +21,7 @@ without a human reading every line, and with a way back when one gets it wrong.
 Hosted agents solve this inside a vendor's cloud: the agent loop, the model calls and your code go
 there. Self-hosted options are either licensed products, or general agent runtimes that know nothing
 about pull requests, reviews or merges. **ai-native-ref is an open reference for the missing piece:
-an agent factory you run yourself, whose every control is declared in Git and enforced outside the
+Maku, an agent platform you run yourself, whose every control is declared in Git and enforced outside the
 agent.**
 
 It is built to be read as much as run. Each design choice has an architecture decision record, each
@@ -56,7 +56,7 @@ says what works today, what does not yet, and what it costs.
 
 | Part | What it does |
 |---|---|
-| **Agent factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory |
+| **Maku's factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory |
 | **Sandboxed runtime** | One gVisor pod per run, with a default-deny network policy, egress only to the hosts its profile allows, and a short-lived GitHub token scoped to its own branch |
 | **Rooms** | The append-only log of each task: watch, post, steer, approve, with approval deadlines and suspend while a person decides |
 | **Agent gateway** | Every model and tool call of a run goes through [agentgateway](https://agentgateway.dev): it checks the run's identity, enforces token budgets per run, fleet and provider, and routes to the model its tier names |
@@ -68,7 +68,7 @@ says what works today, what does not yet, and what it costs.
 
 ```mermaid
 flowchart LR
-  issue["Issue labelled<br/>factory/ready"] --> factory["Agent factory"]
+  issue["Issue labelled<br/>factory/ready"] --> factory["Maku's factory"]
   factory --> run["Agent run<br/>gVisor sandbox, own identity"]
   factory --> room["Room<br/>watch · steer · approve"]
   human(["Maintainer"]) <--> room
@@ -139,7 +139,7 @@ guarantees back.
 
 The reference host is [cloud-native-ref](https://github.com/Smana/cloud-native-ref), a GitOps
 platform on GKE and EKS. The controllers, the room broker and the agent harness are built in
-[agent-platform](https://github.com/Smana/agent-platform); this repository deploys their released
+[Maku](https://github.com/Smana/maku); this repository deploys their released
 images. Installing on any Kubernetes cluster without that host is on the roadmap, after v3.
 
 ## Repository layout
@@ -150,7 +150,7 @@ images. Installing on any Kubernetes cluster without that host is on the roadmap
 | `infrastructure/`, `security/`, `tooling/`, `observability/`, `apps/` | What those children apply |
 | `flux/sources/` | The AI-owned Flux sources, applied by the `ai-sources` child |
 | `website/` | The docs site, [airef.ogenki.io](https://airef.ogenki.io/), and the AI ADRs (the next is 0059) |
-| `scripts/ops/`, `scripts/docs/` | Agent-factory ops: `task agent:run`, `task agentgateway:live-check`, `task factory:walkthrough`, the identity probe, the cohort sheet |
+| `scripts/ops/`, `scripts/docs/` | Maku ops: `task agent:run`, `task agentgateway:live-check`, `task factory:walkthrough`, the identity probe, the cohort sheet |
 | `docs/` | Runbooks, specs and plans, and the drawio sources of the diagrams |
 
 ## Turning it on in a cluster

@@ -80,7 +80,7 @@ entirely.
 rather than an OpenTofu stack, so there is no `TM_LLM_PLATFORM_ENABLED`.
 The two Kubernetes gates match aws-0's: `clusters/gcp-0/ai-gateway.yaml`,
 then `clusters/gcp-0/llm-platform.yaml`, which depends on it. The first
-is released (`spec.suspend: false`, for the agent factory); the second
+is released (`spec.suspend: false`, for Maku's factory); the second
 ships `spec.suspend: true`. Weights are served from a GCS bucket over the Cloud
 Storage FUSE CSI driver instead of an S3 Files POSIX mount — see
 [ADR-0021]({{< relref "/docs/decisions/0021-gcs-fuse-for-model-weights-on-gcp.md" >}})

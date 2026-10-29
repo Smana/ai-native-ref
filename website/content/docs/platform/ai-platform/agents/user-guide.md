@@ -1,7 +1,7 @@
 ---
 title: User guide
 weight: 10
-description: "How a maintainer hands an issue to the agent factory, follows it, steers it and stops it, shown on one real task."
+description: "How a maintainer hands an issue to Maku, follows it, steers it and stops it, shown on one real task."
 lastVerified: 2026-10-27
 aliases:
   - /docs/platform/agent-factory/user-guide/
@@ -23,11 +23,11 @@ New to the vocabulary (run, role, sandbox, room)? Read
 | You need | Why |
 |---|---|
 | Access to the tailnet | The room UI, Grafana and the factory's API are private |
-| Your OS trusting the platform's root CA | The room page and `roomctl` talk to private endpoints signed by it. Without it, `roomctl` fails with `x509: certificate signed by unknown authority`. Fetch and trust it as in [runbook 11's prerequisites](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#prerequisites) |
+| Your OS trusting the platform's root CA | The room page and `maku` talk to private endpoints signed by it. Without it, `maku` fails with `x509: certificate signed by unknown authority`. Fetch and trust it as in [runbook 11's prerequisites](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#prerequisites) |
 | SSO membership in `agents-member` | To watch rooms and runs, and to start a run by hand. Requesting `internal` work or a `triager` run needs `agents-admin`. A valid login that still 403s on the room UI: see the [FAQ](#frequently-asked-questions) |
 | Your GitHub account linked to your ZITADEL user | You see a room only if GitHub lets you read its repository: see [who sees a room](#who-sees-a-room) |
 | Maintainer rights on the repository | Labels and reviews are how you steer. The agents never merge on their own, except for the low-risk classes below |
-| `roomctl configure` then `roomctl login`, once ([commands](#from-a-terminal-roomctl)) | To follow tasks from a terminal or from your coding agent, and to start a run by hand: `task agent:run` sends the factory the token it prints, and the run is yours |
+| `maku configure` then `maku login`, once ([commands](#from-a-terminal-maku)) | To follow tasks from a terminal or from your coding agent, and to start a run by hand: `task agent:run` sends the factory the token it prints, and the run is yours |
 
 ## What happens to a task
 
@@ -78,7 +78,7 @@ Runs: implementer (initial) → reviewer (review) → implementer (ci) → imple
 sequenceDiagram
   actor M as Maintainer
   participant GH as GitHub
-  participant F as agent-factory
+  participant F as maku-factory
   participant R as room
   participant A as agent runs
   M->>GH: label #2238 factory/ready
@@ -174,23 +174,23 @@ From Claude Code, OpenCode or another terminal coding agent you hand a side task
 follow it and bring its branch back without leaving the session. The broker renders the views once,
 so every client shows the same text ([ADR-0059]({{< relref "/docs/decisions/0059-factory-from-your-coding-agent.md" >}})).
 
-**Set it up.** It needs `roomctl` v0.23.1 or later, configured and logged in (see
-[From a terminal](#from-a-terminal-roomctl)), then three steps:
+**Set it up.** It needs `maku` v0.30.0 or later (`roomctl` v0.23.1 or later before the rename), configured and logged in (see
+[From a terminal](#from-a-terminal-maku)), then three steps:
 
-1. **Install for your client.** `setup` is user-level: it registers `roomctl mcp` as the `factory`
+1. **Install for your client.** `setup` is user-level: it registers `maku mcp` as the `factory`
    MCP server and writes the `factory-handoff` skill where that client reads skills. One command
    each:
 
    | Client | Command |
    |---|---|
-   | Claude Code | `roomctl setup claude` |
-   | OpenCode | `roomctl setup opencode` |
-   | Codex CLI | `roomctl setup codex` |
-   | Gemini CLI | `roomctl setup gemini` |
-   | Cursor | `roomctl setup cursor` |
-   | Copilot CLI | `roomctl setup copilot` |
+   | Claude Code | `maku setup claude` |
+   | OpenCode | `maku setup opencode` |
+   | Codex CLI | `maku setup codex` |
+   | Gemini CLI | `maku setup gemini` |
+   | Cursor | `maku setup cursor` |
+   | Copilot CLI | `maku setup copilot` |
 
-2. **Check the set-up.** `roomctl doctor`: every check `ok`.
+2. **Check the set-up.** `maku doctor`: every check `ok`.
 3. **Verify in the client.** A working registration lists the tools `rooms_list`, `room_summary`,
    `room_changes`, `room_wait`, `room_checkout`, `issue_draft`, `issue_file` and the prompts
    `handoff`, `status`, `inbox`.
@@ -203,7 +203,7 @@ so every client shows the same text ([ADR-0059]({{< relref "/docs/decisions/0059
 - It is idempotent.
 - It runs the client's own `mcp add` when that is on the PATH and otherwise prints the snippet to
   paste: it never edits a config file itself.
-- Gemini CLI connects a local (stdio) server only in a folder you trust; `roomctl setup gemini`
+- Gemini CLI connects a local (stdio) server only in a folder you trust; `maku setup gemini`
   reminds you.
 
 | You say | What happens |
@@ -217,7 +217,7 @@ so every client shows the same text ([ADR-0059]({{< relref "/docs/decisions/0059
 The slash command is spelled the client's way (`/factory:handoff` in OpenCode,
 `/mcp__factory__handoff` in Claude Code).
 
-**What you see.** The same card in a terminal (`roomctl status`) and in the agent's transcript:
+**What you see.** The same card in a terminal (`maku status`) and in the agent's transcript:
 
 ```markdown
 ### 26zfnuxm · #2238 docs: chart version is wrong
@@ -285,31 +285,31 @@ merged as [#2267](https://github.com/Smana/cloud-native-ref/pull/2267).
 Starting from the session is off until a repository is listed in the broker's
 `human.mcp.sessionStart`; today none is.
 
-### From a terminal: `roomctl`
+### From a terminal: `maku`
 
-`roomctl` reads, chats, queues and forks. It never steers, interrupts, takes the driver token or
+`maku` (named `roomctl` before v0.30.0) reads, chats, queues and forks. It never steers, interrupts, takes the driver token or
 approves: those stay in the web view, because a local agent can drive a terminal
 ([ADR-0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}})). Download it from an
-agent-platform release (`roomctl-<os>-<arch>`, checked against `roomctl.sha256`) or build it there
-with `go build ./cmd/roomctl`.
+Maku release (`maku-<os>-<arch>`, checked against `maku.sha256`) or build it there
+with `go build ./cmd/maku`.
 
 ```bash
-roomctl configure --url … --issuer … --client-id … --project-id …  # the room list's "CLI setup" prints it
-roomctl login                                    # device flow: open the URL, enter the code
-roomctl rooms --mine                             # issues you filed or labelled, PRs you authored or review
-roomctl rooms --needs-me                         # an approval you could decide; --repo owner/name filters
-roomctl status <room> --json                     # phase, run, budget, PR, what needs you, the agents' notes
-roomctl changes <room>                           # what changed since your last call (first call: 24 h)
-roomctl checkout <room>                          # the room's branch in a new worktree beside the repository
-roomctl setup claude                             # the MCP server and the skill, for a coding agent
-roomctl watch <room>                             # the last 50 events, then live
-roomctl post <room> --queue "address L42"        # for the next run's brief; without --queue, a chat
-roomctl fork <room> --at <seq> --role implementer --egress pypi --note "try uv"
-roomctl token                                    # your access token, for scripts
+maku configure --url … --issuer … --client-id … --project-id …  # the room list's "CLI setup" prints it
+maku login                                    # device flow: open the URL, enter the code
+maku rooms --mine                             # issues you filed or labelled, PRs you authored or review
+maku rooms --needs-me                         # an approval you could decide; --repo owner/name filters
+maku status <room> --json                     # phase, run, budget, PR, what needs you, the agents' notes
+maku changes <room>                           # what changed since your last call (first call: 24 h)
+maku checkout <room>                          # the room's branch in a new worktree beside the repository
+maku setup claude                             # the MCP server and the skill, for a coding agent
+maku watch <room>                             # the last 50 events, then live
+maku post <room> --queue "address L42"        # for the next run's brief; without --queue, a chat
+maku fork <room> --at <seq> --role implementer --egress pypi --note "try uv"
+maku token                                    # your access token, for scripts
 ```
 
 A task waiting for your merge is not under `--needs-me` yet
-([agent-platform#51](https://github.com/Smana/agent-platform/issues/51)).
+([maku#51](https://github.com/Smana/maku/issues/51)).
 
 ### Who sees a room
 
@@ -328,7 +328,7 @@ IDP_URL=https://auth.gcp.cloud.ogenki.io scripts/provision/zitadel-idp.sh link-g
   <your-zitadel-login> <your-github-login> --cluster gcp-0 --cloud gcp --apply
 ```
 
-Until the link exists, `roomctl rooms` lists nothing and says how to link; once it does, the hint
+Until the link exists, `maku rooms` lists nothing and says how to link; once it does, the hint
 goes away when the broker's cached answer expires, within 5 minutes.
 
 ### The room page
@@ -541,7 +541,7 @@ the run's trace ([F16](https://github.com/Smana/ai-native-ref/blob/main/docs/run
 
 The full transcript (prompts and outputs) lives in the room, visible to the people with access to
 that room. It holds a run to its end: before the harness stops, even when its node is reclaimed, it
-asks the room-bridge to read its log to the last event
+asks maku-bridge to read its log to the last event
 ([F11](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#live-findings), fixed and verified on `aws-0` on 2026-10-07).
 
 ## Frequently asked questions

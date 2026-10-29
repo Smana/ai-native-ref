@@ -106,7 +106,7 @@ flowchart LR
 | Factory config | ai-native-ref | New runs, once Flux applies the release |
 | Run API | `task agent:run` flags | That run only |
 | Claim and composition | crossplane-configuration | Runs created after the package upgrade |
-| Harness image | agent-platform | Runs created after its digest reaches the composition |
+| Harness image | Maku | Runs created after its digest reaches the composition |
 | Gateway | ai-native-ref | Every call, running runs included |
 
 ## Trade-offs {#trade-offs}
@@ -267,7 +267,7 @@ flowchart LR
 ## Loop policy {#loop-policy}
 
 The loop policy stops wandering runs and checks a finished run against the task's acceptance checks.
-{{< badge content="built, off" color="yellow" >}} The code ships (agent-platform v0.17.1,
+{{< badge content="built, off" color="yellow" >}} The code ships (Maku v0.17.1,
 crossplane-configuration v0.9.18); only the `docs` class has a row (a gcp-0 session), so every other run behaves as before.
 
 | Piece | What it does |
@@ -309,7 +309,7 @@ meter and the factory's outcomes then say whether cost per accepted pull request
 ## Search {#search}
 
 {{< badge content="built, off" color="yellow" >}} The implementer can ask a read-only helper one
-question about the repository instead of reading it file by file. The code ships (agent-platform
+question about the repository instead of reading it file by file. The code ships (Maku
 v0.19.0); **no class has `search: true`**, so every run behaves as before.
 
 ```mermaid

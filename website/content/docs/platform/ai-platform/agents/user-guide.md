@@ -266,12 +266,12 @@ the room page: the card links to each one, and a client that offers link forms o
 `initialize`; each cell below comes from the
 [research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-25-factory-from-your-agent-research.md#2-what-an-mcp-integration-can-rely-on-per-client)
 and the `setup` source, and `unconfirmed` means no fetched source says. Claude Code and OpenCode
-are **documented** until the live session proves them (`docs/runbooks/agent-factory/19-factory-from-your-agent.md`).
+were proven live on 2026-10-27 (`docs/runbooks/agent-factory/19-factory-from-your-agent.md`); the others are **documented** only.
 
 | Client | Tools and text views | Forms | URL forms | Slash commands | Background wait | Skill directory | Status |
 |---|---|---|---|---|---|---|---|
-| Claude Code | yes | unconfirmed | yes | `/mcp__factory__<prompt>` (unconfirmed) | background subagents | `~/.claude/skills` | documented |
-| OpenCode | yes | yes | yes | `/factory:<prompt>` | background subagents | `~/.agents/skills` | documented |
+| Claude Code | yes | unconfirmed | yes | `/mcp__factory__<prompt>` (unconfirmed) | background subagents | `~/.claude/skills` | proven, 2026-10-27 |
+| OpenCode | yes | yes | yes | `/factory:<prompt>` | background subagents | `~/.agents/skills` | proven, 2026-10-27 |
 | Codex CLI | yes | unconfirmed | unconfirmed | unconfirmed | unconfirmed; calls may be cut at 60 s, the skill calls `room_wait` again | `~/.agents/skills` | documented |
 | Gemini CLI | yes | unconfirmed | unconfirmed | yes | unconfirmed | `~/.gemini/skills` | documented |
 | Copilot CLI | yes | unconfirmed | unconfirmed | unconfirmed | unconfirmed | `~/.copilot/skills` | documented |
@@ -435,7 +435,7 @@ Acceptance: docs/runbooks/18.md gains one line naming the Secret.
 | Title | `docs: …`, `fix(agents): …`. Without an area, the App adds `docs: ` (when you mention a doc, runbook or README) or `chore: ` |
 | Other lines | They become "What is wrong". With none, the title does |
 | `Should:` (or `Expected:`, `Want:`) | What it should be |
-| `Acceptance:` (or `Done when:`, `Check:`) | How we know it is done, up to the end of the message. Without one, the factory's scoper asks on the issue |
+| `Acceptance:` (or `Done when:`, `Check:`) | How we know it is done, up to the end of the message. Write one: an issue filed from Slack carries no `class:` label, so its task runs in the `review` class, which has no scoper to ask. Without it, the implementer and the reviewer work from the description alone |
 
 Enter or Shift+Enter in Slack does not matter any more: type it as it comes.
 

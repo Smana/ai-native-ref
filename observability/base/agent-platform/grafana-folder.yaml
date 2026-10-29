@@ -4,7 +4,6 @@ metadata:
   name: agents
   namespace: observability
 spec:
-  title: Agents
   allowCrossNamespaceImport: true
   instanceSelector:
     matchLabels:

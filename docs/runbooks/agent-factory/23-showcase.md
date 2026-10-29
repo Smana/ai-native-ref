@@ -128,8 +128,9 @@ sandbox and checks it; you merge.
 **Components:** `maku mcp` and the `factory-handoff` skill (Maku), `maku-factory`, OpenHands in gVisor,
 agentgateway, octo-sts.
 
-**Switches:** the tester on `scripts` (owner); session start, optional (owner). Session start can list
-`Smana/ai-native-ref` only for the demo, and the tester runs on cloud-native-ref only, so on cloud-native-ref the form files the issue and the
+**Switches:** the tester on `scripts` (owner); session start, optional (owner). The form offers the
+start only on a repository the broker lists (`Smana/ai-native-ref` for the demo), and the tester runs
+on cloud-native-ref only, so on cloud-native-ref the form files the issue and the
 developer starts it with `gh`.
 
 | # | Do | Point at |

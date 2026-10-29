@@ -1,7 +1,7 @@
 # One room: its task, its runs (role, phase, spend, duration), its waits for a human. A run id opens the
 # Agent run page, a payer the identity page. A factory task's room id is the task's id; a room run
 # not started by a task is found by its branch agent/<room> (as the Agent run page does).
-# The room broker's rooms_* counters carry no room label (only rooms_last_event_timestamp_seconds
+# The room broker's maku_rooms_* counters carry no room label (only maku_rooms_last_event_timestamp_seconds
 # has one): the broker row is the whole broker, titled so, and the room page URL is the top-bar link.
 # $${...} survives Flux's postBuild substitution; ${private_domain_name} is substituted; $__range, $1 pass.
 apiVersion: grafana.integreatly.org/v1beta1
@@ -25,7 +25,7 @@ spec:
       "timezone": "utc",
       "time": {"from": "now-7d", "to": "now"},
       "links": [{"title": "Agents", "type": "dashboards", "tags": ["agents"], "asDropdown": false, "includeVars": true, "keepTime": true, "icon": "dashboard", "tooltip": "Every dashboard of the Agents folder: overview, fleet, factory, gateway, identity, room, run"}, {"title": "Room page", "type": "link", "url": "https://rooms.${private_domain_name}/r/$${room}", "targetBlank": true, "tooltip": "The room's own page: status, needs-you, actions and notes"}],
-      "templating": {"list": [{"name": "datasource", "type": "datasource", "query": "prometheus"}, {"name": "room", "label": "Room", "type": "query", "refresh": 2, "sort": 1, "multi": false, "includeAll": false, "datasource": {"type": "prometheus", "uid": "$${datasource}"}, "definition": "query_result(group by (room) (last_over_time(agent_factory_run_charge_info[30d]) or label_replace(last_over_time(agent_factory_task_phase_seconds[30d]), \"room\", \"$1\", \"task\", \"(.*)\")))", "query": "query_result(group by (room) (last_over_time(agent_factory_run_charge_info[30d]) or label_replace(last_over_time(agent_factory_task_phase_seconds[30d]), \"room\", \"$1\", \"task\", \"(.*)\")))", "regex": "/room=\"([^\"]+)\"/"}]},
+      "templating": {"list": [{"name": "datasource", "type": "datasource", "query": "prometheus"}, {"name": "room", "label": "Room", "type": "query", "refresh": 2, "sort": 1, "multi": false, "includeAll": false, "datasource": {"type": "prometheus", "uid": "$${datasource}"}, "definition": "query_result(group by (room) (last_over_time(maku_factory_run_charge_info[30d]) or label_replace(last_over_time(maku_factory_task_phase_seconds[30d]), \"room\", \"$1\", \"task\", \"(.*)\")))", "query": "query_result(group by (room) (last_over_time(maku_factory_run_charge_info[30d]) or label_replace(last_over_time(maku_factory_task_phase_seconds[30d]), \"room\", \"$1\", \"task\", \"(.*)\")))", "regex": "/room=\"([^\"]+)\"/"}]},
       "panels": [
         {"id": 1,
          "type": "stat",
@@ -62,16 +62,16 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}},
          "fieldConfig": {"defaults": {"unit": "s", "noValue": "not waiting", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 900}]}}, "overrides": []},
-         "targets": [{"refId": "A", "expr": "max(agent_factory_task_phase_seconds{phase=~\"AwaitingHuman|Escalated\", task=\"$${room}\"})", "instant": true}]},
+         "targets": [{"refId": "A", "expr": "max(maku_factory_task_phase_seconds{phase=~\"AwaitingHuman|Escalated\", task=\"$${room}\"})", "instant": true}]},
         {"id": 5,
          "type": "stat",
          "title": "Last event",
-         "description": "How long ago the room's log last got an event (rooms_last_event_timestamp_seconds, the series RoomStalled reads). A room the broker no longer holds has none.",
+         "description": "How long ago the room's log last got an event (maku_rooms_last_event_timestamp_seconds, the series RoomStalled reads). A room the broker no longer holds has none.",
          "gridPos": {"x": 16, "y": 0, "w": 4, "h": 4},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}},
          "fieldConfig": {"defaults": {"unit": "s", "noValue": "no live room", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 900}, {"color": "red", "value": 1800}]}}, "overrides": []},
-         "targets": [{"refId": "A", "expr": "time() - max(rooms_last_event_timestamp_seconds{room=\"$${room}\"})", "instant": true}]},
+         "targets": [{"refId": "A", "expr": "time() - max(maku_rooms_last_event_timestamp_seconds{room=\"$${room}\"})", "instant": true}]},
         {"id": 6,
          "type": "stat",
          "title": "Pull request",
@@ -88,7 +88,7 @@ spec:
          "gridPos": {"x": 0, "y": 4, "w": 24, "h": 9},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "fieldConfig": {"defaults": {"noValue": "no run in this range"}, "overrides": [{"matcher": {"id": "byName", "options": "run_id"}, "properties": [{"id": "links", "value": [{"title": "Open this run", "url": "/d/agent-run/agent-run?var-run=$${__value.text}&$${__url_time_range}"}]}]}, {"matcher": {"id": "byName", "options": "payer"}, "properties": [{"id": "links", "value": [{"title": "Spend of this principal", "url": "/d/agent-identity/agent-identity?var-principal=$${__value.text}&$${__url_time_range}"}]}]}, {"matcher": {"id": "byName", "options": "started"}, "properties": [{"id": "unit", "value": "dateTimeAsIso"}]}, {"matcher": {"id": "byName", "options": "duration"}, "properties": [{"id": "unit", "value": "s"}, {"id": "decimals", "value": 0}]}, {"matcher": {"id": "byName", "options": "spend"}, "properties": [{"id": "unit", "value": "currencyUSD"}, {"id": "decimals", "value": 3}]}, {"matcher": {"id": "byName", "options": "phase"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "mappings", "value": [{"type": "value", "options": {"Pending": {"color": "yellow", "index": 0}, "Running": {"color": "blue", "index": 1}, "Suspended": {"color": "purple", "index": 2}, "Succeeded": {"color": "green", "index": 3}, "Failed": {"color": "red", "index": 4}, "BudgetExhausted": {"color": "orange", "index": 5}, "Revoked": {"color": "dark-red", "index": 6}}}]}]}]},
-         "targets": [{"refId": "A", "expr": "topk by (run_id) (1, tlast_over_time(agentrun_info{namespace=\"agents\"}[$__range])) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "B", "expr": "max by (run_id, phase) (last_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) == 1) and on (run_id, phase) topk by (run_id) (1, tlast_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) and (last_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) == 1)) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "C", "expr": "(max by (run_id) (last_over_time(agentrun_started_timestamp_seconds{namespace=\"agents\"}[$__range]) > 0) * 1000) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "D", "expr": "(max by (run_id) (last_over_time(agentrun_finished_timestamp_seconds{namespace=\"agents\"}[$__range]) > 0) - max by (run_id) (last_over_time(agentrun_started_timestamp_seconds{namespace=\"agents\"}[$__range]) > 0)) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "E", "expr": "(sum by (run_id) (label_replace(sum by (ar_agent) (sum by (ar_agent, gen_ai_request_model, gen_ai_token_type) (increase_pure(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output|cached_input|cache_creation_input\"}[$__range])) * on (gen_ai_request_model, gen_ai_token_type) group_left() llm_gateway:charge_usd_per_mtoken / 1e6), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\"))) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "F", "expr": "(sum by (run_id) (label_replace(sum by (ar_agent) (increase_pure(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\"))) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "G", "expr": "max by (run_id, payer) (label_replace(label_replace(max_over_time(agent_factory_run_charge_info{room=\"$${room}\"}[$__range]), \"run_id\", \"$1\", \"run\", \"(.*)\"), \"payer\", \"$1\", \"principal\", \"(.*)\"))", "instant": true, "format": "table"}, {"refId": "H", "instant": true, "format": "table", "expr": "sum by (run_id, gen_ai_request_model) (label_replace(sum by (run, gen_ai_request_model) (label_replace(sum by (ar_agent, gen_ai_request_model) (increase_pure(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\")), \"run_id\", \"$1\", \"run\", \"(.*)\")) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))"}, {"refId": "I", "instant": true, "format": "table", "expr": "max by (run_id, effort) (label_replace(max by (run, effort) (max_over_time(rooms_run_info[$__range])), \"run_id\", \"$$1\", \"run\", \"(.*)\")) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))"}],
+         "targets": [{"refId": "A", "expr": "topk by (run_id) (1, tlast_over_time(agentrun_info{namespace=\"agents\"}[$__range])) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "B", "expr": "max by (run_id, phase) (last_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) == 1) and on (run_id, phase) topk by (run_id) (1, tlast_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) and (last_over_time(agentrun_status_phase{namespace=\"agents\"}[$__range]) == 1)) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "C", "expr": "(max by (run_id) (last_over_time(agentrun_started_timestamp_seconds{namespace=\"agents\"}[$__range]) > 0) * 1000) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "D", "expr": "(max by (run_id) (last_over_time(agentrun_finished_timestamp_seconds{namespace=\"agents\"}[$__range]) > 0) - max by (run_id) (last_over_time(agentrun_started_timestamp_seconds{namespace=\"agents\"}[$__range]) > 0)) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "E", "expr": "(sum by (run_id) (label_replace(sum by (ar_agent) (sum by (ar_agent, gen_ai_request_model, gen_ai_token_type) (increase_pure(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output|cached_input|cache_creation_input\"}[$__range])) * on (gen_ai_request_model, gen_ai_token_type) group_left() llm_gateway:charge_usd_per_mtoken / 1e6), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\"))) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "F", "expr": "(sum by (run_id) (label_replace(sum by (ar_agent) (increase_pure(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run_id\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\"))) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))", "instant": true, "format": "table"}, {"refId": "G", "expr": "max by (run_id, payer) (label_replace(label_replace(max_over_time(maku_factory_run_charge_info{room=\"$${room}\"}[$__range]), \"run_id\", \"$1\", \"run\", \"(.*)\"), \"payer\", \"$1\", \"principal\", \"(.*)\"))", "instant": true, "format": "table"}, {"refId": "H", "instant": true, "format": "table", "expr": "sum by (run_id, gen_ai_request_model) (label_replace(sum by (run, gen_ai_request_model) (label_replace(sum by (ar_agent, gen_ai_request_model) (increase_pure(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.*\", gen_ai_token_type=~\"input|output\"}[$__range])), \"run\", \"$1\", \"ar_agent\", \"system:serviceaccount:agents:xplane-run-(.*)\")), \"run_id\", \"$1\", \"run\", \"(.*)\")) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))"}, {"refId": "I", "instant": true, "format": "table", "expr": "max by (run_id, effort) (label_replace(max by (run, effort) (max_over_time(maku_rooms_run_info[$__range])), \"run_id\", \"$$1\", \"run\", \"(.*)\")) and on (run_id) max by (run_id) (last_over_time(agentrun_info{namespace=\"agents\", task=\"$${room}\", task!=\"\"}[$__range]) or last_over_time(agentrun_info{namespace=\"agents\", branch=\"agent/$${room}\"}[$__range]))"}],
          "transformations": [{"id": "merge", "options": {}}, {"id": "organize", "options": {"renameByName": {"Value #C": "started", "Value #D": "duration", "Value #E": "spend", "Value #F": "tokens"}}}, {"id": "filterFieldsByName", "options": {"include": {"names": ["run_id", "role", "tier", "phase", "payer", "started", "duration", "tokens", "spend", "gen_ai_request_model", "effort"]}}}, {"id": "groupBy", "options": {"fields": {"run_id": {"operation": "groupby"}, "role": {"operation": "aggregate", "aggregations": ["lastNotNull"]}, "tier": {"operation": "aggregate", "aggregations": ["lastNotNull"]}, "phase": {"operation": "aggregate", "aggregations": ["lastNotNull"]}, "payer": {"operation": "aggregate", "aggregations": ["lastNotNull"]}, "started": {"operation": "aggregate", "aggregations": ["lastNotNull"]}, "duration": {"operation": "aggregate", "aggregations": ["lastNotNull"]}, "tokens": {"operation": "aggregate", "aggregations": ["lastNotNull"]}, "spend": {"operation": "aggregate", "aggregations": ["lastNotNull"]}, "gen_ai_request_model": {"operation": "aggregate", "aggregations": ["uniqueValues"]}, "effort": {"operation": "aggregate", "aggregations": ["lastNotNull"]}}}}, {"id": "organize", "options": {"renameByName": {"role (lastNotNull)": "role", "tier (lastNotNull)": "tier", "phase (lastNotNull)": "phase", "payer (lastNotNull)": "payer", "started (lastNotNull)": "started", "duration (lastNotNull)": "duration", "tokens (lastNotNull)": "tokens", "spend (lastNotNull)": "spend", "gen_ai_request_model (uniqueValues)": "model", "effort (lastNotNull)": "effort"}}}, {"id": "sortBy", "options": {"sort": [{"field": "started", "desc": true}]}}]},
         {"id": 8,
          "type": "timeseries",
@@ -97,7 +97,7 @@ spec:
          "gridPos": {"x": 0, "y": 13, "w": 12, "h": 7},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "fieldConfig": {"defaults": {"noValue": "0", "unit": "s"}, "overrides": []},
-         "targets": [{"refId": "A", "expr": "agent_factory_task_phase_seconds{task=\"$${room}\"}", "legendFormat": "{{phase}}"}]},
+         "targets": [{"refId": "A", "expr": "maku_factory_task_phase_seconds{task=\"$${room}\"}", "legendFormat": "{{phase}}"}]},
         {"id": 9,
          "type": "timeseries",
          "title": "Runs by phase",
@@ -120,7 +120,7 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}},
          "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "noValue": "0", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []},
-         "targets": [{"refId": "A", "expr": "max(rooms_approvals_pending) or vector(0)", "instant": true}]},
+         "targets": [{"refId": "A", "expr": "max(maku_rooms_approvals_pending) or vector(0)", "instant": true}]},
         {"id": 12,
          "type": "stat",
          "title": "Oldest pending approval",
@@ -129,7 +129,7 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}},
          "fieldConfig": {"defaults": {"unit": "s", "noValue": "0", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 300}, {"color": "red", "value": 900}]}}, "overrides": []},
-         "targets": [{"refId": "A", "expr": "max(rooms_approvals_oldest_pending_seconds) or vector(0)", "instant": true}]},
+         "targets": [{"refId": "A", "expr": "max(maku_rooms_approvals_oldest_pending_seconds) or vector(0)", "instant": true}]},
         {"id": 13,
          "type": "bargauge",
          "title": "Participants, by kind",
@@ -138,7 +138,7 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "options": {"displayMode": "basic"},
          "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "noValue": "0", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
-         "targets": [{"refId": "A", "expr": "sum by (kind) (rooms_participants)", "instant": true, "legendFormat": "{{kind}}"}]},
+         "targets": [{"refId": "A", "expr": "sum by (kind) (maku_rooms_participants)", "instant": true, "legendFormat": "{{kind}}"}]},
         {"id": 14,
          "type": "timeseries",
          "title": "Notes and events appended, by type",
@@ -147,7 +147,7 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "interval": "1h",
          "fieldConfig": {"defaults": {"noValue": "0", "custom": {"drawStyle": "bars", "fillOpacity": 80, "stacking": {"mode": "normal"}}}, "overrides": []},
-         "targets": [{"refId": "A", "expr": "sum by (type) (increase_pure(rooms_events_appended_total[1h]))", "legendFormat": "{{type}}"}]},
+         "targets": [{"refId": "A", "expr": "sum by (type) (increase_pure(maku_rooms_events_appended_total[1h]))", "legendFormat": "{{type}}"}]},
         {"id": 15,
          "type": "bargauge",
          "title": "Verdicts posted, by result",
@@ -156,7 +156,7 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "options": {"displayMode": "basic"},
          "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "noValue": "0", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
-         "targets": [{"refId": "A", "expr": "sum by (result) (increase_pure(rooms_verdict_posts_total[$__range]))", "instant": true, "legendFormat": "{{result}}"}]},
+         "targets": [{"refId": "A", "expr": "sum by (result) (increase_pure(maku_rooms_verdict_posts_total[$__range]))", "instant": true, "legendFormat": "{{result}}"}]},
         {"id": 16,
          "type": "bargauge",
          "title": "Rejected actions, by reason",
@@ -165,7 +165,7 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "options": {"displayMode": "basic"},
          "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "noValue": "0", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
-         "targets": [{"refId": "A", "expr": "sum by (reason) (increase_pure(rooms_rejected_actions_total[$__range]))", "instant": true, "legendFormat": "{{reason}}"}]},
+         "targets": [{"refId": "A", "expr": "sum by (reason) (increase_pure(maku_rooms_rejected_actions_total[$__range]))", "instant": true, "legendFormat": "{{reason}}"}]},
         {"id": 17,
          "type": "bargauge",
          "title": "Human MCP calls, by tool",
@@ -174,6 +174,6 @@ spec:
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "options": {"displayMode": "basic"},
          "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "noValue": "0", "color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}, "overrides": []},
-         "targets": [{"refId": "A", "expr": "sum by (tool, outcome) (increase_pure(rooms_human_mcp_calls_total[$__range]))", "instant": true, "legendFormat": "{{tool}} {{outcome}}"}]}
+         "targets": [{"refId": "A", "expr": "sum by (tool, outcome) (increase_pure(maku_rooms_human_mcp_calls_total[$__range]))", "instant": true, "legendFormat": "{{tool}} {{outcome}}"}]}
       ]
     }

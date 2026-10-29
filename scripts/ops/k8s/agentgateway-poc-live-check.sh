@@ -105,7 +105,7 @@ scrape() { # namespace selector port grep-regex: matching metric lines from ever
   done
 }
 broker_rejects() { # "<mcp_key> <mcp_identity+run_not_live>" summed over the room-broker pods
-  scrape agent-system app.kubernetes.io/name=room-broker 9090 '^rooms_rejected_actions_total\{' | awk '
+  scrape agent-system app.kubernetes.io/name=room-broker 9090 '^maku_rooms_rejected_actions_total\{' | awk '
     /reason="mcp_key"/ {k += $NF} /reason="(mcp_identity|run_not_live)"/ {o += $NF}
     END {printf "%d %d\n", k, o}'
 }

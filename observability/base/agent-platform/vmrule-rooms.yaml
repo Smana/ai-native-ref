@@ -23,7 +23,7 @@ spec:
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#9-observability-and-constitution-compliance"
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         - alert: RoomLogAppendErrors
-          expr: sum(increase(rooms_append_errors_total[10m])) > 0
+          expr: sum(increase(maku_rooms_append_errors_total[10m])) > 0
           for: 10m
           labels:
             severity: warning
@@ -33,7 +33,7 @@ spec:
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#9-observability-and-constitution-compliance"
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         - alert: RoomRedactionsSpike
-          expr: sum(increase(rooms_redactions_total[15m])) > 20
+          expr: sum(increase(maku_rooms_redactions_total[15m])) > 20
           labels:
             severity: warning
           annotations:
@@ -54,7 +54,7 @@ spec:
         # The gauge exists for every room with a Running run, whatever its phase: the room
         # turns AwaitingHuman at 30 min silent, and the series must outlive that flip.
         - alert: RoomStalled
-          expr: time() - max by (room) (rooms_last_event_timestamp_seconds) > 1800
+          expr: time() - max by (room) (maku_rooms_last_event_timestamp_seconds) > 1800
           labels:
             severity: warning
           annotations:
@@ -64,7 +64,7 @@ spec:
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         # A stall or a 400 is a bridge/harness contract break, not load: alert on any.
         - alert: RoomBridgeHarnessStalled
-          expr: sum by (reason) (increase(rooms_bridge_harness_stalls_total[10m])) > 0
+          expr: sum by (reason) (increase(maku_rooms_bridge_harness_stalls_total[10m])) > 0
           labels:
             severity: warning
           annotations:
@@ -73,7 +73,7 @@ spec:
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#9-observability-and-constitution-compliance"
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         - alert: RoomBridgeItemsRefused
-          expr: sum(increase(rooms_bridge_items_stubbed_total{reason="refused"}[10m])) > 0
+          expr: sum(increase(maku_rooms_bridge_items_stubbed_total{reason="refused"}[10m])) > 0
           labels:
             severity: warning
           annotations:
@@ -85,7 +85,7 @@ spec:
         # tool output) or keys that collide once redacted. Expected now and then,
         # so info: a steady rate means a harness pattern worth a look, not a contract break.
         - alert: RoomBridgeItemsUnstorable
-          expr: sum by (reason) (increase(rooms_bridge_items_stubbed_total{reason=~"invalid_value|key_collision"}[1h])) > 0
+          expr: sum by (reason) (increase(maku_rooms_bridge_items_stubbed_total{reason=~"invalid_value|key_collision"}[1h])) > 0
           labels:
             severity: info
           annotations:
@@ -95,7 +95,7 @@ spec:
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         # The broker's held keys stop verifying 24h after the last fetch: 6h leaves time to act.
         - alert: RoomAuthnJWKSStale
-          expr: time() - max by (issuer) (rooms_authn_jwks_last_refresh_timestamp_seconds) > 6 * 3600
+          expr: time() - max by (issuer) (maku_rooms_authn_jwks_last_refresh_timestamp_seconds) > 6 * 3600
           for: 5m
           labels:
             severity: warning
@@ -107,7 +107,7 @@ spec:
         # The human issuer's verifier is lazy: an IdP unreachable since the broker
         # started leaves no series at all, which the age alert above cannot see.
         - alert: RoomAuthnHumanIssuerNeverFetched
-          expr: absent(rooms_authn_jwks_last_refresh_timestamp_seconds{issuer="${identity_provider_url}"}) and on() (sum(up{namespace="agent-system", service="room-broker"}) > 0)
+          expr: absent(maku_rooms_authn_jwks_last_refresh_timestamp_seconds{issuer="${identity_provider_url}"}) and on() (sum(up{namespace="agent-system", service="room-broker"}) > 0)
           for: 30m
           labels:
             severity: warning
@@ -117,18 +117,18 @@ spec:
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#decisions"
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         - alert: RoomRejectedActionsSpike
-          expr: sum(increase(rooms_rejected_actions_total[10m])) > 30
+          expr: sum(increase(maku_rooms_rejected_actions_total[10m])) > 30
           labels:
             severity: warning
           annotations:
             summary: "The broker refused more than 30 actions in 10 minutes"
-            description: "A client is probing the section 1 matrix, or a UI bug is sending actions a role cannot take. Break down by reason: sum by (reason) (increase(rooms_rejected_actions_total[10m]))"
+            description: "A client is probing the section 1 matrix, or a UI bug is sending actions a role cannot take. Break down by reason: sum by (reason) (increase(maku_rooms_rejected_actions_total[10m]))"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#1-room-model"
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         # A stuck verdict retries at most every 15 min (ruling TC's backoff cap) plus a 15 s
         # tick: the error window must outlast that gap, or every gap resets `for`.
         - alert: RoomVerdictsNotReachingGitHub
-          expr: sum(increase(rooms_verdict_posts_total{result="error"}[20m])) > 0 unless sum(increase(rooms_verdict_posts_total{result="posted"}[30m])) > 0
+          expr: sum(increase(maku_rooms_verdict_posts_total{result="error"}[20m])) > 0 unless sum(increase(maku_rooms_verdict_posts_total{result="posted"}[30m])) > 0
           for: 30m
           labels:
             severity: warning
@@ -138,7 +138,7 @@ spec:
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#3-agent-collaboration-and-the-broker"
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         - alert: RoomApprovalPendingTooLong
-          expr: max(rooms_approvals_oldest_pending_seconds) > 900
+          expr: max(maku_rooms_approvals_oldest_pending_seconds) > 900
           labels:
             severity: warning # routes to Slack (ADR-0037)
           annotations:

@@ -100,7 +100,7 @@ broker=$(k get pods -n agent-system -l app.kubernetes.io/name=room-broker --fiel
 if [ -z "$broker" ]; then
   fail "no Running room-broker pod"
 elif start_forward agent-system "pod/$broker" 9090 19090 && metrics=$(get_local 19090 /metrics); then
-  last=$(awk -v want="rooms_authn_jwks_last_refresh_timestamp_seconds{issuer=\"$idp\"}" '$1 == want {printf "%d\n", $2}' <<<"$metrics")
+  last=$(awk -v want="maku_rooms_authn_jwks_last_refresh_timestamp_seconds{issuer=\"$idp\"}" '$1 == want {printf "%d\n", $2}' <<<"$metrics")
   if [ -z "$last" ]; then fail "room-broker $broker: no JWKS refresh gauge for $idp"
   else
     # A Go client prints the gauge in exponent form (1.7607e+09): awk made it an integer.

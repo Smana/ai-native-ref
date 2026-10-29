@@ -153,9 +153,9 @@ kubernetes.pod_name:"xplane-run-<id>" AND kubernetes.container_name:"harness" AN
 {{< tab name="PromQL" icon="presentation-chart-line" >}}
 ```promql
 # Cost, as the meter computes it
-agent_factory_run_spend_usd{run="<id>"}
+maku_factory_run_spend_usd{run="<id>"}
 # Was the tier right? fit = under | fit | over
-sum by (tier, fit) (agent_factory_tier_fit_total)
+sum by (tier, fit) (maku_factory_tier_fit_total)
 # Why runs end
 sum by (reason) (agentrun_outcome_info)
 ```
@@ -189,7 +189,7 @@ for $2.65.
 | Out of budget, no commit, hundreds of `grep`/`cat` steps | The task has no stopping rule: [scope it](#recipes) |
 | Out of budget with limit `run-tokens` | A hand-started run or an unpriced model: raise `--max-tokens`, or add a `meter.prices` row |
 | `PodFailed` near the deadline | Raise `runMinutes` together with `runUSD` |
-| A `429`, then the agent stops | A gateway budget, never retried by design: check `agent_factory_run_revocations_total` |
+| A `429`, then the agent stops | A gateway budget, never retried by design: check `maku_factory_run_revocations_total` |
 
 ### Loops and errors
 
@@ -301,7 +301,7 @@ refuses the claim, and the task escalates with `loop_unsupported`.
 
 | End | Room | Task | Issue | Counter |
 |---|---|---|---|---|
-| `judge_impossible` | `harness_end` event, then the judge's text as a run note | `Escalated`, reason `judge_impossible` | Fixed narration with the reason category only, no judge text | `agent_factory_loop_runs_total{end="judge_impossible"}` |
+| `judge_impossible` | `harness_end` event, then the judge's text as a run note | `Escalated`, reason `judge_impossible` | Fixed narration with the reason category only, no judge text | `maku_factory_loop_runs_total{end="judge_impossible"}` |
 | `stalled` | `harness_end` event, then the run's findings as a note | `Escalated`, reason `stalled` | The same | `end="stalled"` |
 | `not_met` | `harness_end` event, then the last `not_yet` reason as a note | `Escalated`, reason `not_met` | The same | `end="not_met"` |
 

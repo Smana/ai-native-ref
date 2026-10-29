@@ -6,7 +6,7 @@ the Grafana dashboard renders with live panels, that SP4's gateway metrics (`ar_
 alongside — runbooks 01–07, since it needs live runs to have produced some signal. See
 [README.md](README.md) for prerequisites; run [00](README.md#runbook-00-one-time-cluster-setup) first.
 
-> **Metric names.** Maku v0.30.x emits `agent_factory_*` and `rooms_*` twice: under those names and as `maku_factory_*` and `maku_rooms_*`. The queries in these runbooks still use the old names, which stop in v0.31.0.
+> **Metric names.** Maku v0.30.x emits `maku_factory_*` and `maku_rooms_*` twice: under those names and as `maku_factory_*` and `maku_rooms_*`. The queries in these runbooks still use the old names, which stop in v0.31.0.
 
 ## Prerequisites
 

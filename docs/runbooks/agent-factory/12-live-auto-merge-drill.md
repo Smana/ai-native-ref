@@ -144,7 +144,7 @@ CLOUD=gcp    # the cloud of the factory the fence names
 CA=opentofu/$CLOUD/openbao/management/.tls/ca.pem
 VL=https://vl.priv.$CLOUD.ogenki.io
 vm() { kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=$(jq -rn --arg q "$1" '$q|@uri')" | jq -c '.data.result[] | [.metric, .value[1]]'; }
-vm 'sum by (class, verdict, reason) (agent_factory_merge_decisions_total{class=~"docs-links|revert"})'   # the baseline
+vm 'sum by (class, verdict, reason) (maku_factory_merge_decisions_total{class=~"docs-links|revert"})'   # the baseline
 ```
 
 ### Step 1 — switch the classes live
@@ -279,8 +279,8 @@ Then put one `docs-links` issue through the factory. Expected: the merge ledger 
 
 ```bash
 # The gate's decisions over the drill (the counter appears at the first decision after the rollout)
-vm 'sum by (class, verdict, reason) (increase(agent_factory_merge_decisions_total{class=~"docs-links|revert"}[6h]))'
-vm 'sum by (class, outcome) (increase(agent_factory_pr_outcomes_total{class="docs-links"}[6h]))'
+vm 'sum by (class, verdict, reason) (increase(maku_factory_merge_decisions_total{class=~"docs-links|revert"}[6h]))'
+vm 'sum by (class, outcome) (increase(maku_factory_pr_outcomes_total{class="docs-links"}[6h]))'
 
 # The factory's own account: ledger read, label writes, the task's hand-offs
 curl -sS --cacert $CA $VL/select/logsql/query --data-urlencode \
@@ -292,7 +292,7 @@ gh pr list -R Smana/cloud-native-ref --state all --label "factory/revert-of:#$PR
 ```
 
 Expected: `verdict="arm", reason="armed"` once for `docs-links`; no `label the merge ledger` error;
-`merge ledger read from GitHub` at each factory start; one labelled merge, one revert-of PR; `agent_factory_pr_outcomes_total` counts `auto_merged` then `reverted`.
+`merge ledger read from GitHub` at each factory start; one labelled merge, one revert-of PR; `maku_factory_pr_outcomes_total` counts `auto_merged` then `reverted`.
 
 ## Abort and roll back
 
@@ -319,7 +319,7 @@ and #66 is closed.
 | 2 | task `docs-links`, PR opened | Issue cloud-native-ref#2519 (15:07Z) → task `ey5miixe`, run `2ka3pegs` → PR #2520 (15:13Z), +4/−4, Markdown link targets only | Pass |
 | 3 | `AutoMerging` → `Verifying` | CI green, `policy-bot: main` `success`, decision `arm` | Pass |
 | 4 (G2) | merged by the merger at the task's `headSHA`, `Agent-Run` trailer, `factory/auto-merged:docs-links` | Merged 15:20:09Z by `ogenki-agent-merger` at `91c8f0d1…`, the task's `headSHA`; merge commit `4be79ae7` carries `Agent-Run: 2ka3pegs`; label written. The task ended `Done` / `merged_verified` | Pass |
-| 5 (G3) | revert PR by the merger, `factory/revert-of:#<PR>`, merged; `ClassDemoted` on #2188 | `factory/revert` on #2520 → `Reverted` / `revert_requested`; #2521 (15:51Z) authored by the merger, `Revert "…"`, `Reverts #2520`, `factory/revert-of:#2520`, auto-merge armed; every required check and `policy-bot: main` green, yet `BLOCKED`. Disarmed at `verifyFor` (16:22Z, `revert-end-stalled`), merged by the owner 18:04Z. #2188 reports the demotion. `agent_factory_pr_outcomes_total{class="docs-links", outcome="reverted"}` 1 | Pass, except the unattended merge |
+| 5 (G3) | revert PR by the merger, `factory/revert-of:#<PR>`, merged; `ClassDemoted` on #2188 | `factory/revert` on #2520 → `Reverted` / `revert_requested`; #2521 (15:51Z) authored by the merger, `Revert "…"`, `Reverts #2520`, `factory/revert-of:#2520`, auto-merge armed; every required check and `policy-bot: main` green, yet `BLOCKED`. Disarmed at `verifyFor` (16:22Z, `revert-end-stalled`), merged by the owner 18:04Z. #2188 reports the demotion. `maku_factory_pr_outcomes_total{class="docs-links", outcome="reverted"}` 1 | Pass, except the unattended merge |
 | 6 | both classes `{shadow: true}`, cap 10 | Not run: the owner keeps them live, cap 1 | Skipped |
 | G1 | after the restart, `class_paused` | Not run | Not run |
 

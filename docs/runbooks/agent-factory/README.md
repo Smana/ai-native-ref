@@ -252,7 +252,7 @@ reaches the room and the implementer's brief) or asks its author the one questio
 | 2 | File drill issue B below and label it | One comment on the issue (the question, the assumption it would make), the label `factory/needs-author`, the task `Escalated` with reason `needs_author`, no implementer run |
 | 3 | Edit issue B's body to add the acceptance check, then re-apply `factory/ready` | A new task (a new generation) scopes `ready`; the first one is superseded |
 | 4 | File drill issue B again as a new issue, label it, then comment `/factory retry` | The implementer starts on the assumption (`status.scope` `assumed`), no second scoper run, the label is removed |
-| 5 | Read the counters | `agent_factory_scoper_runs_total` and `agent_factory_scope_bounces_total` carry one outcome per run above |
+| 5 | Read the counters | `maku_factory_scoper_runs_total` and `maku_factory_scope_bounces_total` carry one outcome per run above |
 
 Steering (live proof 3) needs a note at `.github/agent-factory/steering/docs.md` on the target's default
 branch, which exists on ai-native-ref and not yet on cloud-native-ref. To prove it, switch the row to
@@ -281,12 +281,12 @@ jsonpath='{.spec.loop}'` shows `stallSteps`, `continuations` and `judgeModel`.
 
 | # | Do | Expected reading |
 |---|---|---|
-| 1 | In a commit of the session, set `loops.docs.stallSteps` to 20 for this drill. File drill issue C (a stall drill) and label it as in layer 1 | The implementer ends with no commit by step 20: the task is `Escalated`, reason `stalled`; the room holds the run's findings as a note; the issue carries the fixed narration with the reason category only; `agent_factory_loop_runs_total{end="stalled"}` is 1. The run's cost stays under the tier's `runUSD` |
+| 1 | In a commit of the session, set `loops.docs.stallSteps` to 20 for this drill. File drill issue C (a stall drill) and label it as in layer 1 | The implementer ends with no commit by step 20: the task is `Escalated`, reason `stalled`; the room holds the run's findings as a note; the issue carries the fixed narration with the reason category only; `maku_factory_loop_runs_total{end="stalled"}` is 1. The run's cost stays under the tier's `runUSD` |
 | 2 | File drill issue D (a clear issue whose first attempt misses a check) and label it | After the first run ends on its own, the judge answers `not_yet` against the scope's checks; the same conversation continues (the room shows one run's conversation, not a restart), at most twice |
 | 3 | On step 2's task, read the cache | `cache_read` over `input` for the continued steps is high (runbook 04, Part E); a continuation that restarted the conversation reads as a cold prefix |
 | 4 | An issue whose acceptance cannot be met (drill E) | The judge answers `impossible`: `Escalated`, reason `judge_impossible`, the judge's text only in the room, the issue carries the category only |
 | 5 | Read the reviewer's role in the room on any of the runs above | The reviewer's brief and calls hold no implementer transcript |
-| 6 | Read the counters | `agent_factory_loop_runs_total` by `end` (`finished`, `stalled`, `not_met`, `judge_impossible`) matches the runs above |
+| 6 | Read the counters | `maku_factory_loop_runs_total` by `end` (`finished`, `stalled`, `not_met`, `judge_impossible`) matches the runs above |
 
 After the drill, put `stallSteps` back to 60 (a real docs run takes 15 to 40 steps before its first
 commit; do not go under about 50), then set it from the accepted runs' step counts.

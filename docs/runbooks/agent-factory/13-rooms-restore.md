@@ -38,7 +38,7 @@ rooms_psql() {  # $1: namespace, $2: CNPG cluster name; reads stdin
 ```
 
 The fingerprint, the same query for every capture. One line per room (its event sequence,
-hashed), then the grants and the `rooms_*` roles:
+hashed), then the grants and the `maku_rooms_*` roles:
 
 ```bash
 cat > /tmp/rooms-fingerprint.sql <<'SQL'
@@ -126,7 +126,7 @@ its own); `True` and a timestamp. **RTO (database)** = Ready − creation. Then 
 kubectl get deploy -n agent-system room-broker -o jsonpath='{.status.readyReplicas}{"\n"}'
 ```
 
-Expected: ≥ 1, and the `rooms_*` role logins work, which CNPG resets to this generation's
+Expected: ≥ 1, and the `maku_rooms_*` role logins work, which CNPG resets to this generation's
 generated passwords (managed roles).
 
 ### Step A4 — compare
@@ -182,9 +182,9 @@ spec:
   storageSize: 20Gi
   postgresVersion: "18"
   credentials: {source: generated}
-  databases: [{name: rooms, owner: rooms_owner}]
+  databases: [{name: rooms, owner: maku_rooms_owner}]
   roles:
-    - {name: rooms_owner, comment: drill, superuser: false}
+    - {name: maku_rooms_owner, comment: drill, superuser: false}
     - {name: rooms_broker, comment: drill, superuser: false}
     - {name: rooms_retention, comment: drill, superuser: false}
   objectStoreRecovery: {bucketName: $BUCKET, path: $SEED}

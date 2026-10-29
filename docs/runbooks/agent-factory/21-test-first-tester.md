@@ -32,7 +32,7 @@ printed line). File it on cloud-native-ref, `class:scripts`, then `factory/ready
 | 5 | `kubectl … -o jsonpath='{.status.contract}'` | `runId` the tester's, `commit` = step 3's `after`, the same files and ids |
 | 6 | The implementer's claim: `kubectl -n agents get agentrun <rid(1)> -o jsonpath='{.spec.task.text}'` | holds "The test contract", the commit's first 12 and the ids |
 | 7 | `gh pr checks <pr>`, then the "Test contract 🧪" summary | each tester id `fail` at base + tests and `pass` at the head; the check required (row 2b): the task waits for it |
-| 8 | `agent_factory_contracts_total{class="scripts",end="ready"}` in VictoriaMetrics | 1 |
+| 8 | `maku_factory_contracts_total{class="scripts",end="ready"}` in VictoriaMetrics | 1 |
 
 `scripts` is label-only: the task ends with a maintainer (`class_unarmed`). That is the expected end.
 
@@ -56,7 +56,7 @@ R20 replaced the spec's `holdout_absent`: an absent holdout waits.
 |---|---|---|
 | 1 | In a session commit, rename ai-native-ref's `docs-links` holdout to `validate-renamed`; file drill T3 (`~/.cache/v3/drills/drill-t3.md`; a `docs-links` fix) on ai-native-ref | the decision waits `holdout_pending`; after `awaitingCIFor` (24 h, or set it to `30m` in the same session commit) the task hands off naming `validate-renamed` as never reported (`ChecksNeverReported`) |
 | 2 | Revert the rename; file drill T3 again | `shadow_would_arm` as before the change: `scripts/shadow-merge-tally.sh` (Maku) counts the decision with the others |
-| 3 | `agent_factory_class_without_holdout` | no series (F5 declared every live class's holdout) |
+| 3 | `maku_factory_class_without_holdout` | no series (F5 declared every live class's holdout) |
 
 ## 4. After the session
 

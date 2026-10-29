@@ -81,7 +81,7 @@ flowchart LR
   M -->|"spent · settled, one write"| L["agent-factory-ledger-usd-YYYYMMDD"]
   A["admission<br/>Reserve · reserveFactoryDay"] -->|"reserved: maxMicroUSD"| L
   L -->|"OverDaily in micro-USD"| A
-  M --> G["agent_factory_budget_*_usd"] --> AL["AgentFactoryDailyBudgetHigh<br/>factory dashboard"]
+  M --> G["maku_factory_budget_*_usd"] --> AL["AgentFactoryDailyBudgetHigh<br/>factory dashboard"]
   U["genai-prices · LiteLLM · models.dev"]:::ext -.->|"nightly check-price-drift.py"| I["one issue<br/>prices-drift"]
   I -.->|"a human confirms on the provider's page"| T
   W["wire test<br/>input counts cache tokens"]:::guard -.-> V

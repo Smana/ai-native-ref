@@ -128,6 +128,7 @@ export AI_NATIVE_REF_DIR=~/Sources/ai-native-ref
   about a minute, and the pod goes with it. Use `Run 'sleep N' in the terminal, then finish.`
 
 To rotate the merger GitHub App's private key, see [09-app-key-compromise.md](09-app-key-compromise.md).
+To restore the rooms database after a cluster rebuild, see [13-rooms-restore.md](13-rooms-restore.md).
 
 ## Runbook 00: one-time cluster setup
 

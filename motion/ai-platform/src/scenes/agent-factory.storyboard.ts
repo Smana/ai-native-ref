@@ -1,4 +1,4 @@
-// The editable part of the Agent Factory clip: beats, timings and wording.
+// The editable part of the Maku hero clip: beats, timings and wording.
 // Shift a beat's `start` and everything in it moves; the drawing code in
 // agent-factory.ts only knows beat names. Wrap words in **…** to accent them.
 
@@ -9,7 +9,7 @@ export interface Beat {
 }
 
 export const title = {
-  text: 'Agent Factory',
+  text: 'Maku',
   subtitle: ['Agents you can hand work to,', 'not just sit next to.'],
   kicker: 'self-hosted · sandboxed · on Kubernetes',
   url: 'airef.ogenki.io',
@@ -22,7 +22,7 @@ export const labels = {
   github: { title: 'GitHub', sub: 'issue · pull request' },
   readyLabel: 'factory/ready',
   room: { title: 'Room', sub: 'watch · steer' },
-  factory: { title: 'Agent Factory', sub: 'issue → task' },
+  factory: { title: 'Factory', sub: 'issue → task' },
   run: { title: 'Agent run', sandbox: 'gVisor sandbox', inside: 'coding agent · OpenHands' },
   gateway: { title: 'agentgateway', sub: 'per-run identity · budgets' },
   models: { title: 'Models', sub: 'Z.ai GLM · Claude' },

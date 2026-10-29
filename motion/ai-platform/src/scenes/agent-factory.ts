@@ -1,4 +1,4 @@
-// Agent Factory: one task end to end, built up a few nodes per beat.
+// Maku (the factory feature): one task end to end, built up a few nodes per beat.
 
 import { Scene } from '../engine/scene.js';
 import { Track } from '../engine/tween.js';
@@ -83,6 +83,7 @@ export function agentFactory(assets: Assets): Scene {
     new TitleCard({
       logo: assets.logo,
       logoAspect: assets.logoAspect,
+      mark: assets.mark,
       title: T.text,
       subtitle: T.subtitle,
       kicker: T.kicker,

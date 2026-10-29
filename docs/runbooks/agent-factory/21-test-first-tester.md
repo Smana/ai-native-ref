@@ -10,10 +10,10 @@ See [README.md](README.md) for `CLOUD`.
 
 ## 0. Preconditions
 
-- [ ] The factory and broker run F3's release: `kubectl -n agent-factory get deploy agent-factory -o jsonpath='{..image}'`.
+- [ ] The factory and broker run F3's release: `kubectl -n agent-system get deploy agent-factory -o jsonpath='{..image}'`.
 - [ ] A run's harness is F1's: start any run and read `kubectl -n agents get pod xplane-run-<id> -o jsonpath='{.spec.containers[?(@.name=="harness")].image}'`.
 - [ ] The host's tester trust policy is `contents: write`: `gh api repos/Smana/cloud-native-ref/contents/.github/chainguard/agent-tester.sts.yaml --jq .content | base64 -d | grep 'contents: write'`.
-- [ ] The factory logged no config warning since its start: `kubectl -n agent-factory logs deploy/agent-factory | grep -c 'config warning'` → `0`.
+- [ ] The factory logged no config warning since its start: `kubectl -n agent-system logs deploy/agent-factory | grep -c 'config warning'` → `0`.
 - [ ] A session commit on ai-native-ref switches the host's `scripts` to `{checks: true, testFirst: true}`
   (and nothing else); Flux reconciled it. The same session's last commit reverts it.
 
@@ -25,7 +25,7 @@ printed line). File it on cloud-native-ref, `class:scripts`, then `factory/ready
 
 | Step | Read | Expected |
 |---|---|---|
-| 1 | `kubectl -n agent-factory get task <t> -o jsonpath='{.status.runs[0].role} {.status.phase}'` | `tester Implementing` (after the scoper's run if the class's scope mode is `scoper`) |
+| 1 | `kubectl -n agent-system get task <t> -o jsonpath='{.status.runs[0].role} {.status.phase}'` | `tester Implementing` (after the scoper's run if the class's scope mode is `scoper`) |
 | 2 | The room | `Harness (tester): contract_ready: scripts/ci/tests/test-….sh`; before it, no push by the model succeeded (`disabled://` in the step log if it tried) |
 | 3 | `gh api 'repos/Smana/cloud-native-ref/activity?ref=refs/heads/agent/<t>' --jq '.[] \| [.activity_type, .actor.login, .after] \| @tsv'` | one `branch_creation` by `ogenki-agents[bot]` |
 | 4 | `gh api repos/Smana/cloud-native-ref/commits/<after> --jq .commit.message` | subject `test: the test contract`; `Agent-Contract: <rid(0)>`, the files, the ids |

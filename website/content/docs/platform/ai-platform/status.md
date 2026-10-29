@@ -84,9 +84,10 @@ Every feature was built and proven offline first (unit, golden and container sui
 drift gates), then taken to a live proof on `gcp-0`; the table says which have passed it. Each one ships behind a per-class switch: a class runs a
 feature only where its row in the factory's config turns it on. Some switches are **session
 switches**: the owner turns them on for a live session and off after it. They are the `docs` row's
-`models` (Kimi, Mistral), the tester's `testFirst` on `scripts`, and RunLore, turned off again by
-[#218](https://github.com/Smana/ai-native-ref/pull/218), [#199](https://github.com/Smana/ai-native-ref/pull/199)
-and [cloud-native-ref#2643](https://github.com/Smana/cloud-native-ref/pull/2643). The mechanisms
+`models` (Kimi, Mistral), the tester's `testFirst` on `scripts`, RunLore, and the start of factory
+work from a developer's session (`human.mcp.sessionStart`, [runbook 19](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/19-factory-from-your-agent.md)), turned off again by
+[#218](https://github.com/Smana/ai-native-ref/pull/218), [#199](https://github.com/Smana/ai-native-ref/pull/199),
+[cloud-native-ref#2643](https://github.com/Smana/cloud-native-ref/pull/2643) and this page's own revision. The mechanisms
 themselves, such as `loops.<class>.models`, are permanent.
 
 {{< badge content="live" color="green" >}} proven on `gcp-0` · {{< badge content="built" color="yellow" >}} deployed, its live proof pending · {{< badge content="later" color="gray" >}} deferred

@@ -540,6 +540,11 @@ Live, at the next platform session: the drill. Double `output` for Opus in `agen
 place, under a suspended Kustomization (Part F's method); the next Opus run fires
 `AgentCostCrossCheckMismatch` within 30 min; put the row back.
 
+## A provider answers and the gateway returns 502
+
+The run's model call fails with a 502 whose body says `invalid type: sequence, expected a string`.
+Agentgateway parses a Chat Completions message's `content` as a string. Mistral, asked to reason (`reasoning_effort` other than `none`), returns `content` as a list of chunks. The transformation in `infrastructure/base/agent-gateway/mistral.yaml` sets `reasoning_effort` to `"none"`; Kimi is unaffected, its reasoning arrives in a separate `reasoning_content` string. The gateway's access log for the run shows the 502 on `/v1/chat/completions`.
+
 ## Results
 
 > Every round below predates phase H (#2429): the agent rows ran on Envoy's agent-router in

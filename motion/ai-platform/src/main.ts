@@ -9,7 +9,6 @@ import { ICON_NAMES, iconImages } from './components/Icon.js';
 export interface Assets {
   logo: HTMLImageElement | null;
   logoAspect: number;
-  mark: HTMLImageElement | null;
 }
 
 async function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -43,7 +42,6 @@ class Player {
     if (!make) throw new Error(`unknown scene "${name}"; have: ${Object.keys(scenes).join(', ')}`);
     await loadFonts();
     const logo = await loadImage('assets/logo.svg');
-    const mark = await loadImage('assets/maku-mark.svg');
     await Promise.all(
       ICON_NAMES.map(async (n) => {
         const color = await loadImage(`assets/icons/${n}.color.svg`);
@@ -53,7 +51,7 @@ class Player {
       }),
     );
     const logoAspect = logo ? logo.naturalHeight / logo.naturalWidth || 396 / 448 : 396 / 448;
-    this.scene = make({ logo, logoAspect, mark });
+    this.scene = make({ logo, logoAspect });
     this.canvas = document.querySelector('canvas')!;
     this.canvas.width = this.scene.width;
     this.canvas.height = this.scene.height;

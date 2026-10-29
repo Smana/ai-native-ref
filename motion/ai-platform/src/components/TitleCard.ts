@@ -6,7 +6,6 @@ import { theme } from './theme.js';
 export interface TitleCardOptions {
   logo: CanvasImageSource | null;
   logoAspect: number; // height / width
-  mark?: CanvasImageSource | null; // product mark, drawn left of the centred title
   title: string;
   subtitle: string[];
   kicker?: string;
@@ -59,20 +58,12 @@ export class TitleCard extends Element {
     const size = lerp(92, 44, k);
     ctx.font = font(theme.fonts.mono, size, 800);
     const tw = ctx.measureText(this.o.title).width;
-    const ms = this.o.mark ? size * 1.05 : 0; // mark size, square
-    const gap = ms ? 26 : 0;
-    const tx = lerp(W / 2 - (tw + ms + gap) / 2 + ms + gap, 126, k);
+    const tx = lerp(W / 2 - tw / 2, 126, k);
     const ty = lerp(620, 80, k);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = theme.text;
     ctx.fillText(this.o.title, tx, ty);
-    if (this.o.mark && k < 1) {
-      ctx.save();
-      ctx.globalAlpha *= 1 - k;
-      ctx.drawImage(this.o.mark, tx - gap - ms, ty - ms / 2, ms, ms);
-      ctx.restore();
-    }
 
     // underline accent
     const ul = lerp(140, 0, k);

@@ -1,6 +1,6 @@
 # AI Platform explainers
 
-Short animated clips about Maku, the AI platform ("the factory" is its issue-to-PR feature; "dark factory" is the concept), for LinkedIn and the docs. `POST.md` holds the
+Short animated clips about the Agent Factory, the bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts…) behind the AI Platform, for LinkedIn and the docs. `POST.md` holds the
 post caption draft. `out/` is ignored by git. The docs homepage serves a web encode from `website/static/media/` (see [Publish on the site](#publish-on-the-site)). Each clip is a
 TypeScript scene drawn on a canvas, rendered frame by frame in headless Chromium and
 encoded with ffmpeg. No Motion Canvas: npm access was not available when this was built,
@@ -19,8 +19,7 @@ npm run render                   # → out/agent-factory.mp4
 ```
 
 `ffmpeg` must be on your PATH (`brew install ffmpeg`). The Ogenki logo is read from
-`website/static/images/ogenki-mark-white.svg` at render time and the Maku mark is
-`assets/maku-mark.svg` (the dark variant of the brand kit in agent-platform `docs/assets/brand/svg/`); nothing under `website/`
+`website/static/images/ogenki-mark-white.svg` at render time. The factory node's icon is the Maku mark (`assets/icons/factory.color.svg`, from the agent-platform brand kit); nothing under `website/`
 is written.
 
 Other commands:

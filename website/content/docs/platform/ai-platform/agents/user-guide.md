@@ -191,7 +191,7 @@ so every client shows the same text ([ADR-0059]({{< relref "/docs/decisions/0059
    | Copilot CLI | `maku setup copilot` |
 
 2. **Check the set-up.** `maku doctor`: every check `ok`.
-3. **Verify in the client.** A working registration lists the tools `maku_rooms_list`, `room_summary`,
+3. **Verify in the client.** A working registration lists the tools `rooms_list`, `room_summary`,
    `room_changes`, `room_wait`, `room_checkout`, `issue_draft`, `issue_file` and the prompts
    `handoff`, `status`, `inbox`.
 

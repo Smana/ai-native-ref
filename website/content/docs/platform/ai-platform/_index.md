@@ -1,7 +1,7 @@
 ---
 title: AI Platform
 weight: 50
-description: "Self-hosted model serving and Maku, whose factory puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
+description: "Self-hosted model serving and the Agent Factory, which puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
 lastVerified: 2026-10-01
 ---
 
@@ -17,7 +17,7 @@ Every other page here describes the design.
 
 ## How the parts fit
 
-![The AI Platform in one view. On the serving side, developers and coding clients send OpenAI-compatible requests over the tailnet to ai-gateway (Envoy AI Gateway with an API key and the Semantic Router), which routes them to vLLM models declared as InferenceService claims, on L4 GPUs and scaled by KEDA. On the agents side, a maintainer labels a GitHub issue; Maku's factory turns it into a task, starts an agent run in a gVisor sandbox and opens a room the maintainer watches and steers. Every call the agent makes goes through the agent gateway with a per-run identity, to frontier models, MCP tools and octo-sts for a GitHub token; the agent pushes a branch and opens a PR. Both halves send traces, logs and metrics to the Victoria stack and Grafana](/images/diagrams/ai-platform-1.svg)
+![The AI Platform in one view. On the serving side, developers and coding clients send OpenAI-compatible requests over the tailnet to ai-gateway (Envoy AI Gateway with an API key and the Semantic Router), which routes them to vLLM models declared as InferenceService claims, on L4 GPUs and scaled by KEDA. On the agents side, a maintainer labels a GitHub issue; the Agent Factory turns it into a task, starts an agent run in a gVisor sandbox and opens a room the maintainer watches and steers. Every call the agent makes goes through the agent gateway with a per-run identity, to frontier models, MCP tools and octo-sts for a GitHub token; the agent pushes a branch and opens a PR. Both halves send traces, logs and metrics to the Victoria stack and Grafana](/images/diagrams/ai-platform-1.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 1.*
 

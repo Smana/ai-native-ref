@@ -1,4 +1,4 @@
-# Maku live test session — gcp-0
+# Agent Factory live test session — gcp-0
 
 Exercises SP1 (agent runtime and identity), SP4 PR 1 (AI gateway: frontier route and token budgets)
 and the agent observability work on the live test cluster `gcp-0`. Every command is copy-paste, and every step names its expected output.

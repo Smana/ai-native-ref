@@ -1,7 +1,7 @@
 ---
 title: Alternatives considered
 weight: 50
-description: "Work in progress. The alternatives considered for each layer of Maku, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
+description: "Work in progress. The alternatives considered for each layer of the Agent Factory, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
 lastVerified: 2026-10-20
 ---
 
@@ -10,7 +10,7 @@ lastVerified: 2026-10-20
 checked and what would reopen it, and the page grows as new candidates appear.
 {{< /callout >}}
 
-What alternatives did we consider for each layer of Maku, and why did the current
+What alternatives did we consider for each layer of the Agent Factory, and why did the current
 choices win? A new candidate gets a row in [the table](#decisions-at-a-glance). If it could replace a
 whole layer, it also gets a section under [projects evaluated in detail](#projects-evaluated-in-detail).
 
@@ -316,7 +316,7 @@ time with our sandbox pod.
 
 ## Sources
 
-- [Maku v1 review, 2026-10-12](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md):
+- [Agent Factory v1 review, 2026-10-12](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md):
   build-or-adopt per layer, Symphony, agent-sandbox's suspend and warm pools
 - [otari evaluation, 2026-10-20](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-otari-evaluation-research.md)
 - [kagent evaluation, 2026-10-04](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md)

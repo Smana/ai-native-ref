@@ -5,7 +5,7 @@ description: The AI platform's architecture decision records — what was chosen
 lastVerified: 2026-10-16
 ---
 
-The records behind the AI platform: serving, Maku and the split from its host. They
+The records behind the AI platform: serving, the Agent Factory and the split from its host. They
 moved here from [cloud-native-ref](https://cnref.ogenki.io/docs/decisions/) with their numbers
 (split design §8); the next record here is **0060**. Host decisions (Flux, Cilium, OpenBao, EKS Pod
 Identity, …) stay on the host site and are linked, not copied.
@@ -28,7 +28,7 @@ chart-value changes and single-file fixes never do. Start from the host's
 | [0045]({{< relref "/docs/decisions/0045-merge-policy-gate.md" >}}) | palantir/policy-bot, required through a repository ruleset, decides which agent PRs merge | Accepted | 2026-09-27 |
 | [0046]({{< relref "/docs/decisions/0046-frontier-providers-zai-and-bedrock.md" >}}) | Frontier models through Z.ai and keyless Anthropic per cloud (Bedrock on aws-0, Vertex on gcp-0) | Partly superseded by [0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}): internal-data provider only | 2026-09-25 |
 | 0047 | Reserved, not yet written: how a request's complexity is classified for routing (SP4) | Reserved | — |
-| [0048]({{< relref "/docs/decisions/0048-agent-factory-orchestrator.md" >}}) | A custom Task controller with Kueue admission orchestrates Maku's factory | Accepted | 2026-09-27 |
+| [0048]({{< relref "/docs/decisions/0048-agent-factory-orchestrator.md" >}}) | A custom Task controller with Kueue admission orchestrates the Agent Factory | Accepted | 2026-09-27 |
 | [0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}}) | Humans reach rooms through a web UI the broker serves, behind oauth2-proxy | Accepted | 2026-09-27 |
 | [0050]({{< relref "/docs/decisions/0050-token-budgets-envoy-gateway-rate-limit.md" >}}) | Token budgets on Envoy Gateway's global rate limit, costed from response metadata | Partly superseded by [0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}}): Option 1, agent router only | 2026-09-25 |
 | [0051]({{< relref "/docs/decisions/0051-otel-collector-agent-trace-gate.md" >}}) | An OpenTelemetry Collector is the agent trace gate | Accepted | 2026-09-27 |

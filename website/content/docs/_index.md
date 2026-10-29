@@ -1,7 +1,7 @@
 ---
 title: Documentation
 weight: 1
-description: The AI platform hosted on Cloud Native Reference — serving, Maku, their decisions and the host contract.
+description: The AI platform hosted on Cloud Native Reference — serving, the Agent Factory, their decisions and the host contract.
 lastVerified: 2026-10-16
 ---
 
@@ -11,7 +11,7 @@ clusters, Flux, Cilium, OpenBao and the rest of the platform are documented on t
 [cnref.ogenki.io](https://cnref.ogenki.io/).
 
 {{< cards >}}
-  {{< card link="platform/ai-platform/" title="AI platform" icon="sparkles" subtitle="Serving, gateways, Maku, its rooms and runtime." >}}
+  {{< card link="platform/ai-platform/" title="AI platform" icon="sparkles" subtitle="Serving, gateways, the Agent Factory, its rooms and runtime." >}}
   {{< card link="host-contract/" title="Host contract" icon="link" subtitle="What cloud-native-ref guarantees this platform, and what it guarantees back." >}}
   {{< card link="decisions/" title="Decisions" icon="scale" subtitle="The AI platform's architecture decision records." >}}
 {{< /cards >}}

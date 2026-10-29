@@ -85,7 +85,7 @@ inventory comment at the top, and add "a `factory-slack` listener for `agent-sys
 design §2. Merge it in the session.
 
 ```yaml
-    # Maku's Slack App (factory interfaces F9): Slack posts its Events API callbacks
+    # The Agent Factory's Slack App (factory interfaces F9): Slack posts its Events API callbacks
     # here, and the App verifies each against its signing secret (±5 min) before reading it. Routes
     # from agent-system only; its HTTPRoute matches POST /slack/events and nothing else.
     - name: factory-slack

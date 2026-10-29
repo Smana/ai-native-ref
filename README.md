@@ -1,6 +1,6 @@
 # ai-native-ref
 
-**Maku, a governed agent platform, and open-weights model serving, on your own Kubernetes cluster,
+**The Agent Factory, a governed agent platform, and open-weights model serving, on your own Kubernetes cluster,
 deployed with GitOps.**
 
 Label a GitHub issue and agents take it from there. An implementer works it in a sandbox under its
@@ -21,7 +21,7 @@ without a human reading every line, and with a way back when one gets it wrong.
 Hosted agents solve this inside a vendor's cloud: the agent loop, the model calls and your code go
 there. Self-hosted options are either licensed products, or general agent runtimes that know nothing
 about pull requests, reviews or merges. **ai-native-ref is an open reference for the missing piece:
-Maku, an agent platform you run yourself, whose every control is declared in Git and enforced outside the
+the Agent Factory, an agent platform you run yourself, whose every control is declared in Git and enforced outside the
 agent.**
 
 It is built to be read as much as run. Each design choice has an architecture decision record, each
@@ -56,7 +56,7 @@ says what works today, what does not yet, and what it costs.
 
 | Part | What it does |
 |---|---|
-| **Maku's factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory |
+| **Agent Factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory The Agent Factory is a bundle of open-source tools (agentgateway, OpenHands, gVisor, octo-sts, RunLore and others); [Maku](https://github.com/Smana/maku) provides its controller, rooms, harness and `maku` CLI |
 | **Sandboxed runtime** | One gVisor pod per run, with a default-deny network policy, egress only to the hosts its profile allows, and a short-lived GitHub token scoped to its own branch |
 | **Rooms** | The append-only log of each task: watch, post, steer, approve, with approval deadlines and suspend while a person decides |
 | **Agent gateway** | Every model and tool call of a run goes through [agentgateway](https://agentgateway.dev): it checks the run's identity, enforces token budgets per run, fleet and provider, and routes to the model its tier names |
@@ -68,7 +68,7 @@ says what works today, what does not yet, and what it costs.
 
 ```mermaid
 flowchart LR
-  issue["Issue labelled<br/>factory/ready"] --> factory["Maku's factory"]
+  issue["Issue labelled<br/>factory/ready"] --> factory["Agent Factory"]
   factory --> run["Agent run<br/>gVisor sandbox, own identity"]
   factory --> room["Room<br/>watch · steer · approve"]
   human(["Maintainer"]) <--> room
@@ -139,7 +139,7 @@ guarantees back.
 
 The reference host is [cloud-native-ref](https://github.com/Smana/cloud-native-ref), a GitOps
 platform on GKE and EKS. The controllers, the room broker and the agent harness are built in
-[Maku](https://github.com/Smana/maku); this repository deploys their released
+[Maku](https://github.com/Smana/maku), the software the Agent Factory runs on; this repository deploys their released
 images. Installing on any Kubernetes cluster without that host is on the roadmap, after v3.
 
 ## Repository layout

@@ -2,7 +2,7 @@
 title: AI Native Reference
 layout: hextra-home
 images: [media/agent-factory-poster.jpg]
-description: "The AI platform of Cloud Native Reference: self-hosted model serving and Maku, whose factory turns labelled issues into sandboxed agent runs, deployed on its host as one signed, pinned Flux artifact."
+description: "The AI platform of Cloud Native Reference: self-hosted model serving and the Agent Factory, which turns labelled issues into sandboxed agent runs, deployed on its host as one signed, pinned Flux artifact."
 ---
 
 {{< hero-video >}}
@@ -17,7 +17,7 @@ description: "The AI platform of Cloud Native Reference: self-hosted model servi
 
 {{< hextra/hero-subtitle >}}
   Open-weights models served on the cluster's GPUs behind an OpenAI-compatible gateway, and
-  Maku, whose factory turns a labelled issue into a sandboxed run with its own identity and budget.
+  the Agent Factory, which turns a labelled issue into a sandboxed run with its own identity and budget.
   One signed OCI artifact that Cloud Native Reference pins.
 {{< /hextra/hero-subtitle >}}
 

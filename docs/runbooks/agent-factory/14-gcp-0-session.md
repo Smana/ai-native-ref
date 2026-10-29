@@ -1,6 +1,6 @@
 # 14 — The gcp-0 session: a full test, then v2 and v2.1 on GCP
 
-This is an ordered checklist for bringing `gcp-0` up **alone** and running Maku on it. aws-0 is torn down.
+This is an ordered checklist for bringing `gcp-0` up **alone** and running the Agent Factory on it. aws-0 is torn down.
 Owner steps are marked **[OWNER]**. Everything else can be done by an agent holding the
 kubeconfig.
 

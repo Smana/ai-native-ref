@@ -8,7 +8,7 @@ aliases:
 ---
 
 {{< callout type="info" >}}
-**Live on `gcp-0` for two public repositories, with v3's features as of 2026-10-29 (Maku v0.30.3):** you label, or
+**Proven live on `gcp-0` for two public repositories, v3's features included, by 2026-10-29:** you label, or
 file from Slack or your coding agent; the agents work; you review and merge. The merge gate is live for link fixes: it merges them with no human,
 at most once a day. The task below ran on 2026-10-07, before v1's release. What has landed, and what
 comes next, is on the
@@ -174,7 +174,7 @@ From Claude Code, OpenCode or another terminal coding agent you hand a side task
 follow it and bring its branch back without leaving the session. The broker renders the views once,
 so every client shows the same text ([ADR-0059]({{< relref "/docs/decisions/0059-factory-from-your-coding-agent.md" >}})).
 
-**Set it up.** It needs `maku` v0.30.0 or later (`roomctl` v0.23.1 or later before the rename), configured and logged in (see
+**Set it up.** It needs `maku` v0.30.0 or later, configured and logged in (see
 [From a terminal](#from-a-terminal-maku)), then three steps:
 
 1. **Install for your client.** `setup` is user-level: it registers `maku mcp` as the `factory`
@@ -283,7 +283,8 @@ needs to confirm refuses. Before this existed, issue
 merged as [#2267](https://github.com/Smana/cloud-native-ref/pull/2267).
 
 Starting from the session is offered only on the repositories listed in the broker's
-`human.mcp.sessionStart`; on `gcp-0` today that is `Smana/ai-native-ref`.
+`human.mcp.sessionStart`. It is a session switch, empty outside a live session
+(`infrastructure/gcp-0/room-broker/config.yaml`).
 
 ### From a terminal: `maku`
 
@@ -384,7 +385,7 @@ part closed without landing ends the family and the remaining parts are never cr
 
 ## Using the factory from Slack {#from-slack}
 
-With the factory's Slack App on (live on `gcp-0`, one workspace's), a thread can hand work to the factory
+With the factory's Slack App on (proven live on `gcp-0`, one workspace), a thread can hand work to the factory
 without leaving Slack. You write a mention, the App drafts the issue, you tune the draft by replying,
 and a maintainer's check mark files it. Approvals and steering stay on the room page. Setting the App up
 is the operator's job: [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md).
@@ -512,11 +513,12 @@ App and you. Its budget is the channel's `maxCostUSD`.
 ## Budgets and costs
 
 A task runs within limits it cannot raise:
-- **Each run has a deadline and a token budget**, set by the task's tier: `light` 20 minutes and
-  300 k tokens, `standard` 45 minutes and 1.5 M, `frontier` 90 minutes and 4 M. The run meter
-  revokes a run at its cap, runs started by hand included.
-- **Each task has a token cap**, twice its tier's run budget, and a resume needs room for a whole
-  run under it.
+- **Each run has a deadline and a cap**, set by the task's tier: `light` 20 minutes and $0.51,
+  `standard` 45 minutes and $2.55, `frontier` 90 minutes and $6.80 (at `meter.prices`, cache reads
+  at their own rate). The run meter revokes a run at its cap, runs started by hand included.
+- **Each task has a cap**, twice its tier's run cap, and a resume needs room for a whole run under it.
+- **Each person's day ($8.50) and the fleet's ($42.50) are counted, not refused**, until enforcing
+  them is shown safe.
 - **The factory takes at most 20 tasks a day, and works at most 3 at once.** Past the daily cap, a
   labelled issue is refused, with a comment saying why.
 

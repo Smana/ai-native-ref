@@ -2,7 +2,7 @@
 title: Harness reference
 weight: 16
 description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its value on gcp-0, what it does, its bounds, and whether it is proven live."
-lastVerified: 2026-10-18
+lastVerified: 2026-10-29
 ---
 
 Every knob of a run, layer by layer. How to use them is on
@@ -17,7 +17,8 @@ Every knob of a run, layer by layer. How to use them is on
   {{< card link="#harness" title="Harness" icon="cog" subtitle="The loop's settings, baked into the image." >}}
 {{< /cards >}}
 
-**On `gcp-0`, 2026-10-29:** Maku `v0.30.3`, composed by crossplane-configuration `v0.9.28`.
+**Pins on `main`, 2026-10-29:** Maku `v0.31.0`, composed by crossplane-configuration `v0.9.29`. Values below are the repository's; `live` means seen on `gcp-0`.
+
 | Status | Meaning |
 |---|---|
 | {{< badge content="live" color="green" >}} | Seen working on a real run |

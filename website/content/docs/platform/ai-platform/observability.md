@@ -62,7 +62,7 @@ only exists once the opt-in umbrella is resumed.
 One trace, one step log and one dashboard page per run, so a human can open any run and see where
 it stands, what it did, what it cost and where its time went.
 
-> **Metric names.** Maku v0.30.x emits each metric twice: under its old name (`maku_factory_*`, `maku_rooms_*`) and under the new one (`maku_factory_*`, `maku_rooms_*`). The dashboards and alerts here still read the old names, and the old ones stop in v0.31.0, so a query on this page becomes its `maku_` twin when they move.
+> **Metric names.** Maku's metrics are `maku_factory_*` and `maku_rooms_*`, and the dashboards and alerts read those names ([#224](https://github.com/Smana/ai-native-ref/pull/224)). Maku v0.30.x also emitted the old `agent_factory_*` and `rooms_*` names, which stop in v0.31.0.
 
 | Component | Software | What it does |
 |---|---|---|

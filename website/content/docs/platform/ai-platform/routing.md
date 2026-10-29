@@ -2,7 +2,7 @@
 title: Model routing and cost
 weight: 35
 description: "Every place a request is routed to a model, every knob that tunes it, and what each costs: the Semantic Router and LoRA canaries for humans, data-class tiers and the run meter for agents, prompt caching, budgets, and when self-hosting pays."
-lastVerified: 2026-10-18
+lastVerified: 2026-10-29
 ---
 
 **Today, routing is static. Prompt caching drives the bill, and the model decides the outcome.**
@@ -28,11 +28,11 @@ repository pins, read on 2026-10-16.
 
 ## What is real today {#state}
 
-| Piece | State on `gcp-0`, 2026-10-18 | Source |
+| Piece | State, last seen live on `gcp-0` | Source |
 |---|---|---|
 | Agent model per data class (`public` → Z.ai, `internal` → Anthropic) | **Deployed, proven live** | [ADR-0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}), status *Landed* |
 | `tier-light`, `tier-standard`, `tier-frontier` served by the agent gateway | **Deployed**. No factory tier asks for them: every tier names `agent-default` | `llm.yaml`, `anthropic.yaml`, factory values |
-| `kimi-frontier`, `mistral-standard`, `mistral-light` on the `public` listener (v3 feature 15, 2026-10-29) | **Deployed**, public data only, selectable per class with `loops.<class>.models`; **proven live** on 2026-10-29, Mistral not yet recommended as an implementer | [Providers]({{< relref "/docs/platform/ai-platform/agents/providers.md" >}}) |
+| `kimi-frontier`, `mistral-standard`, `mistral-light` on the `public` listener (v3 feature 15) | **Proven live** 2026-10-29, public data only, selectable per class with `loops.<class>.models`, which no class sets now; Mistral is not recommended as an implementer | [Providers]({{< relref "/docs/platform/ai-platform/agents/providers.md" >}}) |
 | Triage classifier (`complexity-classifier`, C7) | **Design only**. The URL is configured and nothing answers it, so every task falls back to `standard` with `classifier: static` | factory values, live `Task` status |
 | 10% control group at `frontier` (`triage.controlPercent`) | **Deployed, live**: 2 of 12 tasks | live `Task` status |
 | Run meter priced in USD, cache reads at their own rate | **Deployed, proven live** | [plan, internal run](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/plans/2026-10-15-agent-router-agentgateway-plan.md#live-evidence-internal-run-2026-10-16) |
@@ -386,7 +386,7 @@ flowchart TB
 | Layer | Unit | Enforced | Note |
 |---|---|---|---|
 | `runUSD`, `taskUSD` | USD, cache-aware | **yes** | The cap that decides a run's fate |
-| `factoryDailyUSD`, `humanDailyUSD` | USD, cache-aware: the same `meter.prices`, since Maku v0.16.0 (#168), pinned here at v0.23.1 | **shadow**, the fleet's day and each person's: with `enforcePrincipal: false` a run past its day is admitted and counted as `budget-principal-shadow` | `AgentFactoryDailyBudgetHigh` fires at 80%. The day's ledger is `agent-factory-ledger-usd-<YYYYMMDD>`, in micro-USD |
+| `factoryDailyUSD`, `humanDailyUSD` | USD, cache-aware: the same `meter.prices`, since Maku v0.16.0 (#168) | **shadow**, the fleet's day and each person's: with `enforcePrincipal: false` a run past its day is admitted and counted as `budget-principal-shadow` | `AgentFactoryDailyBudgetHigh` fires at 80%. The day's ledger is `agent-factory-ledger-usd-<YYYYMMDD>`, in micro-USD |
 | B1, B2, B6 | reference tokens: USD ÷ $1.70 per million, at `meter.prices` | **yes**, since 2026-10-18 (`SHADOW_MODE: "false"`, `infrastructure/base/agent-gateway/ratelimit.yaml`): `429 agent_budget_exhausted` | Sized above the factory's caps, so the gateway never refuses what the factory admits. Gate AG8 holds B2 at or above `factoryDailyUSD` plus four frontier runs |
 | local limit | raw tokens per hour, per replica | always | Above the largest admitted run: $6.80 of Opus cache reads is 34M tokens |
 

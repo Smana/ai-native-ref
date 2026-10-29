@@ -10,13 +10,13 @@ metadata:
   name: room-broker
   namespace: agent-system
 rules:
-  - apiGroups: ["agents.ogenki.io"]
+  - apiGroups: ["maku.ogenki.io"]
     resources: ["rooms"]
     verbs: ["get", "list", "watch", "create", "update"]
-  - apiGroups: ["agents.ogenki.io"]
+  - apiGroups: ["maku.ogenki.io"]
     resources: ["rooms/status"]
     verbs: ["patch"]
-  - apiGroups: ["agents.ogenki.io"]
+  - apiGroups: ["maku.ogenki.io"]
     resources: ["rooms/finalizers"]
     verbs: ["update"]
   # Leader election: a Lease, and the core Events its recorder emits.

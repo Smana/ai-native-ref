@@ -35,7 +35,7 @@ the class until the breaker and revert proof of the live drill (§3) is done, th
 |---|---|
 | The next 07:00 UTC slot with findings creates one Task | `kubectl -n agent-system get tasks -l agents.ogenki.io/source-ref=dead-links`: one Task, `solo`, tier `light`, `spec.findings` set |
 | Its pull request is held for the holdout check | The check "External links 🔗" and a `would-arm head=<sha>` comment |
-| The decision is recorded | `vm 'sum by (class, verdict, reason) (agent_factory_merge_decisions_total{class="dead-links"})'` shows `shadow_would_arm` |
+| The decision is recorded | `vm 'sum by (class, verdict, reason) (maku_factory_merge_decisions_total{class="dead-links"})'` shows `shadow_would_arm` |
 | No egress drop | `hubble observe --namespace agent-system --verdict DROPPED --to-fqdn '*.blob.core.windows.net'` is empty |
 
 The panel "Merge decisions by class and reason (7 days)" on the agent-factory dashboard shows the same.
@@ -57,7 +57,7 @@ The panel "Merge decisions by class and reason (7 days)" on the agent-factory da
 No task is created for: a failed scan run, a pull request run, a stranger's dispatch, a finding in one
 run only, an http target, a protected file, a URL in prose or a code block. An unreadable artifact
 (egress, permission) makes the tick error
-(`agent_factory_intake_errors_total{source="schedule"}`) and creates nothing.
+(`maku_factory_intake_errors_total{source="schedule"}`) and creates nothing.
 
 ## 5. The post-merge monitor
 

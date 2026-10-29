@@ -146,10 +146,10 @@ Expected: rows for the `harness`, `room-bridge`, `room-gate` and `identity-proxy
 
 ```bash
 curl -sS --cacert ca.pem https://vm.priv.$CLOUD.ogenki.io/api/v1/query --data-urlencode "query=agentrun_usage_tokens{run_id=\"$RUNID\"}"
-curl -sS --cacert ca.pem https://vm.priv.$CLOUD.ogenki.io/api/v1/query --data-urlencode 'query=agent_factory_kill_switch_engaged'
+curl -sS --cacert ca.pem https://vm.priv.$CLOUD.ogenki.io/api/v1/query --data-urlencode 'query=maku_factory_kill_switch_engaged'
 ```
 
-Expected: a non-zero token count; `agent_factory_kill_switch_engaged` `0`.
+Expected: a non-zero token count; `maku_factory_kill_switch_engaged` `0`.
 
 **Traces:**
 

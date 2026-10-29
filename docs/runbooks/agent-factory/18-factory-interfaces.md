@@ -167,7 +167,7 @@ The PR carries `OWNER-FILL-*` markers (the Slack team, channel and owner ids in 
 | # | Do | Expected reading |
 |---|---|---|
 | 1 | `for d in room-broker agent-factory factory-slack-app; do kubectl -n agent-system rollout status deploy/$d; done` | All three roll out |
-| 2 | Read the factory's `/metrics` | `agent_factory_principal_sponsor_info` reads 1 |
+| 2 | Read the factory's `/metrics` | `maku_factory_principal_sponsor_info` reads 1 |
 | 3 | `kubectl -n agent-system get httproute` | The App's route attaches; external-dns publishes `factory-slack.<domain>` |
 | 4 | Set the Slack App's request URL (event subscriptions) to `https://factory-slack.<domain>/slack/events` | Slack's request-URL challenge passes |
 
@@ -214,7 +214,7 @@ untrusted, and the run treats it as data.
 
 ### 6.5 Read the series
 
-`agent_factory_max_cost_usd_total`, `agent_factory_api_intake_total`, `rooms_webhook_deliveries_total`,
+`maku_factory_max_cost_usd_total`, `maku_factory_api_intake_total`, `maku_rooms_webhook_deliveries_total`,
 `factory_slack_requests_total`; the `agent-identity` dashboard's Sponsored row shows the principal.
 
 ## 7. A changed bot user id
@@ -237,7 +237,7 @@ App reads only at start.
    curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:8082/v1/tasks   # 404
    ```
 
-4. Confirm the emitter is idle: `rooms_webhook_deliveries_total` stops moving and there is no
-   `rooms_webhook_disabled` series (the broker's `/metrics`, or the metrics store).
+4. Confirm the emitter is idle: `maku_rooms_webhook_deliveries_total` stops moving and there is no
+   `maku_rooms_webhook_disabled` series (the broker's `/metrics`, or the metrics store).
 
 See also: [the test-first tester](21-test-first-tester.md).

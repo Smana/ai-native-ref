@@ -31,10 +31,10 @@ The session's last commit removes it.
 | 1 | A maintainer labels each cohort issue `factory/ready` | At least one task has `spec.split` (`kubectl -n agent-system get task <name> -o jsonpath='{.spec.split}'`); its scoper proposes a split: one comment, the label `factory/split-proposed`, `status.split.state: proposed` |
 | 2 | A maintainer comments `/factory split` on the proposal | `status.split.approvedBy` is the approver, the parent's phase is `Split`, part 1 is a sub-issue titled `Part 1 of N of #<parent>` carrying `factory/child-of:#<parent>` and the class label; its Task runs `pair` at `standard` |
 | 3 | A human merges each part's pull request | The next part opens after each merge; the parent issue closes as completed on the last; the parent task ends `Done`, `children_merged` |
-| 4 | On a second proposal, `/factory retry` | One implementer on `agent/<parent>` at `frontier`, no issue labelled `factory/child-of:#<parent>`, `agent_factory_splits_total{outcome="declined"}` 1 |
+| 4 | On a second proposal, `/factory retry` | One implementer on `agent/<parent>` at `frontier`, no issue labelled `factory/child-of:#<parent>`, `maku_factory_splits_total{outcome="declined"}` 1 |
 | 5 | Label a `Split` parent `factory/stop` | The running part's `AgentRun` is revoked within 60 s; the parent is `Stopped` |
 | 6 | Read the spend | The spend-per-identity dashboard charges every part's runs to the approver; `sum(.status.usage.costMicroUSD)` over `-l agents.ogenki.io/parent=<parent>`, plus the parent's, stays within `familyUSD` |
-| 7 | Read the factory's `/metrics` | `agent_factory_splits_total` and `agent_factory_split_children_total` carry the outcomes above |
+| 7 | Read the factory's `/metrics` | `maku_factory_splits_total` and `maku_factory_split_children_total` carry the outcomes above |
 
 ## 4. What fails closed
 

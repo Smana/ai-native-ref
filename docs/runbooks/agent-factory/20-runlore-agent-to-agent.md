@@ -47,7 +47,7 @@ Seed a broken alerting rule: a `VMRule` in `apps` whose expression is `vector(1)
 
 ## 3. Live 3: the old intake is silent
 
-Pass: `agent_factory_intake_errors_total` and the intake's request counter for `runlore` are flat for
+Pass: `maku_factory_intake_errors_total` and the intake's request counter for `runlore` are flat for
 the whole session (query both in VictoriaMetrics), and RunLore's rendered config holds no `templated`:
 
 ```bash
@@ -84,7 +84,7 @@ retires `/intake/runlore` (the factory's `runlore:` block and both intake Extern
   kubectl get task <fix> -o jsonpath='{.status.monitor}'
   ```
 
-  `agent_factory_monitor_verifications_total{class="alert-rules",verdict="resolved"}` is 1.
+  `maku_factory_monitor_verifications_total{class="alert-rules",verdict="resolved"}` is 1.
 - [ ] Before reading the verdict, one holder for the soak's span (G8: each RunLore replica has its own
   volume, so a failover loses the soak). A change of holder reruns the case.
 

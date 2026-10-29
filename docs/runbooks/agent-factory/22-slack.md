@@ -216,5 +216,5 @@ If a step does not answer, find where it stopped:
 | Filed, but no state lines | The repository is missing from the broker's `webhooks` (step 5, #3), or the subscriber is disabled: bump `generation`, restart the broker (Maku `docs/slack.md`, State) |
 | `Not filed: repository_not_allowed` | The repository is missing from #2 |
 
-The series: `factory_slack_requests_total{route,outcome}`, `agent_factory_api_intake_total`,
-`rooms_webhook_deliveries_total`. Turning it off again is [runbook 18, section 8](18-factory-interfaces.md#8-off-again).
+The series: `factory_slack_requests_total{route,outcome}`, `maku_factory_api_intake_total`,
+`maku_rooms_webhook_deliveries_total`. Turning it off again is [runbook 18, section 8](18-factory-interfaces.md#8-off-again).

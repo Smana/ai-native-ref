@@ -62,7 +62,7 @@ only exists once the opt-in umbrella is resumed.
 One trace, one step log and one dashboard page per run, so a human can open any run and see where
 it stands, what it did, what it cost and where its time went.
 
-> **Metric names.** Maku v0.30.x emits each metric twice: under its old name (`agent_factory_*`, `rooms_*`) and under the new one (`maku_factory_*`, `maku_rooms_*`). The dashboards and alerts here still read the old names, and the old ones stop in v0.31.0, so a query on this page becomes its `maku_` twin when they move.
+> **Metric names.** Maku v0.30.x emits each metric twice: under its old name (`maku_factory_*`, `maku_rooms_*`) and under the new one (`maku_factory_*`, `maku_rooms_*`). The dashboards and alerts here still read the old names, and the old ones stop in v0.31.0, so a query on this page becomes its `maku_` twin when they move.
 
 | Component | Software | What it does |
 |---|---|---|
@@ -95,8 +95,8 @@ does not score the person: no panel groups, sorts or ranks by principal.
 | Sponsored | The sponsor, and ceilings against spend |
 
 Every figure is in UTC, the ledger's day. The sources are the factory's per-payer series
-(`agent_factory_charged_usd_total`, the `agent_factory_budget_*_usd` gauges) and
-`agent_factory_run_charge_info{run, principal, task, room}`, which joins the gateway's per-run
+(`maku_factory_charged_usd_total`, the `maku_factory_budget_*_usd` gauges) and
+`maku_factory_run_charge_info{run, principal, task, room}`, which joins the gateway's per-run
 tokens to the payer. The panels are held by `test-agent-identity-dashboard` and
 `test-agent-identity-queries`.
 

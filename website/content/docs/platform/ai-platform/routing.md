@@ -248,8 +248,8 @@ drifts:
 
 | Reader | Its copy of the table | Held by |
 |---|---|---|
-| The run meter: USD run and task caps, `agent_factory_run_cost_usd`, the `Task`'s `costMicroUSD` | The factory's config itself | — |
-| The *Spend per identity* dashboard (`agent-identity`): `agent_factory_charged_usd_total` and the day gauges | The factory's meter: no copy of the table | — |
+| The run meter: USD run and task caps, `maku_factory_run_cost_usd`, the `Task`'s `costMicroUSD` | The factory's config itself | — |
+| The *Spend per identity* dashboard (`agent-identity`): `maku_factory_charged_usd_total` and the day gauges | The factory's meter: no copy of the table | — |
 | Gateway budgets B1, B2, B6 | A CEL cost string in `infrastructure/base/agent-gateway/policy-budgets.yaml` | Gate AG8 regenerates it |
 | The `agent-run` dashboard's *Cost (USD)* panel, `AnthropicFleetNearCap` | `llm_gateway:charge_usd_per_mtoken`, the `llm-gateway-prices` group of `infrastructure/base/llm-gateway/vmrule-llm-gateway.yaml` | `test-agent-prices`: the group is what `scripts/ci/gen-prices.py` renders |
 
@@ -301,7 +301,7 @@ The reply the wire test sends on Opus, 1,050 input of which 900 read and 50 writ
 reads 1050 × 4.00 − 900 × 3.80 + 50 × 1.00 + 10 × 20.00 = 1,030 per million, **$0.00103**: the
 meter's 100 × 4.00 + 900 × 0.20 + 50 × 5.00 + 10 × 20.00. The list-price rule it replaced read 4.3×
 that. `reasoning` is inside `output` and has no charge. The join prices the whole window at today's
-charges; what each run was charged stays in `agent_factory_run_cost_usd` and the `Task`'s
+charges; what each run was charged stays in `maku_factory_run_cost_usd` and the `Task`'s
 `costMicroUSD`.
 
 ### The meter's formula
@@ -316,7 +316,7 @@ flowchart LR
   C1 -->|"yes"| Rev["revoke: budget-run"]
   C1 -->|"no"| C2{"task cap still holds<br/>one whole run?"}
   C2 -->|"no"| Esc["escalate: budget-task"]
-  F --> Met["agent_factory_run_cost_usd<br/>agent_factory_model_cost_usd_total<br/>Task status.runs.costMicroUSD"]
+  F --> Met["maku_factory_run_cost_usd<br/>maku_factory_model_cost_usd_total<br/>Task status.runs.costMicroUSD"]
 ```
 
 - **Keyed by the served model**, not the logical name: `agent-default` is GLM-5.3 on one listener
@@ -328,7 +328,7 @@ flowchart LR
   stream leaves them out predates the measurement. The meter subtracts the cache tokens unless
   `input` is smaller than them, in which case it prices all of `input` as fresh
   (`inputExcludesCache`, Maku `internal/factory/meter/meter.go`) and counts the run in
-  `agent_factory_meter_input_excludes_cache_runs_total`. `AgentMeterInputExcludesCache` fires on it:
+  `maku_factory_meter_input_excludes_cache_runs_total`. `AgentMeterInputExcludesCache` fires on it:
   the charge series would under-count such a run, down to a negative cost.
 - **Overshoot is one scrape plus one response.** The run is revoked on the meter's next tick, and
   calls already in flight complete.
@@ -471,12 +471,12 @@ Every knob, what it trades and how to see the effect. Factory values live in
 
 | Goal | Knob | Trade-off | Measure with |
 |---|---|---|---|
-| Cheaper agent runs | `tiers.<tier>.model: tier-standard` or `tier-light` | 0.28× or 0.11× the price; quality unmeasured | `agent_factory_tier_fit_total`, `agent_factory_pr_outcomes_total`, cost per merged task |
+| Cheaper agent runs | `tiers.<tier>.model: tier-standard` or `tier-light` | 0.28× or 0.11× the price; quality unmeasured | `maku_factory_tier_fit_total`, `maku_factory_pr_outcomes_total`, cost per merged task |
 | Better hard-task outcomes | `defaults.dataClass` or the task's class, `internal` → Opus | Data class first, cost second: only internal data may reach Anthropic (ADR-0054) | the cohort's measure: accepted outcomes and USD per accepted |
 | A reviewer independent of the implementer | `templates.pair.reviewerModel` | Another *size* only on `public`: ADR-0058 rejected a Claude reviewer on data class and cost, and no other open-weight family has a route | review verdicts against maintainer rejections |
-| Measure model fit, not only budget fit | `triage.controlPercent` (10) | More control tasks run `frontier` with `trio`, at about 2.7× the run cap | `agent_factory_tier_fit_total{fit}` |
-| Fewer runs revoked mid-work | `tiers.<tier>.runUSD`, `taskUSD` | A run cap above $6.80 also needs B1 and the local limit raised: AG8 checks it | `agent_factory_run_revocations_total`, `budget-run` reasons |
-| A longer or shorter day | `budgets.factoryDailyUSD`, `humanDailyUSD` | Above $42.50, `factoryDailyUSD` also needs B2 raised: AG8 fails otherwise. Both count in shadow until `enforcePrincipal` | `agent_factory_budget_spent_usd` against `agent_factory_budget_cap_usd` |
+| Measure model fit, not only budget fit | `triage.controlPercent` (10) | More control tasks run `frontier` with `trio`, at about 2.7× the run cap | `maku_factory_tier_fit_total{fit}` |
+| Fewer runs revoked mid-work | `tiers.<tier>.runUSD`, `taskUSD` | A run cap above $6.80 also needs B1 and the local limit raised: AG8 checks it | `maku_factory_run_revocations_total`, `budget-run` reasons |
+| A longer or shorter day | `budgets.factoryDailyUSD`, `humanDailyUSD` | Above $42.50, `factoryDailyUSD` also needs B2 raised: AG8 fails otherwise. Both count in shadow until `enforcePrincipal` | `maku_factory_budget_spent_usd` against `maku_factory_budget_cap_usd` |
 | Gateway budgets that only count | `SHADOW_MODE: "true"` in `ratelimit.yaml` | Nothing past a bucket is refused: the backstop under the factory's caps is gone | `agent_router:budget_shadow_overrun_tokens:increase10m` |
 | Lower chat latency | Clients name the model instead of `MoM` | Loses automatic choice; saves 250–300 ms | gateway TTFT on *LLM Gateway* |
 | Less chain-of-thought spend in chat | Trim `reasoning_keywords`, raise `long_query.min_tokens` | Fewer `use_reasoning: true` decisions; weaker answers on multi-step prompts | output tokens per model, promptfoo pass rate |
@@ -527,13 +527,13 @@ to the 0.2 config with the documented 0.70–0.75 threshold: it never fires.
 |---|---|
 | Tokens by served model and type | `sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway"}[24h]))` |
 | Cache-read share | `sum(increase(gen_ai_client_token_usage_sum{namespace="agent-gateway",gen_ai_token_type="cached_input"}[24h])) / sum(increase(gen_ai_client_token_usage_sum{namespace="agent-gateway",gen_ai_token_type="input"}[24h]))` |
-| USD per model, as the meter priced it | `sum by (model) (agent_factory_model_cost_usd_total)` |
-| USD per run, by tier | `agent_factory_run_cost_usd_sum / agent_factory_run_cost_usd_count`, by `tier` |
+| USD per model, as the meter priced it | `sum by (model) (maku_factory_model_cost_usd_total)` |
+| USD per run, by tier | `maku_factory_run_cost_usd_sum / maku_factory_run_cost_usd_count`, by `tier` |
 | One run's cost, exactly | `kubectl get task <id> -n agent-system -o jsonpath='{.status.runs[*].costMicroUSD}'` |
-| Did the tier fit? | `agent_factory_tier_fit_total{classifier, tier, fit}`: `under`, `fit`, `over` |
+| Did the tier fit? | `maku_factory_tier_fit_total{classifier, tier, fit}`: `under`, `fit`, `over` |
 | Model latency | `histogram_quantile(0.95, sum by (le, gen_ai_request_model) (rate(gen_ai_server_request_duration_seconds_bucket{namespace="agent-gateway"}[1h])))`: p50 2.8 s, p95 18.4 s on `glm-5.3`, 2026-10-18 |
 | What B1, B2 and B6 refused | `agent_router:budget_refused_tokens:increase10m` by `key1` (`AgentBudgetRefused`) |
-| Daily budget left, in USD | `agent_factory_budget_remaining_usd / agent_factory_budget_cap_usd` by `principal`; `agent_factory_budget_spent_usd` is today's spend, unclamped |
+| Daily budget left, in USD | `maku_factory_budget_remaining_usd / maku_factory_budget_cap_usd` by `principal`; `maku_factory_budget_spent_usd` is today's spend, unclamped |
 | Serving: which model is hot | `vllm:num_requests_running`, `vllm:kv_cache_usage_perc`, `vllm:num_requests_waiting` by `model_name` |
 
 | Dashboard (`uid`) | Read it for |

@@ -10,7 +10,7 @@ meters each run's tokens and owns the kill switch. It is the only component that
 every run has a task and a budget. This page describes the design; what runs today is on the
 [status page]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}).
 
-![The factory, from issue to merge. A maintainer labels a GitHub issue factory/ready; intake snapshots it, and triage picks the task's class, team and budget. The Task controller runs the team as sequential agent runs in one room: an implementer, then a reviewer, and a tester in the larger teams. Kueue admits each sandbox. The implementer opens a PR; a maintainer's "Request changes" review becomes a new run on the same branch. The merge gate, policy-bot and a separate merger App, merges only low-risk classes with green CI; every other PR waits for a human. The run meter revokes a run at its token cap, and the kill switch, a stop ConfigMap or a label on a pinned control issue, pauses intake and stops every task](/images/diagrams/ai-platform-5.svg)
+![The factory, from issue to merge. Work comes in three ways: a maintainer labels a GitHub issue factory/ready, a maintainer's check mark on a Slack draft files one through maku-slack, or RunLore posts an investigate task. Intake snapshots it, and triage picks the task's class, team and budget. The Task controller, maku-factory, runs the team as sequential agent runs in one room: a scoper that bounds the task or asks its author, a tester whose failing test is the contract, the implementer, the only writer, with a read-only search helper, a completion judge that says met, not yet or impossible, and a reviewer; a splitter turns a hard issue into sub-issues. The scoper, tester, search, judge and reviewer are proven live on gcp-0; the splitter is built, its live proof pending. Kueue admits each sandbox. The implementer opens a PR; a maintainer's "Request changes" review becomes a new run on the same branch. The merge gate, policy-bot and a separate merger App, built with auto-merge in shadow, merges only low-risk classes with green CI; every other PR waits for a human. The run meter revokes a run at its token cap, and the kill switch, a stop ConfigMap or a label on a pinned control issue, pauses intake and stops every task](/images/diagrams/ai-platform-5.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 5.*
 
@@ -31,6 +31,14 @@ every run has a task and a budget. This page describes the design; what runs tod
 
 The developer's view of the same journey is in the
 [user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md" >}}).
+
+Two clients reach the same intake without a label. Slack drafts the issue in a thread and a
+maintainer's check mark files it; RunLore hands the factory an incident and checks, after the fix
+merges, that the alert is gone.
+
+![Two clients of the factory. Slack intake, live on gcp-0 (a user links their Slack account once with @factory link): a mention in a Slack thread, @factory owner/repo what; maku-slack drafts the issue with a title, what is wrong and acceptance; the author tunes the draft by replying; a maintainer's check mark on the latest draft, anyone else's being refused, has maku-factory file the issue and start the work, and the thread then follows the room: triaged, run started, PR opened, waiting, ended. Agent-to-agent work with RunLore, live on gcp-0: an alert fires and RunLore investigates in its incident thread; it posts an investigate task through POST /v1/tasks as an internal principal, and a triager proposes a fix; a maintainer's factory/publish on the stub issue files the public fix issue; a maintainer's factory/ready starts the fix task, which runs the team to a merged PR; after a soak RunLore re-checks the alert and posts its verdict to the post-merge monitor, where resolved is healthy and persisting pauses the class and opens a follow-up. Signed webhooks carry the task, room, PR and merge events back to the incident thread. RunLore's own task never opens a PR](/images/diagrams/ai-platform-6.svg)
+
+*Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 6.*
 
 ## Dependency bumps
 

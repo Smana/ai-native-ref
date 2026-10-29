@@ -10,6 +10,7 @@ lastVerified: 2026-10-01
 **Date**: 2026-09-27
 **Deciders**: Smana
 **Related Spec**: [SP3 dark factory](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md)
+**Rename note (2026-10-29)**: the platform this record calls the agent factory is the Agent Factory; it runs on Maku (Smana/maku, formerly agent-platform), and "the factory" stays the name of its issue-to-pull-request feature. The record below keeps its original wording.
 
 ---
 

@@ -232,7 +232,7 @@ factory task, so the change has not been made. Until it is:
 | Which classifier | The Semantic Router's own complexity signal through `POST /api/v1/eval`: OSS first | LiteLLM's complexity router; NeMo Switchyard; Jev in the path | One thin service insulates the factory from router API churn (0.2 → 0.3 broke the config) |
 | Jev (TypeSafe AI, SaaS) | An optional adapter in **shadow** only, on `dataClass: public` text, never acting | Jev deciding tiers | Latency, availability and data exposure; about $0.08 per 1,000 tasks if turned on |
 
-Source: [agent factory design D8](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md)
+Source: [Maku design D8](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md)
 and [SP4 S6, §3](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#3-complexity-classifier-c7).
 ADR-0047 is reserved for it and not yet written. None of it is built: on `gcp-0` all 12 tasks
 read `classifier: static, fallback: static`.
@@ -326,7 +326,7 @@ flowchart LR
   `test-agent-gateway-cache-wire` asserts the plain and the streamed reply at every agentgateway pin; the meter's comment that a
   stream leaves them out predates the measurement. The meter subtracts the cache tokens unless
   `input` is smaller than them, in which case it prices all of `input` as fresh
-  (`inputExcludesCache`, agent-platform `internal/factory/meter/meter.go`) and counts the run in
+  (`inputExcludesCache`, Maku `internal/factory/meter/meter.go`) and counts the run in
   `agent_factory_meter_input_excludes_cache_runs_total`. `AgentMeterInputExcludesCache` fires on it:
   the charge series would under-count such a run, down to a negative cost.
 - **Overshoot is one scrape plus one response.** The run is revoked on the meter's next tick, and
@@ -385,12 +385,12 @@ flowchart TB
 | Layer | Unit | Enforced | Note |
 |---|---|---|---|
 | `runUSD`, `taskUSD` | USD, cache-aware | **yes** | The cap that decides a run's fate |
-| `factoryDailyUSD`, `humanDailyUSD` | USD, cache-aware: the same `meter.prices`, since agent-platform v0.16.0 (#168), pinned here at v0.23.1 | **shadow**, the fleet's day and each person's: with `enforcePrincipal: false` a run past its day is admitted and counted as `budget-principal-shadow` | `AgentFactoryDailyBudgetHigh` fires at 80%. The day's ledger is `agent-factory-ledger-usd-<YYYYMMDD>`, in micro-USD |
+| `factoryDailyUSD`, `humanDailyUSD` | USD, cache-aware: the same `meter.prices`, since Maku v0.16.0 (#168), pinned here at v0.23.1 | **shadow**, the fleet's day and each person's: with `enforcePrincipal: false` a run past its day is admitted and counted as `budget-principal-shadow` | `AgentFactoryDailyBudgetHigh` fires at 80%. The day's ledger is `agent-factory-ledger-usd-<YYYYMMDD>`, in micro-USD |
 | B1, B2, B6 | reference tokens: USD ÷ $1.70 per million, at `meter.prices` | **yes**, since 2026-10-18 (`SHADOW_MODE: "false"`, `infrastructure/base/agent-gateway/ratelimit.yaml`): `429 agent_budget_exhausted` | Sized above the factory's caps, so the gateway never refuses what the factory admits. Gate AG8 holds B2 at or above `factoryDailyUSD` plus four frontier runs |
 | local limit | raw tokens per hour, per replica | always | Above the largest admitted run: $6.80 of Opus cache reads is 34M tokens |
 
 {{< callout type="info" >}}
-**The daily caps count dollars.** Until agent-platform v0.16.0 they counted raw tokens, a cache read
+**The daily caps count dollars.** Until Maku v0.16.0 they counted raw tokens, a cache read
 as a full token: on 2026-10-18 the fleet's 25M and a person's 5M both read 0 remaining after about
 $10 of real spend. `factoryDailyUSD` ($42.50) and `humanDailyUSD` ($8.50) are the same days at the
 reference $1.70 per million, now priced as the run caps are. They stay in shadow until a record in
@@ -415,7 +415,7 @@ On those 24 hours the meter's figure is **$10.40**. The same tokens with no cach
 | Provider | How the cache engages | What to keep stable |
 |---|---|---|
 | Z.ai GLM | Automatic, no marker; cache writes not billed | The prompt prefix: system prompt, tool list, early turns |
-| Anthropic | Explicit breakpoints. The harness rewrites the SDK's `cache_control` as `prompt_cache_breakpoint`, the only marker agentgateway 1.6 carries from Chat Completions to Messages (agent-platform `images/agent-harness/site/sitecustomize.py`) | The same, and the breakpoint itself: an agentgateway upgrade that drops the field silently re-prices every internal run at the input rate |
+| Anthropic | Explicit breakpoints. The harness rewrites the SDK's `cache_control` as `prompt_cache_breakpoint`, the only marker agentgateway 1.6 carries from Chat Completions to Messages (Maku `images/maku-harness/site/sitecustomize.py`) | The same, and the breakpoint itself: an agentgateway upgrade that drops the field silently re-prices every internal run at the input rate |
 
 Caching is also why per-request model switching is a bad idea for agents: a new model starts with
 a cold cache, and on a 95%-cached run that multiplies the next call's input cost by about 5.

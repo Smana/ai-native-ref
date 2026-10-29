@@ -13,10 +13,10 @@ metadata:
 data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
-      repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.29.10, the chart's appVersion.
-      # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.29.10@sha256:bee5c7a1ee0856611222c85c3254c58c6b8e9e391f2b359cb1766de9b50f0f9f"
+      repository: ghcr.io/smana/maku-factory
+      # maku v0.30.3, the chart's appVersion.
+      # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
+      tag: "v0.30.3@sha256:58a5a9e0ba3c3cc1bbde377e50b855e794e9c09bdbdd0abcc707eba299175f88"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.
@@ -322,13 +322,21 @@ data:
         # twice (0..5). judge tier-light: the completion judge's alias (the claim's judgeModel),
         # reading the scoper's checks; without the capability profiles' P4 sidecar (#103) its
         # /judge/v1 route is refused and the judge is silently skipped.
-        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}
+        # Feature 15's live session (2026-10-29), the owner's switch, removed after it: a docs task's
+        # reviewer (the other tier, frontier) runs on Kimi and its implementer (standard) on Mistral
+        # Medium. Public tasks only: maku pins no provider alias on an internal task. Mistral answers
+        # with plain string content only because the gateway sends it reasoning_effort "none"
+        # (agent-gateway/mistral.yaml): with reasoning on, agentgateway cannot parse its response.
+        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true,
+               models: {implementer: {standard: mistral-standard}, reviewer: {frontier: kimi-frontier}}}
         # scripts: the splitter's class for the gcp-0 session of 2026-10-27 (runbook 17 §2, splitter
         # design SL3). split needs scope: scoper on the same row, and a row is read whole, so the scoper
         # is on for scripts too. maxChildren 4 (2..5); familyUSD 20.40, the parent's and every part's
         # runs together (four standard tasks, SP3); childTier standard (SP5). Back off with the session's
-        # last commit (D4): remove the row.
-        scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard}}
+        # last commit (D4): remove the row. anyTier: true offers the splitter to every scripts task
+        # (agent-platform v0.29.12): gcp-0 deploys no classifier, so no task is ever frontier and the
+        # default would never offer it; the splitter design's SP1 option (b), as an explicit opt-in.
+        scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}}
       # search: true on the docs row (above) offers that class's implementer runs the search tool
       # (agent-platform v3 feature 5): a read-only child on the run's token, 40 iterations, 300k
       # tokens, 300 s, six a run. No other class has it (D4): the gcp-0 session of 2026-10-27 flips
@@ -355,6 +363,12 @@ data:
           glm-5.3: {input: 1.40, cacheRead: 0.26, output: 4.40, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
           glm-5.3-flashx: {input: 0.37, cacheRead: 0.075, output: 1.25, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
           glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+          # Feature 15, selectable providers (public only). k3.1-pro is NOMINAL: the owner's Kimi Code
+          # subscription is flat-rate (marginal USD 0), and the row is the list price so a run's USD
+          # cap bounds its tokens; a figure here is a token-weighted unit, not a bill.
+          k3.1-pro: {input: 2.00, cacheRead: 0.20, cacheWrite: 2.00, output: 10.00, source: "https://platform.kimi.ai/docs/pricing/chat", checkedAt: "2026-10-28"}
+          mistral-medium-2604: {input: 1.50, cacheRead: 0.15, output: 7.50, source: "https://mistral.ai/pricing", checkedAt: "2026-10-28"}
+          mistral-small-2603: {input: 0.15, cacheRead: 0.015, output: 0.60, source: "https://mistral.ai/pricing", checkedAt: "2026-10-28"}
           claude-opus-5-5: {input: 4.00, cacheRead: 0.20, cacheWrite: 5.00, output: 20.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
           claude-sonnet-5-5: {input: 2.00, cacheRead: 0.10, cacheWrite: 2.50, output: 10.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
           claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}

@@ -37,8 +37,14 @@ expected = "v" + re.sub(r"\.g([0-9a-f]+)$", r".\1", chart_tag)
 if version != expected:
     problems.append(f"image {version!r} is not chart {chart_tag!r}'s appVersion {expected!r}: bump both")
 
+# The maku names since v0.30.0 (agent-platform renamed); the old ones stop at v0.29.x.
+if source["spec"]["url"] != "oci://ghcr.io/smana/charts/maku-factory":
+    problems.append(f"OCIRepository agent-factory url {source['spec']['url']!r} is not oci://ghcr.io/smana/charts/maku-factory")
+if image.get("repository") != "ghcr.io/smana/maku-factory":
+    problems.append(f"image repository {image.get('repository')!r} is not ghcr.io/smana/maku-factory")
+
 rules = json.loads((ROOT / ".github/renovate.json").read_text())["packageRules"]
-names = {"ghcr.io/smana/charts/agent-factory", "ghcr.io/smana/agent-factory"}
+names = {"ghcr.io/smana/charts/maku-factory", "ghcr.io/smana/maku-factory"}
 if not any(names <= set(r.get("matchPackageNames") or []) and r.get("groupName") for r in rules):
     problems.append("no Renovate packageRule groups the factory's chart and image")
 

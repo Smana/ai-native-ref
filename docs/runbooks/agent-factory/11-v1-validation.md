@@ -2,20 +2,20 @@
 
 Proves the [local-first UX design](../../superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)
 ([ADR-0056](../../../website/content/docs/decisions/0056-local-first-factory-ux.md)) on a cluster pinned to the
-agent-platform `v0.8.0` release, and closes SP3 Task 10.6 Step 2 (one task end to end on release pins).
+Maku `v0.8.0` release, and closes SP3 Task 10.6 Step 2 (one task end to end on release pins).
 Written on aws-0; [runbook 14](14-gcp-0-session.md) step 8 runs it on gcp-0 with `CLOUD=gcp`.
 See [README.md](README.md) for `CLOUD`; run [00](README.md#runbook-00-one-time-cluster-setup) first.
 
 ## Prerequisites
 
-- The cluster runs `agent-platform` `v0.8.0` or later (factory, room-broker, `roomctl`) with `human.access` set in
+- The cluster runs Maku `v0.8.0` or later (factory, broker, `maku`) with `human.access` set in
   [`infrastructure/base/room-broker/config.yaml`](../../../infrastructure/base/room-broker/config.yaml), and
   the link-only GitHub IdP from `scripts/provision/zitadel-idp.sh` is provisioned.
-- The platform CA, needed up front: `roomctl` talks to the room broker and the room page is served at
+- The platform CA, needed up front: `maku` talks to the room broker and the room page is served at
   `https://rooms.priv.$CLOUD.ogenki.io`, both private endpoints signed by that CA, and the same CA signs every
-  private endpoint in Step 6. `roomctl` has no `--cacert` flag, so fetch the chain below, then trust the root
+  private endpoint in Step 6. `maku` has no `--cacert` flag, so fetch the chain below, then trust the root
   certificate (CN=Ogenki Root CA, the last certificate in `ca.pem`) in the OS trust store — for example
-  `sudo trust anchor --store <root>.pem` on Linux (p11-kit). Without it, `roomctl rooms` fails with
+  `sudo trust anchor --store <root>.pem` on Linux (p11-kit). Without it, `maku rooms` fails with
   `tls: failed to verify certificate: x509: certificate signed by unknown authority` before Step 1:
 
   ```bash
@@ -27,9 +27,9 @@ See [README.md](README.md) for `CLOUD`; run [00](README.md#runbook-00-one-time-c
   esac
   ```
 
-- `roomctl` `v0.8.0`, verified: `sha256sum -c --ignore-missing roomctl.sha256`, then `roomctl configure` and `roomctl login`
+- `maku` `v0.8.0`, verified: `sha256sum -c --ignore-missing maku.sha256`, then `maku configure` and `maku login`
   as an `agents-admin` (the room list's *CLI setup* view prints the values).
-- A second identity, a ZITADEL user who is **not** `agents-admin`, with `roomctl` logged in on its own config. Call it `dev2`.
+- A second identity, a ZITADEL user who is **not** `agents-admin`, with `maku` logged in on its own config. Call it `dev2`.
 - A **private** test repo `dev2` cannot read, with a factory task in it. Call it `<private-repo>`.
 - A test issue on `Smana/cloud-native-ref` that a maintainer may label `factory/ready`.
 
@@ -51,13 +51,13 @@ label. Add the label yourself: `gh issue edit <issue> --repo Smana/cloud-native-
 
 **What this proves:** the skill drafts and files, and starting the factory stays a human act (D1).
 
-### Step 2 — `roomctl status --json`
+### Step 2 — `maku status --json`
 
 ```bash
 TASK=$(kubectl get task -n agent-system --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}'); echo "$TASK"
-roomctl status "$TASK" --json > status.json
+maku status "$TASK" --json > status.json
 jq -e '.apiVersion=="summary/v1" and has("status") and has("needsYou") and has("actions") and .notes.untrusted==true and (.cursor|startswith("seq:"))' status.json
-roomctl status "$TASK" --json --after "$(jq -r .cursor status.json)" | jq .notes
+maku status "$TASK" --json --after "$(jq -r .cursor status.json)" | jq .notes
 ```
 
 Expected: `jq -e` prints `true` (exit 0); the phase, run, budget, PR once opened, `needsYou`, the notes and the cursor are present.
@@ -91,10 +91,10 @@ Expected: full screen on click; zoom and pan work; the diagram is legible in the
 Each check names its identity. The cache is 5 minutes (`human.access.ttl`).
 
 ```bash
-roomctl rooms                                  # dev2, before linking GitHub
-roomctl rooms | grep -c "$TASK"               # after linking, no read on the repo
-roomctl status "<private-room>"               # same identity
-DEV2_TOKEN=$(roomctl token)                   # dev2's config; never echoed
+maku rooms                                  # dev2, before linking GitHub
+maku rooms | grep -c "$TASK"               # after linking, no read on the repo
+maku status "<private-room>"               # same identity
+DEV2_TOKEN=$(maku token)                   # dev2's config; never echoed
 curl -sSI -H "Authorization: Bearer $DEV2_TOKEN" https://rooms.priv.$CLOUD.ogenki.io/api/rooms | grep -i x-rooms-access
 ```
 
@@ -103,12 +103,12 @@ The `X-Rooms-Access` header (R21) reads `unlinked` before `dev2` links GitHub (5
 
 | # | Check | Expected |
 |---|---|---|
-| 5a | `dev2`, GitHub **not** linked: `roomctl rooms` | The unlinked hint (link GitHub in your ZITADEL profile); no room listed |
-| 5a′ | `dev2` signs in with Google only: an admin runs `IDP_URL=https://auth.gcp.cloud.ogenki.io scripts/provision/zitadel-idp.sh link-github <dev2-login> <dev2-github> --cluster gcp-0 --cloud gcp --apply` (aws-0: `auth.cloud.ogenki.io`, `--cluster aws-0 --cloud aws`), then `dev2` runs `roomctl rooms` after 5 minutes | `[linked ]` with GitHub's numeric id; the unlinked hint is gone and `X-Rooms-Access` reads `ok` (the self-service link ends on a password reset for a user without one, #2269) |
-| 5b | `dev2` links GitHub, has no read on `<private-repo>`: `roomctl rooms`, `roomctl status <private-room>`, and the page URL | The private room is not listed; `status` and the page answer 404, never 403 |
-| 5c | Grant `dev2` read on `<private-repo>` on GitHub; poll `roomctl rooms` every 30 s | The room appears within 5 minutes |
-| 5d | Open the room's WebSocket as `dev2` (the page, or `roomctl watch <room>`), then revoke `dev2`'s read | The socket is cut within TTL + 30 s (5 min 30 s) |
-| 5e | R26: `dev2` signs in to ZITADEL with the GitHub button | The sign-in succeeds (accepted, ADR-0056). Then deactivate the ZITADEL user: the next `roomctl rooms` and the next page load are refused |
+| 5a | `dev2`, GitHub **not** linked: `maku rooms` | The unlinked hint (link GitHub in your ZITADEL profile); no room listed |
+| 5a′ | `dev2` signs in with Google only: an admin runs `IDP_URL=https://auth.gcp.cloud.ogenki.io scripts/provision/zitadel-idp.sh link-github <dev2-login> <dev2-github> --cluster gcp-0 --cloud gcp --apply` (aws-0: `auth.cloud.ogenki.io`, `--cluster aws-0 --cloud aws`), then `dev2` runs `maku rooms` after 5 minutes | `[linked ]` with GitHub's numeric id; the unlinked hint is gone and `X-Rooms-Access` reads `ok` (the self-service link ends on a password reset for a user without one, #2269) |
+| 5b | `dev2` links GitHub, has no read on `<private-repo>`: `maku rooms`, `maku status <private-room>`, and the page URL | The private room is not listed; `status` and the page answer 404, never 403 |
+| 5c | Grant `dev2` read on `<private-repo>` on GitHub; poll `maku rooms` every 30 s | The room appears within 5 minutes |
+| 5d | Open the room's WebSocket as `dev2` (the page, or `maku watch <room>`), then revoke `dev2`'s read | The socket is cut within TTL + 30 s (5 min 30 s) |
+| 5e | R26: `dev2` signs in to ZITADEL with the GitHub button | The sign-in succeeds (accepted, ADR-0056). Then deactivate the ZITADEL user: the next `maku rooms` and the next page load are refused |
 | 5f | R14 premise: the deployed ZITADEL version | v4.17.3, v4.18.0 or later: from those releases a user cannot add an IdP link to their own account without `user.write`, so the GitHub login the broker reads is the one a GitHub sign-in or an admin put there |
 
 ```bash
@@ -117,7 +117,7 @@ kubectl get deploy -n security zitadel -o jsonpath='{.spec.template.spec.contain
 
 Older releases skip `user.write` when the caller targets their own account (`AddUserIDPLink` in
 `internal/command/user_idp_link.go`). A live probe of 5f (`POST /v2/users/{id}/links` for `dev2`'s own id) needs a `dev2` token
-whose audience includes ZITADEL's API; a `roomctl` token is refused with `401 Errors.Token.Invalid` before any permission check,
+whose audience includes ZITADEL's API; a `maku` token is refused with `401 Errors.Token.Invalid` before any permission check,
 on a vulnerable release as on a fixed one, so it proves nothing.
 
 **What this proves:** a room is as visible as its repo on GitHub, fails closed, follows revocation, and the
@@ -240,14 +240,14 @@ gh pr list --repo Smana/cloud-native-ref --head agent/$TASK --json number,state,
 ```
 
 Expected: release pins only (no `-pr<N>` suffix); the happy path runs `… AwaitingHuman → Merged → Verifying → Done`, with a PR
-opened by `app/ogenki-agents`, a reviewer verdict on it, and the room page and `roomctl status` agreeing. The other terminal
+opened by `app/ogenki-agents`, a reviewer verdict on it, and the room page and `maku status` agreeing. The other terminal
 phases (`Rejected`, `NoOp`, `Reverted`, `Escalated`, `Closed`, `Stopped`) are a fail for this step.
 
 **What this proves:** the whole path works on released artifacts, and unblocks FR-10's merge.
 
 ## Results
 
-aws-0 on agent-platform `v0.8.0` and crossplane-configuration `v0.9.3`, 2026-10-08. `TASK=yacoriey` (issue
+aws-0 on Maku `v0.8.0` and crossplane-configuration `v0.9.3`, 2026-10-08. `TASK=yacoriey` (issue
 [#2266](https://github.com/Smana/cloud-native-ref/issues/2266), PR [#2267](https://github.com/Smana/cloud-native-ref/pull/2267)).
 
 | Step | Expected | Observed | Pass/Fail |
@@ -256,7 +256,7 @@ aws-0 on agent-platform `v0.8.0` and crossplane-configuration `v0.9.3`, 2026-10-
 | 2 | `summary/v1` fields; `--after` returns only newer notes | `jq -e` → `true` (cursor `seq:4`, phase `Implementing`, `issue.labelledBy: Smana`); `--after seq:4` → no notes. No agent posted a note during the task, so "only newer" was never exercised | Partial |
 | 3 | five blocks, raw log folded, watcher sees no actions, `#<approvalId>` lands | Owner, as `agents-admin`: blocks render, raw log folded. No watcher identity in the room and no approval in an unattended task | Partial |
 | 4 | diagram full screen, zoom and pan, both themes | Owner, on the user guide | Pass |
-| 5a | unlinked hint, no room, `X-Rooms-Access: unlinked` | `dev2` (`agents-member`): empty table plus the hint; `HTTP 200`, `x-rooms-access: unlinked`; `roomctl status yacoriey` on a public repo → "no such room" | Pass |
+| 5a | unlinked hint, no room, `X-Rooms-Access: unlinked` | `dev2` (`agents-member`): empty table plus the hint; `HTTP 200`, `x-rooms-access: unlinked`; `maku status yacoriey` on a public repo → "no such room" | Pass |
 | 5b | private room unlisted, 404 on `status` and the page, `X-Rooms-Access: ok` | Not run: `dev2` had no GitHub account | Open |
 | 5c | room appears within 5 min of the grant | Not run, as 5b | Open |
 | 5d | open WebSocket cut within 5 min 30 s of the revoke | Not run, as 5b | Open |
@@ -271,18 +271,18 @@ Findings, each filed where it is fixed:
 
 | Finding | Filed |
 |---|---|
-| The CA prerequisite was listed for Step 6 only; `roomctl` fails with `x509` before Step 1 | #2266, fixed by the factory in #2267 |
-| Onboarding takes six manual steps whose errors (`no such host`, `x509`) do not name the cause | agent-platform [#48](https://github.com/Smana/agent-platform/issues/48) |
-| The `factory-handoff` skill has no setup path | agent-platform [#49](https://github.com/Smana/agent-platform/issues/49) |
-| `roomctl rooms` shows random ids, the room's phase instead of the task's, and no issue or PR | agent-platform [#50](https://github.com/Smana/agent-platform/issues/50) |
-| A task waiting for a merge has an empty `needsYou`, and nothing says the merge needs the ruleset bypass | agent-platform [#51](https://github.com/Smana/agent-platform/issues/51) |
-| The closing comment under-reports tokens (553 k against 667,878) | agent-platform [#42](https://github.com/Smana/agent-platform/issues/42), still open on v0.8.0 |
+| The CA prerequisite was listed for Step 6 only; `maku` fails with `x509` before Step 1 | #2266, fixed by the factory in #2267 |
+| Onboarding takes six manual steps whose errors (`no such host`, `x509`) do not name the cause | Maku [#48](https://github.com/Smana/maku/issues/48) |
+| The `factory-handoff` skill has no setup path | Maku [#49](https://github.com/Smana/maku/issues/49) |
+| `maku rooms` shows random ids, the room's phase instead of the task's, and no issue or PR | Maku [#50](https://github.com/Smana/maku/issues/50) |
+| A task waiting for a merge has an empty `needsYou`, and nothing says the merge needs the ruleset bypass | Maku [#51](https://github.com/Smana/maku/issues/51) |
+| The closing comment under-reports tokens (553 k against 667,878) | Maku [#42](https://github.com/Smana/maku/issues/42), still open on v0.8.0 |
 | The spec calls the factory multi-repo; it takes issues from one repository | [#2268](https://github.com/Smana/cloud-native-ref/issues/2268) |
 | The unlinked hint says to link GitHub from the login page, which sends a Google-only user to a password reset | [#2269](https://github.com/Smana/cloud-native-ref/issues/2269) |
 
 ### gcp-0, 2026-10-17
 
-Release pins: agent-platform v0.15.2, ai-native-ref v0.1.12, crossplane-configuration v0.9.15.
+Release pins: Maku v0.15.2, ai-native-ref v0.1.12, crossplane-configuration v0.9.15.
 `TASK=yyv2c2kn` (issue [#2484](https://github.com/Smana/cloud-native-ref/issues/2484), PR
 [#2491](https://github.com/Smana/cloud-native-ref/pull/2491), run `3hohu32j`). Intake polls
 (`poll.issues` 60 s) and needs no webhook: the Task appeared a minute after the label.
@@ -290,7 +290,7 @@ Release pins: agent-platform v0.15.2, ai-native-ref v0.1.12, crossplane-configur
 | Step | Expected | Observed | Pass/Fail |
 |---|---|---|---|
 | 1 | issue filed by the skill, no `factory/ready` | An agent filed the issue as a warm-sandbox probe, not through the skill; the owner's token applied the label | Partial |
-| 2 | `summary/v1` fields | `roomctl status yyv2c2kn --json`: `summary/v1` with phase, run, budget, PR and `needsYou: []` | Pass |
+| 2 | `summary/v1` fields | `maku status yyv2c2kn --json`: `summary/v1` with phase, run, budget, PR and `needsYou: []` | Pass |
 | 3 | blocks render | Owner: the room page renders every block | Pass |
 | 4 | diagram zooms | Not run | Open |
 | 5b–5e | as aws-0 | Not run: no second identity | Open |

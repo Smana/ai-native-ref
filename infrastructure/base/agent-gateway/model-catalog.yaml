@@ -61,6 +61,36 @@ data:
               }
             }
           }
+        },
+        "moonshot": {
+          "models": {
+            "k3.1-pro": {
+              "rates": {
+                "input": "2.00",
+                "output": "10.00",
+                "cacheRead": "0.20",
+                "cacheWrite": "2.00"
+              }
+            }
+          }
+        },
+        "mistral": {
+          "models": {
+            "mistral-medium-2604": {
+              "rates": {
+                "input": "1.50",
+                "output": "7.50",
+                "cacheRead": "0.15"
+              }
+            },
+            "mistral-small-2603": {
+              "rates": {
+                "input": "0.15",
+                "output": "0.60",
+                "cacheRead": "0.015"
+              }
+            }
+          }
         }
       }
     }

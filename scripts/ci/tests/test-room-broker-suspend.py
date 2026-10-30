@@ -7,7 +7,8 @@ renders the factory's sandbox.suspend.enabled; any other cluster has none of the
 half-on cluster (a grant with no trigger, or suspendable runs nobody suspends) fails here.
 The grant, patch on agentruns, lives only in room-broker/suspend; the broker's own RBAC
 never patches or updates a run; base's config never enables suspend, and gcp-0's copy of it
-differs in suspend, webhooks, human.mcp and human.slackLink alone; and the Kyverno limit that fences the grant is always there, for
+differs in suspend, webhooks, human.mcp and human.slackLink alone, and aws-0's copy, during a
+session, in human.mcp.sessionStart alone; and the Kyverno limit that fences the grant is always there, for
 the broker alone, naming exactly the three suspend annotations."""
 import pathlib
 import subprocess
@@ -102,6 +103,18 @@ def minus_switches(cfg):
 checks["gcp-0's broker config is base's but for suspend, webhooks, human.mcp and human.slackLink"] = (
     minus_switches(gcp) == minus_switches(config))
 checks["gcp-0's human.mcp stays enabled"] = (gcp["human"]["mcp"].get("enabled") is True)
+
+aws_copy = ROOT / "infrastructure/aws-0/room-broker/config.yaml"
+if aws_copy.is_file():  # a session switch (runbook 19): base's config plus human.mcp.sessionStart
+    aws = yaml.safe_load(aws_copy.read_text())
+
+    def minus_session_start(cfg):
+        out = {**cfg, "human": {**cfg["human"], "mcp": dict(cfg["human"]["mcp"])}}
+        out["human"]["mcp"].pop("sessionStart", None)
+        return out
+
+    checks["aws-0's broker config is base's but for human.mcp.sessionStart"] = (
+        minus_session_start(aws) == minus_session_start(config))
 
 limit = [d for d in docs("security/base/agent-policies/validatingpolicies.yaml")
          if d["metadata"]["name"] == "agentrun-broker-patch-limit"]

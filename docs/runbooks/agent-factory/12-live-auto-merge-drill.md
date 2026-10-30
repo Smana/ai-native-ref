@@ -1,10 +1,13 @@
-# 12 — Live auto-merge drill (`docs-links`, gcp-0)
+# 12 — Live auto-merge drill (`docs-links`, aws-0)
 
 Drills the first unattended merge to `main` and its revert, gate evidence G2 and G3 of the
 [live auto-merge design](../../superpowers/specs/2026-10-16-v2-live-auto-merge-design.md) (D4).
 The factory merges to `main` without a human for the drill's duration: **run it only on the
 owner's go.** The drill runs on the factory that `Smana/cloud-native-ref`'s
-`.github/agent-factory.yaml` names (the ownership fence): `gcp-0`.
+`.github/agent-factory.yaml` names (the ownership fence): `aws-0`. The next session runs there: both fence files flip
+from `gcp-0` to `aws-0` in two human-authored gate-path pull requests before it (AM12 of the
+[human path design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-29-merge-gate-human-path-design.md)). The Results below
+record the runs on `gcp-0`.
 Every other factory renders the same values and never acts on the repository. See
 [README.md](README.md) for `CLOUD`.
 
@@ -48,17 +51,17 @@ Last checked 2026-10-18, all three held (GitHub state, it survives a cluster reb
 `actions: write`; `agent-merge` 25335777 covers `main` and `revert-*` with the merger App 5187454 on
 its bypass list; `agent-branches` 24063626 excludes `main` and `revert-*`).
 
-## The merge gate runs on gcp-0
+## The merge gate runs on aws-0
 
 The gate's row 3 needs a `policy-bot: main` status posted by `merge.policyBotLogin`
 (`ogenki-merge-gate[bot]`). Without it every decision is `human` / `policy_absent` and the drill
-never arms. [#58](https://github.com/Smana/ai-native-ref/pull/58) puts policy-bot on gcp-0.
+never arms. [#58](https://github.com/Smana/ai-native-ref/pull/58) puts policy-bot on the factory's cluster; the manifests have parity on aws-0.
 
-- [ ] **policy-bot runs on gcp-0 and posts on cloud-native-ref's PRs.** Its OpenBao side is
+- [ ] **policy-bot runs on aws-0 and posts on cloud-native-ref's PRs.** Its OpenBao side is
   cloud-native-ref [#2504](https://github.com/Smana/cloud-native-ref/pull/2504) (the `merge-gate`
-  mount, policy and `jwt/gcp-0` role, the `policy-bot` listener), its secret is the five keys at
-  `merge-gate/policy-bot`, and the `ogenki-merge-gate` App's webhook is
-  `https://policy-bot.gcp.cloud.ogenki.io/api/github/hook` with Pull request, Pull request review,
+  mount, policy and `jwt/aws-0` role, the `policy-bot` listener), its secret is the five keys at
+  `merge-gate/policy-bot`, and the `ogenki-merge-gate` App's webhook points at
+  the aws-0 policy-bot listener (`/api/github/hook`) with Pull request, Pull request review,
   Issue comment, Status, Check run and Workflow run subscribed. Proof:
 
   ```bash
@@ -73,24 +76,32 @@ never arms. [#58](https://github.com/Smana/ai-native-ref/pull/58) puts policy-bo
 
 ```mermaid
 flowchart LR
-  gh["owner: App permissions,<br/>agent-merge, agent-branches,<br/>policy-bot on gcp-0"] --> pin["cnref pins an artifact with<br/>docs-links + revert live"]
+  gh["owner: App permissions,<br/>agent-merge, agent-branches,<br/>policy-bot on aws-0"] --> pin["cnref pins an artifact with<br/>docs-links + revert live"]
   pin --> issue["issue: class:docs-links<br/>+ factory/ready"]
   issue --> pr["agent PR"] --> gate{"merge gate"}
   gate -->|"arm, armed"| merge["merger App merges<br/>at the decided head"]
   merge --> lbl["label factory/auto-merged:docs-links"]
   merge --> verify["verify 30 min → Done"]
   verify -->|"factory/revert"| rv["revert PR, factory/revert-of:#n,<br/>auto-merged (revert live)"]
-  rv --> demoted["ClassDemoted on #2188<br/>breaker: class_paused"]
+  rv --> demoted["revert labelled factory/drill<br/>breaker does not count it"]
   demoted --> back["cnref pins an artifact with<br/>both classes back in shadow"]
 ```
 
 ## Know before the go
 
-- **The drill pauses `docs-links` afterwards.** With `breaker: {window: 10, maxReverts: 1}`, the
-  drill's revert holds the class at `class_paused`, in shadow too (gate row 9 precedes row 11), until
-  10 newer `docs-links` merges by maintainers push it out of the window. No `would-arm` comment, and so
-  no tally progress for G4, until then. After a rebuild only labelled merges count, so the pause lasts
-  until 10 merges made after the rebuild.
+- **Label the drill before the revert.** Add `factory/drill` to the merged pull request, then
+  `factory/revert` (Step 5): the merger copies `factory/drill` to its revert PR, the breaker does not
+  count it (human path AM6), and the class keeps its shadow and live clocks. A revert without the
+  label pauses the class (`class_paused`, in shadow too: gate row 9 precedes row 11) until 3 clean
+  mature merges land (`recoverAfter`, AM7). The label is honoured only from a maintainer, as
+  `factory/revert` is.
+- **Retroactively:** the drill of 2026-10-18 reverted #2520 through #2521 without the label. Before
+  the next session, label #2521:
+  `gh api -X POST repos/Smana/cloud-native-ref/issues/2521/labels -f 'labels[]=factory/drill'`.
+  A label added after the revert lifts a pause only through GitHub's labels, when no Task exists for
+  #2520, at the next process start (the labels are read once per process). aws-0 starts with no Task for
+  #2520, so its first start reads the label and `docs-links` resumes; on a factory that still holds that
+  Task it would not.
 - **Live means `{live: true}`.** `{}` is "neither": a label only, the gate hands off `class_unarmed` (`class_mismatch` before Maku v0.28.1).
 - **Both classes go live in one commit** (D5): a live class with a shadow `revert` would wait for a
   human to merge its own revert.
@@ -101,13 +112,13 @@ flowchart LR
 ## Prerequisites
 
 From a cloud-native-ref checkout, `kubectl` on the factory's cluster
-(`gke_ogenki-435905_europe-west4-a_gcp-0` for gcp-0; `kubectl config current-context` shows it).
+(the aws-0 context; `kubectl config current-context` shows it).
 
 | # | Check | How |
 |---|---|---|
 | P1 | The factory runs Maku `v0.14.0` or later | The pod runs the tag `tooling/base/agent-factory/helm-values-configmap.yaml` pins: `kubectl get deploy -n agent-system agent-factory -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` → `ghcr.io/smana/maku-factory:v<x.y.z>@sha256:…` |
 | P2 | The owner's GitHub prerequisites hold | The three boxes above ticked, and the mint test below returns `201` |
-| P2b | The merge gate runs on gcp-0 | [The box above](#the-merge-gate-runs-on-gcp-0) ticked: `policy-bot: main` from `ogenki-merge-gate[bot]` on a cloud-native-ref PR |
+| P2b | The merge gate runs on aws-0 | [The box above](#the-merge-gate-runs-on-aws-0) ticked: `policy-bot: main` from `ogenki-merge-gate[bot]` on a cloud-native-ref PR |
 | P3 | The factory is idle on `Smana/cloud-native-ref` | `kubectl get tasks -n agent-system` shows no task outside a final phase (`Done`, `Rejected`, `NoOp`, `Reverted`, `Closed`, `Stopped`) |
 | P4 | `main` is green | `gh run list -R Smana/cloud-native-ref --branch main --limit 3` |
 | P5 | No auto-merge today | `gh pr list -R Smana/cloud-native-ref --state merged --label 'factory/auto-merged:docs-links'` is empty (the drill's cap is 1 a day, labelled merges count) |
@@ -166,7 +177,7 @@ kubectl get cm -n agent-system agent-factory-helm-values -o jsonpath='{.data.val
 kubectl rollout status deploy -n agent-system agent-factory --timeout=5m
 ```
 
-Expected: `factory: gcp-0` (the name the fence holds), `docs-links: {live: true}`,
+Expected: `factory: aws-0` (the name the fence holds), `docs-links: {live: true}`,
 `revert: {live: true}`, `autoMergesPerDay: 1`; the rollout completes (a strictly parsed bad config
 fails it, and the old pods keep serving).
 
@@ -223,11 +234,12 @@ Expected:
 
 After `merge.verifyFor` (30 min) with `main` green, the task ends `Done` / `merged_verified`.
 
-### Step 5 — revert it and see the breaker count it (G3)
+### Step 5 — revert it as a drill and see the breaker ignore it (AM6)
 
-Within `merge.revertWindow` (168 h), from `Verifying` or `Done`:
+Within `merge.revertWindow` (168 h), from `Verifying` or `Done`. Label the drill first, then the revert:
 
 ```bash
+gh api -X POST "repos/Smana/cloud-native-ref/issues/$PR/labels" -f 'labels[]=factory/drill'
 gh api -X POST "repos/Smana/cloud-native-ref/issues/$PR/labels" -f 'labels[]=factory/revert'   # gh pr edit fails silently here (Projects classic)
 kubectl get task -n agent-system "$TASK" -w -o jsonpath='{.status.phase} {.status.reason} {.status.pullRequest.revertNumber}{"\n"}'
 ```
@@ -244,15 +256,23 @@ gh issue view 2188 -R Smana/cloud-native-ref --json comments -q '.comments[-1].b
 Expected:
 
 - the revert PR is authored by the merger App, titled `Revert "…"`, its body `Reverts #<PR> (agent factory task …)`;
-- it carries `factory/revert-of:#<PR>`, and native auto-merge is on (the `revert` class is live);
+- it carries `factory/drill` and `factory/revert-of:#<PR>`, and native auto-merge is on (the `revert` class is live);
 - it ends `MERGED` by the merger once its required checks are green (and `policy-bot: main`, where
   the `agent-merge-gate` ruleset requires it). Before Maku `v0.15.6` it stays `BLOCKED`
   ([finding 5](#findings)): merge it by hand;
-- the control issue #2188's newest comment: "an auto-merge of `docs-links` was reverted … goes to human review".
+- the task's `status.pullRequest.drill` is `true`
+  (`kubectl get task -n agent-system "$TASK" -o jsonpath='{.status.pullRequest.drill}'`);
+- the control issue #2188 carries the drill notice (Maku posts it in `ClassDemoted`'s place: "an auto-merge
+  of `docs-links` was reverted as a drill … the class's breaker does not count the revert (AM6)"), not a
+  `ClassDemoted`, and `#$PR` carries the drill sentence ("the revert is a drill: the class's breaker does
+  not count it").
 
-The breaker now holds 1 revert in 1 merge. Its proof is the next `docs-links` decision, which must be
-`human` / `class_paused`. If another `docs-links` PR reaches the gate during the window, read it there.
+The breaker holds 0 reverts. Its proof is the next `docs-links` decision, which must **not** be
+`class_paused`. If another `docs-links` PR reaches the gate during the window, read it there.
 Otherwise the [G1 check](#g1-optional-the-breaker-survives-a-restart) below shows it.
+
+G3 proper (the breaker counts a revert and pauses the class) needs a deliberate revert **without**
+`factory/drill`. It costs the pause until 3 clean mature merges land: run it only on the owner's call.
 
 ### Step 6 — switch back to shadow
 
@@ -275,7 +295,7 @@ kubectl rollout restart deploy -n agent-system agent-factory && kubectl rollout 
 ```
 
 Then put one `docs-links` issue through the factory. Expected: the merge ledger is read from GitHub
-(log below) and the PR's gate decision is `human` / `class_paused`.
+(log below), the drill's revert is not counted, and the PR's gate decision is not `class_paused`.
 
 ## Evidence to record
 
@@ -304,7 +324,7 @@ Expected: `verdict="arm", reason="armed"` once for `docs-links`; no `label the m
 | Anything looks wrong, any time | `factory/stop` on the control issue #2188 | The kill switch: every task stops, intake pauses. `factory/revert` is still honoured, but a task already `Stopped` cannot be reverted by the factory |
 | After the merge | `factory/revert` on the PR (Step 5) | The merger's revert PR. If it stalls, `merge.verifyFor` later its auto-merge is turned off: merge or close it by hand |
 | The merge is wrong and the factory is stopped | Revert it yourself (GitHub's **Revert** button) and merge that PR | The breaker cannot see it until you add `factory/revert-of:#<PR>` to it |
-| End the live window at once | Revert the cloud-native-ref pin bump (back to the previous artifact, already verified) | Both classes back in shadow within one Flux reconcile. A pin from before #58 takes policy-bot off gcp-0 too: cloud-native-ref's gate falls back to `policy_absent`, and ai-native-ref's PRs wait on `policy-bot: main` until a later pin restores it |
+| End the live window at once | Revert the cloud-native-ref pin bump (back to the previous artifact, already verified) | Both classes back in shadow within one Flux reconcile. A pin from before #58 takes policy-bot off aws-0 too: cloud-native-ref's gate falls back to `policy_absent`, and ai-native-ref's PRs wait on `policy-bot: main` until a later pin restores it |
 
 ## Results
 
@@ -377,19 +397,19 @@ now `/reference/api-types/httproute/`, 200).
 
 ### What remains
 
-The breaker's live proof (the next `docs-links` decision reads `class_paused`) and #158's unattended
-revert merge. Both come with the next `docs-links` PR and the next revert, which the weekly `link-rot`
+The breaker's live proof (the next `docs-links` decision after the drill is not `class_paused`, Step 5
+and G1) and #158's unattended revert merge. Both come with the next `docs-links` PR and the next revert, which the weekly `link-rot`
 schedule (Mondays 06:00 UTC) produces unattended.
 
 ### Template
 
 | Step | Expected | Observed | Pass/Fail |
 |---|---|---|---|
-| P1–P5 | `v0.14.0`+; GitHub boxes ticked, mint `201`; policy-bot posts on gcp-0; idle; `main` green; no auto-merge today | | |
+| P1–P5 | `v0.14.0`+; GitHub boxes ticked, mint `201`; policy-bot posts on aws-0; idle; `main` green; no auto-merge today | | |
 | 1 | both classes `{live: true}`, cap 1, rollout complete | | |
 | 2 | task `docs-links`, PR opened | | |
 | 3 | `AutoMerging` → `Verifying` | | |
 | 4 | merged by the merger at the task's `headSHA`, `Agent-Run` trailer, `factory/auto-merged:docs-links` | | |
-| 5 | revert PR by the merger, `factory/revert-of:#<PR>`, auto-merged; `ClassDemoted` on #2188 | | |
+| 5 | `factory/drill` then `factory/revert`; revert PR by the merger with both labels, auto-merged; `status.pullRequest.drill` true, the drill notice on #2188, no `ClassDemoted` | | |
 | 6 | both classes `{shadow: true}`, cap 10 | | |
-| G1 | after the restart, `class_paused` | | |
+| G1 | after the restart, the drill's revert is not counted, no `class_paused` | | |

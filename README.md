@@ -99,7 +99,7 @@ Sources and the full record: [status](https://airef.ogenki.io/docs/platform/ai-p
 
 ## Status and roadmap
 
-**v3 is built**: Maku v0.31.0 (CRD group `maku.ogenki.io`), ai-native-ref v2.8.18. The v3.0.0
+**v3 is built**: Maku v0.32.0 (CRD group `maku.ogenki.io`), ai-native-ref v2.8.18. The v3.0.0
 release is still a draft. v3 aims at more accepted pull requests per dollar by shaping the task, not
 by changing the model. A scoper bounds each issue or asks its author; a test-first tester writes the
 contract; the implementer runs the repository's checks in the sandbox and asks a read-only search

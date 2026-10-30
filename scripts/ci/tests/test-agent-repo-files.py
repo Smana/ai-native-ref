@@ -47,8 +47,8 @@ if extra:
     fails.append(f"unexpected trust policies: {sorted(extra)}")
 
 fence = OWN / ".github/agent-factory.yaml"
-if not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": "gcp-0"}:
-    fails.append(".github/agent-factory.yaml: must be exactly `factory: gcp-0`")
+if not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": "aws-0"}:
+    fails.append(".github/agent-factory.yaml: must be exactly `factory: aws-0`")
 
 rules = yaml.safe_load((OWN / ".policy.yml").read_text()).get("approval_rules", [])
 canon = next((r for r in rules if r.get("name") == "agent change approved by a maintainer"), None)

@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/maku-factory
-      # maku v0.31.0, the chart's appVersion.
+      # maku v0.32.0, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
-      tag: "v0.31.0@sha256:85c261a9b2689c4a0fd1255eb12ad164093dd597ba483d653275359003592c99"
+      tag: "v0.32.0@sha256:ec23935c5495d2ffadb3ec0e2ad5cf2c396ac9e3b966d3d5eaa0d284c16e6b07"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.
@@ -143,7 +143,12 @@ data:
             leakScanCheck: "Security scanning 🔒"  # R42: TruffleHog's check run, in both lists above
             # MC8: a bad follow-up counts toward the breaker beside a revert, both 1 in 10.
             awaitingCIFor: 24h
-            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1}  # R41: 1 revert in the last 10 merges demotes a class
+            # Human path AM1: a maintainer's approval of the current head is the merge; the merger
+            # merges it as a human merge, outside the caps. The hand-off comment names that one action.
+            approveToMerge: true
+            # R41: 1 revert in the last 10 merges demotes a class; human path AM7: 3 clean mature merges
+            # after the bad one lift it (half-open), and a maintainer's factory/drill revert never counts (AM6).
+            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1, recoverAfter: 3}
           schedules:
             - name: link-rot
               cron: "0 6 * * 1"  # Mondays, 06:00 UTC
@@ -211,7 +216,12 @@ data:
             revertWindow: 168h
             leakScanCheck: lint
             awaitingCIFor: 24h
-            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1}
+            # Human path AM1: a maintainer's approval of the current head is the merge; the merger
+            # merges it as a human merge, outside the caps. The hand-off comment names that one action.
+            approveToMerge: true
+            # R41: 1 revert in the last 10 merges demotes a class; human path AM7: 3 clean mature merges
+            # after the bad one lift it (half-open), and a maintainer's factory/drill revert never counts (AM6).
+            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1, recoverAfter: 3}
           schedules:
             # dead-links' intake here (MC6, F3): what two nightly runs of this repository's
             # dead-links.yaml agree on. Inert only if the class is off (MC14). The name keys every

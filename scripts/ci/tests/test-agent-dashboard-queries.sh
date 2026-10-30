@@ -109,6 +109,7 @@ series = [
     # the broker-wide factory counters
     {"series": 'maku_factory_pr_outcomes_total{outcome="auto_merged", class="deps"}', "values": "0 4x30"},
     {"series": 'maku_factory_pr_outcomes_total{outcome="human_merged", class="review"}', "values": "0 2x30"},
+    {"series": 'maku_factory_pr_outcomes_total{outcome="approved_merged", class="review"}', "values": "0 1x30"},
     {"series": 'maku_factory_prs_opened_total{principal="github:alice"}', "values": "0 7x30"},
 ]
 
@@ -169,8 +170,8 @@ tests = [{"interval": "1m", "input_series": series, "promql_expr_test": [
     rows(prep(expr("agent-fleet", "Spend by model and principal")),
          [{"labels": '{gen_ai_request_model="m1", principal="github:alice"}', "value": 5}, {"labels": '{gen_ai_request_model="m2", principal="github:alice"}', "value": 4},
           {"labels": '{gen_ai_request_model="m1", principal="github:bob"}', "value": 1}]),
-    # landed: 4 auto + 2 human merged; no reverted series at all
-    rows(prep(expr("agents-overview", "PRs merged")), [{"value": 6}]),
+    # landed: 4 auto + 2 human + 1 approved merged; no reverted series at all
+    rows(prep(expr("agents-overview", "PRs merged")), [{"value": 7}]),
     rows(prep(expr("agents-overview", "PRs reverted")), []),
     rows(prep(expr("agents-overview", "PRs opened")), [{"value": 7}]),
     # SC-11 reads 0 (4 auto-merges, no revert), and 0 again with no auto-merge series at all

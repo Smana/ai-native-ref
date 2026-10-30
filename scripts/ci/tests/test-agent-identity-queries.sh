@@ -146,14 +146,14 @@ tests = [
          {"expr": q("Cost per accepted PR", "A", B), "eval_time": "50m", "exp_samples": []},
          {"expr": q("Cost per accepted PR", "B", B), "eval_time": "50m", "exp_samples": [{"value": 1}]},
      ]},
-    # Three accepted PRs (4 merged, 1 reverted) over $3 of tasks read $1.00 each.
+    # Three accepted PRs (4 merged, one of them approved, 1 reverted) over $3 of tasks read $1.00 each.
     {"interval": "1m",
      "input_series": [
          {"series": f'maku_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "0 3x50"},
      ] + [
          {"series": f'maku_factory_pr_outcomes_total{{{X}, principal="{A}", class="review", outcome="{o}", repository="Smana/cloud-native-ref"}}',
           "values": "0 " + str(n) + "x50"}
-         for o, n in (("auto_merged", 3), ("human_merged", 1), ("reverted", 1))
+         for o, n in (("auto_merged", 2), ("human_merged", 1), ("approved_merged", 1), ("reverted", 1))
      ],
      "promql_expr_test": [
          {"expr": q("Cost per accepted PR", "A", A), "eval_time": "50m", "exp_samples": [{"value": 1}]},

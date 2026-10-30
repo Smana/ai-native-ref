@@ -27,7 +27,7 @@ spec:
             severity: warning
           annotations:
             summary: "An auto-merged agent PR was reverted"
-            description: "Its class is paused until the factory config changes (§6.4). Read why on the task: kubectl get task -n agent-system -o wide | grep Reverted"
+            description: "Its class is paused by the breaker: 1 revert in its last 10 merges (R41), lifted by 3 clean mature merges (recoverAfter) or when the revert was a maintainer's factory/drill. Read why on the task: kubectl get task -n agent-system -o wide | grep Reverted"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#64-rollback"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryMergeRegression
@@ -38,6 +38,17 @@ spec:
             summary: "The post-merge monitor found a regression after a {{ $labels.class }} merge"
             description: "The class is demoted at its next decision; nothing was reverted (MC7). The PR carries factory/monitor:regression and the monitor's comment says which signal."
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/15-dead-links.md#when-agentfactorymergeregression-fires"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryClassPausedLong
+          # Human path AM9: a class the breaker holds for a week is a class nobody is unpausing.
+          expr: max by (repository, class) (maku_factory_class_paused) == 1
+          for: 7d
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.class }} on {{ $labels.repository }} has been paused for 7 days"
+            description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter), or a maintainer's factory/drill on a drill revert. Read the window: scripts/shadow-merge-tally.sh --repo {{ $labels.repository }} --class {{ $labels.class }} --outcomes --since <date> in Smana/maku."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md#know-before-the-go"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryDailyBudgetHigh
           # Truthful costs TC8: the day in USD (the USD gauges since agent-platform v0.16.0, pinned here at v0.29.12). spent is unclamped, so a day

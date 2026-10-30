@@ -48,7 +48,7 @@ def panels(file):
 
 UIDS = {"agents-overview", "agent-fleet", "agent-factory", "agent-gateway", "agent-identity", "agent-room", "agent-run"}
 # Counters (and histogram parts) the meter, the factory or the gateway resets or births inside a range.
-RESET = re.compile(r"(?<!_)\bincrease\(\s*(agent_factory_\w+|gen_ai_client_token_usage_sum|gen_ai_server_request_duration_seconds_(?:count|sum|bucket))\b[^\[]*\[([^\]]+)\]")
+RESET = re.compile(r"(?<!_)\bincrease\(\s*((?:maku|agent)_factory_\w+|gen_ai_client_token_usage_sum|gen_ai_server_request_duration_seconds_(?:count|sum|bucket))\b[^\[]*\[([^\]]+)\]")
 
 
 def all_boards():

@@ -59,6 +59,7 @@ The runbooks keep their intended expectation for each, with a "Known issue" note
 | [20-runlore-agent-to-agent.md](20-runlore-agent-to-agent.md) | RunLore as the factory's internal principal, live proofs 1 to 5: the paths open, one incident filed as an `investigate` task and replayed idempotently, the old intake silent (stage 1); a fix verified after its soak, and a fix that does not hold (stage 2) | Yes — the owner's go, the ZITADEL sync and the webhook key seeded (runbook 14), a maintainer's `factory/publish` label created | ~2 h |
 | [21-test-first-tester.md](21-test-first-tester.md) | The tester's contract on a seeded `scripts` issue, the hook and row 2c that hold it, a renamed holdout | Yes — F1 to F5 live and the owner's go | ~2 h |
 | [22-slack.md](22-slack.md) | Slack, configure: the App from its manifest, the keys, the machine user, the Request URL, a channel's repositories (three places), who may file, one mention end to end. Users: the [user guide](../../../website/content/docs/platform/ai-platform/agents/user-guide.md) | Yes — the Slack console, OpenBao, the ZITADEL sync | ~1 h |
+| [24-screencast.md](24-screencast.md) | — (a recording script: one `docs` task from OpenCode, through the room page and GitHub's approve-to-merge, to the dashboards) | Yes — the session switch (`human.mcp.sessionStart` on aws-0), the owner's approval | ~75 min |
 
 **Out of scope:** SC-15/SC-16 (gVisor overhead ratio and `validate-manifests.sh`/`task check`
 exit codes) are already closed by the phase-0 spike and by CI — no live step adds evidence.

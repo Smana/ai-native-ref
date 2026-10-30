@@ -49,7 +49,7 @@ ffmpeg -ss 26 -i out/$CLIP.mp4 -frames:v 1 -vf scale=720:-2 -q:v 3 ../../website
 ```
 
 Embed a clip with the `hero-video` shortcode: `{{< hero-video clip="agent-factory-v3" width="720"
-height="854" alt="…" >}}` (the clip alone, for a docs page; with inner content it is the homepage
+height="854" alt="…" />}}` (self-closed: the clip alone, for a docs page; with inner content it is the homepage
 hero). The `alt` text sits under the clip. Under `prefers-reduced-motion` only the poster shows.
 
 `task check` does not cover `motion/`. The evidence for a clip change is `npm ci && npm run build`

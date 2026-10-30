@@ -12,11 +12,11 @@ What of the design you can use, what is left, and what comes next. The evidence 
 is on the page or runbook it links to.
 
 **As of 2026-10-29.** v3 is built; its release (v3.0.0) is a draft, not released. `main` pins
-Maku v0.31.0, whose CRD group is `maku.ogenki.io` (`rooms.maku.ogenki.io`, formerly
+Maku v0.32.0, whose CRD group is `maku.ogenki.io` (`rooms.maku.ogenki.io`, formerly
 `agents.ogenki.io` under the name agent-platform); the host composes runs with
 crossplane-configuration v0.9.29 ([cloud-native-ref#2676](https://github.com/Smana/cloud-native-ref/pull/2676)). `gcp-0`, where
 every live proof below ran, was torn down on 2026-10-29; the next session bootstraps it fresh on
-Maku v0.31.0.
+Maku v0.32.0.
 
 The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts,
 RunLore, Kueue and others). [Maku](https://github.com/Smana/maku) is one of them: the factory

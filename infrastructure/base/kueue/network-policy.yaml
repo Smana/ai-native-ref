@@ -1,0 +1,48 @@
+# The Kueue controller (§6.5): webhook from the API server, metrics from vmagent, nothing else in.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: kueue-controller
+  namespace: agent-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: kueue
+  ingress:
+    - fromEntities: [kube-apiserver]
+      toPorts:
+        - ports: [{port: "9443", protocol: TCP}]
+    # GKE's control plane reaches the webhook through konnectivity-agent, an ordinary
+    # kube-system pod, so `kube-apiserver` never matches there and admission times out
+    # (gcp-0: `failed calling webhook "mclusterqueue.kb.io" ... :9443: i/o timeout`).
+    # Inert on EKS, hence the shared base.
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: konnectivity-agent
+      toPorts:
+        - ports: [{port: "9443", protocol: TCP}]
+    - fromEntities: [host]  # probes
+      toPorts:
+        - ports: [{port: "8081", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: observability
+            app.kubernetes.io/name: vmagent
+      toPorts:
+        - ports: [{port: "8443", protocol: TCP}]
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]

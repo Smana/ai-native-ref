@@ -1,0 +1,68 @@
+# B1, B2 and B6 (ADR-0050's limits, ADR-0053's mechanism), charged on agent-ratelimit,
+# which refuses past a bucket while its SHADOW_MODE flag is "false" (ratelimit.yaml). Gateway-wide,
+# so one bucket per principal across every listener and route: entries name the verified sub
+# (B1) or a constant (B2), never a route, and read no claim the listener
+# policies do not require (#3523: a descriptor whose CEL fails is dropped,
+# unlimited; gate AG8). Only LLM calls carry tokens: MCP and sts count nothing.
+#
+# Cost = the request's price in reference tokens (design D11, OD-6, J-AC2), from
+# the run meter's own table: [input, cacheRead, cacheWrite, output] in USD per M
+# is meter.prices (agent-factory values), cacheWrite defaulting to input as the
+# meter does, keyed on llm.requestModel, the alias-resolved model the meter's
+# gen_ai_request_model carries. llm.inputTokens includes cache tokens on every
+# path. A model with no row charges its total tokens, as the meter does. Gate AG8
+# regenerates this string from meter.prices and fails on any difference.
+# Charged at completion after a zero-cost check, so the call that crosses a
+# budget completes and the next one is judged. A stream cut before its last
+# usage update is undercounted (#3739; ADR-0053's residual).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: token-budgets
+  namespace: agent-gateway
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agent-router
+  traffic:
+    rateLimit:
+      global:
+        backendRef:
+          name: agent-ratelimit
+          port: 8081
+        domain: agent-router
+        # A store or server outage admits the call (1.6 waits up to 10s first).
+        failureMode: FailOpen
+        descriptors:
+          - entries:
+              - name: agent
+                expression: jwt.sub
+            unit: Tokens
+            cost: '{"claude-haiku-5-5": [0.5, 0.05, 0.625, 2.5], "claude-opus-5-5": [4.0, 0.2, 5.0, 20.0], "claude-sonnet-5-5": [2.0, 0.1, 2.5, 10.0], "glm-5.3": [1.4, 0.26, 1.4, 4.4], "glm-5.3-flash": [0.15, 0.03, 0.15, 0.5], "glm-5.3-flashx": [0.37, 0.075, 0.37, 1.25], "k3.1-pro": [2.0, 0.2, 2.0, 10.0], "mistral-medium-2604": [1.5, 0.15, 1.5, 7.5], "mistral-small-2603": [0.15, 0.015, 0.15, 0.6]}.with(p, llm.requestModel in p ? p[llm.requestModel].with(r, uint(((double(default(llm.inputTokens, 0)) - double(default(llm.cachedInputTokens, 0)) - double(default(llm.cacheCreationInputTokens, 0))) * r[0] + double(default(llm.cachedInputTokens, 0)) * r[1] + double(default(llm.cacheCreationInputTokens, 0)) * r[2] + double(default(llm.outputTokens, 0)) * r[3]) / 1.7)) : uint(llm.totalTokens))'
+          - entries:
+              - name: fleet
+                expression: '"agents"'
+            unit: Tokens
+            cost: '{"claude-haiku-5-5": [0.5, 0.05, 0.625, 2.5], "claude-opus-5-5": [4.0, 0.2, 5.0, 20.0], "claude-sonnet-5-5": [2.0, 0.1, 2.5, 10.0], "glm-5.3": [1.4, 0.26, 1.4, 4.4], "glm-5.3-flash": [0.15, 0.03, 0.15, 0.5], "glm-5.3-flashx": [0.37, 0.075, 0.37, 1.25], "k3.1-pro": [2.0, 0.2, 2.0, 10.0], "mistral-medium-2604": [1.5, 0.15, 1.5, 7.5], "mistral-small-2603": [0.15, 0.015, 0.15, 0.6]}.with(p, llm.requestModel in p ? p[llm.requestModel].with(r, uint(((double(default(llm.inputTokens, 0)) - double(default(llm.cachedInputTokens, 0)) - double(default(llm.cacheCreationInputTokens, 0))) * r[0] + double(default(llm.cachedInputTokens, 0)) * r[1] + double(default(llm.cacheCreationInputTokens, 0)) * r[2] + double(default(llm.outputTokens, 0)) * r[3]) / 1.7)) : uint(llm.totalTokens))'
+          # B6 (ADR-0054): Anthropic's fleet bucket. Here rather than a policy on
+          # the internal listener, which could replace this one's rateLimit there
+          # and stop B1-B2 counting internal calls. Gate AG5 pins Anthropic to
+          # internal, so an internal audience means Anthropic. `aud` is always
+          # present: every listener checks audiences (gate AG8). Other calls get
+          # "none", for which agent-ratelimit has no rule.
+          - entries:
+              - name: provider
+                expression: 'jwt.aud.exists(a, a.endsWith(".internal")) ? "anthropic" : "none"'
+            unit: Tokens
+            cost: '{"claude-haiku-5-5": [0.5, 0.05, 0.625, 2.5], "claude-opus-5-5": [4.0, 0.2, 5.0, 20.0], "claude-sonnet-5-5": [2.0, 0.1, 2.5, 10.0], "glm-5.3": [1.4, 0.26, 1.4, 4.4], "glm-5.3-flash": [0.15, 0.03, 0.15, 0.5], "glm-5.3-flashx": [0.37, 0.075, 0.37, 1.25], "k3.1-pro": [2.0, 0.2, 2.0, 10.0], "mistral-medium-2604": [1.5, 0.15, 1.5, 7.5], "mistral-small-2603": [0.15, 0.015, 0.15, 0.6]}.with(p, llm.requestModel in p ? p[llm.requestModel].with(r, uint(((double(default(llm.inputTokens, 0)) - double(default(llm.cachedInputTokens, 0)) - double(default(llm.cacheCreationInputTokens, 0))) * r[0] + double(default(llm.cachedInputTokens, 0)) * r[1] + double(default(llm.cacheCreationInputTokens, 0)) * r[2] + double(default(llm.outputTokens, 0)) * r[3]) / 1.7)) : uint(llm.totalTokens))'
+      # OD-8's backstop, per proxy replica and verified sub, in raw tokens. Not a
+      # budget, and it refuses whatever SHADOW_MODE says, so it sits above any run
+      # the meter allows, all of whose calls may reach one replica: the frontier
+      # tier's $6.80 cap buys 34M tokens of Opus cache reads ($0.20/M). Gate AG8
+      # derives that floor from meter.prices and the tiers. Only a runaway the
+      # meter failed to revoke gets its 429.
+      local:
+        - tokens: 40000000
+          unit: Hours
+          key: jwt.sub

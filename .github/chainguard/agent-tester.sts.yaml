@@ -1,0 +1,17 @@
+# Agents' App, tester runs (ADR-0043). A gate path. contents: write because the tester
+# writes the test contract to agent/<task>; its harness pushes only after the red check,
+# from a scratch repository to the fixed origin URL (TO2, test-first tester F4). The issuer
+# pattern has two alternatives: aws-0's EKS issuer, which on its own would
+# accept a token minted in any eu-west-3 EKS cluster and is safe only because
+# agent-router's `sts` listener has already verified every token against this
+# cluster's issuer and JWKS; and gcp-0's GKE issuer, fixed by project, location
+# and cluster name (GP-13).
+issuer_pattern: '(https://oidc\.eks\.eu-west-3\.amazonaws\.com/id/[0-9A-F]{32}|https://container\.googleapis\.com/v1/projects/ogenki-435905/locations/europe-west4-a/clusters/gcp-0)'
+subject_pattern: 'system:serviceaccount:agents:xplane-run-[a-z2-7]{8}'
+audience: octo-sts/Smana/ai-native-ref/tester
+permissions:
+  contents: write
+  pull_requests: read
+  issues: read
+  checks: read
+  actions: read

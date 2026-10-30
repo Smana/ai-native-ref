@@ -1,0 +1,113 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions: {}
+
+# A new push to a PR supersedes its running build; pushes to main each run to completion.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # The host's own gates over cloud-native-ref at HOST_REF with this tree in place of its
+  # AI paths (scripts/ci/host-profile.sh).
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0 # the site's enableGitInfo needs history
+          persist-credentials: false
+      - id: host
+        run: echo "ref=$(cat HOST_REF)" >> "$GITHUB_OUTPUT"
+      - name: Check out the host profile
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Smana/cloud-native-ref
+          ref: ${{ steps.host.outputs.ref }}
+          path: .host
+          persist-credentials: false
+      - uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5
+      - run: flux plugin install schema@0.11.0
+      - run: python3 -m pip install --quiet --disable-pip-version-check pyyaml
+      - run: sudo apt-get update && sudo apt-get install -y jq
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/helm
+          key: helm-${{ hashFiles('HOST_REF', '**/*helmrelease*.yaml', 'flux/sources/**') }}
+          restore-keys: helm-
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/hugo_cache
+          key: hugo-mod-${{ hashFiles('website/go.sum') }}
+          restore-keys: hugo-mod-
+      - run: task check
+
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5
+      - run: pre-commit run --all-files --show-diff-on-failure
+      # On a push to main, base and head would be the same commit, which the action treats
+      # as an error; event.before bounds exactly the commits the push introduced.
+      - uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha || github.event.before }}
+          head: ${{ github.sha }}
+          extra_args: --only-verified
+
+  # One signed artifact per PR push, v<next-patch>-pr<N>.g<sha8> (D5), which a feature-branch
+  # cluster pins by tag and digest (H1). <sha8> is the PR head's, not the merge commit. The `g`
+  # keeps a digits-only sha a valid semver identifier. Dependabot gets a read-only token.
+  prerelease:
+    needs: [validate, lint]
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # keyless cosign signing
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Derive the pre-release version
+        id: v
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          latest="$(git tag --list 'v*' --sort=-v:refname | head -1)"
+          [ -n "$latest" ] || latest="v0.0.0"
+          base="${latest#v}"; major="${base%%.*}"; rest="${base#*.}"; minor="${rest%%.*}"; patch="${rest##*.}"
+          echo "version=v${major}.${minor}.$((patch + 1))-pr${PR_NUMBER}.g$(printf '%.8s' "${HEAD_SHA}")" >> "$GITHUB_OUTPUT"
+      - uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./scripts/ci/push-artifact.sh "${{ steps.v.outputs.version }}" "${{ github.event.pull_request.head.sha }}"

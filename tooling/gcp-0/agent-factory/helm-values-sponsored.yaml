@@ -1,0 +1,53 @@
+# The API's principals on gcp-0, sponsored (the Slack App, factory interfaces part 2, runbook 18) and
+# internal (RunLore, feature 14, runbook 20). Merged over
+# agent-factory-helm-values after helm-values-suspend.yaml: Helm deep-merges, so config.api.sponsored and
+# config.api.internalPrincipals land beside base's api. The name and the client id file are the broker's human.mcp.sponsored entry's
+# (infrastructure/gcp-0/room-broker/config.yaml); the Secret behind both files is
+# tooling/base/agent-factory/slack-app/externalsecret-sponsored.yaml.
+#
+# OWNER-FILL: the one value this file cannot know is the Slack ids, in onBehalfOf below. They are
+# marked OWNER-FILL-* and test-factory-slack-switchon.py refuses them once FACTORY_SLACK_LIVE=1.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # As agent-factory-helm-values: a change upgrades the release at once.
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
+  name: agent-factory-helm-values-sponsored
+  namespace: agent-system
+data:
+  values.yaml: |  # pragma: allowlist secret -- Secret key file paths, no credential value
+    config:
+      api:
+        projectIDFile: /etc/agent-factory-sponsored/project-id
+        sponsored:
+          - name: slack-app
+            clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
+            sponsor: Smana
+            repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
+            dailyUSD: 5
+            maxCostUSD: 2
+            # "<Slack team id>/<owner's Slack user id>": the owner's GitHub login. The owner's check
+            # mark files an issue in their name; an unlinked Slack user is refused (not_linked).
+            onBehalfOf:
+              slack: {"T07J97G2K2P/U07JY4EQNDN": Smana}
+              # Self-serve link (agent-platform v0.29.9): a Slack user this map omits is looked up in the
+              # broker's link records (human.slackLink, infrastructure/gcp-0/room-broker/config.yaml). The
+              # map above wins for the users it lists.
+              slackLinks: true
+        # RunLore, the factory's one internal principal (feature 14, RA2): internal data, the investigate
+        # template, today's gates. The dollar values: an investigate task (one triager run at tier
+        # standard, $2.55 a run) fits maxCostUSD 2 only below the run cap; confirm against the stage 1
+        # session's spend before raising them. verification: true since stage 2 (PR 7): the factory takes
+        # RunLore's verdict on a fix as a monitor signal (agent-platform v0.28.0).
+        internalPrincipals:
+          - name: runlore
+            clientIDFile: /etc/agent-factory-sponsored/runlore-client-id
+            sponsor: Smana
+            repositories: [Smana/cloud-native-ref]
+            dailyUSD: 10
+            maxCostUSD: 2
+            maxOpenTasks: 3
+            minConfidence: 0.75
+            dailyTasks: 5
+            verification: true

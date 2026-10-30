@@ -1,0 +1,18 @@
+# Rendered into mcp.yaml by scripts/ci/gen-capabilities.py --write (capability profiles design).
+# models is rendered into policy-capabilities.yaml (P2): the aliases this role may call.
+role: tester
+dataClass: public
+models: [agent-default, tier-light, tier-standard, tier-frontier, kimi-frontier, mistral-standard, mistral-light]
+tools:
+  flux-operator-mcp:
+    - search_flux_docs
+  mcp-victoriametrics:
+    - documentation
+  mcp-victorialogs:
+    - documentation
+  # TF2: the tester writes the contract and gives no verdict (capability profiles: the tester's drop room_verdict).
+  room-broker:
+    - room_read
+    - room_post
+    - room_progress
+    - room_handoff

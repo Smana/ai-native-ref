@@ -1,0 +1,23 @@
+# .github/agent-checks.yaml: what an agent runs before it pushes, the CI's fast subset.
+# A gate path. The harness reads it from the base branch, never from the agent's branch.
+version: 1
+timeoutMinutes: 8
+tools: [task, promtool, kustomize, hugo-extended, go, pre-commit]
+definedBy: [taskfile.yaml, scripts/ci/, .pre-commit-config.yaml, mise.toml, HOST_REF]
+steps:
+  - {name: composite, run: task host-profile, ci: validate, stopOnFailure: true, timeoutMinutes: 3}
+  - {name: vmrules, run: task vmrules, ci: validate}
+  - {name: suites, run: task test, ci: validate}
+  - {name: links, run: task links, ci: validate}
+  - {name: sources, run: task sources, ci: validate}
+  # pre-commit is a zipapp that unpacks its python under $HOME/.cache and execs it: the sandbox's HOME
+  # is a noexec tmpfs, so run it with the HOME of the toolchain's cache (the workspace, executable).
+  - {name: pre-commit, run: 'HOME="$(dirname "${XDG_CACHE_HOME:-$HOME/.cache}")" pre-commit run --all-files --show-diff-on-failure', ci: lint}
+ciOnly:
+  - {check: validate, part: "task validate, task gates", why: "renders every HelmRelease: about 20 chart hosts beyond the egress"}
+  - {check: validate, part: "task docs", why: "Hextra loads medium-zoom, flexsearch and mermaid from cdn.jsdelivr.net at build, a host in no egress profile"}
+  - {check: validate, part: "the two Docker suites", why: "no Docker daemon under gVisor"}
+  - {check: lint, part: TruffleHog, why: "an Action over the pushed range"}
+  - {check: prerelease, part: all, why: "signs and pushes with the workflow's identity"}
+  - {check: "Scan external links 🕸", part: all, why: "runs on schedule and workflow_dispatch only; a nightly lychee scan of every external link"}
+  - {check: "External links 🔗", part: all, why: "fetches external sites, beyond the egress"}

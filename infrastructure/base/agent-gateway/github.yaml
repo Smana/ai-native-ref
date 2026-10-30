@@ -1,0 +1,79 @@
+# The read-only GitHub route of identity design T4, the only way an `internal` run
+# reaches GitHub: its sandbox has no GitHub egress (crossplane-configuration v0.9.5).
+# The harness clones https://github.com/<repo>.git; git's url.insteadOf (set by the
+# AgentRun composition) sends it to identity-proxy :4002/github/, which strips the
+# prefix and adds the run's token for this listener's JWT check. The JWT goes no
+# further (preserveToken off), and the rules below remove any other credential, so
+# GitHub sees an anonymous fetch of a public repository.
+#
+# The matches ARE the allow-list (gate AG13): a smart-HTTP fetch is these two
+# requests, of the octo-sts opt-in repositories only. A push (receive-pack), a
+# REST call or another repository matches no route and gets 404.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: github
+  namespace: agent-system
+spec:
+  static:
+    host: github.com
+    port: 443
+  policies:
+    tls:
+      sni: github.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: agentgateway-github-internal
+  namespace: agent-system
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agent-router
+      namespace: agent-gateway
+      sectionName: internal
+  rules:
+    - name: refs
+      matches:
+        - method: GET
+          path:
+            type: RegularExpression
+            value: ^/Smana/(cloud-native-ref|ai-native-ref)\.git/info/refs$
+          queryParams:
+            - type: Exact
+              name: service
+              value: git-upload-pack
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - authorization
+              - cookie
+        - type: URLRewrite
+          urlRewrite:
+            hostname: github.com
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: github
+    - name: upload-pack
+      matches:
+        - method: POST
+          path:
+            type: RegularExpression
+            value: ^/Smana/(cloud-native-ref|ai-native-ref)\.git/git-upload-pack$
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - authorization
+              - cookie
+        - type: URLRewrite
+          urlRewrite:
+            hostname: github.com
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: github

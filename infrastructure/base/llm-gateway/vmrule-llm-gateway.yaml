@@ -1,0 +1,234 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: llm-gateway
+  namespace: observability
+  labels:
+    app.kubernetes.io/part-of: ai
+spec:
+  groups:
+    # Generated from meter.prices (tooling/base/agent-factory/helm-values-configmap.yaml)
+    # by scripts/ci/gen-prices.py --write: edit a price there, never here, and
+    # test-agent-prices fails on a hand edit. Per served model (gen_ai_request_model,
+    # after modelNameOverride), what one counted token of each type adds to the cost
+    # (truthful costs TC2). Every gateway counts cache tokens inside input, so a read
+    # adds cacheRead - input and a write cacheWrite - input (0 where none is billed).
+    # A cost joins all four types; the agent-run Cost panel and AnthropicFleetNearCap
+    # show how, and test-agent-cost-rules evaluates both.
+    - name: llm-gateway-prices
+      interval: 5m
+      rules:
+        # glm-5.3: input 1.40, cacheRead 0.26, output 4.40; writes cost as input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(1.40)
+          labels:
+            gen_ai_request_model: "glm-5.3"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(4.40)
+          labels:
+            gen_ai_request_model: "glm-5.3"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-1.14)
+          labels:
+            gen_ai_request_model: "glm-5.3"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.00)
+          labels:
+            gen_ai_request_model: "glm-5.3"
+            gen_ai_token_type: cache_creation_input
+        # glm-5.3-flashx: input 0.37, cacheRead 0.075, output 1.25; writes cost as input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.37)
+          labels:
+            gen_ai_request_model: "glm-5.3-flashx"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(1.25)
+          labels:
+            gen_ai_request_model: "glm-5.3-flashx"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-0.295)
+          labels:
+            gen_ai_request_model: "glm-5.3-flashx"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.00)
+          labels:
+            gen_ai_request_model: "glm-5.3-flashx"
+            gen_ai_token_type: cache_creation_input
+        # glm-5.3-flash: input 0.15, cacheRead 0.03, output 0.50; writes cost as input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.15)
+          labels:
+            gen_ai_request_model: "glm-5.3-flash"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.50)
+          labels:
+            gen_ai_request_model: "glm-5.3-flash"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-0.12)
+          labels:
+            gen_ai_request_model: "glm-5.3-flash"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.00)
+          labels:
+            gen_ai_request_model: "glm-5.3-flash"
+            gen_ai_token_type: cache_creation_input
+        # k3.1-pro: input 2.00, cacheRead 0.20, cacheWrite 2.00, output 10.00
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(2.00)
+          labels:
+            gen_ai_request_model: "k3.1-pro"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(10.00)
+          labels:
+            gen_ai_request_model: "k3.1-pro"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-1.80)
+          labels:
+            gen_ai_request_model: "k3.1-pro"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.00)
+          labels:
+            gen_ai_request_model: "k3.1-pro"
+            gen_ai_token_type: cache_creation_input
+        # mistral-medium-2604: input 1.50, cacheRead 0.15, output 7.50; writes cost as input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(1.50)
+          labels:
+            gen_ai_request_model: "mistral-medium-2604"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(7.50)
+          labels:
+            gen_ai_request_model: "mistral-medium-2604"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-1.35)
+          labels:
+            gen_ai_request_model: "mistral-medium-2604"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.00)
+          labels:
+            gen_ai_request_model: "mistral-medium-2604"
+            gen_ai_token_type: cache_creation_input
+        # mistral-small-2603: input 0.15, cacheRead 0.015, output 0.60; writes cost as input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.15)
+          labels:
+            gen_ai_request_model: "mistral-small-2603"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.60)
+          labels:
+            gen_ai_request_model: "mistral-small-2603"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-0.135)
+          labels:
+            gen_ai_request_model: "mistral-small-2603"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.00)
+          labels:
+            gen_ai_request_model: "mistral-small-2603"
+            gen_ai_token_type: cache_creation_input
+        # claude-opus-5-5: input 4.00, cacheRead 0.20, cacheWrite 5.00, output 20.00
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(4.00)
+          labels:
+            gen_ai_request_model: "claude-opus-5-5"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(20.00)
+          labels:
+            gen_ai_request_model: "claude-opus-5-5"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-3.80)
+          labels:
+            gen_ai_request_model: "claude-opus-5-5"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(1.00)
+          labels:
+            gen_ai_request_model: "claude-opus-5-5"
+            gen_ai_token_type: cache_creation_input
+        # claude-sonnet-5-5: input 2.00, cacheRead 0.10, cacheWrite 2.50, output 10.00
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(2.00)
+          labels:
+            gen_ai_request_model: "claude-sonnet-5-5"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(10.00)
+          labels:
+            gen_ai_request_model: "claude-sonnet-5-5"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-1.90)
+          labels:
+            gen_ai_request_model: "claude-sonnet-5-5"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.50)
+          labels:
+            gen_ai_request_model: "claude-sonnet-5-5"
+            gen_ai_token_type: cache_creation_input
+        # claude-haiku-5-5: input 0.50, cacheRead 0.05, cacheWrite 0.625, output 2.50
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.50)
+          labels:
+            gen_ai_request_model: "claude-haiku-5-5"
+            gen_ai_token_type: input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(2.50)
+          labels:
+            gen_ai_request_model: "claude-haiku-5-5"
+            gen_ai_token_type: output
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(-0.45)
+          labels:
+            gen_ai_request_model: "claude-haiku-5-5"
+            gen_ai_token_type: cached_input
+        - record: llm_gateway:charge_usd_per_mtoken
+          expr: vector(0.125)
+          labels:
+            gen_ai_request_model: "claude-haiku-5-5"
+            gen_ai_token_type: cache_creation_input
+    - name: llm-gateway-budgets
+      rules:
+        - alert: FrontierSpendGuardTripped
+          # Mirrors B5 from the gen_ai counters, so it also fires in shadow
+          # mode, where the limiter never answers 429. A rolling 24 h covers at
+          # least the limiter's fixed UTC day, so this fires no later than B5
+          # would trip. gen_ai_token_type is restricted to input|output because
+          # Agent Router v1.1.0 also emits cached_input (subset of input) and
+          # reasoning (subset of output) as separate observations — summing
+          # every type double-counts and trips the alert under 20M real tokens
+          # (B5 charges llm_total_token, i.e. input + output only).
+          expr: |
+            sum(increase(gen_ai_client_token_usage_sum{gen_ai_original_model=~"tier-frontier|claude-.*", gen_ai_token_type=~"input|output"}[24h])) > 20e6
+          for: 5m
+          labels:
+            severity: warning
+            component: ai
+          annotations:
+            summary: "Human and system frontier spend crossed the B5 guard (20M tokens in 24h)"
+            description: |
+              tier-frontier and claude-* traffic on the ai-gateway Gateway used more than
+              20M input+output tokens (llm_total_token) over the last 24h. B5 in
+              ai-gateway-token-budgets would reject further frontier requests once enforced.
+              Split by principal with the ar_human and ar_client labels on
+              gen_ai_client_token_usage_sum.

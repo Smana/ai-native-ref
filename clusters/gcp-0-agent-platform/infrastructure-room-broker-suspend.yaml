@@ -1,0 +1,20 @@
+---
+# The room broker's suspend grant (v2 warm-sandboxes S5), listed on gcp-0 with
+# infrastructure/gcp-0/room-broker's suspend.enabled and the factory's sandbox.suspend.
+# Unlisting it is the kill switch: the broker can then patch no AgentRun.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: room-broker-suspend
+  namespace: flux-system
+spec:
+  prune: true
+  interval: 5m0s
+  timeout: 2m0s
+  path: ./infrastructure/base/room-broker/suspend
+  sourceRef:
+    kind: OCIRepository
+    name: ai-native-ref
+  dependsOn:
+    - name: room-broker
+    - name: agent-policies

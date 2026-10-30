@@ -1,0 +1,19 @@
+---
+# One preemptible pod holding a warm agents-gvisor node with the run images pulled
+# (warm-sandboxes design step 1). gcp-0 has the same child on its GKE pool.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: agents-headroom
+  namespace: flux-system
+spec:
+  prune: true
+  interval: 5m0s
+  timeout: 2m0s
+  path: ./infrastructure/base/karpenter-nodepools-agents/headroom
+  sourceRef:
+    kind: OCIRepository
+    name: ai-native-ref
+  dependsOn:
+    - name: agents-nodepool
+    - name: runtimeclass-gvisor

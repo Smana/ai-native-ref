@@ -1,0 +1,101 @@
+# The internal listener's model: the Anthropic API directly (ADR-0054), the same
+# on both clouds. Native provider: it moves the key from the default
+# `Authorization: Bearer` to `x-api-key` and sets anthropic-version itself (1.6,
+# llm/anthropic_tests.rs), so auth names no location. The key comes from
+# OpenBao agents/anthropic (../agent-router/externalsecret-anthropic.yaml).
+#
+# Names as on public (llm.yaml's table): four aliases, other names refused 403 by
+# policy-capabilities.yaml, with the `model` transformation's 400 behind it. The
+# transformation takes x-ar-model first (P4), no fixed model (gate AG12). Budgets
+# charge each model at the meter's price (policy-budgets.yaml), not the built-in
+# catalog.
+#
+# Typed routes: without them every path is Completions. Chat Completions convert
+# to Messages; Messages pass through.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: anthropic
+  namespace: agent-system
+spec:
+  ai:
+    provider:
+      anthropic: {}
+  policies:
+    auth:
+      secretRef:
+        name: agents-anthropic-api-key
+        key: apiKey
+    ai:
+      routes:
+        /v1/chat/completions: Completions
+        /v1/messages: Messages
+      modelAliases:
+        tier-light: claude-haiku-5-5
+        tier-standard: claude-sonnet-5-5
+        tier-frontier: claude-opus-5-5
+        agent-default: claude-opus-5-5
+      transformations:
+        - field: model
+          expression: '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : llmRequest.model).with(m, m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"] ? m : null)'
+---
+# `internal` only (gate AG5): Anthropic is internal's provider, and B6 counts
+# internal calls as Anthropic's (policy-budgets.yaml).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: agentgateway-models-internal
+  namespace: agent-system
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agent-router
+      namespace: agent-gateway
+      sectionName: internal
+  rules:
+    # Answered 404 below, after the listener's JWT, as on public (gate AG7).
+    - name: models
+      matches:
+        - path:
+            type: Exact
+            value: /v1/models
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic
+    - name: openai
+      matches:
+        - path:
+            type: PathPrefix
+            value: /v1
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic
+    # Messages clients that set a base URL ending in /anthropic, as on public.
+    - name: anthropic
+      matches:
+        - path:
+            type: PathPrefix
+            value: /anthropic
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: agentgateway-models-list-internal
+  namespace: agent-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: agentgateway-models-internal
+      sectionName: models
+  traffic:
+    directResponse:
+      status: 404
+      body: '{"error":"model listing is not served on agent-router"}'

@@ -1,0 +1,14 @@
+# kubectl patch --patch-file: keep Substrate on nodes whose kubelet has the ClusterTrustBundle and
+# PodCertificateRequest gates. gcp-0's static and nap-e2-standard-4 pools predate the beta APIs, so
+# their templates lack the gates and every projected trust-bundle volume fails to mount.
+spec:
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: cloud.google.com/gke-nodepool
+                    operator: In
+                    values: [substrate-gvisor, nap-e2-highcpu-4-tnd2a7v9]

@@ -1,0 +1,213 @@
+# The agents' Z.ai path on agentgateway (ADR-0053), at parity with agent-router's
+# agent-models. Route names carry an `agentgateway-` prefix: agent-system already
+# holds HTTPRoutes `agent-models` (generated from the AIGatewayRoute) and
+# `agent-models-list`, and a same-named route would overwrite Envoy's.
+#
+# The key is agent-router's own Secret (externalsecret-zai.yaml, OpenBao
+# agents/zai), read by reference and never copied; phase H moves that
+# ExternalSecret here before it deletes the Envoy files.
+#
+# Agent names (phase I, SP4 C5) are modelAliases on each backend, and only those
+# four names reach a model (design D8; gate AG12). On these routes
+# policy-capabilities.yaml refuses an unlisted name 403 first; behind it the
+# `model` transformation nulls any other name, which 1.6 answers 400 "model not
+# specified" before any upstream call (llm/mod.rs finalize_request_model). No
+# `*` alias and no provider `model`: either would give an unlisted name a model.
+# The name is x-ar-model when the run's identity proxy pinned it (capability
+# profiles P4), else the body's: the rule judges the same choice, so nothing may
+# remove that header (AG12). The rule reads the raw body, so a gzip request with
+# no x-ar-model is refused 403. The map is the same on both Z.ai backends and
+# mirrors the internal one (anthropic.yaml):
+#
+#   name            public (Z.ai)    internal (Anthropic)
+#   tier-light      glm-5.3-flash    claude-haiku-5-5
+#   tier-standard   glm-5.3-flashx   claude-sonnet-5-5
+#   tier-frontier   glm-5.3          claude-opus-5-5
+#   agent-default   glm-5.3          claude-opus-5-5
+#
+# Feature 15, selectable and never a default, public listener only, reached by a pinned
+# x-ar-model (the rules `moonshot` and `mistral` below; backends in moonshot.yaml, mistral.yaml):
+#
+#   kimi-frontier      k3.1-pro             Kimi Code subscription (flat rate, China)
+#   mistral-standard   mistral-medium-2604  Mistral (EU)
+#   mistral-light      mistral-small-2603   Mistral (EU)
+#
+# 1.6: "use the OpenAI provider only for the OpenAI API". A custom provider that
+# advertises Chat Completions with its full path (a base without a path now
+# means `/`), and typed routes only (#3853). Z.ai is not known to serve
+# Responses, so /v1/responses is not routed; /v1/messages converts to
+# Completions (the PoC's text, plan C.1).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: zai
+  namespace: agent-system
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (agent-model-catalog) and the series' provider label.
+        providerOverride: zai
+        formats:
+          - type: Completions
+            path: /api/paas/v4/chat/completions
+      host: api.z.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-zai-api-key
+        key: apiKey
+    tls:
+      sni: api.z.ai
+    ai:
+      routes:
+        /v1/chat/completions: Completions
+        /v1/messages: Messages
+      modelAliases:
+        tier-light: glm-5.3-flash
+        tier-standard: glm-5.3-flashx
+        tier-frontier: glm-5.3
+        agent-default: glm-5.3
+      transformations:
+        - field: model
+          expression: '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : llmRequest.model).with(m, m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"] ? m : null)'
+---
+# /anthropic goes to Z.ai's own Anthropic-compatible endpoint, Messages in and
+# out, with no conversion: the Messages -> Completions path hits #3835 and #3700.
+# Both passed L2 on the PoC.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: zai-anthropic
+  namespace: agent-system
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (agent-model-catalog) and the series' provider label.
+        providerOverride: zai
+        formats:
+          - type: Messages
+            path: /api/anthropic/v1/messages
+      host: api.z.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-zai-api-key
+        key: apiKey
+    tls:
+      sni: api.z.ai
+    ai:
+      routes:
+        /v1/messages: Messages
+      modelAliases:
+        tier-light: glm-5.3-flash
+        tier-standard: glm-5.3-flashx
+        tier-frontier: glm-5.3
+        agent-default: glm-5.3
+      transformations:
+        - field: model
+          expression: '("x-ar-model" in request.headers ? request.headers["x-ar-model"] : llmRequest.model).with(m, m in ["agent-default", "tier-light", "tier-standard", "tier-frontier"] ? m : null)'
+---
+# `public` only: Z.ai is a SaaS model, and internal data never reaches it
+# (ADR-0042, ADR-0054; gate AG5).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: agentgateway-models
+  namespace: agent-system
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agent-router
+      namespace: agent-gateway
+      sectionName: public
+  rules:
+    # Answered by the directResponse below, after the listener's JWT (PoC N3). The
+    # Exact match outranks /v1; a `Models` route type answers 501 on 1.6.0.
+    - name: models
+      matches:
+        - path:
+            type: Exact
+            value: /v1/models
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: zai
+    # Feature 15: a call whose pinned alias names another provider. Gateway API ranks a rule
+    # with header matches above the same path without them, so `openai` below keeps every
+    # other call. Public listener only (this route), and the alias must be in the role's
+    # profile (capabilities-public). A body-only alias (no x-ar-model) still lands on Z.ai,
+    # whose `model` transformation nulls it: 400, never a model.
+    - name: moonshot
+      matches:
+        - path:
+            type: PathPrefix
+            value: /v1
+          headers:
+            - name: x-ar-model
+              type: Exact
+              value: kimi-frontier
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: moonshot
+    - name: mistral
+      matches:
+        - path:
+            type: PathPrefix
+            value: /v1
+          headers:
+            - name: x-ar-model
+              type: Exact
+              value: mistral-standard
+        - path:
+            type: PathPrefix
+            value: /v1
+          headers:
+            - name: x-ar-model
+              type: Exact
+              value: mistral-light
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: mistral
+    - name: openai
+      matches:
+        - path:
+            type: PathPrefix
+            value: /v1
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: zai
+    - name: anthropic
+      matches:
+        - path:
+            type: PathPrefix
+            value: /anthropic
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: zai-anthropic
+---
+# agent-router's answer, byte for byte (httproutefilter-agent-models-list.yaml):
+# every harness works with it (design D7).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: agentgateway-models-list
+  namespace: agent-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: agentgateway-models
+      sectionName: models
+  traffic:
+    directResponse:
+      status: 404
+      body: '{"error":"model listing is not served on agent-router"}'

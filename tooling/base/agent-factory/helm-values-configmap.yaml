@@ -1,0 +1,387 @@
+# The factory's values, config included (internal/factory/config, parsed strictly: a bad
+# config fails the rollout). Tier caps are the design's §6.2 defaults (OD-10).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # helm-controller upgrades the release when this ConfigMap changes, not on the
+  # next 30m interval: the chart (flux/sources) and this tag (tooling) reach the
+  # cluster through different Kustomizations, in either order (#2276).
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
+  name: agent-factory-helm-values
+  namespace: agent-system
+data:
+  values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
+    image:
+      repository: ghcr.io/smana/maku-factory
+      # maku v0.32.0, the chart's appVersion.
+      # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
+      tag: "v0.32.0@sha256:ec23935c5495d2ffadb3ec0e2ad5cf2c396ac9e3b966d3d5eaa0d284c16e6b07"
+    # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
+    # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
+    # declares `monitor.flux` yet, so nothing reads through it.
+    monitor: {flux: {enabled: true}}
+    # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
+    githubSecret: agent-factory-github
+    brokerCASecret: openbao-ca
+    zitadelReaderSecret: agent-factory-zitadel-reader  # externalsecret-zitadel-reader.yaml, at api.access.readerFile
+    config:
+      # The ownership fence (agent-platform v0.14.0): a repository is acted on only while its
+      # .github/agent-factory.yaml names this factory, so aws-0 and gcp-0 never take the same issue.
+      factory: ${cluster_name}
+      # One entry per repository (at most 8); api.repositories is derived from the names.
+      repositories:
+        - name: Smana/cloud-native-ref
+          maintainers: [Smana]
+          triggerLabel: factory/ready
+          # v3 feature 3: what a check-enabled run requests beyond github. Only docs has checks: true,
+          # since the gcp-0 session's live proofs (README, "v3 loop and sandbox layers").
+          checks: {egress: [pypi]}
+          classes:
+            # LIVE for the drill (runbook 12, design D4): revert with it, or an auto-merge waits on a
+            # human to merge its own revert (D5). Back to {shadow: true} once the drill is over.
+            docs-links: {live: true, holdoutChecks: ["Check the documentation links 🔗"]}
+            revert: {live: true, holdoutChecks: ["Check the documentation links 🔗"]}
+            docs: {checks: true}  # public runs only: an internal claim with checks is refused by the XRD
+            tests: {}
+            dashboards: {}
+            # TO4: the bench's variant turns testFirst on; it needs checks: true (R17)
+            scripts: {checks: false, testFirst: false}
+            review: {checks: false, testFirst: false}
+            # Feature 14's seeded fix (runbook 20): an alerting rule RunLore found broken. No switch: a
+            # maintainer merges, the monitor watches. RunLore's verdict is a signal for 2h after the merge;
+            # a persisting one is a regression, which with the breaker's maxFollowUps: 1 pauses the class.
+            alert-rules:
+              allowedFiles: ['^observability/.+\.ya?ml$']
+              monitor: {verification: {within: 2h}, followUpWindow: 2h}
+            # Shadow (merge gate classes MC14, runbook 15 §2): intake and decisions, nothing armed.
+            # Its fence repeats the host's
+            # `low-risk: docs-links` rule, which approves its pull requests until `low-risk:
+            # dead-links` lands with the live switch; test-agent-merge-gate-parity.py holds the two.
+            dead-links:
+              shadow: true  # since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed
+              allowedFiles: ['^(docs|website/content)/.+\.md$']
+              protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
+              modifyOnly: true
+              maxModifiedLines: 20
+              diffShape: links-only
+              holdoutChecks: ["External links 🔗"]
+              oracle: {probe: dead-links, workflow: dead-links.yaml, maxFindings: 10}
+              # MC7: every merge of this class stays under watch, whoever made it. No `flux`:
+              # Markdown deploys nothing. The monitor records a verdict and never reverts.
+              monitor: {oracleRuns: 2, followUpWindow: 168h}
+              maxPerDay: 1
+            # Shadow since the gcp-0 session of 2026-10-27 (runbook 16): adopted, judged, never
+            # merged by the factory; Renovate keeps merging meanwhile (MC12). w0:
+            # patch bumps of what Flux deploys (R42), Renovate's never-automerge files protected
+            # (test-agent-merge-gate-parity.py derives them from renovate.json).
+            deps-patch:
+              shadow: true
+              author: {adopt: {logins: ["renovate[bot]"], branches: ['^renovate/']}}
+              diffShape: semver-patch
+              allowedFiles: ['^(apps|flux|infrastructure|observability|security|tooling)/.+\.ya?ml$']
+              protectedFiles:
+                - '^security/base/zitadel/'
+                - '^security/(aws|gcp)-0/zitadel/'
+                - '^flux/sources/helmrepo-zitadel\.yaml$'
+                - '^infrastructure/base/crossplane/configuration-core/'
+                - '^flux/sources/gitrepo-gateway-api\.yaml$'
+                - '^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\.yaml$'
+              modifyOnly: true
+              maxPatchFiles: 3
+              maxModifiedLines: 10
+              releaseAgeCheck: renovate/stability-days
+              maxPerDay: 2
+              monitor: {flux: {source: flux-system/flux-system, within: 1h}, followUpWindow: 168h}
+            # M2 (a): Renovate's minors observed in shadow at no cost; semver-minor never goes live.
+            deps-minor:
+              shadow: true
+              author: {adopt: {logins: ["renovate[bot]"], branches: ['^renovate/']}}
+              diffShape: semver-minor
+              allowedFiles: ['^(apps|flux|infrastructure|observability|security|tooling)/.+\.ya?ml$']
+              protectedFiles:
+                - '^security/base/zitadel/'
+                - '^security/(aws|gcp)-0/zitadel/'
+                - '^flux/sources/helmrepo-zitadel\.yaml$'
+                - '^infrastructure/base/crossplane/configuration-core/'
+                - '^flux/sources/gitrepo-gateway-api\.yaml$'
+                - '^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\.yaml$'
+              modifyOnly: true
+              maxPatchFiles: 3
+              maxModifiedLines: 10
+              releaseAgeCheck: renovate/stability-days
+              monitor: {flux: {source: flux-system/flux-system, within: 1h}, followUpWindow: 168h}
+          merge:
+            # Classic protection's 8 contexts (app 15368), read with `gh api repos/Smana/cloud-native-ref/branches/main/protection`.
+            requiredChecks:
+              - "Pre-commit checks 🛃"
+              - "Security scanning 🔒"
+              - "Kubernetes validation ☸"
+              - "Rendered manifest diff 📝"
+              - "Check the shell scripts 💻"
+              - "Check the documentation links 🔗"
+              - "Validate Vector Log Parsing Configuration (vlsingle)"
+              - "Validate Vector Log Parsing Configuration (vlcluster)"
+            # The jobs ci.yaml runs on push to main, watched on the merge commit (§6.4). Not the Vector
+            # checks (their push trigger is path-filtered) nor the rendered diff (PR-only).
+            verifyChecks:
+              - "Pre-commit checks 🛃"
+              - "Security scanning 🔒"
+              - "Kubernetes validation ☸"
+              - "Check the shell scripts 💻"
+              - "Check the documentation links 🔗"
+            contractCheck: "Test contract 🧪"  # required on a task with a contract (TF8, row 2b); report-only otherwise
+            policyBotLogin: ogenki-merge-gate[bot]
+            mergerLogin: ogenki-agent-merger[bot]
+            autoMergesPerDay: 1  # the drill: one unattended merge a day; 10 again with shadow
+            fixRuns: 2
+            # Re-runs of a cancelled required check per task (agent-platform #86); 0 hands it to a
+            # human. Above 0 the merger App needs actions: write.
+            checkReruns: 1
+            verifyFor: 30m
+            revertWindow: 168h
+            leakScanCheck: "Security scanning 🔒"  # R42: TruffleHog's check run, in both lists above
+            # MC8: a bad follow-up counts toward the breaker beside a revert, both 1 in 10.
+            awaitingCIFor: 24h
+            # Human path AM1: a maintainer's approval of the current head is the merge; the merger
+            # merges it as a human merge, outside the caps. The hand-off comment names that one action.
+            approveToMerge: true
+            # R41: 1 revert in the last 10 merges demotes a class; human path AM7: 3 clean mature merges
+            # after the bad one lift it (half-open), and a maintainer's factory/drill revert never counts (AM6).
+            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1, recoverAfter: 3}
+          schedules:
+            - name: link-rot
+              cron: "0 6 * * 1"  # Mondays, 06:00 UTC
+              class: docs-links
+              # R52: the gate accepts only Markdown link targets ([text](url), [ref]: url); a URL in a
+              # code block or in prose is held as class_mismatch (runbook 12, 2026-10-18).
+              text: |
+                Find broken external Markdown link targets ([text](url) or [ref]: url) under docs/
+                and website/content/, outside docs/superpowers/, docs/specs/ and
+                website/content/docs/decisions/. Fix those with an obvious replacement on the same
+                host, changing only the link target: leave code blocks, prose and link text alone,
+                change fewer than 21 lines in total and add or delete no file. If none is broken,
+                change nothing and open no pull request.
+            # dead-links' intake (MC6): the findings two consecutive nightly runs of the host's
+            # dead-links.yaml agree on become one task. link-rot stays beside it until the
+            # revert proof (runbook 15 §3) is done: a host change removes it (M4).
+            - name: dead-links
+              cron: "0 7 * * *"  # daily, after the 04:23 UTC scan
+              class: dead-links
+              probe: dead-links
+              text: Fix the dead external links listed below.
+        # The second repository (v2 design D9): every class review or shadow, nothing arms until
+        # its own 20 shadow decisions. Its .policy.yml has one low-risk rule, `dead-links`' (R50).
+        - name: Smana/ai-native-ref
+          maintainers: [Smana]
+          triggerLabel: factory/ready
+          # v3 feature 3: what a check-enabled run requests beyond github. Only docs has checks: true,
+          # since the gcp-0 session's live proofs (README, "v3 loop and sandbox layers").
+          checks: {egress: [golang, pypi]}
+          classes:
+            # No testFirst here (TO4): the tests live under the gate path scripts/ci/.
+            docs-links: {shadow: true, holdoutChecks: [validate]}
+            revert: {shadow: true, holdoutChecks: [validate]}
+            docs: {checks: true}  # public runs only: an internal claim with checks is refused by the XRD
+            tests: {}
+            dashboards: {}
+            scripts: {}
+            # Shadow (MC14, runbook 15 §6): intake and decisions, nothing armed. Its detector is this
+            # repository's dead-links.yaml and its rule `low-risk: dead-links` in .policy.yml
+            # (test-agent-merge-gate-parity.py holds the two).
+            dead-links:
+              shadow: true  # since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed
+              allowedFiles: ['^(docs|website/content)/.+\.md$']
+              protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
+              modifyOnly: true
+              maxModifiedLines: 20
+              diffShape: links-only
+              holdoutChecks: ["External links 🔗"]
+              oracle: {probe: dead-links, workflow: dead-links.yaml, maxFindings: 10}
+              # L16, as the host's: every merge of the class is watched, whoever made it. No `flux`:
+              # its changes reach a cluster only through a host pin bump.
+              monitor: {oracleRuns: 2, followUpWindow: 168h}
+              maxPerDay: 1
+          merge:
+            # The `main` ruleset's 2 contexts (app 15368): `gh api repos/Smana/ai-native-ref/rulesets/25225244`.
+            # ci.yaml runs both on push to main too; TruffleHog is a step of `lint`.
+            requiredChecks: [validate, lint]
+            verifyChecks: [validate, lint]
+            policyBotLogin: ogenki-merge-gate[bot]
+            mergerLogin: ogenki-agent-merger[bot]
+            autoMergesPerDay: 2
+            fixRuns: 1
+            checkReruns: 0  # a cancelled check goes to a human
+            verifyFor: 30m
+            revertWindow: 168h
+            leakScanCheck: lint
+            awaitingCIFor: 24h
+            # Human path AM1: a maintainer's approval of the current head is the merge; the merger
+            # merges it as a human merge, outside the caps. The hand-off comment names that one action.
+            approveToMerge: true
+            # R41: 1 revert in the last 10 merges demotes a class; human path AM7: 3 clean mature merges
+            # after the bad one lift it (half-open), and a maintainer's factory/drill revert never counts (AM6).
+            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1, recoverAfter: 3}
+          schedules:
+            # dead-links' intake here (MC6, F3): what two nightly runs of this repository's
+            # dead-links.yaml agree on. Inert only if the class is off (MC14). The name keys every
+            # task it starts and is unique across repositories (the factory's strict parse refuses
+            # a second `dead-links`, the host's).
+            - name: ai-native-ref-dead-links
+              cron: "15 7 * * *"  # after the 04:41 scan; the host's slot is 07:00
+              class: dead-links
+              probe: dead-links
+              text: Fix the dead external links listed below.
+      control: {repository: Smana/cloud-native-ref, issue: 2188}  # factory/stop here stops every repository
+      factoryLogin: ogenki-agent-factory[bot]
+      agentsLogin: ogenki-agents[bot]
+      roomsURL: https://rooms.${private_domain_name}
+      # The broker's system API is TLS on both clouds (GP-18, ruling SC).
+      broker:
+        url: https://room-broker.agent-system.svc.cluster.local:8443
+        caFile: /etc/agent-factory/openbao-ca/ca.crt
+        tokenFile: /var/run/secrets/agents/rooms/token
+      github:
+        appIDFile: /etc/agent-factory-github/app_id
+        privateKeyFile: /etc/agent-factory-github/private_key
+        mergerAppIDFile: /etc/agent-factory-merger/app_id
+        mergerKeyFile: /etc/agent-factory-merger/private_key
+      # The run-request API (FR-5): tailnet only via the HTTPRoute, tokens checked
+      # offline against ZITADEL's JWKS; the client ids ride the chart's oidcSecret mount.
+      api:
+        # Plaintext inside the mesh; 8443 is the broker's TLS listener (agent-platform#111).
+        listen: ":8082"
+        humanIssuer: ${identity_provider_url}
+        humanJWKS: ${identity_provider_url}/oauth/v2/keys
+        clientIDFiles:
+          - /etc/agent-factory-oidc/rooms-proxy-client-id
+          - /etc/agent-factory-oidc/roomctl-client-id
+        # Resolves a human caller to their GitHub login (the broker's ZITADEL reader, mounted from
+        # externalsecret-zitadel-reader.yaml); write on the repository is then asked of GitHub.
+        # Without it every human run is refused 403 repository_permission.
+        access:
+          readerFile: /etc/agent-factory-zitadel-reader/reader.json
+          ttl: 5m
+        # Sponsored principals (factory interfaces part 2), none declared (D4): a gcp-0 session declares
+        # the Slack App in gcp-0's copy (runbook 18). It needs meter.prices, and projectIDFile beside it;
+        # the chart mounts both files from sponsoredSecret (agent-factory-sponsored, optional). The name
+        # and the client id file are the broker's human.mcp.sponsored entry's.
+        # projectIDFile: /etc/agent-factory-sponsored/project-id
+        # sponsored:
+        #   - name: slack-app
+        #     clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
+        #     sponsor: <a maintainer's GitHub login>
+        #     repositories: [Smana/cloud-native-ref]
+        #     dailyUSD: <in (0, budgets.factoryDailyUSD]>
+        #     maxCostUSD: <in (0, dailyUSD]>
+        #     onBehalfOf:
+        #       slack: {"<team id>/<user id>": <maintainer login>}
+      poll: {issues: 60s, tasks: 30s, meter: 30s}
+      # The template comes from the class and the tier (pair for review, FR-11); no default template or tier (R8).
+      defaults: {dataClass: public, predictedClass: review}
+      triage:
+        # No classifierURL: the classifier (C7) was never deployed, and the scoper replaced it (R8).
+        # Unset, every task takes tier standard, classifier static, without a call (since v0.25.0).
+        controlPercent: 10  # OD-14
+      # Every tier asks for agent-default (R11). The router serves tier-* on both listeners since
+      # AGW-8; a tier moves to its name with that model's meter price below.
+      tiers:
+        # USD caps price cache reads at their own rate (agent-platform#100, v2 cohort, OD-6 on #2369):
+        # runTokens/taskTokens apply only to a run or task the meter cannot price.
+        light:    {model: agent-default, runTokens: 300000,  taskTokens: 600000,  runMinutes: 20, runUSD: 0.51, taskUSD: 1.02}
+        standard: {model: agent-default, runTokens: 1500000, taskTokens: 3000000, runMinutes: 45, runUSD: 2.55, taskUSD: 5.10}
+        frontier: {model: agent-default, runTokens: 4000000, taskTokens: 8000000, runMinutes: 90, runUSD: 6.80, taskUSD: 13.60}
+      templates:
+        solo: {roles: [implementer]}
+        pair: {roles: [implementer, reviewer], maxReviewRounds: 2}
+        # TF2, TO1: the tester writes the tests first (testFirst), never a verdict; trio is pair's shape until the bench.
+        trio: {roles: [implementer, reviewer], maxReviewRounds: 2}
+        investigate: {roles: [triager]}  # R38: proposes a public issue text, never writes
+      caps: {activeTasks: 3, concurrentRuns: 4, tasksPerDay: 20, maxTextBytes: 14336, awaitingHumanWIP: 5}
+      budgets:
+        # OD-10: only the principal cap keeps its shadow week (R3); the task cap is enforced
+        # since a shadow one let a task reach 3.35 M of its 3 M. The meter always enforces the run cap.
+        enforceTask: true
+        # Still shadow, the fleet's day and each person's alike (truthful costs TC9): the days count
+        # dollars since agent-platform v0.16.0 (#155), and enforcing waits on their shadow record.
+        enforcePrincipal: false
+        # The days in USD (TC5): the old 25M and 5M at the reference $1.70 per M, now counted at
+        # meter.prices, cache reads at their own rate. AG8 holds B2 at or above factoryDailyUSD
+        # plus caps.concurrentRuns frontier runs, and fails a token key (factoryDaily, humanDaily,
+        # perPerson.dailyTokens): v0.25.0 ignores one, a later release refuses it.
+        factoryDailyUSD: 42.50
+        humanDailyUSD: 8.50
+        # Per-person caps in shadow (D8): counted as budget-principal-shadow{principal}, never refused.
+        # Each person's day is humanDailyUSD: perPerson.dailyUSD is unset.
+        perPerson: {enabled: true}
+      # Disruption design §4: a run lost to a reclaim or an eviction resumes on its own, twice per task
+      # at most, and only with a RunTokens left under the task's TaskTokens (enforced on that path).
+      resume: {maxPerTask: 2}
+      # Per-class loop policy and scope (scoper design SC2). Every class is off (D4) but docs: the
+      # gcp-0 session of 2026-10-27 switches one feature at a time on it, so a failure is
+      # attributable (runbooks README, "v3 loop and sandbox layers"). A row is read whole, never merged with default's.
+      loops:
+        default: {scope: off}
+        # docs, the gcp-0 session's class (both repositories declare it, so the row reads for both). A
+        # row is read whole: the scoper's key stays on it. Scoper (v3 feature 1): a public triager
+        # run scopes a labelled issue, or asks its author the one question it cannot answer; a
+        # repository's steering note (.github/agent-factory/steering/docs.md) is optional. Loop
+        # policy (feature 2): any of the three keys switches the loop on. stallSteps 60 (default 80,
+        # 1..500): a run with no commit by then stops and posts its findings; the stall drill sets a
+        # lower value for itself. continuations 2: a not_yet continues the same conversation at most
+        # twice (0..5). judge tier-light: the completion judge's alias (the claim's judgeModel),
+        # reading the scoper's checks; without the capability profiles' P4 sidecar (#103) its
+        # /judge/v1 route is refused and the judge is silently skipped.
+        docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}
+        # scripts: the splitter's class for the gcp-0 session of 2026-10-27 (runbook 17 §2, splitter
+        # design SL3). split needs scope: scoper on the same row, and a row is read whole, so the scoper
+        # is on for scripts too. maxChildren 4 (2..5); familyUSD 20.40, the parent's and every part's
+        # runs together (four standard tasks, SP3); childTier standard (SP5). Back off with the session's
+        # last commit (D4): remove the row. anyTier: true offers the splitter to every scripts task
+        # (agent-platform v0.29.12): gcp-0 deploys no classifier, so no task is ever frontier and the
+        # default would never offer it; the splitter design's SP1 option (b), as an explicit opt-in.
+        # Harness roles HR7: judge tier-light switches the loop on for scripts too (stallSteps 80,
+        # continuations 2 by default), so split parts and test-first tasks are judged; the judge reads
+        # the head's GitHub check runs, so checks: false on the class is fine.
+        scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}, judge: tier-light}
+      # search: true on the docs row (above) offers that class's implementer runs the search tool
+      # (agent-platform v3 feature 5): a read-only child on the run's token, 40 iterations, 300k
+      # tokens, 300 s, six a run. No other class has it (D4): the gcp-0 session of 2026-10-27 flips
+      # it on for the paired live gate (SQ5) and, if the pairs do not hold, back off.
+      # SP4 PR 2's agent_router:run_tokens:total expression over the raw series (R12).
+      meter:
+        url: http://vmsingle-victoria-metrics-k8s-stack.observability.svc:8428
+        # Grouped by gen_ai_request_model, the model the backend's alias resolved to: the meter
+        # prices each run by the model that served it (plan, phase J), since agent-default is
+        # GLM-5.3 on public and Claude Opus 5.5 on internal.
+        query: 'sum by (ar_agent, gen_ai_request_model, gen_ai_token_type) (gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type=~"input|cached_input|cache_creation_input|output"})'
+        # The price overlay (plan J.1): one row per model a backend in
+        # infrastructure/base/agent-gateway pins, so no agentgateway release moves a price
+        # without a commit here. AG10 fails a pinned model without its row. A model with no
+        # row is never free: its runs fall back to their token caps and AgentModelUnpriced
+        # fires. List prices, $ per M tokens, read 2026-10-16:
+        # Z.ai https://docs.z.ai/guides/overview/pricing (cache writes not billed, so no
+        # cacheWrite) and https://platform.claude.com/docs/en/about-claude/pricing (5-minute
+        # cache writes). Haiku 5.5 is at its over-100K-prompt rate, which an agent's context
+        # soon reaches: over-counting is the safe direction for a cap. A nightly workflow compares
+        # every row with three public catalogs: a new row needs its entry in the MAPPING of
+        # scripts/ci/check-price-drift.py, or the check reports it.
+        prices:
+          glm-5.3: {input: 1.40, cacheRead: 0.26, output: 4.40, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+          glm-5.3-flashx: {input: 0.37, cacheRead: 0.075, output: 1.25, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+          glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+          # Feature 15, selectable providers (public only). k3.1-pro is NOMINAL: the owner's Kimi Code
+          # subscription is flat-rate (marginal USD 0), and the row is the list price so a run's USD
+          # cap bounds its tokens; a figure here is a token-weighted unit, not a bill.
+          k3.1-pro: {input: 2.00, cacheRead: 0.20, cacheWrite: 2.00, output: 10.00, source: "https://platform.kimi.ai/docs/pricing/chat", checkedAt: "2026-10-28"}
+          mistral-medium-2604: {input: 1.50, cacheRead: 0.15, output: 7.50, source: "https://mistral.ai/pricing", checkedAt: "2026-10-28"}
+          mistral-small-2603: {input: 0.15, cacheRead: 0.015, output: 0.60, source: "https://mistral.ai/pricing", checkedAt: "2026-10-28"}
+          claude-opus-5-5: {input: 4.00, cacheRead: 0.20, cacheWrite: 5.00, output: 20.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
+          claude-sonnet-5-5: {input: 2.00, cacheRead: 0.10, cacheWrite: 2.50, output: 10.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
+          claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
+        # The 429 lookup (R13): throttle hits per agent over the gateway's access logs.
+        # agentgateway's agent router (ADR-0053, plan F.4): a rate-limit refusal logs http.status 429, reason RateLimit.
+        logsURL: http://victoria-logs-victoria-logs-single-server.observability.svc:9428
+        throttleQuery: '_time:2m kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"agent-router" | unpack_json | filter log.http.status:429 AND log.reason:RateLimit | stats by (log.x_ar_agent) count() hits'
+      # Task spans (R46) to the trace collector's platform port (observability plan O20).
+      tracing: {otlpEndpoint: agent-traces-collector.observability.svc.cluster.local:4317}

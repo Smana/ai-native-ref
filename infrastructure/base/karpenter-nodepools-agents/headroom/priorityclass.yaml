@@ -1,0 +1,10 @@
+# Below every run (priority 0): a run preempts the headroom pod, the headroom pod
+# preempts nothing.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: agents-headroom
+value: -10
+globalDefault: false
+preemptionPolicy: Never
+description: Placeholder holding one warm gVisor node for the next agent run; any run preempts it.

@@ -1,0 +1,213 @@
+---
+# Agent platform health (SP1 §8). Lives in the umbrella: on a cluster with the
+# platform suspended these would only ever be silent.
+# runbook_url points at the integration branch: the agent-factory runbooks live there until
+# Phase 7 re-points them (Ruling G).
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: agent-platform
+  namespace: observability
+spec:
+  groups:
+    - name: agent-platform
+      rules:
+        - alert: AgentSandboxPodPending
+          expr: max by (pod) (kube_pod_status_phase{namespace="agents", phase="Pending"}) > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Agent sandbox pod {{ $labels.pod }} has been Pending for 15 minutes"
+            description: "Check the agents-gvisor pool (aws-0: NodePool limit; gcp-0: node pool max, cluster CPU ceiling, the Cilium-taint toleration), spot capacity and runsc on the node: kubectl describe pod -n agents {{ $labels.pod }}"
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/integration/agent-factory/docs/runbooks/agent-factory/01-runtime-sandbox.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-fleet"
+        # aws-0 only: karpenter_nodepools_* has no series on gcp-0, whose pool is a
+        # GKE node pool (no Karpenter), so this can never fire there. On gcp-0 a
+        # full pool surfaces as AgentSandboxPodPending.
+        - alert: AgentGvisorPoolNearLimit
+          expr: sum by (resource_type) (karpenter_nodepools_usage{nodepool="agents-gvisor"}) / sum by (resource_type) (karpenter_nodepools_limit{nodepool="agents-gvisor"}) * 100 > 90
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "agents-gvisor is above 90 % of its {{ $labels.resource_type }} limit"
+            description: "New runs will stay Pending. Raise the NodePool limit or wait for runs to finish. aws-0 only (Karpenter metrics); gcp-0 relies on AgentSandboxPodPending."
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/integration/agent-factory/docs/runbooks/agent-factory/01-runtime-sandbox.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-fleet"
+        # No enforced per-run cap exists until SP4 PR 2 (design spec line 162):
+        # until then a run is bounded only by the gateway's 5M ceiling. These
+        # watch the same gen_ai counters the SP4 llm-gateway budget uses.
+        - alert: AgentRunTokenSpendHigh
+          expr: sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:.*", gen_ai_token_type=~"input|output"}[8h])) > 5e6
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.ar_agent }} spent more than 5M tokens in 8h"
+            description: "No enforced per-run cap exists until SP4 PR 2. Revoke by hand: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/integration/agent-factory/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-fleet"
+        - alert: AgentFleetTokenSpendHigh
+          expr: sum(increase(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:.*", gen_ai_token_type=~"input|output"}[1h])) > 1e7
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "The agent fleet spent more than 10M tokens in 1h"
+            description: "No enforced per-run cap exists until SP4 PR 2. Revoke the noisiest run by hand: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/integration/agent-factory/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-fleet"
+    # The agent router on agentgateway (ADR-0053), beside Envoy's until phase H. The
+    # scrape relabel feeds the gen_ai_* rules above; these read agentgateway_* too
+    # (infrastructure/base/agent-gateway/vmpodscrape.yaml).
+    - name: agent-gateway
+      rules:
+        # G2 guard: the relabel holds only while upstream's names do. Model calls
+        # with no token series, or a token type the meter does not select, is the
+        # signature of a silent rename: the meter would read zero or misprice.
+        - alert: AgentRouterMetricContractBroken
+          expr: (sum(increase(agentgateway_requests_total{namespace="agent-gateway", route="agent-system/agentgateway-models", status="200"}[15m])) > 0 unless sum(increase(gen_ai_client_token_usage_count{namespace="agent-gateway"}[15m])) > 0) or count(gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_token_type!~"input|output|cached_input|cache_creation_input"}) > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "agent-router (agentgateway) serves model calls the gen_ai contract does not see"
+            description: "An agentgateway upgrade renamed a metric or token type that infrastructure/base/agent-gateway/vmpodscrape.yaml maps. The run meter, the budget alerts and the run page read zero or misprice until fixed."
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/08-observability.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        - alert: AgentGateway5xxRatioHigh
+          expr: sum(rate(agentgateway_requests_total{namespace="agent-gateway", status=~"5.."}[10m])) / sum(rate(agentgateway_requests_total{namespace="agent-gateway"}[10m])) > 0.05 and sum(increase(agentgateway_requests_total{namespace="agent-gateway", status=~"5.."}[10m])) > 5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "agent-router (agentgateway) answers {{ $value | humanizePercentage }} of requests with a 5xx"
+            description: "Split by route and reason on the agent-gateway dashboard: UpstreamFailure or Timeout is the provider or an MCP server, Internal is the proxy."
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        # 1.6 sets error_type="_OTHER" on every failed model call: a ratio, not a cause.
+        - alert: AgentGatewayModelErrorRatioHigh
+          expr: sum(rate(gen_ai_server_request_duration_seconds_count{namespace="agent-gateway", error_type=~".+"}[10m])) / sum(rate(gen_ai_server_request_duration_seconds_count{namespace="agent-gateway"}[10m])) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $value | humanizePercentage }} of model calls through agent-router (agentgateway) fail"
+            description: "The provider is failing or refusing. The access log's http.status and error fields name the cause: kubectl logs -n agent-gateway -l gateway.networking.k8s.io/gateway-name=agent-router"
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        # The metric twin of the LogsQL AgentRouterUnauthorizedBurst: here the refusal reason is a label.
+        - alert: AgentGatewayUnauthorizedBurst
+          expr: sum(increase(agentgateway_requests_total{namespace="agent-gateway", reason=~"JwtAuth|Authorization"}[5m])) > 20
+          labels:
+            severity: warning
+          annotations:
+            summary: "agent-router (agentgateway) refused {{ $value }} requests in 5 minutes"
+            description: "Invalid tokens, wrong audience or a sub outside namespace agents. T8: replayed or foreign tokens; R2: identity-proxy rotation broken."
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/02-identity-tokens.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        # B6's mirror in USD (ratelimit.yaml: 10M reference tokens = $17/day), before it refuses.
+        # The four counted types, each at its charge (vmrule-llm-gateway.yaml, generated from
+        # meter.prices): cache tokens are counted inside input, so a read adds cacheRead - input.
+        # increase() (promtool has no increase_pure) reads a few percent low on VictoriaMetrics for a run's
+        # first samples, so this fires slightly late; B6 still enforces the cap.
+        - alert: AnthropicFleetNearCap
+          expr: sum(sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_request_model=~"claude-.*", gen_ai_token_type=~"input|output|cached_input|cache_creation_input"}[24h])) * on (gen_ai_request_model, gen_ai_token_type) group_left() llm_gateway:charge_usd_per_mtoken) / 1e6 > 13.6
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "internal runs spent {{ $value | humanize }} USD on Anthropic in 24h, over 80 % of B6 ($17)"
+            description: "In shadow nothing is refused; with agent-ratelimit's SHADOW_MODE false, B6 refuses internal calls past $17. Find the noisiest internal run on the agent-gateway dashboard and revoke it if needed: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        - alert: AgentRateLimitDown
+          expr: absent(up{namespace="agent-gateway", pod=~"agent-ratelimit-.*"} == 1)
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "agent-ratelimit is down: agentgateway budgets count nothing"
+            description: "The router fails open, so agents run unmetered by B1-B2. kubectl get pods -n agent-gateway -l app.kubernetes.io/name=agent-ratelimit"
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        # The refusal metric, one series per mode, so each alert's severity follows the
+        # mode (ratelimit.yaml's SHADOW_MODE) without reading it. In shadow, the reference
+        # tokens over a budget, by bucket (key1: agent = B1, fleet_agents = B2,
+        # provider_anthropic = B6), kept only while global_shadow_mode admits calls:
+        # enforcing, over_limit still counts the overshoot of the call that crossed.
+        # Enforcing, the same over_limit counter while global_shadow_mode stands still:
+        # agentgateway records no requests_total series for a ratelimit 429 (#81, seen live
+        # on gcp-0 2026-10-18), so the refusal is read where it is decided.
+        # Both counters are created at their first increment, so a new series starts at the
+        # whole overshoot and increase() reads 0 for it: compare with 10 minutes ago, absence
+        # read as 0 (increase_pure() would do it, but promtool cannot parse it).
+        - record: agent_router:budget_shadow_overrun_tokens:increase10m
+          expr: >-
+            sum by (key1) (clamp_min(ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"}
+            - (ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"} offset 10m
+            or ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"} * 0), 0))
+            and on () sum(clamp_min(ratelimit_service_global_shadow_mode{namespace="agent-gateway"}
+            - (ratelimit_service_global_shadow_mode{namespace="agent-gateway"} offset 10m
+            or ratelimit_service_global_shadow_mode{namespace="agent-gateway"} * 0), 0)) > 0
+        - record: agent_router:budget_refused_tokens:increase10m
+          expr: >-
+            sum by (key1) (clamp_min(ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"}
+            - (ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"} offset 10m
+            or ratelimit_service_rate_limit_over_limit{namespace="agent-gateway", domain="agent-router"} * 0), 0)) > 0
+            unless on () sum(clamp_min(ratelimit_service_global_shadow_mode{namespace="agent-gateway"}
+            - (ratelimit_service_global_shadow_mode{namespace="agent-gateway"} offset 10m
+            or ratelimit_service_global_shadow_mode{namespace="agent-gateway"} * 0), 0)) > 0
+        - alert: AgentBudgetShadowOverrun
+          expr: agent_router:budget_shadow_overrun_tokens:increase10m > 0
+          labels:
+            severity: info
+          annotations:
+            summary: "Shadow: {{ $labels.key1 }} admitted {{ $value | humanize }} reference tokens over its budget in 10 minutes"
+            description: "Nothing was refused (agent-ratelimit's SHADOW_MODE is true). Enforcing, these calls would get 429. Judge each before flipping the flag: a run under its factory caps here is a false refusal."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        - alert: AgentBudgetRefused
+          expr: agent_router:budget_refused_tokens:increase10m > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "Enforcing: {{ $labels.key1 }} went {{ $value | humanize }} reference tokens over its budget in 10 minutes; its next calls get 429"
+            description: "The harness logs the 429's agent_budget_exhausted body and the run fails; the meter revokes it on its next tick (budget-run or budget-fleet). The factory's caps should have stopped it first: read the run's cost against its tier."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+    # Prompt caching on internal runs (cache design C1): without the marker an input token costs 20x
+    # a cached one and a run about 4x, and only the harness log would say so. The share assumes
+    # `input` includes cache reads and writes, as agentgateway 1.6's Chat Completions to Messages
+    # translation counts them (measured 2026-10-22); a native Messages path from the harness (cache
+    # design C3's alternative) meters Anthropic's uncached input_tokens, which would push the share
+    # above 1, so the denominator must change with it. The series carry a run (ar_agent) but no step; the
+    # per-step view is the harness log's. No rule reads another's output: vmalert's recorded series
+    # reach the datasource through remote write, too late for the same evaluation.
+    # The recorded share counts every provider the meter prices (the dashboard reads it for whatever
+    # the fleet runs: Z.ai today), and keeps its name for its readers. The two alerts below stay on
+    # Anthropic: their cause, a dropped cache marker, is Anthropic's, and a public run on Z.ai reads
+    # nothing explicit.
+    - name: agent-cache
+      rules:
+        - record: agent_run:cache_read_share:ratio15m
+          expr: (sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type="cached_input"}[15m])) or sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type="input"}[15m])) * 0) / sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type="input"}[15m]))
+        - alert: AgentCacheReadZero
+          expr: sum by (ar_agent) (gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}) >= 100000 unless on (ar_agent) sum by (ar_agent) (gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="cached_input"}) > 0 and on (ar_agent) sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}[15m])) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.ar_agent }} read nothing from Anthropic's prompt cache in its first {{ $value | humanize }} input tokens"
+            description: "Every step pays the full input price: an uncached token costs 20x a cached one, an uncached run about 4x. A gateway or harness bump dropped the cache marker: read the run's log for 'prompt cache NOT applied' and the last change to infrastructure/base/agent-gateway/parameters.yaml. A long run can be stopped: kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        - alert: AgentCacheReadShareLow
+          expr: (sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="cached_input"}[15m])) or sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}[15m])) * 0) / sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}[15m])) < 0.6 and on (ar_agent) sum by (ar_agent) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_provider_name="anthropic", gen_ai_token_type="input"}[15m])) >= 200000
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.ar_agent }} read {{ $value | humanizePercentage }} of its input from the prompt cache over 15 minutes"
+            description: "Healthy internal runs read about 85%. One condensation or a resume dips the share for one window; a share that stays low is the tool list changing mid-run (a federated MCP target dropped and re-added) or something dynamic in the prompt. The run dashboard's steps show which."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"

@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The directory clusters/gcp-0-agent-platform/tooling-factory-slack-app.yaml applies (runbook 18). It is
+# the switch-on PR's, the session that stores the Slack keys; the base stays unwired (D4, R30).
+resources:
+  - ../../../base/agent-factory/slack-app
+
+# The App's config is gcp-0's own full copy (teamID and channels filled): behavior replace swaps
+# the base's generated ConfigMap, keeping the content-hash suffix that rolls the pod.
+configMapGenerator:
+  - name: factory-slack-app-config
+    namespace: agent-system
+    behavior: replace
+    files:
+      - config.yaml
+
+patches:
+  # ZITADEL on gcp-0 is this cluster's own Gateway VIP: Envoy enforces policy on its runtime listener
+  # port, so any toPorts fails (ruling AU, as ../kustomization.yaml's patch of the agent-factory CNP).
+  # `test` pins the index.
+  - target:
+      group: cilium.io
+      kind: CiliumNetworkPolicy
+      name: factory-slack-app
+    patch: |-
+      - op: test
+        path: /spec/egress/4/toFQDNs/0/matchName
+        value: auth.${public_domain_name}
+      - op: replace
+        path: /spec/egress/4
+        value:
+          toEntities:
+            - all

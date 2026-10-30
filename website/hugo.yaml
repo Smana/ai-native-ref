@@ -1,0 +1,84 @@
+baseURL: https://airef.ogenki.io/
+title: AI Native Reference
+languageCode: en-us
+enableRobotsTXT: true
+enableGitInfo: true
+
+# Drift guard: any unresolved internal ref (relref/ref) fails the build rather
+# than shipping a silent 404. This is the site's internal-link gate; the
+# repository-wide gate stays scripts/ci/validate-links.sh.
+refLinksErrorLevel: ERROR
+
+module:
+  hugoVersion:
+    min: "0.146.0"
+  imports:
+    - path: github.com/imfing/hextra
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    noClasses: false
+
+menu:
+  main:
+    - name: AI Platform
+      pageRef: /docs/platform/ai-platform
+      weight: 1
+    - name: Host contract
+      pageRef: /docs/host-contract
+      weight: 2
+    - name: Decisions
+      pageRef: /docs/decisions
+      weight: 3
+    # Cross-site link (split design §5): a relref cannot reach the host site, so the S4 link
+    # check fetches it after each deploy.
+    - name: Cloud Native Ref ↗
+      weight: 4
+      url: "https://cnref.ogenki.io/"
+    - name: GitHub
+      weight: 5
+      url: "https://github.com/Smana/ai-native-ref"
+      params:
+        icon: github
+    - name: Search
+      weight: 6
+      params:
+        type: search
+
+params:
+  description: "The AI platform of Cloud Native Reference: self-hosted model serving and an agent factory, shipped as one signed Flux artifact its host pins."
+  navbar:
+    displayTitle: true
+    displayLogo: true
+    logo:
+      # The Ogenki mark, extracted from the company lockup so the navbar carries
+      # the brand without the wordmark competing with the site's own title.
+      # 448x396 in its own viewBox, so 27x24 keeps it undistorted at navbar height.
+      path: images/ogenki-mark.svg
+      # Brand navy measures 1.92:1 against the dark navbar, under the 3:1 WCAG
+      # asks of a graphical object, so the dark theme gets the white variant
+      # from the same lockup set. Hextra renders both and swaps them with CSS.
+      dark: images/ogenki-mark-white.svg
+      width: 27
+      height: 24
+  search:
+    enable: true
+    type: flexsearch
+    flexsearch:
+      index: content
+      tokenize: forward
+  editURL:
+    enable: true
+    base: "https://github.com/Smana/ai-native-ref/edit/main/website/content"
+  footer:
+    enable: true
+    displayCopyright: true
+    displayPoweredBy: false
+  imageZoom:
+    enable: true
+  theme:
+    default: system
+    displayToggle: true

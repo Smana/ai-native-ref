@@ -1,0 +1,112 @@
+# Dead external links in this repository's Markdown (agent factory, merge gate classes MC4–MC6,
+# F3). The detector and the check are the host's (.github/scripts/dead-links/ at HOST_REF, R49):
+# this file only checks them out and runs them, as ci.yaml runs the host's gates. A gate path
+# (^\.github/), so no pull request of the class can change its own proof.
+#
+# scan: nightly on main, and by hand; uploads findings.json, `[]` when nothing is found (a missing
+# artifact makes the factory's probe retry every minute).
+# external-links ("External links 🔗"): dead-links' holdout, not a required check.
+name: Dead links
+
+on:
+  schedule:
+    - cron: "41 4 * * *"  # the host's runs at 04:23: apart, so the two never share a rate limit
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths: ["**.md"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  scan:
+    name: Scan external links 🕸
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - id: host
+        run: echo "ref=$(cat HOST_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Smana/cloud-native-ref
+          ref: ${{ steps.host.outputs.ref }}
+          path: .host
+          persist-credentials: false
+      - name: Install lychee (the host's pin)
+        run: |
+          LYCHEE_VERSION="$(yq '.env.LYCHEE_VERSION' .host/.github/workflows/dead-links.yaml)" \
+          LYCHEE_SHA256="$(yq '.env.LYCHEE_SHA256' .host/.github/workflows/dead-links.yaml)" \
+            .host/.github/scripts/dead-links/install-lychee.sh
+      - name: Scan
+        id: scan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          echo '[]' >findings.json
+          set +e
+          lychee --no-progress --format json --output lychee.json --max-retries 3 --timeout 20 \
+            --scheme https --scheme http \
+            --exclude-path docs/superpowers --exclude-path docs/specs --exclude-path website/content/docs/decisions \
+            'docs/**/*.md' 'website/content/**/*.md'
+          rc=$?
+          [ "$rc" -eq 0 ] || [ "$rc" -eq 2 ] || { echo "lychee exited $rc" >&2; exit 1; }
+      - name: Findings
+        if: steps.scan.outcome == 'success'
+        run: |
+          python3 .host/.github/scripts/dead-links/findings.py lychee.json >findings.new
+          mv findings.new findings.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: findings
+          path: findings.json
+          retention-days: 14
+          if-no-files-found: error
+
+  external-links:
+    name: External links 🔗
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      # HOST_REF is read from the base, never the head: the pull request cannot pick the checker.
+      - id: host
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: echo "ref=$(git show "$BASE:HOST_REF")" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Smana/cloud-native-ref
+          ref: ${{ steps.host.outputs.ref }}
+          path: .host
+          persist-credentials: false
+      - name: Install lychee (the host's pin)
+        run: |
+          LYCHEE_VERSION="$(yq '.env.LYCHEE_VERSION' .host/.github/workflows/dead-links.yaml)" \
+          LYCHEE_SHA256="$(yq '.env.LYCHEE_SHA256' .host/.github/workflows/dead-links.yaml)" \
+            .host/.github/scripts/dead-links/install-lychee.sh
+      - name: The pull request's external targets
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: .host/.github/scripts/dead-links/changed-targets.sh "$BASE" >targets.txt
+      - name: Each one answers 2xx
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if [ ! -s targets.txt ]; then echo "no external link target added or changed"; exit 0; fi
+          cat targets.txt
+          lychee --no-progress --max-retries 3 --timeout 20 --accept '200..=299' targets.txt

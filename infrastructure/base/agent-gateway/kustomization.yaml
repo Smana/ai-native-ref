@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The agent router on agentgateway (ADR-0053), installed beside the Envoy
+# agent-router: the Gateway and its data plane in agent-gateway; routes and
+# backends in agent-system (llm, anthropic, mcp, sts, github), the only namespace its listeners
+# admit. Nothing reaches it until the cutover (phase F): no run CNP names it yet.
+# Budgets B1, B2 and B6 are charged on its own rate-limit server and Valkey, and refuse
+# since 2026-10-18 (ratelimit.yaml's SHADOW_MODE "false").
+# Telemetry (phase E): policy-frontend.yaml and the proxy scrape.
+resources:
+  - gateway.yaml
+  - parameters.yaml
+  - model-catalog.yaml
+  - policies-identity.yaml
+  - policy-frontend.yaml
+  - vmpodscrape.yaml
+  - network-policy.yaml
+  - llm.yaml
+  - anthropic.yaml
+  - moonshot.yaml
+  - mistral.yaml
+  - mcp.yaml
+  - sts.yaml
+  - github.yaml
+  - kvstore.yaml
+  - ratelimit.yaml
+  - policy-budgets.yaml
+  - policy-capabilities.yaml

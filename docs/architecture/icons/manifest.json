@@ -1,0 +1,69 @@
+{
+  "_note": "The AI diagrams' logos, moved from cloud-native-ref's icon library (docs/architecture/icons/) with the diagrams that use them. PNG, not SVG: headless drawio export does not render SVG data URIs. Embed with image=data:image/png,<base64> -- a comma, not ';base64,', which terminates the style value. The host's scripts/docs/diagram-icons.py style <name> emits the cell style for a host icon; a host logo an AI diagram uses (cilium, crossplane, ...) stays in the host library.",
+  "aliases": {
+    "kimi": "moonshot",
+    "z.ai": "zai"
+  },
+  "icons": {
+    "agentgateway": {
+      "file": "agentgateway.png",
+      "bytes": 3231,
+      "label": "agentgateway"
+    },
+    "claude": {
+      "file": "claude.png",
+      "bytes": 3638,
+      "label": "Claude"
+    },
+    "gvisor": {
+      "file": "gvisor.png",
+      "bytes": 3419,
+      "label": "gVisor"
+    },
+    "huggingface": {
+      "file": "huggingface.png",
+      "bytes": 3481,
+      "label": "Hugging Face"
+    },
+    "maku": {
+      "file": "maku.png",
+      "bytes": 3474,
+      "label": "Maku"
+    },
+    "mcp": {
+      "file": "mcp.png",
+      "bytes": 1776,
+      "label": "Model Context Protocol"
+    },
+    "mistral": {
+      "file": "mistral.png",
+      "bytes": 622,
+      "label": "Mistral AI"
+    },
+    "moonshot": {
+      "file": "moonshot.png",
+      "bytes": 1706,
+      "label": "Moonshot AI (Kimi)"
+    },
+    "octo-sts": {
+      "file": "octo-sts.png",
+      "bytes": 1303,
+      "label": "octo-sts"
+    },
+    "openhands": {
+      "file": "openhands.png",
+      "bytes": 2770,
+      "label": "OpenHands"
+    },
+    "openwebui": {
+      "file": "openwebui.png",
+      "bytes": 1026,
+      "label": "Open WebUI"
+    },
+    "zai": {
+      "file": "zai.png",
+      "bytes": 706,
+      "label": "Z.ai"
+    }
+  }
+}

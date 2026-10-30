@@ -1,0 +1,238 @@
+---
+# Agent factory alerts (SP3 §7). Inside the umbrella: a suspended factory alerts on nothing.
+# Phase 8 added the rest of the set, and the factory dashboard (Task 8.3) is what `dashboard`
+# points at.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: agent-factory
+  namespace: observability
+spec:
+  groups:
+    - name: agent-factory
+      rules:
+        - alert: AgentFactoryIntakeErrors
+          expr: sum(rate(maku_factory_intake_errors_total[5m])) > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "The agent factory has failed to poll its triggers for 15 minutes"
+            description: "Labelled issues are not becoming tasks. Only the leader polls, so read every replica: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep 'poll failed'. A 401 from GitHub means the factory App key or installation changed."
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#1-intake"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryAutoMergeReverted
+          expr: sum(increase(maku_factory_pr_outcomes_total{outcome="reverted"}[15m])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "A merged agent PR was reverted"
+            description: "Unless the revert PR carries factory/drill (a drill: the breaker does not count it, and this alert fires on the planned drill too), its class is paused by the breaker: 1 revert in its last 10 merges (R41), lifted by 3 clean mature merges (recoverAfter). Read why on the task: kubectl get task -n agent-system -o wide | grep Reverted"
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#64-rollback"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryMergeRegression
+          expr: sum by (class, repository) (increase(maku_factory_monitor_verdicts_total{verdict="regression"}[15m])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "The post-merge monitor found a regression after a {{ $labels.class }} merge"
+            description: "The class is demoted at its next decision; nothing was reverted (MC7). The PR carries factory/monitor:regression and the monitor's comment says which signal."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/15-dead-links.md#when-agentfactorymergeregression-fires"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryClassPausedLong
+          # Human path AM9: a class the breaker holds for a week is a class nobody is unpausing.
+          # The gauge is also recorded for shadow and unarmed classes and as class="", none of which
+          # a maintainer can unpause, so the selector names the live classes of Smana/cloud-native-ref
+          # (live: true, or a monitor with no shadow switch) and test-agent-class-paused-alert.sh
+          # derives that set from tooling/base/agent-factory/helm-values-configmap.yaml: a class
+          # that goes live there fails the test until this regex follows. A static regex, not a
+          # recording rule: a rule would need the same list. The gauge can be absent for a paused
+          # class with no decision and no watched merge: absent means not reported, never not paused.
+          expr: max by (repository, class) (maku_factory_class_paused{repository="Smana/cloud-native-ref", class=~"docs-links|revert|alert-rules"}) == 1
+          for: 7d
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.class }} on {{ $labels.repository }} has been paused for 7 days"
+            description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter); factory/drill lifts it only if added before factory/revert, or on a rebuilt factory. Read the window: scripts/shadow-merge-tally.sh --repo {{ $labels.repository }} --class {{ $labels.class }} --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md#know-before-the-go"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryDailyBudgetHigh
+          # Truthful costs TC8: the day in USD (the USD gauges since agent-platform v0.16.0, pinned here at v0.32.0). spent is unclamped, so a day
+          # past its cap keeps firing; the meter records yesterday's principals at 0 on a day's first tick.
+          expr: maku_factory_budget_spent_usd / maku_factory_budget_cap_usd > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.principal }} has spent more than 80 % of today's budget in USD"
+            description: "Past the cap, runs are refused (429) or revoked with budget-principal once budgets.enforcePrincipal is on; until then nothing is refused and AgentPersonCapShadowRefusal fires instead. The caps are budgets.factoryDailyUSD and humanDailyUSD. Resets at 00:00 UTC."
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#62-caps-and-budgets"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentPersonCapShadowRefusal
+          # Per-person caps' shadow week (D8): one alert per would-be refusal, by the key over, so the
+          # owner judges it while the task is fresh. system:factory stays in: enforcePrincipal also
+          # enforces the fleet's day. The counter has no series until its first increment.
+          expr: sum by (principal) (increase(maku_factory_run_revocations_total{reason="budget-principal-shadow"}[15m])) > 0
+          labels:
+            severity: info
+          annotations:
+            summary: "{{ $labels.principal }}'s day is spent: a run was admitted that enforcePrincipal would refuse"
+            description: "Shadow only: nothing was refused. It is a false refusal if the run should have been admitted (wrong person charged, or a day filled by reservations the meter later released). Read the day's ledger, in micro-USD: kubectl get cm -n agent-system agent-factory-ledger-usd-<YYYYMMDD> -o yaml"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryTaskStuck
+          # Waiting phases (Queued, AwaitingHuman, Escalated) are excluded: they wait by design.
+          expr: max by (task, phase) (maku_factory_task_phase_seconds{phase=~"Received|Triaged|Implementing|Reviewing|AwaitingCI|AutoMerging|Verifying"}) > 7200
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Agent factory task {{ $labels.task }} has been {{ $labels.phase }} for over 2 hours"
+            description: "kubectl get task -n agent-system {{ $labels.task }} -o yaml; the factory's logs carry task.id={{ $labels.task }}."
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#4-orchestrator"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: RoomWebhookDisabled
+          # Factory interfaces F6: three given-up deliveries disable a subscriber until its generation is
+          # bumped. The series exists only while the broker's config declares a webhook (none today, D4).
+          expr: max by (subscriber) (maku_rooms_webhook_disabled) == 1
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "The broker disabled its webhook subscriber {{ $labels.subscriber }}: its events are not delivered"
+            description: "Three deliveries were given up. Fix the receiver (its key, or the service behind it), bump generation on the webhooks entry in the broker's config and restart the broker: a webhooks change applies only at restart. The events of the disabled window are not replayed."
+            runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#webhooks"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: PolicyBotUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="merge-gate", deployment="policy-bot"} == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "policy-bot has no ready pod: agent PRs wait, owner and Renovate PRs bypass"
+            description: "kubectl get pods -n merge-gate; webhook delivery errors are in the ogenki-merge-gate App's Advanced tab."
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#5-merge-policy-gate-d4"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryKillSwitchEngaged
+          expr: max(maku_factory_kill_switch_engaged) == 1
+          labels:
+            severity: info
+          annotations:
+            summary: "The agent factory's stop is engaged"
+            description: "Resume: kubectl -n agent-system delete configmap agent-factory-stop, and remove factory/stop from the control issue."
+            runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#61-kill-switch"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: FactoryGitHubUnreachable
+          # Readiness ignores GitHub (agent-platform #83), so this per-replica gauge is the only signal.
+          expr: maku_factory_github_up == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Agent factory replica {{ $labels.pod }} has not reached GitHub for 10 minutes"
+            description: "No task advances while GitHub is unreachable, and the replicas stay Ready. Check githubstatus.com, then the App key: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep -i github. The loops recover by themselves when GitHub returns."
+            runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#common-failures"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryMeterBlind
+          # Leader-only gauge, hence max() and absent(). for: 1m because enforced admission already
+          # refuses (503 meter_blind) once the heartbeat is 5 minutes old (agent-platform #87).
+          expr: (time() - max(maku_factory_meter_last_success_timestamp_seconds) > 300) or absent(maku_factory_meter_last_success_timestamp_seconds)
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "The agent factory's meter has not read token usage for over 5 minutes"
+            description: "With budgets.enforcePrincipal on, new runs are refused (503 meter_blind) and Queued tasks wait with waiting_meter_blind; active runs continue to their deadline and are revoked on recovery. Read the leader's logs: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep -i meter"
+            runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#metrics"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryRepositoryNotOwned
+          # The fence gauge (agent-platform #125) is per replica; max() so one replica's stale read
+          # does not page. No absent(): before a release carries the gauge this matches nothing.
+          expr: max by (repository) (maku_factory_repository_owned) == 0
+          for: 20m
+          labels:
+            severity: warning
+          annotations:
+            summary: "The agent factory does not own {{ $labels.repository }}"
+            description: "Its .github/agent-factory.yaml on the default branch is absent, unparsable, or names another factory (a read failing for 15 minutes counts too): no intake, schedules, API runs or merges there. Check the file, then: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep -i fence"
+            runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#factory-alerts"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentModelUnpriced
+          # J-AC4: a model served a run with no meter.prices row. The run is held to its token
+          # caps, never metered at $0, but a USD cap cannot bite on it.
+          expr: sum by (model) (increase(maku_factory_meter_unpriced_model_runs_total[1h])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "Model {{ $labels.model }} served agent runs without a price"
+            description: "Add its row to meter.prices in tooling/base/agent-factory/helm-values-configmap.yaml, from the provider's list price (input, cacheRead, output, and cacheWrite where the provider bills it). Until then its runs are capped in tokens. The leader's log names each run: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep 'without a price'"
+            runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#budget-signals"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentMeterInputExcludesCache
+          # Truthful costs TC4. Every gateway counts cache tokens inside `input`: the charge rule
+          # (vmrule-llm-gateway.yaml), the agent-cache share and the gateway budgets' CEL rest on it.
+          # The meter counts each run whose input reads below its cache tokens, once per model, and
+          # prices it right. The counter is born at its first increment, which promtool's increase()
+          # reads as 0: compare with an hour ago, absence read as 0 (as agent_router:budget_*).
+          expr: sum by (model) (clamp_min(maku_factory_meter_input_excludes_cache_runs_total - (maku_factory_meter_input_excludes_cache_runs_total offset 1h or maku_factory_meter_input_excludes_cache_runs_total * 0), 0)) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "A gateway counted {{ $labels.model }}'s input without its cache tokens"
+            description: "The meter priced those runs right, as fresh input. Every cost read through llm_gateway:charge_usd_per_mtoken under-counts them, down to a negative figure: the agent-run Cost panel and AnthropicFleetNearCap. A gateway path or the provider changed its usage shape: run test-agent-gateway-cache-wire against the deployed agentgateway digest. The leader's log names each run: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep 'without its cache tokens'"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+    # B-2, the cost cross-check (docs/superpowers/specs/2026-10-27-cost-crosscheck-design.md):
+    # the ledger's total for a run (maku_factory_run_settled_usd, read from the ledger, kept 1 h
+    # after the run) against agentgateway's own priced counter. A mismatch warns, nothing more:
+    # the meter stays the authority and a human says which side is wrong (XC6).
+    # `$$1` is Flux's escape: postBuild turns it into the `$1` label_replace reads. increase()
+    # because promtool has no increase_pure: it reads a few percent low for a run's first
+    # samples, well inside the 15 m `for` once the run has stopped spending.
+    - name: agent-cost-crosscheck
+      rules:
+        # 6 h outlasts the longest run cap. Only agentgateway series (XC7).
+        - record: agent_cost:gateway_run_usd
+          expr: sum by (run) (label_replace(increase(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+"}[6h]), "run", "$$1", "ar_agent", ".*xplane-run-(.+)"))
+        # XC4: abs(ledger - gateway) <= max(1% of the gateway, 0.01 USD). Judged only once the
+        # gateway's cost has not moved for 10 m, so a run still spending is silent. A run with an
+        # Envoy series is left out (XC7): Envoy's router exports no cost, it would always
+        # mismatch; the last_over_time keeps it out for as long as the gateway window holds it.
+        # Second branch: gateway cost the ledger never saw, only while the run's gauge must still
+        # exist (it leaves 1 h after the run ends; the cost last moved under 40 m ago).
+        - alert: AgentCostCrossCheckMismatch
+          expr: |
+            (
+              (
+                abs(max by (run) (maku_factory_run_settled_usd) - on (run) agent_cost:gateway_run_usd)
+                  > on (run) clamp_min(0.01 * agent_cost:gateway_run_usd, 0.01)
+              )
+              or
+              (
+                (agent_cost:gateway_run_usd > 0.01 unless on (run) maku_factory_run_settled_usd)
+                  and on (run) (sum by (run) (label_replace(changes(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+"}[40m]), "run", "$$1", "ar_agent", ".*xplane-run-(.+)")) > 0)
+              )
+            )
+            and on (run) (sum by (run) (label_replace(changes(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+"}[10m]), "run", "$$1", "ar_agent", ".*xplane-run-(.+)")) == 0)
+            unless on (run) label_replace(sum by (ar_agent) (last_over_time(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:xplane-run-.+", namespace!="agent-gateway"}[6h])), "run", "$$1", "ar_agent", ".*xplane-run-(.+)")
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Run {{ $labels.run }}: the ledger and the gateway disagree on its cost"
+            description: "The ledger's total for the run and agentgateway's priced counter differ by more than max(1 %, 0.01 USD), or the gateway priced spend the ledger never saw. Neither side is presumed right: the runbook lists the suspects (a double charge, a lost write, an overlay price, an unpriced lookup, a scrape gap)."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-g--the-cost-cross-check"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-run?var-run={{ $labels.run }}"
+        # agentgateway prices a response from the overlay catalog (agent-model-catalog) and counts
+        # the lookup; only Exact adds to the cost counter, so any other status is spend the
+        # cross-check cannot see on the gateway side.
+        - alert: AgentGatewayCostUnpriced
+          expr: sum by (ar_agent, gen_ai_request_model, status) (increase(agentgateway_cost_catalog_lookups_total{namespace="agent-gateway", status!="Exact"}[15m])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "agentgateway could not price {{ $labels.gen_ai_request_model }} ({{ $labels.status }}) for {{ $labels.ar_agent }}"
+            description: "A catalog lookup other than Exact adds nothing to the gateway's cost counter. Missing or Unpriced: the model has no row in agent-model-catalog (meter.prices, then gen-prices.py --write). NoCatalog: the ConfigMap is not mounted on the proxy."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-g--the-cost-cross-check"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"

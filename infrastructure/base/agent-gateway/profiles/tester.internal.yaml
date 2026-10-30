@@ -1,0 +1,47 @@
+# Rendered into mcp.yaml by scripts/ci/gen-capabilities.py --write (capability profiles design).
+# models is rendered into policy-capabilities.yaml (P2): the aliases this role may call.
+# A tool's when is rendered into policy-capabilities.yaml (P3): a call carrying the value it excludes answers 403.
+role: tester
+dataClass: internal
+models: [agent-default, tier-light, tier-standard, tier-frontier]
+tools:
+  flux-operator-mcp:
+    - search_flux_docs
+    - get_flux_instance
+    - get_kubernetes_api_versions
+    - {name: get_kubernetes_resources, when: 'mcp.tool.arguments.kind not in ["secret", "secretlist", "secrets"]'}
+    - get_kubernetes_metrics
+    - get_kubernetes_logs
+  mcp-victoriametrics:
+    - documentation
+    - query
+    - query_range
+    - metrics
+    - metrics_metadata
+    - labels
+    - label_values
+    - series
+    - alerts
+    - rules
+    - explain_query
+    - prettify_query
+    - metric_statistics
+  mcp-victorialogs:
+    - documentation
+    - query
+    - hits
+    - facets
+    - field_names
+    - field_values
+    - stats_query
+    - stats_query_range
+    - streams
+    - stream_ids
+    - stream_field_names
+    - stream_field_values
+  # TF2: the tester writes the contract and gives no verdict (capability profiles: the tester's drop room_verdict).
+  room-broker:
+    - room_read
+    - room_post
+    - room_progress
+    - room_handoff

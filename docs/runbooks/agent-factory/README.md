@@ -6,7 +6,8 @@ every step names its expected output. A **room** is the per-task workspace the r
 
 ## State
 
-gcp-0 was torn down on 2026-10-29. Live sessions run on aws-0 from 2026-10-30. The next bootstrap is fresh, on Maku v0.32.0 (CRD group
+Live sessions run on aws-0 from 2026-10-30.
+gcp-0 was torn down on 2026-10-29. The next bootstrap is fresh, on Maku v0.32.0 (CRD group
 `maku.ogenki.io`): start with [runbook 14](14-gcp-0-session.md), then
 [Runbook 00](#runbook-00-one-time-cluster-setup). The runbooks stay written for that session.
 

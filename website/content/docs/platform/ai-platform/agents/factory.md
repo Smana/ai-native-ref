@@ -72,9 +72,9 @@ human review, and the `AgentFactoryMergeRegression` alert fires on a regression.
 **One approval merges.** With `merge.approveToMerge`, a maintainer's approval of the current head
 is the merge: the merger merges that head, as a human merge, outside the daily caps, and the
 pull request carries `factory/merged:<class>` and `factory/approved-merge`. The hand-off comment
-names that one action. The eight hand-offs a human fixes by hand (a gate path, a foreign trailer,
-a steering note, a refused merge) keep the bypass instructions. Shadow decisions ignore the
-breaker and the caps, a maintainer's `factory/drill` revert never trips the breaker, and a tripped
+names that one action. The nine hand-offs a human fixes by hand (a gate path, a foreign trailer,
+a steering note, a human's commit in the pull request) keep the bypass instructions. Shadow decisions ignore the
+breaker and the caps, a maintainer's `factory/drill` revert, labelled before `factory/revert`, never trips the breaker, and a tripped
 class resumes after three clean mature merges
 ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-29-merge-gate-human-path-design.md)).
 

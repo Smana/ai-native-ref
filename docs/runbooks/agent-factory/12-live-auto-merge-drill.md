@@ -98,7 +98,10 @@ flowchart LR
 - **Retroactively:** the drill of 2026-10-18 reverted #2520 through #2521 without the label. Before
   the next session, label #2521:
   `gh api -X POST repos/Smana/cloud-native-ref/issues/2521/labels -f 'labels[]=factory/drill'`.
-  The next ledger read no longer counts it, and `docs-links` resumes.
+  A label added after the revert lifts a pause only through GitHub's labels, when no Task exists for
+  #2520, at the next process start (the labels are read once per process). aws-0 starts with no Task for
+  #2520, so its first start reads the label and `docs-links` resumes; on a factory that still holds that
+  Task it would not.
 - **Live means `{live: true}`.** `{}` is "neither": a label only, the gate hands off `class_unarmed` (`class_mismatch` before Maku v0.28.1).
 - **Both classes go live in one commit** (D5): a live class with a shadow `revert` would wait for a
   human to merge its own revert.
@@ -259,7 +262,10 @@ Expected:
   ([finding 5](#findings)): merge it by hand;
 - the task's `status.pullRequest.drill` is `true`
   (`kubectl get task -n agent-system "$TASK" -o jsonpath='{.status.pullRequest.drill}'`);
-- the control issue #2188 reports no `ClassDemoted` for this revert.
+- the control issue #2188 carries the drill notice (Maku posts it in `ClassDemoted`'s place: "an auto-merge
+  of `docs-links` was reverted as a drill … the class's breaker does not count the revert (AM6)"), not a
+  `ClassDemoted`, and `#$PR` carries the drill sentence ("the revert is a drill: the class's breaker does
+  not count it").
 
 The breaker holds 0 reverts. Its proof is the next `docs-links` decision, which must **not** be
 `class_paused`. If another `docs-links` PR reaches the gate during the window, read it there.
@@ -391,8 +397,8 @@ now `/reference/api-types/httproute/`, 200).
 
 ### What remains
 
-The breaker's live proof (the next `docs-links` decision reads `class_paused`) and #158's unattended
-revert merge. Both come with the next `docs-links` PR and the next revert, which the weekly `link-rot`
+The breaker's live proof (the next `docs-links` decision after the drill is not `class_paused`, Step 5
+and G1) and #158's unattended revert merge. Both come with the next `docs-links` PR and the next revert, which the weekly `link-rot`
 schedule (Mondays 06:00 UTC) produces unattended.
 
 ### Template
@@ -404,6 +410,6 @@ schedule (Mondays 06:00 UTC) produces unattended.
 | 2 | task `docs-links`, PR opened | | |
 | 3 | `AutoMerging` → `Verifying` | | |
 | 4 | merged by the merger at the task's `headSHA`, `Agent-Run` trailer, `factory/auto-merged:docs-links` | | |
-| 5 | `factory/drill` then `factory/revert`; revert PR by the merger with both labels, auto-merged; `status.pullRequest.drill` true, no `ClassDemoted` | | |
+| 5 | `factory/drill` then `factory/revert`; revert PR by the merger with both labels, auto-merged; `status.pullRequest.drill` true, the drill notice on #2188, no `ClassDemoted` | | |
 | 6 | both classes `{shadow: true}`, cap 10 | | |
 | G1 | after the restart, the drill's revert is not counted, no `class_paused` | | |

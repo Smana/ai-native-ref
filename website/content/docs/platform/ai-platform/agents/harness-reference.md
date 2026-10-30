@@ -154,7 +154,7 @@ turns the claim into the pod. Nothing here is set per run.
 
 | Setting | Value |
 |---|---|
-| Harness image | `ghcr.io/smana/maku-harness:v0.32.0@sha256:f59d3942cc35…` (the release's image; the composition pin lives in crossplane-configuration): a harness change reaches runs only through the composition's digest, so the harness roles reach runs with that bump |
+| Harness image | `ghcr.io/smana/maku-harness:v0.32.0@sha256:f59d3942cc352b9de461713efefd2680ad55fffdc9149de9f421e958b0935d17` (the release's image; the composition pin lives in crossplane-configuration): a harness change reaches runs only through the composition's digest, so the harness roles reach runs with that bump |
 | Environment | `MODEL`, `DATA_CLASS`, `ROLE`, `LLM_BASE_URL`, `MCP_URL`, `TASK_FILE`, `RULES_FILE`, tracing; `AGENT_CHECKS` and `AGENT_RUN_SECONDS` with `loop.checks`; `AGENT_SEARCH` with `loop.search`. `LLM_REASONING_EFFORT` is not set |
 | `rules.md` | One branch, one PR, never `.github/workflows/`, "a 429 means the budget is spent: stop". Each rule is also enforced outside the sandbox |
 | `task.md` | The task text: the biggest driver of a run's length |

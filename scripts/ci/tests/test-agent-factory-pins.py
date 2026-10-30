@@ -48,6 +48,15 @@ names = {"ghcr.io/smana/charts/maku-factory", "ghcr.io/smana/maku-factory"}
 if not any(names <= set(r.get("matchPackageNames") or []) and r.get("groupName") for r in rules):
     problems.append("no Renovate packageRule groups the factory's chart and image")
 
+# Human path AM1 and AM7: approve-to-merge and the breaker's recovery are on for every repository.
+# The strict decoder refuses both keys on a Maku older than v0.32.0, so they move with the pin.
+for repo in yaml.safe_load(cm["data"]["values.yaml"])["config"]["repositories"]:
+    merge = repo["merge"]
+    if merge.get("approveToMerge") is not True:
+        problems.append(f"repository {repo['name']}: merge.approveToMerge is not true")
+    if merge.get("breaker", {}).get("recoverAfter") != 3:
+        problems.append(f"repository {repo['name']}: merge.breaker.recoverAfter is not 3")
+
 for p in problems:
     print(f"FAIL: {p}")
 print(f"==> agent-factory pins: chart {chart_tag}, image {version}, {len(problems)} problem(s)")

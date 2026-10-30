@@ -10,9 +10,9 @@ metadata:
 spec:
   image:
     repository: ghcr.io/smana/maku-broker
-    # maku v0.31.0, by digest. Move it with the retention CronJob's,
+    # maku v0.32.0, by digest. Move it with the retention CronJob's,
     # crd-rooms.yaml and atlasSchema.ref together.
-    tag: "v0.31.0@sha256:0f871af123fc9cd7e7ac82c7a47474a4ab75ea89c80ccac267d98ca8fdbec4d8"
+    tag: "v0.32.0@sha256:57262e4909ed7ccf0a0a0b4a85bd155fc35b43120860ba373d3da7875890e42c"
   # Two from phase 2 (§9): the leader lease picks the controller, and every
   # replica serves humans through the LISTEN/NOTIFY hub (ruling AT).
   replicas: 2

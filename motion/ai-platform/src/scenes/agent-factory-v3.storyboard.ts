@@ -1,10 +1,11 @@
 // The editable part of the v3 clip: beats, timings and wording.
 // Wrap words in **…** to accent them; \u00a0 keeps two words on one line.
 
-import type { Beat } from './agent-factory.storyboard.js';
+import type { Beat } from './beat.js';
 
 // No title card: the clip is meant for a docs page, where the heading does that job.
-export const title = { url: 'airef.ogenki.io', licence: 'Apache-2.0' };
+// Beats map to the runbook layers: scoper (1), judge and loop policy (2), search (4),
+// splitter (5), tester (6).
 
 export const labels = {
   cluster: 'Kubernetes',
@@ -16,24 +17,28 @@ export const labels = {
   parts: ['Part 1', 'Part 2', 'Part 3'],
   splitCommand: '/factory split',
   implementer: { title: 'Implementer', sandbox: 'gVisor sandbox', inside: 'one writer · one branch' },
-  search: { title: 'Search', sub: 'fresh context' },
+  search: { title: 'Search', sub: 'in-process · read-only' },
   checks: 'runs the repo checks before pushing',
-  stall: 'no commit by step 80 → stop',
-  judge: { title: 'Judge', sub: 'fresh context · no tools' },
+  tester: { title: 'Tester', sub: 'failing test first \u00b7 the contract' },
+  needsAuthor: 'factory/needs-author',
+  legend: 'docs: scoper \u00b7 judge \u00b7 search  |  scripts: scoper \u00b7 split \u00b7 judge  |  docs-links: implementer \u2192 gate',
+  stall: 'no commit by step N → stop',
+  judge: { title: 'Judge', sub: 'a call, not a run · no tools' },
   verdicts: 'met · not yet · impossible',
-  reviewer: { title: 'Reviewer', sub: 'never reads the transcript' },
-  evidence: 'evidence, or abstain',
-  gate: { title: 'Merge gate', sub: 'holdout checks · one lane at a time' },
+  reviewer: { title: 'Reviewer', sub: 'fresh context · the diff, not the story' },
+  evidence: 'cites the checks\u2019 output',
+  gate: { title: 'Merge gate', sub: 'holdout checks · low-risk classes only' },
   edges: {
     label: 'labels issue',
-    review: 'reviews ·\nmerges',
+    review: 'approves ·\nmerges',
     question: 'one question to the author',
-    scope: 'scope',
-    oneAtATime: 'one at a time',
+    oneAtATime: 'next part after the merge',
     finished: 'finished',
     notYet: 'not yet',
     met: 'met',
-    pr: 'PR · merge',
+    pr: 'merge · low-risk classes only',
+    openPR: 'branch · PR',
+    escalate: 'escalates to a maintainer',
   },
 };
 
@@ -51,17 +56,17 @@ export const beats = {
   implement: {
     start: 13,
     end: 20,
-    caption: 'The implementer runs the repo\u2019s **own\u00a0checks**, asks a **search\u00a0helper**, and **stops if it wanders**.',
+    caption: 'The implementer runs the repo\u2019s **own\u00a0checks**, asks **search**, and **stops if it wanders**.',
   } as Beat,
   judge: {
     start: 20,
     end: 27,
-    caption: 'An independent **judge** says done. A reviewer that never saw the transcript needs **evidence**.',
+    caption: 'A fresh-context **judge** says done. A fresh-context **reviewer** cites the **checks**.',
   } as Beat,
   outro: {
     start: 27,
     end: 33,
-    caption: 'Every switch off by default. **Each lane earns lights-out on evidence.**',
+    caption: 'Each stage is a per-class switch. **Only link fixes and reverts merge without a human.**',
   } as Beat,
 };
 

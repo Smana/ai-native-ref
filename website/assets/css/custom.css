@@ -648,6 +648,8 @@ pre.mermaid { cursor: zoom-in; }
   background: #0b1220;
 }
 .anr-hero-poster { display: none; }
+/* the clip alone, in a docs page */
+.anr-clip .anr-hero-media { width: min(100%, 30rem); margin: 1.5rem auto; }
 .anr-hero-media figcaption {
   margin-top: 0.75rem;
   font-size: 0.875rem;

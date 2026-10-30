@@ -2,11 +2,7 @@
 // Shift a beat's `start` and everything in it moves; the drawing code in
 // agent-factory.ts only knows beat names. Wrap words in **…** to accent them.
 
-export interface Beat {
-  start: number;
-  end: number;
-  caption?: string;
-}
+import type { Beat } from './beat.js';
 
 export const title = {
   text: 'Agent Factory',

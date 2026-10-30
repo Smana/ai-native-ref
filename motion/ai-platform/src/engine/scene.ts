@@ -49,6 +49,8 @@ export interface SceneOptions {
   fps: number;
   duration: number;
   background: (ctx: Ctx, t: number) => void;
+  /** Shift every element, to reuse a layout on a canvas of another size. */
+  offset?: [number, number];
 }
 
 export class Scene {
@@ -90,6 +92,7 @@ export class Scene {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     this.opts.background(ctx, t);
+    if (this.opts.offset) ctx.translate(this.opts.offset[0], this.opts.offset[1]);
     const ordered = [...this.elements].sort((a, b) => a.z - b.z);
     for (const e of ordered) {
       const g = this.groups.get(e.group)?.value(t) ?? 1;

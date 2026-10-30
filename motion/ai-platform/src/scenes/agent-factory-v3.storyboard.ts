@@ -17,9 +17,9 @@ export const labels = {
   parts: ['Part 1', 'Part 2', 'Part 3'],
   splitCommand: '/factory split',
   implementer: { title: 'Implementer', sandbox: 'gVisor sandbox', inside: 'one writer · one branch' },
-  search: { title: 'Search', sub: 'in-process · read-only' },
+  search: { title: 'Search', sub: ['in-process', 'read-only'] },
   checks: 'runs the repo checks before pushing',
-  tester: { title: 'Tester', sub: 'failing test first \u00b7 the contract' },
+  tester: 'Tester \u00b7 test first',
   needsAuthor: 'factory/needs-author',
   legend: 'docs: scoper \u00b7 judge \u00b7 search  |  scripts: scoper \u00b7 split \u00b7 judge  |  docs-links: implementer \u2192 gate',
   stall: 'no commit by step N → stop',
@@ -36,9 +36,9 @@ export const labels = {
     finished: 'finished',
     notYet: 'not yet',
     met: 'met',
-    pr: 'merge · low-risk classes only',
+    pr: 'merge · low-risk\nclasses only',
     openPR: 'branch · PR',
-    escalate: 'escalates to a maintainer',
+    escalate: 'escalates to\na maintainer',
   },
 };
 
@@ -56,7 +56,7 @@ export const beats = {
   implement: {
     start: 13,
     end: 20,
-    caption: 'The implementer runs the repo\u2019s **own\u00a0checks**, asks **search**, and **stops if it wanders**.',
+    caption: 'The implementer runs the repo\u2019s **own\u00a0checks**, asks **search** and **stops if it wanders**.',
   } as Beat,
   judge: {
     start: 20,

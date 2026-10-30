@@ -1,4 +1,5 @@
-// One place for colours, type and canvas size, shared by every clip.
+// One place for colours, type and canvas size, shared by the clips. `height` is the 4:5 feed clip
+// (agent-factory); agent-factory-v3 sets its own 1080×1280 canvas in its scene.
 
 export const theme = {
   width: 1080,

@@ -8,6 +8,8 @@ bytes, an optional "# " title on line 1, only blank lines before the first "## "
 three "## " lines wherever they stand, one "## Verify" with a "- " or "* " item. A note is named
 after a class the factory config declares, or review.
 
+One rule is this repository's own: no note line starts with "Acceptance:" (acceptance_line).
+
 run-tests.sh runs this from .composite/ with cwd = this repository."""
 import pathlib
 import sys
@@ -47,6 +49,16 @@ def validate(raw: bytes) -> str:
         return "no ## Verify module"
     if items == 0:
         return "## Verify lists no check"
+    return ""
+
+
+def acceptance_line(raw: bytes) -> str:
+    """This repository's own rule, beyond the factory's: the harness's judge reads a line starting
+    "Acceptance:" as the task's acceptance, so a note line like that would take over the acceptance of
+    every task in the class."""
+    for i, line in enumerate(raw.decode("utf-8", "replace").split("\n")):
+        if line.lstrip(" \t-*").startswith("Acceptance:"):
+            return f"line {i + 1} starts with 'Acceptance:' (the judge would read it as the task's acceptance)"
     return ""
 
 
@@ -90,9 +102,17 @@ for name, (text, want) in CASES.items():
     if want not in validate(text.encode()):
         fails.append(f"{name}: {validate(text.encode())!r}, want {want!r}")
 
+for text in ("## Verify\n- x\nAcceptance: all of it\n", "## Verify\n- Acceptance: x\n"):
+    if not acceptance_line(text.encode()):
+        fails.append(f"an 'Acceptance:' line is accepted: {text!r}")
+if acceptance_line(DOCS.encode()):
+    fails.append("the docs note trips the Acceptance rule")
+
 known = classes()
 for note in sorted(NOTES.glob("*.md")) if NOTES.is_dir() else []:
     if why := validate(note.read_bytes()):
+        fails.append(f"{note.relative_to(OWN)}: {why}")
+    if why := acceptance_line(note.read_bytes()):
         fails.append(f"{note.relative_to(OWN)}: {why}")
     if note.stem not in known:
         fails.append(f"{note.relative_to(OWN)}: {note.stem!r} is not review or a declared class {sorted(known)}")

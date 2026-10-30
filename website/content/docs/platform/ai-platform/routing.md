@@ -528,7 +528,7 @@ to the 0.2 config with the documented 0.70–0.75 threshold: it never fires.
 | Tokens by served model and type | `sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{namespace="agent-gateway"}[24h]))` |
 | Cache-read share | `sum(increase(gen_ai_client_token_usage_sum{namespace="agent-gateway",gen_ai_token_type="cached_input"}[24h])) / sum(increase(gen_ai_client_token_usage_sum{namespace="agent-gateway",gen_ai_token_type="input"}[24h]))` |
 | USD per model, as the meter priced it | `sum by (model) (maku_factory_model_cost_usd_total)` |
-| USD per run, by tier | `maku_factory_run_cost_usd_sum / maku_factory_run_cost_usd_count`, by `tier` |
+| USD per run, by tier | `sum by (tier) (maku_factory_run_cost_usd_sum) / sum by (tier) (maku_factory_run_cost_usd_count)` |
 | One run's cost, exactly | `kubectl get task <id> -n agent-system -o jsonpath='{.status.runs[*].costMicroUSD}'` |
 | Did the tier fit? | `maku_factory_tier_fit_total{classifier, tier, fit}`: `under`, `fit`, `over` |
 | Model latency | `histogram_quantile(0.95, sum by (le, gen_ai_request_model) (rate(gen_ai_server_request_duration_seconds_bucket{namespace="agent-gateway"}[1h])))`: p50 2.8 s, p95 18.4 s on `glm-5.3`, 2026-10-18 |

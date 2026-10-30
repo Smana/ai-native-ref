@@ -211,7 +211,7 @@ name, purpose and expected outcome; reword a drill's text before it runs again.
 | 1. Scoper | `scope: scoper` | [scoper](../../superpowers/specs/2026-10-22-scoper-design.md#gate) |
 | 2. Loop policy | `stallSteps: 60`, `continuations: 2`, `judge: tier-light` | [loops](../../superpowers/specs/2026-10-21-loops-and-teams-design.md), [harness reference](../../../website/content/docs/platform/ai-platform/agents/harness.md#loop-policy) |
 | 3. Sandbox checks | `checks: true` | [sandbox checks](../../superpowers/specs/2026-10-22-sandbox-checks-design.md#gate) |
-| 4. Search tool | `search: true` | [search tool](../../superpowers/specs/2026-10-23-search-tool-design.md) |
+| 4. Search tool (used live once; SQ5a open) | `search: true` | [search tool](../../superpowers/specs/2026-10-23-search-tool-design.md) |
 | 5. Splitter (`scripts`) | `split: {…}` | [splitter](../../superpowers/specs/2026-10-23-splitter-design.md) |
 | 6. Test-first tester (`scripts`) | `testFirst: true` | [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) |
 

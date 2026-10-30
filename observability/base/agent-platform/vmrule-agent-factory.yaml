@@ -26,8 +26,8 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "An auto-merged agent PR was reverted"
-            description: "Its class is paused by the breaker: 1 revert in its last 10 merges (R41), lifted by 3 clean mature merges (recoverAfter) or when the revert was a maintainer's factory/drill. Read why on the task: kubectl get task -n agent-system -o wide | grep Reverted"
+            summary: "A merged agent PR was reverted"
+            description: "Unless the revert PR carries factory/drill (a drill: the breaker does not count it, and this alert fires on the planned drill too), its class is paused by the breaker: 1 revert in its last 10 merges (R41), lifted by 3 clean mature merges (recoverAfter). Read why on the task: kubectl get task -n agent-system -o wide | grep Reverted"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md#64-rollback"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryMergeRegression
@@ -54,7 +54,7 @@ spec:
             severity: warning
           annotations:
             summary: "{{ $labels.class }} on {{ $labels.repository }} has been paused for 7 days"
-            description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter), or a maintainer's factory/drill on a drill revert. Read the window: scripts/shadow-merge-tally.sh --repo {{ $labels.repository }} --class {{ $labels.class }} --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
+            description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter); factory/drill lifts it only if added before factory/revert, or on a rebuilt factory. Read the window: scripts/shadow-merge-tally.sh --repo {{ $labels.repository }} --class {{ $labels.class }} --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md#know-before-the-go"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryDailyBudgetHigh

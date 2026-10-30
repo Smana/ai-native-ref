@@ -30,6 +30,12 @@ for repo in vals["config"]["repositories"]:
 m = re.search(r'class=~"([^"]+)"', rules[0]["expr"])
 if not m or set(m.group(1).split("|")) != live:
     sys.exit("alert regex %s != live classes in the config %s" % (m and m.group(1), sorted(live)))
+# The dashboard's "Classes paused" tile counts the same live set.
+dash = yaml.safe_load(open(os.path.join(os.environ["ROOT"], "observability/base/agent-platform/grafana-dashboard-agent-factory.yaml")))
+import json
+panel = [pn for pn in json.loads(dash["spec"]["json"] if "spec" in dash else dash["data"][next(iter(dash["data"]))])["panels"] if pn.get("title") == "Classes paused"]
+if len(panel) != 1 or ('class=~"%s"' % m.group(1)) not in panel[0]["targets"][0]["expr"].replace('\\"', '"'):
+    sys.exit("the Classes paused panel must select the alert's live classes %s" % m.group(1))
 yaml.safe_dump({"groups": [{"name": "t", "rules": rules}]}, open(os.environ["OUT"], "w"), sort_keys=False)
 PY
 # Quoted heredoc: ${private_domain_name} stays literal, as in the rule.
@@ -62,13 +68,13 @@ tests:
           - exp_labels: {severity: warning, repository: Smana/cloud-native-ref, class: docs-links}
             exp_annotations:
               summary: "docs-links on Smana/cloud-native-ref has been paused for 7 days"
-              description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter), or a maintainer's factory/drill on a drill revert. Read the window: scripts/shadow-merge-tally.sh --repo Smana/cloud-native-ref --class docs-links --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
+              description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter); factory/drill lifts it only if added before factory/revert, or on a rebuilt factory. Read the window: scripts/shadow-merge-tally.sh --repo Smana/cloud-native-ref --class docs-links --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
               runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md#know-before-the-go"
               dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
           - exp_labels: {severity: warning, repository: Smana/cloud-native-ref, class: revert}
             exp_annotations:
               summary: "revert on Smana/cloud-native-ref has been paused for 7 days"
-              description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter), or a maintainer's factory/drill on a drill revert. Read the window: scripts/shadow-merge-tally.sh --repo Smana/cloud-native-ref --class revert --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
+              description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter); factory/drill lifts it only if added before factory/revert, or on a rebuilt factory. Read the window: scripts/shadow-merge-tally.sh --repo Smana/cloud-native-ref --class revert --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
               runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md#know-before-the-go"
               dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
       - eval_time: 6d

@@ -23,7 +23,7 @@ every run has a task and a budget. This page describes the design; what runs tod
 | **Triage** | Once per task: which class it is (for example `docs-links`), which team of roles works it, and how big a budget it gets. A refusal is explained in a comment. What triage predicts only chooses the team and the budget; risk is enforced on the diff at merge time |
 | **Teams** | Roles run as sequential `AgentRun`s in one room, on one `agent/<task>` branch: an implementer, then a reviewer, with a tester in larger teams. Only the implementer writes |
 | **Revise** | A GitHub review with "Request changes" becomes the input of a new run on the same branch. `/factory retry` tries again after a failure |
-| **Merge gate** | Only low-risk classes, and only with green CI and the policy agreeing: `docs-links` and `revert` (the factory's revert of an auto-merged `docs-links` change). Everything else waits for a human. Each class declares its conditions (allowed and protected files, size, diff shape, holdout checks) on top of a base it cannot remove; `dead-links`, which fixes dead external links a nightly scan found twice, is declared and runs in shadow. Since v2.0 the gate is live: link fixes merge with no human, at most once a day, and a revert breaker demotes the class to human review |
+| **Merge gate** | Only low-risk classes, and only with green CI and the policy agreeing: `docs-links` and `revert` (the factory's revert of an auto-merged `docs-links` change). Everything else waits for a human, or for one maintainer approval. Each class declares its conditions (allowed and protected files, size, diff shape, holdout checks) on top of a base it cannot remove; `dead-links`, which fixes dead external links a nightly scan found twice, is declared and runs in shadow. Since v2.0 the gate is live: link fixes merge with no human, at most once a day, and a revert breaker demotes the class to human review |
 | **Scope** | `loops.<class>.scope` is `off`, `steering` or `scoper`; `docs` and `scripts` run `scoper`, every other class is `off`. `steering` adds the class's note (`.github/agent-factory/steering/<class>.md`) to the implementer's brief. `scoper` first runs a read-only triager that turns the issue into a bounded task with acceptance checks, or asks the author the question it could not answer (the [user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#scoper-question" >}})). Three counters by repository and class: scoper outcomes, steering reads (`used`, `absent`, `invalid`) and bounce exits (`relabel`, `retry`, `expired`) |
 | **Split** | `loops.<class>.split` is set on `scripts` only, with `anyTier: true` (proven live on 2026-10-29: a split into 3 parts with a merge order). A row needs `scope: scoper` on the same row and never applies to `docs-links`, `revert` or an oracle class. Its keys: `maxChildren` (2 to 5, required), `familyUSD` (the cap on the parent and every part together; default four of the child tier's task caps, $20.40 on `standard`) and `childTier` (default `standard`). A split is only proposed for a task C7 puts on `frontier`, and parts open one at a time after a maintainer's `/factory split` ([user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#split" >}})). Two counters by repository and class: `maku_factory_splits_total` (by outcome) and `maku_factory_split_children_total` (`landed`, `dropped`, `reverted`) |
 | **Test-first tester** | Per class, `testFirst: true` (it needs `checks: true`) runs the tester before the implementer: its tests, failing on the base, become the contract the implementer works against. `merge.contractCheck` names the host's `Test contract 🧪` check, required on a task that has a contract (row 2b) and report-only otherwise; row 2c refuses a head that changed the contract. Reasons: `contract_invalid`, `contract_disputed`, `contract_modified`. `holdoutChecks` on a live or shadow class names the checks the implementer cannot read. Metrics: `maku_factory_contracts_total` and `maku_factory_class_without_holdout`. Proven live ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)); `testFirst` is `false` everywhere now, and on `scripts` a session switch ([#199](https://github.com/Smana/ai-native-ref/pull/199)); `trio` is the implementer and the reviewer until the bench. The roles: [run roles]({{< relref "/docs/platform/ai-platform/agents/roles.md" >}}) |
@@ -69,6 +69,15 @@ back-fills older merges. The merger labels the pull request (`factory/merged:<cl
 rebuild. A regression or a follow-up counts against the breaker like a revert and sends the class back to
 human review, and the `AgentFactoryMergeRegression` alert fires on a regression.
 
+**One approval merges.** With `merge.approveToMerge`, a maintainer's approval of the current head
+is the merge: the merger merges that head, as a human merge, outside the daily caps, and the
+pull request carries `factory/merged:<class>` and `factory/approved-merge`. The hand-off comment
+names that one action. The nine hand-offs a human fixes by hand (a gate path, a foreign trailer,
+a steering note, a human's commit in the pull request) keep the bypass instructions. Shadow decisions ignore the
+breaker and the caps, a maintainer's `factory/drill` revert, labelled before `factory/revert`, never trips the breaker, and a tripped
+class resumes after three clean mature merges
+([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-29-merge-gate-human-path-design.md)).
+
 ## Components and software
 
 | Component | Software | What it does | Why this software |
@@ -84,7 +93,7 @@ human review, and the `AgentFactoryMergeRegression` alert fires on a regression.
 | Boundary | Mechanism |
 |---|---|
 | Spend | Per-run deadline; the factory's run meter revokes a run at its token cap; token budgets at the gateway; at most 20 tasks a day |
-| Merge | Only low-risk classes (`docs-links`, `revert`) merge themselves, through policy-bot and a separate merger App, live since v2.0, with a revert breaker; everything else waits for a human |
+| Merge | Only low-risk classes (`docs-links`, `revert`) merge themselves, through policy-bot and a separate merger App, live since v2.0, with a revert breaker; everything else waits for a human, or for one maintainer approval |
 | Stop | `kubectl -n agent-system create configmap agent-factory-stop` pauses intake and stops every task; one label on a pinned control issue also refuses new runs and revokes every running one |
 
 The sandbox, identity and GitHub boundaries are on

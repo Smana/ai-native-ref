@@ -17,7 +17,7 @@ Every knob of a run, layer by layer. How to use them is on
   {{< card link="#harness" title="Harness" icon="cog" subtitle="The loop's settings, baked into the image." >}}
 {{< /cards >}}
 
-**Pins on `main`, 2026-10-29:** Maku `v0.31.0`, composed by crossplane-configuration `v0.9.29`. Values below are the repository's; `live` means seen on `gcp-0`.
+**Pins on `main`, 2026-10-29:** Maku `v0.32.0`, composed by crossplane-configuration `v0.9.29`. Values below are the repository's; `live` means seen on `gcp-0`.
 
 | Status | Meaning |
 |---|---|

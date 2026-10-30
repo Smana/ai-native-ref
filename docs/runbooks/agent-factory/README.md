@@ -6,7 +6,7 @@ every step names its expected output. A **room** is the per-task workspace the r
 
 ## State
 
-gcp-0 was torn down on 2026-10-29. The next bootstrap is fresh, on Maku v0.31.0 (CRD group
+gcp-0 was torn down on 2026-10-29. The next bootstrap is fresh, on Maku v0.32.0 (CRD group
 `maku.ogenki.io`): start with [runbook 14](14-gcp-0-session.md), then
 [Runbook 00](#runbook-00-one-time-cluster-setup). The runbooks stay written for that session.
 
@@ -48,7 +48,7 @@ The runbooks keep their intended expectation for each, with a "Known issue" note
 | [09-app-key-compromise.md](09-app-key-compromise.md) | The App key-compromise procedure (SD14): stop, rotate, reload, revoke, resume and audit, for all four Apps | Yes — the App's installation page and settings | ~20 min |
 | [10-disruption.md](10-disruption.md) | Disruption design acceptance 1–6 | Yes — a maintainer's `factory/ready`; aws-0 Step 7 needs IAM | ~60 min |
 | [11-v1-validation.md](11-v1-validation.md) | Local-first UX: the skill, `maku status`, the room page, zoomable diagrams, D7 room access, observability on one run, one task end to end on release pins | Yes — a maintainer's `factory/ready`; a second, non-admin identity and a private test repo | ~90 min |
-| [12-live-auto-merge-drill.md](12-live-auto-merge-drill.md) | Design D4, gate G1–G3: an unattended `docs-links` merge at the run-reported head, its revert and the breaker (both classes live in the source) | Yes — the owner's go, the merger App's `issues: write` and `actions: write`, the `agent-merge` and `agent-branches` rulesets, policy-bot on gcp-0, a maintainer's `factory/ready` | ~2 h |
+| [12-live-auto-merge-drill.md](12-live-auto-merge-drill.md) | Design D4, gate G1–G3: an unattended `docs-links` merge at the run-reported head, its revert and the breaker (both classes live in the source) | Yes — the owner's go, the merger App's `issues: write` and `actions: write`, the `agent-merge` and `agent-branches` rulesets, policy-bot on aws-0, a maintainer's `factory/ready`, `factory/drill` on the drilled PR | ~2 h |
 | [13-rooms-restore.md](13-rooms-restore.md) | Issue #27: the rooms database restores from `rooms-pre-destroy` on a rebuild, and into a scratch namespace; RPO and RTO | Part A: a teardown and rebuild. Part B: the owner's go (writes a seed) | A: the rebuild + 10 min; B: ~30 min |
 | [14-gcp-0-session.md](14-gcp-0-session.md) | The ordered gcp-0 session: gcp-0 up alone, the v2.1 blockers live, runbook 11 as the full test, v2 on gcp-0, the Substrate spike | Yes — Google auth, the quota request, the identity-provider topology, the agents keys, the go-live commit | a day, plus the spike's two |
 | [15-dead-links.md](15-dead-links.md) | Merge gate classes: the `dead-links` class in shadow (an oracle-backed intake, a would-arm decision, the post-merge monitor) and, on the owner's go, one live drill with its revert | Shadow (in the source): no. The drill: the owner's go, the merger App's `actions` permission, a host `.policy.yml` rule | shadow: a day; drill: ~1 h |

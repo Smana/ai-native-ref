@@ -8,7 +8,7 @@ Each step points to the runbook that holds its detail. Results go in that runboo
 cluster-level evidence goes in a `results-gcp-0-<date>.md`, as in
 [the 2026-09-30 round](results-gcp-0-2026-09-30.md).
 
-gcp-0 was torn down on 2026-10-29. The next bootstrap is fresh, on Maku v0.31.0 (CRD group
+gcp-0 was torn down on 2026-10-29. The next bootstrap is fresh, on Maku v0.32.0 (CRD group
 `maku.ogenki.io`): no cluster may still run v0.30.x Rooms, or Flux prunes `rooms.agents.ogenki.io` and
 every Room under it. Steps 1 and 6 are already on cloud-native-ref's `main`; check they still are.
 
@@ -34,7 +34,7 @@ flowchart TD
 | 0.2 | **[OWNER]** The CPU quota fits the platform (sizing below) | `gcloud compute project-info describe --project ogenki-435905 --flatten=quotas --filter='quotas.metric=CPUS_ALL_REGIONS' --format='value(quotas.limit,quotas.usage)'` and `gcloud compute regions describe europe-west4 --project ogenki-435905 --flatten=quotas --filter='quotas.metric:(CPUS N2_CPUS E2_CPUS)' --format='table(quotas.metric,quotas.limit,quotas.usage)'` |
 | 0.3 | **[OWNER]** Shell inputs | `export TF_VAR_tailscale_api_key=…`, plus AWS credentials for `opentofu/shared/*` (state, Route53 federation) |
 | 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Required for the agent platform: `zitadel-github-idp`. Without it the deploy skips the GitHub link IdP and so never writes `room-broker-zitadel-reader`, the broker's link reader. Optional: `github-gha-runner-scale-set-default` (GHA runners only) |
-| 0.5 | cloud-native-ref pins the releases under test | `flux/sources/ocirepo-ai-native-ref.yaml`: an ai-native-ref release on Maku v0.31.0; crossplane-configuration v0.9.29 (cloud-native-ref #2676) |
+| 0.5 | cloud-native-ref pins the releases under test | `flux/sources/ocirepo-ai-native-ref.yaml`: an ai-native-ref release on Maku v0.32.0; crossplane-configuration v0.9.29 (cloud-native-ref #2676) |
 | 0.6 | Optional, decided now: serve the Substrate spike's APIs | `TF_VAR_enable_pod_certificate_apis=true` on step 3. It is safe to turn on later, but turning it off later replaces the cluster. It needs a control plane on 1.35 or later: `gcloud container get-server-config --zone europe-west4-a --format='yaml(channels)'` |
 
 ### CPU sizing

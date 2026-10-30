@@ -1,36 +1,68 @@
 ---
 title: Coding Clients
 weight: 10
-description: Connecting OpenCode, Continue, and OpenWebUI to the self-hosted LLM gateway — authentication, model IDs, and the failure modes their errors actually mean.
-lastVerified: 2026-08-27
+description: "Connecting a coding client to the platform: the ai-gateway for models and the factory for hand-offs, on aws-0 and gcp-0, with each client's current configuration and the failure modes their errors mean."
+lastVerified: 2026-10-30
 ---
 
-The cluster exposes an OpenAI-compatible endpoint at
-`https://llm.priv.aws.ogenki.io/v1` (Tailscale-fronted, `tag:k8s` ACL — see
-[Private Access](https://cnref.ogenki.io/docs/platform/networking/private-access/)).
-Any client that speaks the OpenAI chat-completions API, or the OpenAI
-completions API for FIM, can talk to it — once all three
-[opt-in gates]({{< relref "/docs/platform/ai-platform/serving/_index.md#turning-it-on" >}})
-are released.
+A coding client can use the platform in two ways, and they are independent:
+
+| Integration | What it gives you | How you connect |
+|---|---|---|
+| **Models** through the `ai-gateway` | The platform's models in your client's chat, edits and completions | A base URL and an API key in the client's own config |
+| **Hand-offs** to the Agent Factory | File an issue, follow its run and bring its branch back without leaving the session | `maku setup <client>` |
+
+Every snippet on this page carries a label. Nothing here was run against a live endpoint on the
+date above: each snippet says which docs page it was checked against, and
+[what needs a live run](#verifying-the-connection) is listed at the end of that section.
+
+## Two integrations, one table
+
+| Client | Models through `ai-gateway` | Factory hand-offs |
+|---|---|---|
+| [OpenCode](#opencode) | Yes: `opencode.json` provider block | `maku setup opencode` |
+| [Claude Code](#claude-code) | No: it speaks the Anthropic Messages API only | `maku setup claude` |
+| [Codex CLI](#codex-cli) | Not yet: it speaks only the Responses API | `maku setup codex` |
+| [Cursor](#cursor-gemini-cli-and-copilot-cli) | Not verified | `maku setup cursor` |
+| [Gemini CLI](#cursor-gemini-cli-and-copilot-cli) | No custom endpoint documented | `maku setup gemini` |
+| [Copilot CLI](#cursor-gemini-cli-and-copilot-cli) | Yes: a custom OpenAI-compatible provider | `maku setup copilot` |
+| [VS Code + Continue](#vs-code-and-continue) | Yes: chat and FIM | not applicable |
+| [OpenWebUI](#openwebui) | Yes: in-cluster, aws-0 only | not applicable |
+
+- **Models.** The `ai-gateway` is the platform's gateway for humans and coding clients. It speaks
+  the OpenAI chat-completions API. See [Gateways]({{< relref "/docs/platform/ai-platform/gateways.md" >}}).
+- **Hand-offs.** The factory takes work from a coding agent through an MCP server that `maku`
+  registers. See [Hand off from your coding agent]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#hand-off-from-your-coding-agent" >}}).
+
+## Endpoints per cloud
+
+Both are Tailscale-fronted (`tag:k8s` ACL, see
+[Private Access](https://cnref.ogenki.io/docs/platform/networking/private-access/)) and serve the
+OpenAI API under `/v1`.
+
+| Cloud | Base URL | Serves today |
+|---|---|---|
+| aws-0 | `https://llm.priv.aws.ogenki.io/v1` | `tier-frontier` always; the four `xplane-*` models and `MoM` once `llm-platform` is resumed |
+| gcp-0 | `https://llm.priv.gcp.ogenki.io/v1` | `tier-frontier` (GLM-5.3 through Z.ai, no GPU needed); `xplane-qwen3-8b` and `MoM` once `llm-platform` is resumed |
+
+`llm-platform` is suspended by default on both clouds: until it is resumed, `MoM` has no model to
+route to and the `xplane-*` names return an error. The GPU models need all three
+[opt-in gates]({{< relref "/docs/platform/ai-platform/serving/_index.md#turning-it-on" >}}).
+`tier-frontier` needs none of them.
 
 ## Authentication
 
-The Envoy AI Gateway enforces API-key authentication via an Envoy Gateway
-`SecurityPolicy` (`infrastructure/base/envoy-ai-gateway/security-policy.yaml`).
-Clients send the standard `Authorization: Bearer <key>` header; the gateway
-compares the value against the keys defined in the AWS Secrets Manager entry
-`platform-llm-api-keys` (a JSON object keyed by client identity).
+Clients send `Authorization: Bearer <key>`. An Envoy Gateway `SecurityPolicy`
+(`infrastructure/base/envoy-ai-gateway/security-policy.yaml`) compares it with the keys of the
+Secret `ai-gateway-api-keys` in `envoy-ai-gateway-system`, which each cloud fills differently.
+Read a key into an environment variable and never paste it into a config file.
 
-Retrieve a key for personal use:
+| | aws-0 | gcp-0 |
+|---|---|---|
+| Source | AWS Secrets Manager entry `platform-llm-api-keys` (a JSON object keyed by client identity), seeded once and kept outside OpenTofu | Generated in the cluster by External Secrets `Password` generators, once (`refreshPolicy: CreatedOnce`) |
+| Identities today | `openwebui_apikey`, `promptfoo_apikey` | `openwebui`, `promptfoo` |
 
-```bash
-aws secretsmanager get-secret-value \
-  --secret-id platform-llm-api-keys \
-  --query SecretString --output text | jq -r .openwebui_apikey
-```
-
-Don't paste the value into a tool config file — export it as an environment
-variable and let the tool pick it up via env-var expansion:
+aws-0 (schema-checked against `infrastructure/base/envoy-ai-gateway/api-keys-externalsecret.yaml`, not run):
 
 ```bash
 export OPENAI_API_KEY=$(aws secretsmanager get-secret-value \
@@ -38,63 +70,169 @@ export OPENAI_API_KEY=$(aws secretsmanager get-secret-value \
   --query SecretString --output text | jq -r .openwebui_apikey)
 ```
 
-Most OpenAI-compatible clients (Continue, OpenCode, the OpenAI SDKs)
-auto-detect `OPENAI_API_KEY` from the environment. To onboard a new identity
-(a teammate, a new tooling integration), add a key to the Secrets Manager
-JSON and append the matching entry to the gateway-side template in
-`infrastructure/base/envoy-ai-gateway/api-keys-externalsecret.yaml`.
+gcp-0 (schema-checked against `infrastructure/gcp-0/envoy-ai-gateway/api-keys-patch.yaml`, not run):
+
+```bash
+export OPENAI_API_KEY=$(kubectl get secret -n envoy-ai-gateway-system ai-gateway-api-keys \
+  -o jsonpath='{.data.openwebui}' | base64 -d)
+```
+
+A client shares the identity of the key it uses. To onboard another identity on aws-0, add a
+property to the Secrets Manager JSON and a matching key to the template in
+`infrastructure/base/envoy-ai-gateway/api-keys-externalsecret.yaml`. On gcp-0, add a `Password`
+generator in `infrastructure/gcp-0/envoy-ai-gateway/password-generators.yaml` and a `dataFrom` entry in
+`api-keys-patch.yaml`.
+
+The gateway strips `Authorization` before forwarding, so a model server never sees a credential,
+and it strips `x-ar-agent`, `x-ar-human` and `x-ai-gateway-client-id` before authenticating, so a
+client cannot forge the identity it is charged to. Daily token budgets (5M per key, 10M per human,
+20M on frontier spend) are counted in shadow mode: nothing is refused yet
+([ADR-0050]({{< relref "/docs/decisions/0050-token-budgets-envoy-gateway-rate-limit.md" >}})).
 
 ## Models exposed
 
-`GET /v1/models` returns:
+`GET /v1/models` lists what a cloud serves. The names a client may use:
 
-| Model ID | Backed by | Purpose |
-|---|---|---|
-| `MoM` | Semantic Router auto-routing | Default for OpenWebUI; classifies the prompt and picks one of the `xplane-*` models below |
-| `xplane-qwen-coder` | Qwen2.5-Coder-7B-Instruct | Code chat, agentic edits, function-calling. Serves a 10% canary onto `xplane-qwen-coder-sql-dpo` |
-| `xplane-qwen-coder-fim` | Qwen2.5-Coder-1.5B | FIM tab-completion |
-| `xplane-qwen3-8b` | Qwen3-8B | Multilingual, math, longer-context (32k) |
-| `xplane-llamaguard3-1b` | Llama-Guard-3-1B | Listed, but in no `MoM` decision rule — reachable only by name |
-| `xplane-qwen-coder-sql-dpo` | LoRA adapter on `xplane-qwen-coder` | Naming it explicitly always gets 100% of the adapter |
-| `xplane-qwen-coder-securecode` | LoRA adapter on `xplane-qwen-coder` | Same |
+| Model ID | Backed by | aws-0 | gcp-0 | Purpose |
+|---|---|---|---|---|
+| `tier-frontier` | GLM-5.3 through Z.ai | yes | yes | A frontier model on CPU only; works with `llm-platform` suspended |
+| `MoM` | Semantic Router | with `llm-platform` | with `llm-platform` | Classifies the prompt and picks an `xplane-*` model |
+| `xplane-qwen-coder` | Qwen2.5-Coder-7B-Instruct | yes | no | Code chat, agentic edits, function calling; 10% canary onto `xplane-qwen-coder-sql-dpo` |
+| `xplane-qwen-coder-fim` | Qwen2.5-Coder-1.5B | yes | no | FIM tab completion |
+| `xplane-qwen3-8b` | Qwen3-8B | yes | yes | Multilingual, math, longer context (32k) |
+| `xplane-llamaguard3-1b` | Llama-Guard-3-1B | yes | no | In no `MoM` rule, reachable only by name |
+| `xplane-qwen-coder-sql-dpo`, `xplane-qwen-coder-securecode` | LoRA adapters on `xplane-qwen-coder` | yes | no | Naming one always gets the adapter |
 
-Pick a specific `xplane-*` model when the workload is already known — it
-saves the ~250–300 ms Semantic Router classifier round-trip. Use `MoM` for
-auto-routing, the typical OpenWebUI case.
+The other `tier-*` aliases (`tier-light`, `tier-standard`) and `agent-default` belong to the agent
+gateway: a human client cannot name them here. Pick a specific model when the workload is known:
+it skips the 250-300 ms classifier round-trip of `MoM`. How each name is routed and priced:
+[Model routing and cost]({{< relref "/docs/platform/ai-platform/routing.md" >}}).
 
-## OpenCode CLI
+## OpenCode
 
-OpenCode speaks OpenAI-compatible APIs natively. Edit
-`~/.opencode/config.toml`:
+Models. The shape is OpenCode's `provider` block with the OpenAI-compatible package, and the key is
+read from the environment. Put it in `~/.config/opencode/opencode.json`, or in an `opencode.json` at
+the project root.
+(Schema-checked against <https://opencode.ai/docs/providers/>, not run.)
 
-```toml
-[providers.local]
-type = "openai"
-base_url = "https://llm.priv.aws.ogenki.io/v1"
-# OpenCode reads OPENAI_API_KEY from the environment when api_key is unset.
-default_model = "xplane-qwen-coder"
-
-[default]
-provider = "local"
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ogenki-aws": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ogenki AI Gateway (aws-0)",
+      "options": {
+        "baseURL": "https://llm.priv.aws.ogenki.io/v1",
+        "apiKey": "{env:OPENAI_API_KEY}"
+      },
+      "models": {
+        "xplane-qwen-coder": { "name": "Qwen Coder 7B" },
+        "tier-frontier": { "name": "GLM-5.3 (frontier)" }
+      }
+    }
+  },
+  "model": "ogenki-aws/xplane-qwen-coder"
+}
 ```
 
-Then run `opencode` from any project root — the agent uses
-`xplane-qwen-coder` by default, and tool calls work because that model has
-function-calling support.
+For gcp-0, use `https://llm.priv.gcp.ogenki.io/v1` and models `tier-frontier` or
+`xplane-qwen3-8b`. A tool call needs a model with function calling: `xplane-qwen-coder` and
+`tier-frontier` have it. If a model must be reached through `/v1/responses`, OpenCode wants
+`@ai-sdk/openai` instead, and the `ai-gateway` does not serve that path.
 
-## VSCode + Continue extension
+Hand-offs: `maku setup opencode`, then `/factory:handoff` in the session.
 
-Continue supports a separate model per role: `chat`, `autocomplete`, `edit`,
-`apply`. The chat profile and the FIM profile need different model IDs in
-`~/.continue/config.yaml`:
+## Claude Code
+
+Models: **not available**. Claude Code speaks the Anthropic Messages API (`/v1/messages`) and
+Anthropic states it does not support routing it to non-Claude models through a gateway
+([gateway overview](https://code.claude.com/docs/en/llm-gateway),
+[compatibility guide](https://code.claude.com/docs/en/llm-gateway-protocol.md)). The `ai-gateway`
+serves the OpenAI API only. Claude Code on the self-hosted models is a row of the
+[roadmap]({{< relref "/docs/platform/ai-platform/status.md#serving-roadmap" >}}), waiting for a
+protocol relay. OpenCode covers the same agentic workflow today.
+
+Hand-offs: `maku setup claude`, then `/mcp__factory__handoff` in the session.
+
+## Codex CLI
+
+Models: **not yet**. Codex's documented provider shape is below, but `responses` is the only
+`wire_api` value Codex supports
+([config reference](https://learn.chatgpt.com/docs/config-file/config-reference)) and the
+`ai-gateway` manifests serve chat completions, not `POST /v1/responses`. Whether the gateway
+answers that path has not been probed: until it has, point Codex at the platform only for
+hand-offs. If `POST /v1/responses` answers on the gateway, this is the configuration, in
+`~/.codex/config.toml`
+(schema-checked against <https://learn.chatgpt.com/docs/config-file/config-advanced>, not run):
+
+```toml
+model = "tier-frontier"
+model_provider = "ogenki"
+
+[model_providers.ogenki]
+name = "Ogenki AI Gateway"
+base_url = "https://llm.priv.aws.ogenki.io/v1"
+env_key = "OPENAI_API_KEY"
+wire_api = "responses"
+```
+
+Hand-offs: `maku setup codex`.
+
+## Cursor, Gemini CLI and Copilot CLI
+
+**Cursor.** Its current pricing and models pages do not document a base URL override, and they
+exclude your own API keys from the Plus plan, so this page does not claim one. Hand-offs work:
+`maku setup cursor`.
+
+**Gemini CLI.** Its authentication page documents Google sign-in, `GEMINI_API_KEY` and Vertex AI,
+and no custom endpoint ([docs](https://geminicli.com/docs/get-started/authentication/)), so models
+are not available. Hand-offs: `maku setup gemini`. Gemini CLI connects a local (stdio) MCP server
+only in a folder you trust, so trust the folder first.
+
+**Copilot CLI.** A bring-your-own-model provider is documented
+([docs](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models)):
+`~/.copilot/providers.json` with a provider of `type: openai` and a model that names it. The file
+does not expand environment variables and keeps the key in plain text, so generate it from your
+shell, keep it private and never commit it
+(schema-checked against the page above, not run):
+
+```bash
+umask 077 && mkdir -p ~/.copilot && jq -n --arg key "$OPENAI_API_KEY" '{
+  providers: [{name: "ogenki", type: "openai",
+               baseUrl: "https://llm.priv.aws.ogenki.io/v1", apiKey: $key}],
+  models: [{id: "xplane-qwen-coder", provider: "ogenki"}]
+}' > ~/.copilot/providers.json
+copilot --model ogenki/xplane-qwen-coder
+```
+
+The `jq` call and the `copilot --model` form are the documented ones; the exact top-level keys of the
+file follow the page's description and are the first thing to check on a live run. Hand-offs:
+`maku setup copilot`.
+
+## VS Code and Continue
+
+Continue takes a model per role. The chat profile and the FIM profile use different models. Note
+that `template: qwen`, which the previous version of this page set, is not a key of Continue's
+model schema: Continue picks the Qwen FIM template from the model name, and `xplane-qwen-coder-fim`
+contains `qwen` and `coder`
+([source](https://github.com/continuedev/continue/blob/main/core/autocomplete/templating/AutocompleteTemplate.ts)).
+
+In `~/.continue/config.yaml`
+(schema-checked against <https://docs.continue.dev/reference> and
+<https://docs.continue.dev/customize/model-providers/top-level/openai>, not run):
 
 ```yaml
+name: Ogenki platform
+version: 0.0.1
+schema: v1
+
 models:
   - name: Qwen Coder (chat / agentic)
     provider: openai
     model: xplane-qwen-coder
     apiBase: https://llm.priv.aws.ogenki.io/v1
-    apiKey: ${env:OPENAI_API_KEY}
+    apiKey: ${{ secrets.OPENAI_API_KEY }}
     roles: [chat, edit, apply]
     defaultCompletionOptions:
       maxTokens: 2048
@@ -104,87 +242,77 @@ models:
     provider: openai
     model: xplane-qwen-coder-fim
     apiBase: https://llm.priv.aws.ogenki.io/v1
-    apiKey: ${env:OPENAI_API_KEY}
+    apiKey: ${{ secrets.OPENAI_API_KEY }}
+    useLegacyCompletionsEndpoint: true
     roles: [autocomplete]
-    template: qwen
     defaultCompletionOptions:
       maxTokens: 256
       temperature: 0.0
 ```
 
-`template: qwen` tells Continue to use the Qwen FIM token format
-(`<|fim_prefix|>...<|fim_suffix|>...<|fim_middle|>`). Without it the
-extension sends CodeLlama-format prompts and the model can't parse them.
-
-## Claude Code (not implemented)
-
-Claude Code speaks the Anthropic API, not the OpenAI API. Pointing it at this
-gateway needs a translator sidecar exposing Anthropic-style endpoints and
-proxying to the OpenAI gateway — filed as an open item on the
-[roadmap]({{< relref "/docs/platform/ai-platform/status.md#serving-roadmap" >}}), not
-implemented today. OpenCode covers the same agentic-CLI workflow and works
-out of the box.
+`useLegacyCompletionsEndpoint` makes Continue call `/v1/completions`, the FIM path, instead of chat
+completions. How Continue resolves `${{ secrets.OPENAI_API_KEY }}` from a local file (a `.env`
+file next to the config) is not on the pages read, so confirm it on first use. On gcp-0 there is no
+FIM model: use the chat profile with `xplane-qwen3-8b` or `tier-frontier`, and no autocomplete.
 
 ## OpenWebUI
 
-`https://chat.priv.aws.ogenki.io` (Tailscale, `tag:k8s` ACL). Default model
-dropdown selection is `xplane-qwen3-8b`. The Semantic Router's `ext_proc`
-filter sits in the chain for every request but only rewrites `body.model`
-when the client sent `MoM` (or the literal `auto`) — naming a model
-explicitly is honoured as-is. The response header `x-vsr-selected-model`
-reflects what actually served the request.
-
-All four models default to `minReplicas: 1` (always warm); KEDA scales
-`1→max` on the three leading saturation signals described in
+`https://chat.priv.aws.ogenki.io` (Tailscale, `tag:k8s` ACL). OpenWebUI runs on aws-0 only, in
+`llm-platform`, and is not wired on gcp-0. Its default model is `xplane-qwen3-8b`. The Semantic
+Router rewrites `body.model` only when the client sent `MoM` (or `auto`): a named model is honoured
+as is, and the response header `x-vsr-selected-model` shows what served the request. Scaling is in
 [Autoscaling & GPUs]({{< relref "/docs/platform/ai-platform/serving/autoscaling-and-gpu.md" >}}).
-On `MoM`, first-request latency is dominated by the ~250–300 ms classifier
-round-trip rather than cold start; on a directly-named model there is no
-classifier cost at all.
 
 ## Verifying the connection
 
+Models, on either cloud (set `BASE` to the cloud's base URL; label: schema-checked against
+[Gateways]({{< relref "/docs/platform/ai-platform/gateways.md" >}}), not run):
+
 ```bash
-# Smoke test — list models (works on any client)
-curl -sS https://llm.priv.aws.ogenki.io/v1/models \
-  -H "Authorization: Bearer $OPENAI_API_KEY" | jq '.data[].id'
+BASE=https://llm.priv.gcp.ogenki.io/v1   # or https://llm.priv.aws.ogenki.io/v1
 
-# Direct chat completion against the coder model (no Semantic Router hop)
-curl -sS -X POST https://llm.priv.aws.ogenki.io/v1/chat/completions \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer $OPENAI_API_KEY" \
-  -d '{
-    "model": "xplane-qwen-coder",
-    "messages": [{"role":"user","content":"Write a Python function to compute fibonacci"}]
-  }'
+# What the cloud serves
+curl -sS "$BASE/models" -H "Authorization: Bearer $OPENAI_API_KEY" | jq '.data[].id'
 
-# FIM completion (Continue-style)
-curl -sS -X POST https://llm.priv.aws.ogenki.io/v1/completions \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer $OPENAI_API_KEY" \
-  -d '{
-    "model": "xplane-qwen-coder-fim",
-    "prompt": "<|fim_prefix|>def fib(n):\n    <|fim_suffix|>\n    return fib(n-1) + fib(n-2)<|fim_middle|>",
-    "max_tokens": 50,
-    "temperature": 0.0
-  }'
+# Chat completion on a model that needs no GPU
+curl -sS "$BASE/chat/completions" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"model": "tier-frontier", "messages": [{"role": "user", "content": "Say hi"}]}'
+
+# FIM, aws-0 with llm-platform resumed
+curl -sS "$BASE/completions" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"model": "xplane-qwen-coder-fim",
+       "prompt": "<|fim_prefix|>def fib(n):\n    <|fim_suffix|>\n    return fib(n-1) + fib(n-2)<|fim_middle|>",
+       "max_tokens": 50, "temperature": 0.0}'
 ```
+
+Hand-offs: `maku doctor` must show every check `ok`, then ask the client to list the factory tools
+(`rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`,
+`issue_file`) and prompts (`handoff`, `status`, `inbox`).
+
+**Needs a live run** before the labels can change to `run on CLOUD on DATE`: each snippet above
+on both clouds; whether `POST /v1/responses` answers on the `ai-gateway` (decides Codex); the
+Copilot `providers.json` keys; Continue's `secrets` resolution and the FIM call; Cursor's base URL
+override.
 
 ## Troubleshooting
 
-- **`401 Unauthorized`** — the `Authorization` header is missing, or its
-  value doesn't match any key in `platform-llm-api-keys`. Verify
-  `echo $OPENAI_API_KEY` is non-empty. New keys take up to 1h to propagate
-  (External Secrets refresh); force it with
+- **`401 Unauthorized`.** The header is missing or matches no key. Check `echo ${OPENAI_API_KEY:+set}`.
+  On aws-0 a changed key takes up to 1 h to reach the cluster (External Secrets refresh); force it with
   `kubectl annotate externalsecret/ai-gateway-api-keys -n envoy-ai-gateway-system force-sync=$(date +%s) --overwrite`.
-- **`404 The model 'X' does not exist`** — the model name doesn't match any
-  served ID. Check `GET /v1/models`. If it happens on `MoM`, the Semantic
-  Router config is wrong — check the router pod logs in the `llm` namespace.
-- **Tab-complete is slow (>1s)** — Continue is falling back to chat
-  completions instead of FIM. Verify the config has `template: qwen` and
-  `roles: [autocomplete]`, and that the `xplane-qwen-coder-fim` Service
-  exists (`kubectl get svc -n llm xplane-qwen-coder-fim`).
-- **`403 Access denied` from Envoy** — a Cilium L7 policy rejected the
-  request. Either the source pod lacks a `CiliumNetworkPolicy` egress rule
-  to the AI Gateway data plane, or the destination `InferenceService`'s
-  policy doesn't allow the client's identity — see the network-policy
+  On gcp-0 the Secret is generated once and a sync does not change it: read the key again from the
+  cluster instead.
+- **`404 The model 'X' does not exist`.** The name is not served on that cloud. Check
+  `GET /v1/models`: `xplane-qwen-coder*` and the guard model do not exist on gcp-0, and none of the
+  `xplane-*` models exist while `llm-platform` is suspended. For `MoM`, look at the router pod logs
+  in the `llm` namespace.
+- **`403 Access denied` from Envoy.** A Cilium L7 policy refused it. Either the source lacks an
+  egress rule to the AI Gateway data plane or the model's policy does not admit the client; see the
   checklist in [Policies](https://cnref.ogenki.io/docs/platform/security/policies/).
+- **Autocomplete is slow (over 1 s).** Continue is calling chat completions instead of FIM. Check
+  `roles: [autocomplete]` and `useLegacyCompletionsEndpoint: true`, and on aws-0 that the Service
+  exists: `kubectl get svc -n llm xplane-qwen-coder-fim`.
+- **The factory tools are missing in the client.** Run `maku doctor` and fix the first check that
+  is not `ok`, then `maku setup <client> --print` to see what would be registered. For Gemini CLI,
+  open the client from a trusted folder.

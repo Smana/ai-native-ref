@@ -26,7 +26,7 @@ spec:
          "fieldConfig": {"defaults": {"unit": "s", "noValue": "no PR yet", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1800}]}}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "expr": "histogram_quantile(0.5, sum by (le) (increase_pure(maku_factory_time_to_pr_seconds_bucket{tier=~\"light|standard\"}[7d])))"}]},
-        {"id": 3, "type": "stat", "title": "Reverted after auto-merge (SC-11: ≤ 5 %)", "description": "Reverts over merges the merger made (auto_merged and approved_merged: both are revertable via factory/revert), 30 days. Red from 5 % (SC-11). 0 when nothing was reverted.", "gridPos": {"x": 18, "y": 0, "w": 6, "h": 8},
+        {"id": 3, "type": "stat", "title": "Reverted after auto-merge (SC-11: ≤ 5 %)", "description": "Reverts over merges the merger made (auto_merged and approved_merged: both are revertable via factory/revert), 30 days. Red from 5 % (SC-11). 0 when nothing was reverted. A drill revert (factory/drill) counts here too: the metric has no drill label, so subtract it by hand.", "gridPos": {"x": 18, "y": 0, "w": 6, "h": 8},
          "fieldConfig": {"defaults": {"unit": "percentunit", "noValue": "0", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 0.05}]}}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "expr": "(sum(increase_pure(maku_factory_pr_outcomes_total{outcome=\"reverted\"}[30d])) or vector(0)) / clamp_min(sum(increase_pure(maku_factory_pr_outcomes_total{outcome=~\"auto_merged|approved_merged\"}[30d])) or vector(0), 1)"}]},
@@ -81,10 +81,10 @@ spec:
          "fieldConfig": {"defaults": {"unit": "s", "noValue": "0"}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "targets": [{"refId": "A", "expr": "sum by (reason, class) (increase_pure(maku_factory_human_wait_seconds_total[7d]))", "format": "table", "instant": true}]},
-        {"id": 18, "type": "stat", "title": "Classes paused", "description": "Task classes the breaker holds right now, by repository. Red at 1: nobody merges for a paused class until it is lifted. The gauge can be absent for a paused class with no decision and no watched merge, and it is also recorded for shadow and unarmed classes: 0 here means not reported, not not paused.", "gridPos": {"x": 20, "y": 49, "w": 4, "h": 8},
+        {"id": 18, "type": "stat", "title": "Classes paused", "description": "How many live classes of Smana/cloud-native-ref the breaker holds right now (the AgentFactoryClassPausedLong selector: shadow and unarmed classes are left out). Red from 1: nobody merges for a paused class until it is lifted. The gauge can be absent for a paused class with no decision and no watched merge: 0 here means not reported, not not paused.", "gridPos": {"x": 20, "y": 49, "w": 4, "h": 8},
          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "none"},
          "fieldConfig": {"defaults": {"noValue": "0", "decimals": 0, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
-         "targets": [{"refId": "A", "expr": "sum by (repository, class) (maku_factory_class_paused)", "format": "table", "instant": true}]}
+         "targets": [{"refId": "A", "expr": "count(maku_factory_class_paused{repository=\"Smana/cloud-native-ref\", class=~\"docs-links|revert|alert-rules\"} == 1)", "instant": true}]}
       ]
     }

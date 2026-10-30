@@ -111,6 +111,12 @@ series = [
     {"series": 'maku_factory_pr_outcomes_total{outcome="human_merged", class="review"}', "values": "0 2x30"},
     {"series": 'maku_factory_pr_outcomes_total{outcome="approved_merged", class="review"}', "values": "0 1x30"},
     {"series": 'maku_factory_prs_opened_total{principal="github:alice"}', "values": "0 7x30"},
+    # the breaker: a paused live class, another at 0, and pauses the tile must ignore (shadow, empty class, other repository)
+    {"series": 'maku_factory_class_paused{repository="Smana/cloud-native-ref", class="docs-links"}', "values": "1x30"},
+    {"series": 'maku_factory_class_paused{repository="Smana/cloud-native-ref", class="revert"}', "values": "0x30"},
+    {"series": 'maku_factory_class_paused{repository="Smana/cloud-native-ref", class="dead-links"}', "values": "1x30"},
+    {"series": 'maku_factory_class_paused{repository="Smana/cloud-native-ref", class=""}', "values": "1x30"},
+    {"series": 'maku_factory_class_paused{repository="Smana/ai-native-ref", class="docs-links"}', "values": "1x30"},
 ]
 
 
@@ -176,6 +182,8 @@ tests = [{"interval": "1m", "input_series": series, "promql_expr_test": [
     rows(prep(expr("agents-overview", "PRs opened")), [{"value": 7}]),
     # SC-11 reads 0 (4 auto-merges, no revert), and 0 again with no auto-merge series at all
     rows(prep(expr("agent-factory", "Reverted after auto-merge (SC-11: ≤ 5 %)")), [{"value": 0}]),
+    # one live class paused (docs-links) with another live class at 0 reads 1, not the last row's 0
+    rows(prep(expr("agent-factory", "Classes paused")), [{"value": 1}]),
 ]}, {"interval": "1m", "input_series": [{"series": 'maku_factory_pr_outcomes_total{outcome="human_merged"}', "values": "0 1x30"}], "promql_expr_test": [
     rows(prep(expr("agent-factory", "Reverted after auto-merge (SC-11: ≤ 5 %)")), [{"value": 0}]),
 ]}]

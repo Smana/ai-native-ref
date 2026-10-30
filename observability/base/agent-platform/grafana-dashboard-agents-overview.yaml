@@ -182,7 +182,7 @@ spec:
         {"id": 16,
          "type": "stat",
          "title": "PRs reverted",
-         "description": "Merged pull requests reverted in the range. Red at 1: a revert is the factory's worst outcome (SC-11 allows 5 % of auto-merges).",
+         "description": "Merged pull requests reverted in the range. Red at 1: a revert is the factory's worst outcome (SC-11 allows 5 % of auto-merges). A drill revert (factory/drill) counts here too: the metric has no drill label, so subtract it by hand.",
          "gridPos": {"x": 21, "y": 4, "w": 3, "h": 4},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}},

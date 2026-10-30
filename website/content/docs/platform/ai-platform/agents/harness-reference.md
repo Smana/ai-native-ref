@@ -2,7 +2,7 @@
 title: Harness reference
 weight: 16
 description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its value on gcp-0, what it does, its bounds, and whether it is proven live."
-lastVerified: 2026-10-29
+lastVerified: 2026-10-30
 ---
 
 Every knob of a run, layer by layer. How to use them is on
@@ -80,8 +80,8 @@ them at startup, as it requires `triage.classifierURL`: they leave the config on
 Maku release that drops them.
 
 The reviewer runs on **the other tier**: `frontier` for a `standard` or `light` implementer,
-`standard` for a `frontier` one. It keeps the implementer's `maxTokens`. The tester keeps the
-implementer's tier.
+`standard` for a `frontier` one. The reviewer's tier's USD cap applies; its tokens and minutes stay the
+implementer's tier's. The tester keeps the implementer's tier.
 
 ## Factory: caps, resume and suspend {#caps}
 
@@ -135,7 +135,7 @@ Only `budget.maxTokens` can change on a live run. The factory always writes `siz
 
 | Field | Default | Effect |
 |---|---|---|
-| `role` | required | `implementer` writes and pushes; `reviewer`, `tester`, `triager` read only |
+| `role` | required | `implementer` writes and pushes; `reviewer` and `triager` read only; the tester writes tests the harness signs and pushes |
 | `dataClass` | required | `public`: Z.ai, GitHub egress. `internal`: Claude, read-only clone, no egress, cluster read tools, prompt caching |
 | `model` | `agent-default` | The harness's `MODEL` |
 | `budget.maxTokens` | 2 M (1 … 5 M) | The token cap when the run is not priced |
@@ -172,7 +172,7 @@ None is a claim field.
 | Knob | Value | Effect | Status |
 |---|---|---|---|
 | `reasoning_effort` | `high` | Unsent, GLM-5.3 thinks at maximum: 150 s per reply instead of 11 s | {{< badge content="live" color="green" >}} |
-| Model timeout | 300 s per call | A timeout is not retried: it ends the run | {{< badge content="live" color="green" >}} |
+| Model timeout | 300 s per call | A timed-out call is retried once (maku #224); a second timeout ends the run | {{< badge content="live" color="green" >}} |
 | Retries | 3 attempts, 10 s then 20 s apart | On a 503 or a reset. **Never** a 429 or a timeout | {{< badge content="live" color="green" >}} |
 | `max_iterations` | 500 | Past it the run ends `error`; the USD cap and deadline usually end it first | {{< badge content="deployed" color="blue" >}} |
 | Stuck detection | last 20 events | Ends the run `stuck` on 4 identical cycles, 3 repeated errors or 3 messages with no action | {{< badge content="live" color="green" >}} |

@@ -2,7 +2,7 @@
 title: Run roles
 weight: 32
 description: "Who does what in a task: the scoper, the tester, the implementer, the reviewer, the completion judge and the search tool, and what each role may call."
-lastVerified: 2026-10-29
+lastVerified: 2026-10-30
 ---
 
 A task is a sequence of runs on one `agent/<task>` branch, in one room. Each run has one role, and
@@ -35,7 +35,7 @@ flowchart LR
 | Implementer | The one writer of the code. Runs the repository's checks before it pushes, may ask the search tool, and cannot change the tester's contract: a head that does is refused (`contract_modified`) | Always | Live |
 | Completion judge | Not a run: a fresh-context call through `/judge/v1` on the alias `loops.<class>.judge` (default `tier-light`), after the implementer ends. It says `met`, `not_yet` or `impossible` against the scoper's checks; a failing named check is never `met`. A `not_yet` continues the same conversation, at most `continuations` times, each continuation time-boxed to 15 minutes; an `impossible` escalates to a human ("cannot be done as asked") | `loops.<class>.judge` (with `stallSteps` or `continuations`) | Live |
 | Search tool | Inside the implementer: a read-only child conversation on the run's own token with a hard budget (40 iterations, 300k tokens, 300 s, six a run) that answers one question about the repository | `loops.<class>.search: true` | Live |
-| Reviewer | Runs on the other tier, reads the room but never the implementer's transcript, and records a verdict the broker posts on the pull request. Advice only | The template (`pair`, `trio`) | Live |
+| Reviewer | Runs on the other tier, reads the room but never the implementer's transcript, and records a verdict the broker posts on the pull request. Its verdict is a gate input: the merge gate refuses a head without an approving verdict (`no_approving_verdict`) | The template (`pair`, `trio`) | Live |
 | Triager | Read-only. Alone in the `investigate` template: a RunLore finding becomes a proposed issue, never a change ([RunLore]({{< relref "/docs/platform/ai-platform/agents/runlore.md" >}})) | The task's source | Live |
 
 The switches live in `tooling/base/agent-factory/helm-values-configmap.yaml`: `loops.<class>` rows for

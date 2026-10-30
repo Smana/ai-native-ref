@@ -23,6 +23,8 @@ flowchart LR
   reviewer --> pr["Pull request"]
 ```
 
+{{< hero-video clip="agent-factory-v3" width="720" height="854" alt="The run roles in 33 s: a scoper bounds the task or asks the author one question; a hard issue is split into parts a maintainer approves; the implementer runs the repository's own checks, asks the search helper, opens the pull request and stops if it makes no commit; a fresh-context judge says done, a fresh-context reviewer cites the checks, a human approves; the merge gate merges only the low-risk classes." >}}
+
 ## The roles
 
 | Role | What it does | Switched on by | Proven |

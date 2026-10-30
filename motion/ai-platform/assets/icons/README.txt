@@ -7,7 +7,7 @@ To override a glyph, put a file in this folder (not in glyphs/):
   <name>.svg        monochrome; the renderer tints it with the node's colour
   <name>.color.svg  full-colour logo, drawn as-is (takes precedence)
 
-Names: person github tag eye factory cube shield key branch brain tools cluster chart
+Names: person github tag eye factory cube shield key branch brain tools cluster chart scope scale search checklist
 
 Official logos (Kubernetes, GitHub, ...) are not included: check each
 project's brand guidelines and licence before adding one.

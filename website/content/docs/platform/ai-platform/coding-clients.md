@@ -147,7 +147,7 @@ Hand-offs: `maku setup opencode`, then `/factory:handoff` in the session.
 
 Models: **not available**. Claude Code speaks the Anthropic Messages API (`/v1/messages`) and
 Anthropic states it does not support routing it to non-Claude models through a gateway
-([gateway overview](https://code.claude.com/docs/en/llm-gateway),
+([other LLM gateways](https://code.claude.com/docs/en/llm-gateway),
 [compatibility guide](https://code.claude.com/docs/en/llm-gateway-protocol.md)). The `ai-gateway`
 serves the OpenAI API only. Claude Code on the self-hosted models is a row of the
 [roadmap]({{< relref "/docs/platform/ai-platform/status.md#serving-roadmap" >}}), waiting for a
@@ -213,8 +213,9 @@ file follow the page's description and are the first thing to check on a live ru
 ## VS Code and Continue
 
 Continue takes a model per role. The chat profile and the FIM profile use different models. Note
-that `template: qwen`, which the previous version of this page set, is not a key of Continue's
-model schema: Continue picks the Qwen FIM template from the model name, and `xplane-qwen-coder-fim`
+that `template: qwen`, which the previous version of this page set, is not a model key in Continue's
+reference. The only template key is `autocompleteOptions.template`, a Mustache template, and
+without it Continue picks the Qwen FIM template from the model name, and `xplane-qwen-coder-fim`
 contains `qwen` and `coder`
 ([source](https://github.com/continuedev/continue/blob/main/core/autocomplete/templating/AutocompleteTemplate.ts)).
 
@@ -265,8 +266,8 @@ as is, and the response header `x-vsr-selected-model` shows what served the requ
 
 ## Verifying the connection
 
-Models, on either cloud (set `BASE` to the cloud's base URL; label: schema-checked against
-[Gateways]({{< relref "/docs/platform/ai-platform/gateways.md" >}}), not run):
+Models, on either cloud (set `BASE` to the cloud's base URL; schema-checked against
+<https://github.com/Smana/ai-native-ref/blob/main/website/content/docs/platform/ai-platform/gateways.md>, not run):
 
 ```bash
 BASE=https://llm.priv.gcp.ogenki.io/v1   # or https://llm.priv.aws.ogenki.io/v1
@@ -287,7 +288,7 @@ curl -sS "$BASE/completions" \
        "max_tokens": 50, "temperature": 0.0}'
 ```
 
-Hand-offs: `maku doctor` must show every check `ok`, then ask the client to list the factory tools
+Hand-offs (schema-checked against <https://github.com/Smana/ai-native-ref/blob/main/website/content/docs/platform/ai-platform/agents/user-guide.md>, not run): `maku doctor` must show every check `ok`, then ask the client to list the factory tools
 (`rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`,
 `issue_file`) and prompts (`handoff`, `status`, `inbox`).
 
@@ -300,7 +301,8 @@ override.
 
 - **`401 Unauthorized`.** The header is missing or matches no key. Check `echo ${OPENAI_API_KEY:+set}`.
   On aws-0 a changed key takes up to 1 h to reach the cluster (External Secrets refresh); force it with
-  `kubectl annotate externalsecret/ai-gateway-api-keys -n envoy-ai-gateway-system force-sync=$(date +%s) --overwrite`.
+  `kubectl annotate externalsecret/ai-gateway-api-keys -n envoy-ai-gateway-system force-sync=$(date +%s) --overwrite`
+  (schema-checked against <https://github.com/Smana/ai-native-ref/blob/main/infrastructure/base/envoy-ai-gateway/api-keys-externalsecret.yaml>, not run).
   On gcp-0 the Secret is generated once and a sync does not change it: read the key again from the
   cluster instead.
 - **`404 The model 'X' does not exist`.** The name is not served on that cloud. Check
@@ -312,7 +314,8 @@ override.
   checklist in [Policies](https://cnref.ogenki.io/docs/platform/security/policies/).
 - **Autocomplete is slow (over 1 s).** Continue is calling chat completions instead of FIM. Check
   `roles: [autocomplete]` and `useLegacyCompletionsEndpoint: true`, and on aws-0 that the Service
-  exists: `kubectl get svc -n llm xplane-qwen-coder-fim`.
-- **The factory tools are missing in the client.** Run `maku doctor` and fix the first check that
+  exists: `kubectl get svc -n llm xplane-qwen-coder-fim` (schema-checked against
+  <https://github.com/Smana/ai-native-ref/blob/main/apps/base/ai/llm/qwen-coder-fim.yaml>, not run).
+- **The factory tools are missing in the client.** Run `maku doctor` (schema-checked against the user guide URL above, not run) and fix the first check that
   is not `ok`, then `maku setup <client> --print` to see what would be registered. For Gemini CLI,
   open the client from a trusted folder.

@@ -180,7 +180,7 @@ data:
           checks: {egress: [golang, pypi]}
           classes:
             # No testFirst here (TO4): the tests live under the gate path scripts/ci/.
-            docs-links: {shadow: true, holdoutChecks: [validate]}
+            docs-links: {shadow: true, holdoutChecks: [validate], monitor: {followUpWindow: 1h}}
             revert: {shadow: true, holdoutChecks: [validate]}
             docs: {checks: true}  # public runs only: an internal claim with checks is refused by the XRD
             tests: {}

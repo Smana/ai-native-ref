@@ -45,23 +45,23 @@ export function agentFactoryV3(assets: Assets): Scene {
   const search = new Node({ x: 850, y: 630, w: 180, h: 130, title: L.search.title, sub: L.search.sub, color: C, icon: 'search', titleSize: 30, subSize: 20 });
   const judge = new Node({ x: 30, y: 865, w: 430, h: 130, title: L.judge.title, sub: [L.judge.sub], color: J, icon: 'scale', subSize: 22 });
   const reviewer = new Node({ x: 520, y: 865, w: 510, h: 130, title: L.reviewer.title, sub: [L.reviewer.sub], color: J, icon: 'eye', subSize: 20 });
-  const gate = new Node({ x: 260, y: 1030, w: 540, h: 110, title: L.gate.title, sub: [L.gate.sub], color: C, icon: 'shield', subSize: 22 });
+  const gate = new Node({ x: 260, y: 1030, w: 540, h: 100, title: L.gate.title, sub: [L.gate.sub], color: C, icon: 'shield', subSize: 22 });
 
   const eLabel = new Edge({ points: [[410, 175], [650, 175]], color: H, label: { text: L.edges.label, x: 530, y: 150 } });
   const eReview = new Edge({ points: [[410, 230], [650, 230]], color: H, label: { text: L.edges.review, x: 530, y: 252 } });
   const eIntake = new Edge({ points: [[840, 270], [840, 390]], color: C });
   const eScope = new Edge({ points: [[650, 460], [590, 460]], color: J });
   const eQuestion = new Edge({
-    points: [[720, 390], [720, 335], [220, 335], [220, 270]], color: J, dashed: true,
-    label: { text: L.edges.question, x: 470, y: 360 },
+    points: [[720, 390], [720, 362], [220, 362], [220, 270]], color: J, dashed: true,
+    label: { text: L.edges.question, x: 470, y: 338 },
   });
   const eStart = new Edge({
     points: [[560, 530], [560, 550], [760, 550], [760, 585]], color: C,
-    label: { text: L.edges.oneAtATime, x: 780, y: 567, align: 'right' },
+    label: { text: L.edges.oneAtATime, x: 735, y: 567, align: 'right' },
   });
   const eOpenPR = new Edge({
-    points: [[820, 610], [1050, 610], [1050, 240], [1030, 240]], color: C,
-    label: { text: L.edges.openPR, x: 955, y: 588 },
+    points: [[820, 610], [1056, 610], [1056, 240], [1030, 240]], color: C,
+    label: { text: L.edges.openPR, x: 954, y: 588 },
   });
   const eSplit = new Edge({ points: [[220, 322], [220, 390]], color: H, dashed: true });
   const eEscalate = new Edge({
@@ -99,7 +99,7 @@ export function agentFactoryV3(assets: Assets): Scene {
 
   const caption = scene.add(new Caption({ y: CAPTION_Y, size: 36, maxWidth: 1000 }));
   // the per-class legend: which class runs which stage, inside the cluster under the gate
-  const legend = new Text({ x: 527, y: 1154, text: L.legend, size: 18, family: 'sans', color: theme.muted });
+  const legend = new Text({ x: 527, y: 1147, text: L.legend, size: 19, family: 'sans', color: theme.text });
   scene.add(legend, 'diagram');
 
   grid.to(1, 0, 0.8);

@@ -72,7 +72,7 @@ spec:
          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "none", "graphMode": "none"},
          "fieldConfig": {"defaults": {"noValue": "0", "decimals": 0, "color": {"mode": "fixed", "fixedColor": "text"}}, "overrides": []},
          "targets": [{"refId": "A", "instant": true, "expr": "count(count by (ar_agent) (last_over_time(gen_ai_client_token_usage_sum{ar_agent=~\"system:serviceaccount:agents:xplane-run-.+\", namespace!=\"agent-gateway\"}[$__range])))"}]},
-        {"id": 15, "type": "timeseries", "title": "Cost by role (7 d)", "description": "USD per role over the window, from maku_factory_run_cost_usd (harness roles HR6): the first per-role number the factory reports. The role label (implementer, reviewer, tester, triager; scoper for a scoping run) arrives with the Maku release that carries the harness roles: until then the series has no role and the panel is empty.", "gridPos": {"x": 0, "y": 48, "w": 12, "h": 8},
+        {"id": 15, "type": "timeseries", "title": "Cost by role (7 d)", "description": "USD per role over the window, from maku_factory_run_cost_usd (harness roles HR6): the first per-role number the factory reports. The role label (implementer, reviewer, tester, triager; scoper for a scoping run) arrives with the Maku release that carries the harness roles: until then the panel shows one series with no role label, the total.", "gridPos": {"x": 0, "y": 48, "w": 12, "h": 8},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "fieldConfig": {"defaults": {"unit": "currencyUSD", "noValue": "0"}, "overrides": []},
          "targets": [{"refId": "A", "expr": "sum by (role) (increase_pure(maku_factory_run_cost_usd_sum[7d]))", "legendFormat": "{{role}}"}]}

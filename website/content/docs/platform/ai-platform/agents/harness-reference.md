@@ -172,8 +172,8 @@ None is a claim field.
 | Knob | Value | Effect | Status |
 |---|---|---|---|
 | `reasoning_effort` | `high` | Unsent, GLM-5.3 thinks at maximum: 150 s per reply instead of 11 s | {{< badge content="live" color="green" >}} |
-| Model timeout | 300 s per call | A timed-out call is retried once (maku #224); a second timeout ends the run | {{< badge content="live" color="green" >}} |
-| Retries | 3 attempts, 10 s then 20 s apart | On a 503 or a reset. **Never** a 429 or a timeout | {{< badge content="live" color="green" >}} |
+| Model timeout | 300 s per call | A call that timed out before its first token is retried once (maku #224) when the run has time left; a second timeout ends the run | {{< badge content="deployed" color="yellow" >}} |
+| Retries | 3 attempts, 10 s then 20 s apart | On a 503 or a reset. **Never** a 429; a timeout has its own single retry (above) | {{< badge content="live" color="green" >}} |
 | `max_iterations` | 500 | Past it the run ends `error`; the USD cap and deadline usually end it first | {{< badge content="deployed" color="blue" >}} |
 | Stuck detection | last 20 events | Ends the run `stuck` on 4 identical cycles, 3 repeated errors or 3 messages with no action | {{< badge content="live" color="green" >}} |
 | Condenser | 80 events, keep first 4 | Summarises history with the same model, on the run's budget | {{< badge content="deployed" color="blue" >}} |

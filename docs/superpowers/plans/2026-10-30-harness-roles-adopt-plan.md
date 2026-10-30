@@ -184,7 +184,7 @@ git commit -m "docs(agent-factory): the status page and the harness reference sa
 
 - [ ] **Step 1: The panel**
 
-A panel with the next free id (15), type `timeseries`, title "Cost by role (7 d)", description
+A panel with the next free id (19), type `timeseries`, title "Cost by role (7 d)", description
 "USD per role over the window, from `maku_factory_run_cost_usd` (harness roles HR6): the first
 per-role number the factory reports", expression
 `sum by (role) (increase_pure(maku_factory_run_cost_usd_sum[7d]))`, following the file's unit and

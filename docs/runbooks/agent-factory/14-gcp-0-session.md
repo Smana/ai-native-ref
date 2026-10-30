@@ -1,4 +1,5 @@
 # 14 — The gcp-0 session: a full test, then v2 and v2.1 on GCP
+> gcp-0 was torn down on 2026-10-29. Live sessions now run on aws-0: see [runbook 12](12-live-auto-merge-drill.md).
 
 This is an ordered checklist for bringing `gcp-0` up **alone** and running the Agent Factory on it. aws-0 is torn down.
 Owner steps are marked **[OWNER]**. Everything else can be done by an agent holding the

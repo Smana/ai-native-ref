@@ -74,7 +74,7 @@ still fail. The model itself never pushes. Proven live on 2026-10-29, the `not_t
 included ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)).
 `testFirst: true` on `scripts` in cloud-native-ref is a session switch: the owner turns it on for a
 live session and off after it ([#199](https://github.com/Smana/ai-native-ref/pull/199)); every other class
-runs without a tester ([run roles]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#tester" >}})).
+runs without a tester ([agents and the merge gate]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#tester" >}})).
 
 {{< details title="What the step log looks like" closed="true" >}}
 One line per action, never its output, redacted for tokens. It is what you read most.

@@ -80,17 +80,11 @@ Which question each signal answers, from a developer's seat, is in the
 
 ### The merge gate's signals {#merge-gate-signals}
 
-The `agent-factory` dashboard's **Human path** row reads these series; what each decision means is on
+The `agent-factory` dashboard's **Human path** row reads the factory's merge series; each series, its
+labels and what each decision means are on
 [Agents and the merge gate]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#metrics" >}}).
-
-| Series | Reads |
-|---|---|
-| `maku_factory_handoff_to_merge_seconds{class,reason,how}` | Time from a hand-off to the merge. `reason` is the first hand-off's; `how` is `human`, `approved`, `class`. First live median on `aws-0`: 150 s, `how=human`, `reason=policy_pending` |
-| `maku_factory_merge_decisions_total{…,repository}` | The gate's decisions, per repository |
-| `maku_factory_human_wait_seconds_total{reason,class}` | Seconds a task waited on a human; closed reason codes only |
-| `maku_factory_class_paused{repository,class}` | 1 while the breaker holds a class. Absent means not reported: it refreshes only at a decision or a monitor pass |
-| `maku_factory_pr_outcomes_total{outcome="reverted"}` | Reverts, drills included: the metric has no drill label |
-| `maku_factory_run_cost_usd{tier,role}` | Cost by role |
+The first live median from hand-off to merge, on `aws-0`: 150 s (`how=human`, `reason=policy_pending`).
+**Cost by role** reads `maku_factory_run_cost_usd{tier,role}`.
 
 Alerts in `observability/base/agent-platform/vmrule-agent-factory.yaml`:
 

@@ -169,25 +169,32 @@ LoRA canary shares the coder's batch: adapter traffic scales the base model.
 ### How a run gets its model
 
 ```mermaid
-flowchart TD
-  Iss["Task received"] --> Ctl{"controlPercent: 10<br/>this task in the control group?"}
-  Ctl -->|"yes"| Fr["tier frontier"]
-  Ctl -->|"no"| Cls{"classifier answered?"}
-  Cls -->|"no: unbuilt today"| St["tier standard<br/>fallback: static"]
-  Cls -->|"yes: design"| Tier["its tier, nudged up when unsure"]
-  Fr --> Tpl{"template from class and tier"}
-  St --> Tpl
-  Tier --> Tpl
-  Tpl -->|"docs-links below frontier"| Solo["solo"]
-  Tpl -->|"other class below frontier, or docs-links at frontier"| Pair["pair"]
-  Tpl -->|"other class at frontier"| Trio["trio"]
-  Pair --> Rev["reviewer: the other tier<br/>standard after frontier, frontier otherwise"]
-  Trio --> Rev
-  Rev --> Name["model name: tiers.tier.model<br/>or templates.name.reviewerModel"]
-  Solo --> Name
-  Name --> DC{"spec.dataClass"}
-  DC -->|"public"| G["GLM via Z.ai"]
-  DC -->|"internal"| A["Claude via the Anthropic API"]
+flowchart TB
+  subgraph tier["1 · Task received: the tier"]
+    direction LR
+    Ctl(["controlPercent: 10<br/>this task in the<br/>control group?"])
+    Ctl -->|"yes"| Fr["tier frontier"]
+    Ctl -->|"no"| Cls(["classifier<br/>answered?"])
+    Cls -->|"no: unbuilt<br/>today"| St["tier standard<br/>fallback: static"]
+    Cls -->|"yes: design"| Tier["its tier, nudged<br/>up when unsure"]
+  end
+  subgraph tpl["2 · The template, from class and tier"]
+    direction LR
+    Tpl(["template from<br/>class and tier"])
+    Tpl -->|"docs-links<br/>below frontier"| Solo["solo"]
+    Tpl -->|"other class below<br/>frontier, or docs-links<br/>at frontier"| Pair["pair"]
+    Tpl -->|"other class<br/>at frontier"| Trio["trio"]
+    Pair --> Rev["reviewer: the other tier<br/>standard after frontier,<br/>frontier otherwise"]
+    Trio --> Rev
+  end
+  subgraph model["3 · The model and provider"]
+    direction LR
+    Name["model name:<br/>tiers.tier.model or<br/>templates.name.reviewerModel"] --> DC(["spec.dataClass"])
+    DC -->|"public"| G["GLM via Z.ai"]
+    DC -->|"internal"| A["Claude via the<br/>Anthropic API"]
+  end
+  tier -->|"the tier"| tpl
+  tpl -->|"solo, or the reviewer's tier"| model
 ```
 
 The aliases, identical on both Z.ai backends and mirrored on Anthropic's
@@ -307,16 +314,23 @@ charges; what each run was charged stays in `maku_factory_run_cost_usd` and the 
 ### The meter's formula
 
 ```mermaid
-flowchart LR
-  GW["agentgateway<br/>agentgateway_gen_ai_client_token_usage"] -->|"VMPodScrape relabel<br/>input_cache_read to cached_input"| VM[("gen_ai_client_token_usage_sum<br/>by ar_agent, gen_ai_request_model,<br/>gen_ai_token_type")]
-  VM -->|"meter.query, every 30 s"| M["run meter"]
-  P["meter.prices<br/>keyed by served model"] --> M
-  M --> F["fresh = input - cached_input - cache_creation_input<br/>cost = fresh x input + cached x cacheRead<br/>+ creation x cacheWrite + output x output"]
-  F --> C1{"run cost at or over runUSD?"}
-  C1 -->|"yes"| Rev["revoke: budget-run"]
-  C1 -->|"no"| C2{"task cap still holds<br/>one whole run?"}
-  C2 -->|"no"| Esc["escalate: budget-task"]
-  F --> Met["maku_factory_run_cost_usd<br/>maku_factory_model_cost_usd_total<br/>Task status.runs.costMicroUSD"]
+flowchart TB
+  subgraph meter["Metering"]
+    direction LR
+    GW["agentgateway<br/>agentgateway_gen_ai_<br/>client_token_usage"] -->|"VMPodScrape relabel<br/>input_cache_read<br/>to cached_input"| VM[("gen_ai_client_token_usage_sum<br/>by ar_agent, gen_ai_request_model,<br/>gen_ai_token_type")]
+    VM -->|"meter.query,<br/>every 30 s"| M["run meter"]
+    P["meter.prices<br/>keyed by served model"] --> M
+  end
+  subgraph cost["Cost and caps"]
+    direction LR
+    F["fresh = input - cached_input<br/>- cache_creation_input<br/>cost = fresh x input<br/>+ cached x cacheRead<br/>+ creation x cacheWrite<br/>+ output x output"]
+    F --> C1{"run cost at or<br/>over runUSD?"}
+    C1 -->|"yes"| Rev["revoke: budget-run"]
+    C1 -->|"no"| C2{"task cap still holds<br/>one whole run?"}
+    C2 -->|"no"| Esc["escalate: budget-task"]
+    F --> Met["maku_factory_run_cost_usd<br/>maku_factory_model_cost_usd_total<br/>Task status.runs.costMicroUSD"]
+  end
+  meter -->|"the run meter computes"| cost
 ```
 
 - **Keyed by the served model**, not the logical name: `agent-default` is GLM-5.3 on one listener

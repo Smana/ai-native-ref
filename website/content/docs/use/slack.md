@@ -130,7 +130,7 @@ Then the thread shows, in this order:
 | `Not filed: the factory could not be reached, react again to retry` | A passing failure | React again |
 | Nothing at all | The channel or repository is not served, or the bot is not in the channel | Invite `@factory`, check the channel with the operator |
 
-The link needs your GitHub account linked to your ZITADEL user ([who sees a room]({{< relref "/docs/use/guide.md#who-sees-a-room" >}})); it
+The link needs your GitHub account linked to your ZITADEL user ([who sees a room]({{< relref "/docs/operate/access.md#who-sees-a-room" >}})); it
 grants nothing a maintainer of the repository did not have, and the task is sponsored by your **current**
 GitHub login. Users the factory's config lists by hand keep that entry whatever they link.
 

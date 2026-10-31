@@ -378,4 +378,4 @@ Related: [Harness reference]({{< relref "/docs/reference/harness.md" >}}) ·
 [Factory]({{< relref "/docs/how-it-works/factory.md" >}}) ·
 [Rooms]({{< relref "/docs/how-it-works/rooms.md" >}}) ·
 [Observability]({{< relref "/docs/operate/observability.md#agents" >}}) ·
-[User guide]({{< relref "/docs/use/guide.md#budgets-and-costs" >}})
+[User guide]({{< relref "/docs/use/guide/_index.md" >}})

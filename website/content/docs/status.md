@@ -87,7 +87,7 @@ it on with one value, per class or per platform.
 | Moonshot and Mistral (opt-in) | Kimi and Mistral models for **public data only**, selectable per class | GKE | [providers]({{< relref "/docs/how-it-works/providers.md" >}}) |
 | Cache alerts | Alerts on the share of input read from cache | GKE | [runbook 04, Part E](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share) |
 | Spend per identity | One dashboard per person and per sponsored principal, and cost by role | GKE | [runbook 04, Part G](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-g--the-cost-cross-check) |
-| Room and intake UX | The approvals page, a status line per room, attended forks, a daily task cap | EKS, GKE | [the room page]({{< relref "/docs/use/guide.md#the-room-page" >}}) |
+| Room and intake UX | The approvals page, a status line per room, attended forks, a daily task cap | EKS, GKE | [the room page]({{< relref "/docs/use/guide/following-and-steering.md#the-room-page" >}}) |
 
 Hardening is tracked on the **v1 hardening** milestones of
 [Maku](https://github.com/Smana/maku/milestone/1) and

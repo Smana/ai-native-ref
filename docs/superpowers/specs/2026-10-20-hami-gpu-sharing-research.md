@@ -7,7 +7,7 @@ next · **Read at:** HAMi v2.10.0
 [`b216ba1`](https://github.com/Project-HAMi/HAMi-core/tree/b216ba1be1b8e21488d1c7370ed3357b3049aad1)
 (the submodule v2.10.0 pins), Karpenter `statenode.go@1f754cf` and `cluster.go@637bceb`, vLLM
 `cache.py@9499c94`, Bottlerocket up to v1.67.0. Code read, nothing executed; *unverified* marks the
-rest. Summary on the site: [GPU sharing](../../../website/content/docs/platform/ai-platform/serving/autoscaling-and-gpu.md#gpu-sharing).
+rest. Summary on the site: [GPU sharing](../../../website/content/docs/how-it-works/serving/autoscaling-and-gpu.md#gpu-sharing).
 
 ## The need
 

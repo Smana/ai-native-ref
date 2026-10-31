@@ -24,30 +24,36 @@ markup:
 
 menu:
   main:
-    - name: AI Platform
-      pageRef: /docs/platform/ai-platform
+    - name: Get started
+      pageRef: /docs/get-started
       weight: 1
-    - name: Agent Factory
-      pageRef: /docs/platform/ai-platform/agents
+    - name: Use
+      pageRef: /docs/use
       weight: 2
-    - name: Host contract
-      pageRef: /docs/host-contract
+    - name: How it works
+      pageRef: /docs/how-it-works
       weight: 3
-    - name: Decisions
-      pageRef: /docs/decisions
+    - name: Operate
+      pageRef: /docs/operate
       weight: 4
+    - name: Reference
+      pageRef: /docs/reference
+      weight: 5
+    - name: Status
+      pageRef: /docs/status
+      weight: 6
     # Cross-site link (split design §5): a relref cannot reach the host site, so the S4 link
     # check fetches it after each deploy.
     - name: Cloud Native Ref ↗
-      weight: 5
+      weight: 7
       url: "https://cnref.ogenki.io/"
     - name: GitHub
-      weight: 6
+      weight: 8
       url: "https://github.com/Smana/ai-native-ref"
       params:
         icon: github
     - name: Search
-      weight: 7
+      weight: 9
       params:
         type: search
 

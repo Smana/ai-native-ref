@@ -55,7 +55,7 @@ task marked **valid** is executed from the old text, with the global deltas belo
 | P3 | Phases F, H (each crossplane-configuration release) | **#2275**: until it closes, each live check hand-patches the core package (old plan, Global Constraints) | v1 hardening |
 | P4 | Phase G | **Done**: agent-platform#99, fixed by agent-platform#101. The harness retries a 503 or a connection error, bounded; any 429 stays terminal (OD-7) | agent-platform |
 | P5 | Task I.2's live step | **[OWNER] The Anthropic API key in OpenBao**, mount `agents`, secret `anthropic`, field `api_key`, read from stdin: `bao kv put -mount=agents anthropic api_key=-`. A dedicated workspace with a monthly spend limit (old plan, P1) | Owner |
-| P6 | Task I.6's real-run leg | The gateway's read-only GitHub route and a harness that clones through it ([status page](../../../website/content/docs/platform/ai-platform/status.md), `internal` work row). Without them an `internal` run fails at clone instead of at the model. Probe-level proofs do not need it | SP4 PR 2 |
+| P6 | Task I.6's real-run leg | The gateway's read-only GitHub route and a harness that clones through it ([status page](../../../website/content/docs/status.md), `internal` work row). Without them an `internal` run fails at clone instead of at the model. Probe-level proofs do not need it | SP4 PR 2 |
 | P7 | Phase A | **Done**: the owner decisions below | Owner |
 
 Other open v1-hardening issues (#2273, #2274, #2276, #2280, #2281, #2292) do not touch the gateway.

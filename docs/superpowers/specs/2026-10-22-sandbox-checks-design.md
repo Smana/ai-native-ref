@@ -20,7 +20,7 @@ repository and class.
 
 | Piece | Today |
 |---|---|
-| Harness image | `agent-harness:v0.15.2`, 1,305 MB compressed: Python, git, `gh`, jq, curl, Node, and a docker CLI with no daemon. No mise, no repository tool ([harness reference](../../../website/content/docs/platform/ai-platform/agents/tune/harness-reference.md#composition)) |
+| Harness image | `agent-harness:v0.15.2`, 1,305 MB compressed: Python, git, `gh`, jq, curl, Node, and a docker CLI with no daemon. No mise, no repository tool ([harness reference](../../../website/content/docs/reference/harness.md#composition)) |
 | Sandbox | gVisor, `size: small` always: 1→2 CPU, 2→4 GiB, `/workspace` 10 Gi, `HOME` and `/tmp` 2 Gi each. No Docker daemon |
 | Egress | The `github` profile: `github.com`, `api.github.com`, `codeload.github.com`, `objects.githubusercontent.com`, `raw.githubusercontent.com`. Requestable: `pypi`, `npm`, `golang`, `crates`. None for `internal` |
 | Rules | `rules.md` from the composition: one branch, one PR, no `.github/workflows/`. Nothing about checks |
@@ -162,7 +162,7 @@ pin's tag, cloned from GitHub, and refuses to run when `CI=true`.
 |---|---|---|
 | Download | ai-native-ref 223 MB, cloud-native-ref 137 MB, once per run (a resumed suspendable run keeps them) | measured |
 | Disk | about 0.75 GB under `/workspace/.toolchain`, of 10 Gi | measured |
-| Wall time | the install overlaps the first model steps (about 11 s each on GLM-5.3 at `high`); the checks took 24 s on a desktop and are measured under gVisor by offline proof 4 | measured; [harness reference](../../../website/content/docs/platform/ai-platform/agents/tune/harness-reference.md#harness) |
+| Wall time | the install overlaps the first model steps (about 11 s each on GLM-5.3 at `high`); the checks took 24 s on a desktop and are measured under gVisor by offline proof 4 | measured; [harness reference](../../../website/content/docs/reference/harness.md#harness) |
 | Tokens | at most about 2,000 per invocation: $0.003 fresh on GLM-5.3, then $0.0005 per later step from cache | the summary's cap; `meter.prices` |
 | What it saves | a fix run: a new run that reloads the context, queued behind CI | `fixCI` in the factory |
 

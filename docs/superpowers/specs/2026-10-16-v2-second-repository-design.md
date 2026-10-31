@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-16 · **Status:** proven live 2026-10-18 except P5 ([results](#results); decision 4 open) ·
 **Part of:** the v2 roadmap on the
-[status page](../../../website/content/docs/platform/ai-platform/status.md#v2-roadmap), row "A second repository"
+[status page](../../../website/content/docs/status.md#v2-roadmap), row "A second repository"
 
 ## Outcome
 

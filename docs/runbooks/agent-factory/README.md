@@ -1,14 +1,16 @@
-# Agent Factory runbooks — gcp-0
+# Agent Factory runbooks — aws-0
 
-Live procedures for the Agent Factory on the test cluster `gcp-0`. Every command is copy-paste, and
+Live procedures for the Agent Factory on the test cluster `aws-0` (`gcp-0` until 2026-10-29). Every command is copy-paste, and
 every step names its expected output. A **room** is the per-task workspace the room broker serves at
 `https://rooms.<domain>/r/<id>`: one shared log of messages, handoffs and notes for one factory task.
 
 ## State
 
-gcp-0 was torn down on 2026-10-29. Live sessions run on aws-0 from 2026-10-30. The next bootstrap is fresh, on Maku v0.32.0 (CRD group
-`maku.ogenki.io`): start with [runbook 14](14-gcp-0-session.md), then
-[Runbook 00](#runbook-00-one-time-cluster-setup). The runbooks stay written for that session.
+The factory is live on aws-0 since 2026-10-30, on Maku v0.32.3 (broker, factory, harness and bridge;
+crossplane-configuration v0.9.31; CRD group `maku.ogenki.io`). gcp-0 was torn down on 2026-10-29; its
+session, [runbook 14](14-gcp-0-session.md), is historical. The merge gate's human path was proven on aws-0
+on 2026-10-30 and 31: [results](results-aws-0-2026-10-30.md). A fresh bootstrap starts with
+[Runbook 00](#runbook-00-one-time-cluster-setup).
 
 | What | In the source today |
 |---|---|
@@ -31,12 +33,26 @@ The runbooks keep their intended expectation for each, with a "Known issue" note
 | F16 | Each MCP call through `agent-router` opens its own root trace instead of joining the run's | 08 Step 8 |
 | [maku#279](https://github.com/Smana/maku/issues/279) | A task's status cost freezes before the run's final settle | 04 Part F |
 | [maku#280](https://github.com/Smana/maku/issues/280) | A budget-exhausted run's ledger misses its last spend | 04 Part G |
+| [maku#304](https://github.com/Smana/maku/issues/304) | Residuals of the approval binding: the push record can lag, the run-end time, the reason's name; the base branch is never read | [results](results-aws-0-2026-10-30.md) (F4) |
+| F6 | While cloud-native-ref pins a pre-release ai-native-ref (`-prN`), `ai-overlay --from-git` refuses it: maku's `harness-checks` and the host's `test-ai-overlay-from-git` went red. Fixed by cnref #2691 (the host's test skips the tree half on a pre-release pin) and [maku#305](https://github.com/Smana/maku/pull/305) (`harness-checks` turns a step that fails on the repository's `main` into a warning, red only for a harness fault) | [results](results-aws-0-2026-10-30.md) |
 
 ## What each runbook proves
+
+Grouped by purpose; the number is the order they were written in.
+
+### By purpose
+
+**Setup**
 
 | Runbook | Proves (SC / Q / R) | Needs an owner action? | Est. time |
 |---|---|---|---|
 | [00](#runbook-00-one-time-cluster-setup) (below, this file) | — (setup only) | Yes — 1–4 (see checklist) | 10 min + owner actions |
+| [14-gcp-0-session.md](14-gcp-0-session.md) | The ordered gcp-0 session (historical): gcp-0 up alone, the v2.1 blockers live, runbook 11 as the full test, v2 on gcp-0, the Substrate spike | Yes — Google auth, the quota request, the identity-provider topology, the agents keys, the go-live commit | a day, plus the spike's two |
+
+**Platform**
+
+| Runbook | Proves (SC / Q / R) | Needs an owner action? | Est. time |
+|---|---|---|---|
 | [01-runtime-sandbox.md](01-runtime-sandbox.md) | SC-01, SC-02, SC-03, SC-08, Q1, R7 | No | ~20 min |
 | [02-identity-tokens.md](02-identity-tokens.md) | R2 (token TTL), Q8, SC-05, SC-07 | Yes — 1 | ~30 min |
 | [03-egress.md](03-egress.md) | SC-09, Q3, Q4 | No | ~15 min |
@@ -45,20 +61,40 @@ The runbooks keep their intended expectation for each, with a "Known issue" note
 | [06-mcp.md](06-mcp.md) | SC-12, SC-17 (MCP half) | Yes — 1 | ~15 min |
 | [07-end-to-end.md](07-end-to-end.md) | SC-04, SC-06, SC-13, SC-14 | Yes — 1–5 | ~2 h |
 | [08-observability.md](08-observability.md) | The VMRules (`agent-platform`, `agent-platform-logs`, `agent-factory`, `agent-rooms`), the dashboards, SP4 gateway metrics, the per-run view (SO-1…SO-5) | No | ~15 min |
+| [11-v1-validation.md](11-v1-validation.md) | Local-first UX: the skill, `maku status`, the room page, zoomable diagrams, D7 room access, observability on one run, one task end to end on release pins | Yes — a maintainer's `factory/ready`; a second, non-admin identity and a private test repo | ~90 min |
+
+**Incident and recovery**
+
+| Runbook | Proves (SC / Q / R) | Needs an owner action? | Est. time |
+|---|---|---|---|
 | [09-app-key-compromise.md](09-app-key-compromise.md) | The App key-compromise procedure (SD14): stop, rotate, reload, revoke, resume and audit, for all four Apps | Yes — the App's installation page and settings | ~20 min |
 | [10-disruption.md](10-disruption.md) | Disruption design acceptance 1–6 | Yes — a maintainer's `factory/ready`; aws-0 Step 7 needs IAM | ~60 min |
-| [11-v1-validation.md](11-v1-validation.md) | Local-first UX: the skill, `maku status`, the room page, zoomable diagrams, D7 room access, observability on one run, one task end to end on release pins | Yes — a maintainer's `factory/ready`; a second, non-admin identity and a private test repo | ~90 min |
-| [12-live-auto-merge-drill.md](12-live-auto-merge-drill.md) | Design D4, gate G1–G3: an unattended `docs-links` merge at the run-reported head, its revert and the breaker (both classes live in the source) | Yes — the owner's go, the merger App's `issues: write` and `actions: write`, the `agent-merge` and `agent-branches` rulesets, policy-bot on aws-0, a maintainer's `factory/ready`, `factory/drill` on the drilled PR | ~2 h |
 | [13-rooms-restore.md](13-rooms-restore.md) | Issue #27: the rooms database restores from `rooms-pre-destroy` on a rebuild, and into a scratch namespace; RPO and RTO | Part A: a teardown and rebuild. Part B: the owner's go (writes a seed) | A: the rebuild + 10 min; B: ~30 min |
-| [14-gcp-0-session.md](14-gcp-0-session.md) | The ordered gcp-0 session: gcp-0 up alone, the v2.1 blockers live, runbook 11 as the full test, v2 on gcp-0, the Substrate spike | Yes — Google auth, the quota request, the identity-provider topology, the agents keys, the go-live commit | a day, plus the spike's two |
+
+**Merge gate**
+
+| Runbook | Proves (SC / Q / R) | Needs an owner action? | Est. time |
+|---|---|---|---|
+| [12-live-auto-merge-drill.md](12-live-auto-merge-drill.md) | Design D4, gate G1–G3: an unattended `docs-links` merge at the run-reported head, its revert and the breaker (both classes live in the source) | Yes — the owner's go, the merger App's `issues: write` and `actions: write`, the `agent-merge` and `agent-branches` rulesets, policy-bot on aws-0, a maintainer's `factory/ready`, `factory/drill` on the drilled PR | ~2 h |
 | [15-dead-links.md](15-dead-links.md) | Merge gate classes: the `dead-links` class in shadow (an oracle-backed intake, a would-arm decision, the post-merge monitor) and, on the owner's go, one live drill with its revert | Shadow (in the source): no. The drill: the owner's go, the merger App's `actions` permission, a host `.policy.yml` rule | shadow: a day; drill: ~1 h |
 | [16-deps-patch.md](16-deps-patch.md) | Merge gate classes: the `deps-patch` class in shadow (Renovate's PRs adopted, a would-arm decision, a Flux monitor) and, on the owner's go, one live drill with its revert | Shadow (in the source): no. The drill: the owner's go, the merger App's `issues: write`, cloud-native-ref PR K | shadow: a day; drill: ~1 h |
+| [results-aws-0-2026-10-30.md](results-aws-0-2026-10-30.md) | The aws-0 session of 2026-10-30 and 31: the human path (approve-to-merge, Request changes starting a revision, force-push safety), the regression and recovery proofs, the `dead-links` drill and its unattended revert, the bugs found and fixed, and what was not run | — (results; the owner approved by hand) | the session, ~2 days |
+
+**Features**
+
+| Runbook | Proves (SC / Q / R) | Needs an owner action? | Est. time |
+|---|---|---|---|
 | [17-splitter.md](17-splitter.md) | The splitter: a hard issue proposed as a split, approved, landed part by part as sub-issues, declined by `/factory retry`, stopped, and charged to the approver within the family's cap | Yes — the owner's go, a maintainer's `factory/ready` and `/factory split`, the scoper's live proofs first | ~2 h |
 | [18-factory-interfaces.md](18-factory-interfaces.md) | Factory interfaces: a sponsored principal filing through intake `api`, the broker's signed webhooks and the Slack App; the switch-on (merged), live proofs 2 to 5, and off again | Yes — the owner's go, the Slack App's console | ~3 h |
 | [19-factory-from-your-agent.md](19-factory-from-your-agent.md) | The factory from your coding agent, live proofs 1 to 5 in Claude Code and OpenCode: start from the form, wait for an approval, the card and `room_changes`, the checkout, a hostile note shown inert; then off again | Yes — the owner's go, the cloud-native-ref skill-copy PR merged first | ~2 h |
 | [20-runlore-agent-to-agent.md](20-runlore-agent-to-agent.md) | RunLore as the factory's internal principal, live proofs 1 to 5: the paths open, one incident filed as an `investigate` task and replayed idempotently, the old intake silent (stage 1); a fix verified after its soak, and a fix that does not hold (stage 2) | Yes — the owner's go, the ZITADEL sync and the webhook key seeded (runbook 14), a maintainer's `factory/publish` label created | ~2 h |
 | [21-test-first-tester.md](21-test-first-tester.md) | The tester's contract on a seeded `scripts` issue, the hook and row 2c that hold it, a renamed holdout | Yes — F1 to F5 live and the owner's go | ~2 h |
 | [22-slack.md](22-slack.md) | Slack, configure: the App from its manifest, the keys, the machine user, the Request URL, a channel's repositories (three places), who may file, one mention end to end. Users: the [user guide](../../../website/content/docs/platform/ai-platform/agents/use/user-guide.md) | Yes — the Slack console, OpenBao, the ZITADEL sync | ~1 h |
+
+**Media**
+
+| Runbook | Proves (SC / Q / R) | Needs an owner action? | Est. time |
+|---|---|---|---|
 | [24-screencast.md](24-screencast.md) | — (a recording script: one `docs` task from OpenCode, through the room page and GitHub's approve-to-merge, to the dashboards) | Yes — the session switch (`human.mcp.sessionStart` on aws-0), the owner's approval | ~75 min |
 
 **Out of scope:** SC-15/SC-16 (gVisor overhead ratio and `validate-manifests.sh`/`task check`
@@ -69,8 +105,8 @@ exit codes) are already closed by the phase-0 spike and by CI — no live step a
 Every runbook starts from the root of a `cloud-native-ref` checkout, the host, with `CLOUD` set: the
 CA paths under `opentofu/` and `task agent:run` are the host's. The probe and check scripts live
 here, so `AI_NATIVE_REF_DIR` names an `ai-native-ref` checkout; the host's `task agent:run` calls
-`$AI_NATIVE_REF_DIR/scripts/ops/k8s/agent-run.sh` with the host's CA. gcp-0 is the target; the
-aws variants are kept for an aws-0 rebuild. When a run's sandbox is lost mid-run (spot reclaim,
+`$AI_NATIVE_REF_DIR/scripts/ops/k8s/agent-run.sh` with the host's CA. aws-0 is the target; the
+gcp variants are kept for a gcp-0 rebuild. When a run's sandbox is lost mid-run (spot reclaim,
 eviction, node loss), [runbook 10](10-disruption.md) covers how the factory checkpoints and resumes it.
 
 ```bash
@@ -178,6 +214,11 @@ host runs ([runbook 07 Step 1](07-end-to-end.md#step-1--confirm-the-harness-pin)
 is a pre-release `v*` tag on Maku (its `release.yaml`; tags are admin-only under the
 release-tags ruleset) or the `-pr<N>.<sha8>` image its `ci.yaml` pushes for same-repo PRs;
 cloud-native-ref verifies only signatures from `release.yaml@refs/tags/v…`.
+
+After an OpenBao snapshot restore, check the policy-bot webhook secret: the restored snapshot can hold a
+secret that differs from the GitHub App's (aws-0, 2026-10-30), and policy-bot then rejects every delivery
+with a signature failure, so `policy-bot: main` never posts. Re-set the App's webhook secret to the OpenBao
+value, then re-push a pull request: deliveries answer `200` and the status reads `success`.
 
 ### Cleanup and teardown
 

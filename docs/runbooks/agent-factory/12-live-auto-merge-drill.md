@@ -6,8 +6,10 @@ The factory merges to `main` without a human for the drill's duration: **run it 
 owner's go.** The drill runs on the factory that `Smana/cloud-native-ref`'s
 `.github/agent-factory.yaml` names (the ownership fence): `aws-0`. The next session runs there: both fence files flip
 from `gcp-0` to `aws-0` in two human-authored gate-path pull requests before it (AM12 of the
-[human path design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-29-merge-gate-human-path-design.md)). The Results below
-record the runs on `gcp-0`.
+[human path design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-29-merge-gate-human-path-design.md)). That
+session ran on aws-0 on 2026-10-30 and 31: the Results below hold its row and the earlier `gcp-0` runs,
+and the [aws-0 results page](results-aws-0-2026-10-30.md) holds the whole session. The approvals in it
+are a human's click: an agent session's auto-mode refuses `gh pr review --approve` as self-approval.
 Every other factory renders the same values and never acts on the repository. See
 [README.md](README.md) for `CLOUD`.
 
@@ -92,16 +94,18 @@ flowchart LR
 - **Label the drill before the revert.** Add `factory/drill` to the merged pull request, then
   `factory/revert` (Step 5): the merger copies `factory/drill` to its revert PR, the breaker does not
   count it (human path AM6), and the class keeps its shadow and live clocks. A revert without the
-  label pauses the class (`class_paused`, in shadow too: gate row 9 precedes row 11) until 3 clean
-  mature merges land (`recoverAfter`, AM7). The label is honoured only from a maintainer, as
+  label pauses the class (`class_paused`) until 3 clean mature merges land (`recoverAfter`, AM7).
+  A class in shadow skips the breaker rows (9 and 10, AM4): it keeps recording `shadow_would_arm`,
+  with `paused=true`, while paused (proven live on aws-0 with `docs-links`, #258 and #260). The label is honoured only from a maintainer, as
   `factory/revert` is.
-- **Retroactively:** the drill of 2026-10-18 reverted #2520 through #2521 without the label. Before
-  the next session, label #2521:
-  `gh api -X POST repos/Smana/cloud-native-ref/issues/2521/labels -f 'labels[]=factory/drill'`.
-  A label added after the revert lifts a pause only through GitHub's labels, when no Task exists for
-  #2520, at the next process start (the labels are read once per process). aws-0 starts with no Task for
-  #2520, so its first start reads the label and `docs-links` resumes; on a factory that still holds that
-  Task it would not.
+- **Retroactively:** a drill label added after the revert counts only through the GitHub ledger, when
+  no Task exists for the reverted PR, and is read once, at process start. Restart the factory
+  Deployment after adding it. The drill of 2026-10-18 reverted #2520 through #2521 without the label;
+  #2521 carries it now
+  (`gh api -X POST repos/Smana/cloud-native-ref/issues/2521/labels -f 'labels[]=factory/drill'`; on
+  cloud-native-ref `gh pr edit` fails silently, so go through the issues API). aws-0 started with no
+  Task for #2520, so a fresh start reads the label; a factory that still holds that Task would not.
+  Whether that lifts `docs-links` on the host (G1) was not read on aws-0.
 - **Live means `{live: true}`.** `{}` is "neither": a label only, the gate hands off `class_unarmed` (`class_mismatch` before Maku v0.28.1).
 - **Both classes go live in one commit** (D5): a live class with a shadow `revert` would wait for a
   human to merge its own revert.
@@ -327,6 +331,21 @@ Expected: `verdict="arm", reason="armed"` once for `docs-links`; no `label the m
 | End the live window at once | Revert the cloud-native-ref pin bump (back to the previous artifact, already verified) | Both classes back in shadow within one Flux reconcile. A pin from before #58 takes policy-bot off aws-0 too: cloud-native-ref's gate falls back to `policy_absent`, and ai-native-ref's PRs wait on `policy-bot: main` until a later pin restores it |
 
 ## Results
+
+### 2026-10-31, aws-0: the human path, the dead-links drill and its revert
+
+Maku `v0.32.0` to `v0.32.3` over the session, `docs-links` and `dead-links` the classes drilled; the
+full table, the bugs found and the proofs not run are on the
+[aws-0 results page](results-aws-0-2026-10-30.md). It is not this runbook's `docs-links` drill: the
+class that merged and was reverted unattended was `dead-links` ([runbook 15](15-dead-links.md)).
+
+| Step | Expected | Observed | Pass/Fail |
+|---|---|---|---|
+| 4 (G2) | merged by the merger at the decided head, `factory/auto-merged:<class>` | cloud-native-ref #2697 (`dead-links`), 11:11:41Z `arm` / `armed`, merged by `ogenki-agent-merger` at `aded5317`; `Done` / `merged_verified` 11:41Z | Pass |
+| 5 (G3, AM6) | `factory/drill` then `factory/revert`; revert PR by the merger with both labels; the drill notice, no `ClassDemoted` | #2698 opened 11:43:45Z with `factory/drill` and `factory/revert-of:#2697`; one revert PR only; drill notice on #2188; gauge 0 | Pass |
+| 5 (maku#158) | the merger merges its own revert, no human | #2698 merged 11:47:22Z by `ogenki-agent-merger`; the plant it restored is the only red check, not a required one | Pass |
+| 6 | the class back in shadow | cnref #2699 12:01Z; a later decision on #2700 reads `shadow_would_arm`, `paused=false` | Pass |
+| G1 | the drill label on #2521 lifts `docs-links` on the host | no host `docs-links` decision this session | Not run |
 
 ### 2026-10-18 (afternoon), gcp-0: G2 and G3
 

@@ -1,7 +1,7 @@
 # 15 — The `dead-links` class: shadow, then the drill
 
 Brings the merge gate's `dead-links` class from declared and off to shadow, then, on the owner's go, to
-one live drill. Design: [merge gate classes](../../superpowers/specs/2026-10-22-merge-gate-classes-design.md)
+one live drill, run on aws-0 on 2026-10-31 ([results](results-aws-0-2026-10-30.md#l2-the-dead-links-drill)). Design: [merge gate classes](../../superpowers/specs/2026-10-22-merge-gate-classes-design.md)
 (MC1 to MC14). The class is declared on both repositories and is in shadow on both (`shadow: true`,
 §2): it decides, never arms. A class with no `live` or `shadow` key has no intake and takes no decision. See [README.md](README.md) for `CLOUD`.
 
@@ -42,14 +42,31 @@ The panel "Merge decisions by class and reason (7 days)" on the agent-factory da
 
 ## 3. The drill, L2 (the owner's go)
 
-1. Plant `[x](https://<host>/does-not-exist)` in a host document and dispatch the workflow twice.
-2. A host PR first adds `low-risk: dead-links` to the host's `.policy.yml` (the `docs-links` rule renamed,
+1. Plant a link to a **real dead page that the Wayback Machine holds a snapshot of**, in a file that
+   **sorts before the existing findings**, then dispatch the workflow twice. A finding becomes a task
+   only with an archive URL, and `findings.py` looks up at most 20 archives per run, in file order: a
+   host with 20 findings already (cloud-native-ref's, all under `website/`) spends the budget on them.
+   `[x](https://<host>/does-not-exist)` has no snapshot and can never become a task. The drill used
+   `https://kubernetes.io/docs/setup/production-environment/turnkey/aws/` (404 today, a Wayback
+   snapshot answering 200) in `docs/architecture/README.md`, which sorts before `website/`. Check
+   the plant first: both detector runs report it `404` and the newest carries its `archive`.
+   The class rewrites it to the snapshot, one line.
+2. The probe only fires in the hour after a cron slot (`0 7 * * *`). For a drill, override the
+   host's `dead-links` schedule to `cron: "*/10 * * * *"` for the session, never merged to stay:
+   it weighs the newest two detector runs every ten minutes while no task of the schedule is open.
+   A host PR first adds `low-risk: dead-links` to the host's `.policy.yml` (the `docs-links` rule renamed,
    R23); then the class goes `live: true`.
-3. The merger merges at the head the checks ran on. After two scheduled detector runs,
+   **Use Maku v0.32.3 or later**: before it, the oracle-class branch of triage returned no
+   `classification.fallback`, the CRD refused every status write, and every `dead-links` task was stuck
+   (fixed by [maku#306](https://github.com/Smana/maku/pull/306); the stuck task progressed on the new
+   release).
+3. The merger merges at the head the checks ran on. After two detector runs dispatched after the merge,
    `kubectl -n agent-system get task <id> -o jsonpath='{.status.monitor}'` shows `oracle: healthy` and
    `main: healthy`, and the PR carries `factory/merged:dead-links`. The verdict comment arrives at 168 h
    (a drill does not wait for it).
-4. Label the merge `factory/revert`: the revert merges, and the next decision reads `class_paused`.
+4. Label the merge `factory/drill`, then `factory/revert`: the merger opens the revert and merges it
+   itself, unattended; the breaker does not count a drill revert, so the next decision is not
+   `class_paused` (without the drill label it would be). The tally reads `drill=1 bad=0`.
 5. Back to `shadow: true`.
 
 ## 4. What fails closed
@@ -83,11 +100,12 @@ Nothing was reverted. The class is demoted (`class_paused`) at its next decision
    reports gone a target the merge wrote), or a follow-up (a later PR fixing lines this merge wrote).
    Flux is not declared on `dead-links`, so it is never the cause here.
 3. Revert or fix: label the PR `factory/revert` to revert it, or open the fix as a normal PR.
-4. Know the demotion: `maxFollowUps: 1` in a window of 10 counts a follow-up or a regression like a
-   revert, and one is enough. The class stays at human review until the breaker's newest 10 merges of
-   the class no longer hold the bad outcome.
-5. To un-demote: merge clean PRs of the class (a maintainer's merge counts, it refills the window) until
-   the regressed merge is out of the newest 10. The labels live on GitHub, so a rebuild of the factory
+4. Know the demotion: `maxFollowUps: 1` counts a follow-up or a regression like a revert, and one is
+   enough. The class stays at human review (`class_paused`) until `recoverAfter: 3` clean, mature
+   merges of the class land after the bad one (a maintainer's merge counts, once its follow-up window
+   has passed).
+5. To un-demote: merge clean PRs of the class until three are mature. Proven on aws-0 with a
+   one-hour window: three clean `docs-links` merges, gauge `class_paused` 1 to 0 about an hour later. The labels live on GitHub, so a rebuild of the factory
    keeps the demotion. Do not widen the class meanwhile.
 
 ## 6. ai-native-ref

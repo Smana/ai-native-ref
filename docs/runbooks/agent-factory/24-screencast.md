@@ -16,7 +16,7 @@ checked PR is waiting for one click from me. Every step is visible, bounded and 
 | Wall clock | ~60–75 min (the factory takes ~5 min to a PR, then the reviewer, CI and the gate), recorded in 6 segments, the waits cut |
 | Cluster | **aws-0**. `.github/agent-factory.yaml` says `factory: aws-0`, so only aws-0 takes the issue |
 | Repo | `Smana/cloud-native-ref`, class **`docs`** (scoper, implementer, reviewer, judge, search all on) |
-| Climax | Your **approval on GitHub is the merge** (`approveToMerge: true`): the factory merges, not you |
+| Climax | The **approval is the merge** (`approveToMerge: true`): you approve, the factory merges, not you. Approve the commit you read (maku [#301](https://github.com/Smana/maku/pull/301): `gh api …/reviews -f commit_id=<sha> -f event=APPROVE`) |
 
 ```mermaid
 sequenceDiagram
@@ -170,6 +170,11 @@ Record when the issue reads "*waits for a maintainer's review*" (dry run tells y
    - The hand-off comment naming the one action left: approve.
 3. **Do**: *Review changes → Approve*.
    **Say**: "My approval is the merge. I don't press merge — the factory does, as a human merge."
+   Approve the head you reviewed, after the task's runs have ended and a minute has passed:
+   the approval binds to that commit ([maku#301](https://github.com/Smana/maku/pull/301)), and one
+   given earlier, or on a head pushed after the runs, is not counted (`approval_stale`,
+   `human_commit_in_pr`). From the web UI, or pinned to the commit:
+   `gh api repos/<owner>/<repo>/pulls/<n>/reviews -f commit_id=<sha> -f event=APPROVE`.
 4. **Do**: refresh until merged (cut the wait).
    **Show**: merged by the factory, the issue closed with "Tokens used: … k".
 - **Cut**.

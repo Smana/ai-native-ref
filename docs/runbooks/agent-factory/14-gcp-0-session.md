@@ -8,7 +8,7 @@ Each step points to the runbook that holds its detail. Results go in that runboo
 cluster-level evidence goes in a `results-gcp-0-<date>.md`, as in
 [the 2026-09-30 round](results-gcp-0-2026-09-30.md).
 
-gcp-0 was torn down on 2026-10-29. The next bootstrap is fresh, on Maku v0.32.0 (CRD group
+**Historical.** gcp-0 was torn down on 2026-10-29, and the factory has run on aws-0 since 2026-10-30 (Maku v0.32.3, [results](results-aws-0-2026-10-30.md)). The checklist stays for a gcp-0 rebuild, which is fresh, on a Maku release at least v0.32.0 (CRD group
 `maku.ogenki.io`): no cluster may still run v0.30.x Rooms, or Flux prunes `rooms.agents.ogenki.io` and
 every Room under it. Steps 1 and 6 are already on cloud-native-ref's `main`; check they still are.
 

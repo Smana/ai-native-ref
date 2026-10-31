@@ -335,6 +335,12 @@ IDP_URL=https://auth.gcp.cloud.ogenki.io scripts/provision/zitadel-idp.sh link-g
 Until the link exists, `maku rooms` lists nothing and says how to link; once it does, the hint
 goes away when the broker's cached answer expires, within 5 minutes.
 
+### The room list
+
+![The Maku room list. Filters: mine, needs me, all repositories; updated 1:10:32 PM, refreshing every 10 s, with a Pause button and New room. Columns: needs you, task, repository, status, PR, last activity, room. Two ai-native-ref tasks show a Needs-you badge of 1 and Waiting, review and merge PR #265 and PR #250; a cloud-native-ref room is Running between runs; task #246 is Done, merged as PR #249.](/images/screenshots/rooms-list-needs-you.png)
+
+*The room list refreshes on its own (every 10 s by default; Off, 5 s, 30 s or 1 min, per browser) and the tab title counts the rooms that need you. Tick **needs me** to see only those. Maku v0.32.1.*
+
 ### The room page
 
 The room list refreshes on its own (every 10 s by default; off, 5 s, 30 s or 1 min, per browser), and the

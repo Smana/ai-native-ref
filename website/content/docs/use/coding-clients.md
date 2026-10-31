@@ -1,7 +1,7 @@
 ---
 title: Coding Clients
 weight: 30
-description: "Connecting a coding client to the platform: the ai-gateway for models and the factory for hand-offs, on aws-0 and gcp-0, with each client's current configuration and the failure modes their errors mean."
+description: "Connecting a coding client to the platform: the ai-gateway for models and the factory for hand-offs, on AWS and GCP, with each client's current configuration and the failure modes their errors mean."
 lastVerified: 2026-10-30
 aliases:
   - /docs/platform/ai-platform/coding-clients/
@@ -14,9 +14,9 @@ A coding client can use the platform in two ways, and they are independent:
 | **Models** through the `ai-gateway` | The platform's models in your client's chat, edits and completions | A base URL and an API key in the client's own config |
 | **Hand-offs** to the Agent Factory | File an issue, follow its run and bring its branch back without leaving the session | `maku setup <client>` |
 
-Every snippet on this page carries a label. Nothing here was run against a live endpoint on the
-date above: each snippet says which docs page it was checked against, and
-[what needs a live run](#verifying-the-connection) is listed at the end of that section.
+Each snippet is checked against its client's configuration reference, linked next to it, not run
+against a live endpoint. [What needs a live run](#verifying-the-connection) is listed at the end of
+that section.
 
 ## Two integrations, one table
 
@@ -29,7 +29,7 @@ date above: each snippet says which docs page it was checked against, and
 | [Gemini CLI](#cursor-gemini-cli-and-copilot-cli) | No custom endpoint documented | `maku setup gemini` |
 | [Copilot CLI](#cursor-gemini-cli-and-copilot-cli) | Yes: a custom OpenAI-compatible provider | `maku setup copilot` |
 | [VS Code + Continue](#vs-code-and-continue) | Yes: chat and FIM | not applicable |
-| [OpenWebUI](#openwebui) | Yes: in-cluster, aws-0 only | not applicable |
+| [OpenWebUI](#openwebui) | Yes: in-cluster, on AWS only | not applicable |
 
 - **Models.** The `ai-gateway` is the platform's gateway for humans and coding clients. It speaks
   the OpenAI chat-completions API. See [Gateways]({{< relref "/docs/how-it-works/gateways.md" >}}).
@@ -59,12 +59,12 @@ Clients send `Authorization: Bearer <key>`. An Envoy Gateway `SecurityPolicy`
 Secret `ai-gateway-api-keys` in `envoy-ai-gateway-system`, which each cloud fills differently.
 Read a key into an environment variable and never paste it into a config file.
 
-| | aws-0 | gcp-0 |
+| | AWS | GCP |
 |---|---|---|
 | Source | AWS Secrets Manager entry `platform-llm-api-keys` (a JSON object keyed by client identity), seeded once and kept outside OpenTofu | Generated in the cluster by External Secrets `Password` generators, once (`refreshPolicy: CreatedOnce`) |
 | Identities today | `openwebui_apikey`, `promptfoo_apikey` | `openwebui`, `promptfoo` |
 
-aws-0 (schema-checked against `infrastructure/base/envoy-ai-gateway/api-keys-externalsecret.yaml`, not run):
+On AWS:
 
 ```bash
 export OPENAI_API_KEY=$(aws secretsmanager get-secret-value \
@@ -72,16 +72,16 @@ export OPENAI_API_KEY=$(aws secretsmanager get-secret-value \
   --query SecretString --output text | jq -r .openwebui_apikey)
 ```
 
-gcp-0 (schema-checked against `infrastructure/gcp-0/envoy-ai-gateway/api-keys-patch.yaml`, not run):
+On GCP:
 
 ```bash
 export OPENAI_API_KEY=$(kubectl get secret -n envoy-ai-gateway-system ai-gateway-api-keys \
   -o jsonpath='{.data.openwebui}' | base64 -d)
 ```
 
-A client shares the identity of the key it uses. To onboard another identity on aws-0, add a
+A client shares the identity of the key it uses. To onboard another identity on AWS, add a
 property to the Secrets Manager JSON and a matching key to the template in
-`infrastructure/base/envoy-ai-gateway/api-keys-externalsecret.yaml`. On gcp-0, add a `Password`
+`infrastructure/base/envoy-ai-gateway/api-keys-externalsecret.yaml`. On GCP, add a `Password`
 generator in `infrastructure/gcp-0/envoy-ai-gateway/password-generators.yaml` and a `dataFrom` entry in
 `api-keys-patch.yaml`.
 
@@ -95,7 +95,7 @@ client cannot forge the identity it is charged to. Daily token budgets (5M per k
 
 `GET /v1/models` lists what a cloud serves. The names a client may use:
 
-| Model ID | Backed by | aws-0 | gcp-0 | Purpose |
+| Model ID | Backed by | AWS | GCP | Purpose |
 |---|---|---|---|---|
 | `tier-frontier` | GLM-5.3 through Z.ai | yes | yes | A frontier model on CPU only; works with `llm-platform` suspended |
 | `MoM` | Semantic Router | with `llm-platform` | with `llm-platform` | Classifies the prompt and picks an `xplane-*` model |
@@ -138,7 +138,7 @@ the project root.
 }
 ```
 
-For gcp-0, use `https://llm.priv.gcp.ogenki.io/v1` and models `tier-frontier` or
+On GCP, use that cluster's [base URL](#endpoints-per-cloud) and models `tier-frontier` or
 `xplane-qwen3-8b`. A tool call needs a model with function calling: `xplane-qwen-coder` and
 `tier-frontier` have it. If a model must be reached through `/v1/responses`, OpenCode wants
 `@ai-sdk/openai` instead, and the `ai-gateway` does not serve that path.
@@ -166,7 +166,7 @@ Models: **not yet**. Codex's documented provider shape is below, but `responses`
 answers that path has not been probed: until it has, point Codex at the platform only for
 hand-offs. If `POST /v1/responses` answers on the gateway, this is the configuration, in
 `~/.codex/config.toml`
-(schema-checked against <https://learn.chatgpt.com/docs/config-file/config-advanced>, not run):
+([reference](https://learn.chatgpt.com/docs/config-file/config-advanced)):
 
 ```toml
 model = "tier-frontier"
@@ -196,8 +196,7 @@ only in a folder you trust, so trust the folder first.
 ([docs](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models)):
 `~/.copilot/providers.json` with a provider of `type: openai` and a model that names it. The file
 does not expand environment variables and keeps the key in plain text, so generate it from your
-shell, keep it private and never commit it
-(schema-checked against the page above, not run):
+shell, keep it private and never commit it:
 
 ```bash
 umask 077 && mkdir -p ~/.copilot && jq -n --arg key "$OPENAI_API_KEY" '{
@@ -222,8 +221,8 @@ contains `qwen` and `coder`
 ([source](https://github.com/continuedev/continue/blob/main/core/autocomplete/templating/AutocompleteTemplate.ts)).
 
 In `~/.continue/config.yaml`
-(schema-checked against <https://docs.continue.dev/reference> and
-<https://docs.continue.dev/customize/model-providers/top-level/openai>, not run):
+([reference](https://docs.continue.dev/reference),
+[OpenAI provider](https://docs.continue.dev/customize/model-providers/top-level/openai)):
 
 ```yaml
 name: Ogenki platform
@@ -255,13 +254,13 @@ models:
 
 `useLegacyCompletionsEndpoint` makes Continue call `/v1/completions`, the FIM path, instead of chat
 completions. How Continue resolves `${{ secrets.OPENAI_API_KEY }}` from a local file (a `.env`
-file next to the config) is not on the pages read, so confirm it on first use. On gcp-0 there is no
+file next to the config) is not on the pages read, so confirm it on first use. On GCP there is no
 FIM model: use the chat profile with `xplane-qwen3-8b` or `tier-frontier`, and no autocomplete.
 
 ## OpenWebUI
 
-`https://chat.priv.aws.ogenki.io` (Tailscale, `tag:k8s` ACL). OpenWebUI runs on aws-0 only, in
-`llm-platform`, and is not wired on gcp-0. Its default model is `xplane-qwen3-8b`. The Semantic
+`https://chat.priv.aws.ogenki.io` (Tailscale, `tag:k8s` ACL). OpenWebUI runs on AWS only, in
+`llm-platform`, and is not wired on GCP. Its default model is `xplane-qwen3-8b`. The Semantic
 Router rewrites `body.model` only when the client sent `MoM` (or `auto`): a named model is honoured
 as is, and the response header `x-vsr-selected-model` shows what served the request. Scaling is in
 [Autoscaling & GPUs]({{< relref "/docs/how-it-works/serving/autoscaling-and-gpu.md" >}}).
@@ -302,22 +301,20 @@ override.
 ## Troubleshooting
 
 - **`401 Unauthorized`.** The header is missing or matches no key. Check `echo ${OPENAI_API_KEY:+set}`.
-  On aws-0 a changed key takes up to 1 h to reach the cluster (External Secrets refresh); force it with
-  `kubectl annotate externalsecret/ai-gateway-api-keys -n envoy-ai-gateway-system force-sync=$(date +%s) --overwrite`
-  (schema-checked against <https://github.com/Smana/ai-native-ref/blob/main/infrastructure/base/envoy-ai-gateway/api-keys-externalsecret.yaml>, not run).
-  On gcp-0 the Secret is generated once and a sync does not change it: read the key again from the
+  On AWS a changed key takes up to 1 h to reach the cluster (External Secrets refresh); force it with
+  `kubectl annotate externalsecret/ai-gateway-api-keys -n envoy-ai-gateway-system force-sync=$(date +%s) --overwrite`.
+  On GCP the Secret is generated once and a sync does not change it: read the key again from the
   cluster instead.
 - **`404 The model 'X' does not exist`.** The name is not served on that cloud. Check
-  `GET /v1/models`: `xplane-qwen-coder*` and the guard model do not exist on gcp-0, and none of the
+  `GET /v1/models`: `xplane-qwen-coder*` and the guard model do not exist on GCP, and none of the
   `xplane-*` models exist while `llm-platform` is suspended. For `MoM`, look at the router pod logs
   in the `llm` namespace.
 - **`403 Access denied` from Envoy.** A Cilium L7 policy refused it. Either the source lacks an
   egress rule to the AI Gateway data plane or the model's policy does not admit the client; see the
   checklist in [Policies](https://cnref.ogenki.io/docs/platform/security/policies/).
 - **Autocomplete is slow (over 1 s).** Continue is calling chat completions instead of FIM. Check
-  `roles: [autocomplete]` and `useLegacyCompletionsEndpoint: true`, and on aws-0 that the Service
-  exists: `kubectl get svc -n llm xplane-qwen-coder-fim` (schema-checked against
-  <https://github.com/Smana/ai-native-ref/blob/main/apps/base/ai/llm/qwen-coder-fim.yaml>, not run).
-- **The factory tools are missing in the client.** Run `maku doctor` (schema-checked against the user guide URL above, not run) and fix the first check that
+  `roles: [autocomplete]` and `useLegacyCompletionsEndpoint: true`, and on AWS that the Service
+  exists: `kubectl get svc -n llm xplane-qwen-coder-fim`.
+- **The factory tools are missing in the client.** Run `maku doctor` and fix the first check that
   is not `ok`, then `maku setup <client> --print` to see what would be registered. For Gemini CLI,
   open the client from a trusted folder.

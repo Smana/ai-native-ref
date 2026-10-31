@@ -87,7 +87,7 @@ The full records are in the programme's design documents, listed under [Sources]
 | gVisor | Kata or Firecracker microVMs | Concurrency reaches about 20 sandboxes, enough to fill a metal host; a gVisor incompatibility blocks a class of task; or nested virtualisation becomes available on our node types |
 | agentgateway (agents), Envoy AI Gateway (people) | [otari](#otari) | It ships declarative Kubernetes packaging, OpenTelemetry gen_ai export, per-run identity without a key per run and MCP federation (agents); or generic OIDC sign-in and prompt-based model choice (people) |
 | agent-sandbox, one pod per run | [Agent Substrate](#agent-substrate) | See [Reconsidering Substrate](#reconsidering-substrate-not-now-deliberately-open) |
-| One cold pod per run, held or ended while it waits | agent-sandbox's own `SandboxWarmPool` and `operatingMode: Suspended`, in the pinned v1.0.5; the composition suspends only finished runs | Now: a run starts in about 90 s on a fresh node ([v1 review, 2026-10-12](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)). A claim that sets `env` or volume templates bypasses the warm pool |
+| One cold pod per run, held or ended while it waits | agent-sandbox's own `SandboxWarmPool` and `operatingMode: Suspended`, in the pinned v1.0.5; the composition suspends only finished runs | Now: a run starts in about 90 s on a fresh node ([v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)). A claim that sets `env` or volume templates bypasses the warm pool |
 
 ## Projects evaluated in detail
 
@@ -95,7 +95,7 @@ Candidates that could replace a whole layer. Each section states when it was che
 
 ### google/ax
 
-*Checked on 2026-10-04 at `ac23328`.*
+*Checked in October 2026 at `ac23328`.*
 
 **What it is.** Google's agent orchestrator: it runs each task as an agent on Agent Substrate and
 bootstraps Google's Antigravity agent inside it.
@@ -122,7 +122,7 @@ the sandbox, on top of the [Substrate triggers](#reconsidering-substrate-not-now
 
 ### Agent Substrate
 
-*Checked on 2026-10-04 at `16b863a`.*
+*Checked in October 2026 at `16b863a`.*
 
 **What it is.** A runtime that packs many gVisor-isolated agents into shared worker pods and can
 **suspend and resume** an agent, memory included, from snapshots.
@@ -146,7 +146,7 @@ GKE-only memory snapshots driven from its Python SDK; the composition suspends o
 
 ### kagent
 
-*Checked on 2026-10-04 at `bf8afa56` (v1) and `v0.10.3`.*
+*Checked in October 2026 at `bf8afa56` (v1) and `v0.10.3`.*
 
 **What it is.** A CNCF Sandbox project, mostly maintained by Solo.io, and really two products:
 - **v1** (alpha, where the project invests) runs only on its own fork of Agent Substrate, with
@@ -171,7 +171,7 @@ beats our fork. It depends on Substrate.
 
 ### Temporal
 
-*Assessed on 2026-10-04 against the factory's needs; no proof of concept.*
+*Assessed in October 2026 against the factory's needs; no proof of concept.*
 
 **What it is.** A durable-execution engine ([temporalio/temporal](https://github.com/temporalio/temporal),
 MIT). Workflows are written as code, and the engine keeps their state through crashes, with durable
@@ -196,7 +196,7 @@ workflow engine becomes worth its weight.
 
 ### OpenAI Symphony
 
-*Checked on 2026-10-12 at the repository's `SPEC.md`; last push 2026-09-15.*
+*Checked in October 2026 at the repository's `SPEC.md`; last push in September 2026.*
 
 **What it is.** An Apache-2.0 *specification* for an orchestrator that polls an issue tracker,
 claims ready issues, gives each one an isolated workspace and runs a coding agent in it, with
@@ -222,13 +222,13 @@ replace polling and slot logic only.
 
 ### otari
 
-*Checked on 2026-10-20 in the code at [`e6226a5`](https://github.com/mozilla-ai/otari/tree/e6226a5cdd42945a29c36e6327afa5394241734e)
+*Checked in October 2026 in the code at [`e6226a5`](https://github.com/mozilla-ai/otari/tree/e6226a5cdd42945a29c36e6327afa5394241734e)
 (just after v0.30.1) and any-llm [`d6b76fd`](https://github.com/mozilla-ai/any-llm/tree/d6b76fd9e594d308a1932fe5172bc8e37ec4d17d).
 Full evaluation, with a code link per claim: [research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-otari-evaluation-research.md).*
 
 **What it is.** Mozilla.ai's open-source (Apache-2.0) LLM gateway: one Python process serving an
 OpenAI-compatible API and a dashboard, built on its `any-llm` SDK, over PostgreSQL. It runs alone,
-or as a data plane reporting to the hosted control plane otari.ai. First released 2026-06-25, it
+or as a data plane reporting to the hosted control plane otari.ai. First released in June 2026, it
 reached v0.30 four months later with 27 breaking changes.
 
 **What it does well.**
@@ -317,11 +317,11 @@ The design keeps the door open:
 
 ## Sources
 
-- [Agent Factory v1 review, 2026-10-12](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md):
+- [Agent Factory v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md):
   build-or-adopt per layer, Symphony, agent-sandbox's suspend and warm pools
-- [otari evaluation, 2026-10-20](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-otari-evaluation-research.md)
-- [kagent evaluation, 2026-10-04](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md)
-- [ax and Substrate re-check, 2026-10-04](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-ecosystem-recheck-research.md#2026-10-04-re-check-ax-and-substrate-claims-against-code)
+- [otari evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-otari-evaluation-research.md)
+- [kagent evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md)
+- [ax and Substrate re-check](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-ecosystem-recheck-research.md#2026-10-04-re-check-ax-and-substrate-claims-against-code)
 - [Runtime research, with the first ax and Substrate evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-research.md)
 - Designs: [programme](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md),
   [runtime](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md),

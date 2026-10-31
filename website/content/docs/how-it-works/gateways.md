@@ -245,8 +245,8 @@ sends: the run's alias (the claim's `spec.model`) on `/v1` and `/anthropic`, and
 judge's on `/judge/v1` (`spec.loop.judgeModel`, or `none`, which the rule refuses, when the claim
 names no judge). Every profile lists the four tier aliases, and only the public ones add the
 provider aliases, so on tiers the rule binds nothing until a role moves to its own size: narrowing a
-profile is the switch, and gate AG14 refuses one that would
-refuse a model the factory's tiers pin.
+profile is the switch, and the CI gateway check (`scripts/ci/flux-schema/assert-agent-gateway.py`)
+refuses one that would refuse a model the factory's tiers pin.
 
 The arguments are generated too. A tool in a profile may read
 `{name: <tool>, when: 'mcp.tool.arguments.<argument> not in ["<value>", ...]'}`, the one form the generator
@@ -277,7 +277,7 @@ human ones (`policy-budgets.yaml`, `ratelimit.yaml`, `kvstore.yaml`):
 
 They are a backstop: the factory's run meter stays the exact cap, and the gateway never refuses a
 call the factory would admit. Each call is charged at the meter's own prices, so a cache read
-costs its cache rate; gate AG8 holds the gateway's price expression and limits to the factory's
+costs its cache rate; the CI gateway check holds the gateway's price expression and limits to the factory's
 values. They are **enforced** (`SHADOW_MODE: "false"` on the server): a call over
 budget gets a `429` whose body, `agent_budget_exhausted`, the harness logs
 ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)). The server is `envoyproxy/ratelimit` (`agent-ratelimit`) on the Valkey
@@ -291,8 +291,7 @@ a repository is described on the [agents overview]({{< relref "/docs/get-started
 
 ## What the two share, and what they keep apart
 
-From the [model routing and budgets design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md)
-(SP4):
+From the [model routing and budgets design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md):
 
 | Concern | Decision | Why |
 |---|---|---|

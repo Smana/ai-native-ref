@@ -12,3 +12,4 @@
 
 ## Write
 - English, short declarative sentences, tables over prose; a host page by absolute URL.
+- Site pages follow `docs/docs-style.md`; `python3 scripts/ci/check-reader-first.py` checks them offline.

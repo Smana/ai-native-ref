@@ -95,7 +95,7 @@ its log to the last event.
 
 The `agent-factory` dashboard's **Human path** row reads the factory's merge series; each series, its
 labels and what each decision means are on
-[Agents and the merge gate]({{< relref "/docs/how-it-works/merge-gate.md#metrics" >}}).
+[Run auto-merge safely]({{< relref "/docs/operate/auto-merge-safety.md#metrics" >}}).
 **Cost by role** reads `maku_factory_run_cost_usd{tier,role}`.
 
 Alerts in `observability/base/agent-platform/vmrule-agent-factory.yaml`:

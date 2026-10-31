@@ -2,10 +2,10 @@
 title: "1. Meet the factory"
 linkTitle: "1. Meet the factory"
 weight: 1
-description: "What the Agent Factory does for you, the deal between you and the agents, and the four things it never does."
+description: "What the Agent Factory does for you, the deal between you and the agents, and its four safety rules."
 ---
 
-By the end of this chapter you will know what the factory does for you, and what it never does.
+By the end of this chapter you will know what the factory does for you, and the rules it keeps.
 
 {{< hero-video clip="agent-factory" alt="The Agent Factory in 32 seconds: a labelled issue becomes an agent run, watched in a room, and ends as a pull request a person approves." />}}
 
@@ -24,7 +24,7 @@ same branch, with your review as its instructions. Approve it, and that approval
 Every task has a room: a live page of what each agent did and said. You can watch it, leave a note,
 or stop the task at any time.
 
-## Four things it never does {#never}
+## Four safety rules {#never}
 
 - **It never merges without your approval**, except a few low-risk kinds of change your platform team
   lets through, such as link fixes.

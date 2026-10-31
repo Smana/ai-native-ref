@@ -16,8 +16,8 @@ Each chapter opens with what you will be able to do, and ends with a link to the
 
 ## Contents {#contents}
 
-1. [Meet the factory]({{< relref "meet-the-factory.md" >}}): what it does for you, and the four things it
-   never does.
+1. [Meet the factory]({{< relref "meet-the-factory.md" >}}): what it does for you, and its four safety
+   rules.
 2. [Before your first task]({{< relref "before-your-first-task.md" >}}): the five things you need, and
    who gives you each one.
 3. [Your first task, start to finish]({{< relref "your-first-task.md" >}}): write a good issue, label it,
@@ -60,7 +60,7 @@ to the section's new home. If it does not, pick it from this list.
 <li id="scoper-question"><a href="when-the-factory-needs-you/#scoper-question">When the factory asks a question</a></li>
 <li id="split"><a href="when-the-factory-needs-you/#split">When the factory proposes a split</a></li>
 <li id="from-slack"><a href="../slack/">Using the factory from Slack</a></li>
-<li id="what-the-factory-never-does"><a href="meet-the-factory/#never">What the factory never does</a></li>
+<li id="what-the-factory-never-does"><a href="meet-the-factory/#never">What the factory never does (now: Four safety rules)</a></li>
 <li id="budgets-and-costs"><a href="when-things-go-wrong/#caps">Budgets and costs</a></li>
 <li id="caps"><a href="../../reference/harness/#caps">Caps</a></li>
 <li id="tiers"><a href="../../reference/harness/#tiers">Tiers</a></li>

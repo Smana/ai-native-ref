@@ -11,5 +11,6 @@ aliases:
   {{< card link="/docs/operate/access/" title="Access" subtitle="Give a person access: the platform CA, the SSO groups, the GitHub link, who sees a room, and what a 403 means." >}}
   {{< card link="/docs/operate/tune-a-run/" title="Harness tuning" subtitle="How to tune an agent run: which lever moves cost, time and quality, how to measure a change, what goes wrong and how to fix it." >}}
   {{< card link="/docs/reference/harness/" title="Harness reference" subtitle="Every setting of an agent run, from the factory's tiers to the OpenHands loop: its example value, what it does, its bounds, and whether it is on by default." >}}
+  {{< card link="/docs/operate/auto-merge-safety/" title="Run auto-merge safely" subtitle="Take a class live, undo a merge, the breaker, drills, recovery, the monitor after a merge, metrics and alerts, adopting Renovate's pull requests." >}}
   {{< card link="/docs/operate/observability/" title="Observability" subtitle="Serving metrics and alerts, and per-run traces, step logs, gen_ai metrics and dashboards." >}}
 {{< /cards >}}

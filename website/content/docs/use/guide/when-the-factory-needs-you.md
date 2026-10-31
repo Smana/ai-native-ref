@@ -29,6 +29,10 @@ carries a reason code. The four you will meet most:
 The last row happens when someone pushes a fix to the agent's branch by hand. The merge bot merges only
 what the agents pushed, so a repository admin merges it instead, with `gh pr merge --admin`.
 
+Will your change merge on its own, with no approval? Only if its class is *live*: see
+[when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}}) and the
+status page's [class modes]({{< relref "/docs/status.md#class-modes" >}}).
+
 Want the detail? See [when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}}),
 [every hand-off reason]({{< relref "/docs/how-it-works/merge-gate.md#hand-off" >}}) and
 [the gate's checks]({{< relref "/docs/how-it-works/merge-gate.md#decision-rows" >}}).

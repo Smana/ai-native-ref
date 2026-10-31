@@ -101,7 +101,7 @@ marks how far each box had got; where it and the status page disagree, the
 | [Providers]({{< relref "/docs/how-it-works/providers.md" >}}) | Kimi and Mistral for public work, switched on per class |
 | [Gateways]({{< relref "/docs/how-it-works/gateways.md#the-agent-gateway-agent-runs" >}}) | The agent gateway: per-run identity, models, MCP tools, token exchange |
 | [Observability]({{< relref "/docs/operate/observability.md#agents" >}}) | Per-run traces, step logs, `gen_ai` metrics, `AgentRun` state, dashboards |
-| [User guide]({{< relref "/docs/use/guide.md" >}}) | What a developer does with it |
+| [User guide]({{< relref "/docs/use/guide/_index.md" >}}) | What a developer does with it |
 
 Everything that runs on the cluster is open source. The external services are GitHub and the model
 providers.
@@ -124,5 +124,5 @@ Runs are per repository: a task never spans two.
 
 - [Programme design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md): the contracts between the sub-projects, and the owner decisions.
 - [Runtime and identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md) · [Rooms](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md) · [Factory](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md) · [Model routing and budgets](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md) · [Observability](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-27-agent-observability-design.md)
-- [User guide]({{< relref "/docs/use/guide.md" >}}): what a developer does with it.
+- [User guide]({{< relref "/docs/use/guide/_index.md" >}}): what a developer does with it.
 - [Status]({{< relref "/docs/status.md#landed" >}}): what has landed, what is left, and the roadmap.

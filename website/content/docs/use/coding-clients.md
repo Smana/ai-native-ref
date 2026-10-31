@@ -34,7 +34,7 @@ date above: each snippet says which docs page it was checked against, and
 - **Models.** The `ai-gateway` is the platform's gateway for humans and coding clients. It speaks
   the OpenAI chat-completions API. See [Gateways]({{< relref "/docs/how-it-works/gateways.md" >}}).
 - **Hand-offs.** The factory takes work from a coding agent through an MCP server that `maku`
-  registers. See [Hand off from your coding agent]({{< relref "/docs/use/guide.md#hand-off-from-your-coding-agent" >}}).
+  registers. See [Hand off from your coding agent]({{< relref "/docs/use/guide/terminal-and-coding-agent.md#hand-off-from-your-coding-agent" >}}).
 
 ## Endpoints per cloud
 
@@ -290,7 +290,7 @@ curl -sS "$BASE/completions" \
        "max_tokens": 50, "temperature": 0.0}'
 ```
 
-Hand-offs (the flow is in the [user guide]({{< relref "/docs/use/guide.md" >}})): `maku doctor` must show every check `ok`, then ask the client to list the factory tools
+Hand-offs (the flow is in the [user guide]({{< relref "/docs/use/guide/terminal-and-coding-agent.md" >}})): `maku doctor` must show every check `ok`, then ask the client to list the factory tools
 (`rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`,
 `issue_file`) and prompts (`handoff`, `status`, `inbox`).
 

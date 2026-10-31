@@ -89,7 +89,7 @@ Grouped by purpose; the number is the order they were written in.
 | [19-factory-from-your-agent.md](19-factory-from-your-agent.md) | The factory from your coding agent, live proofs 1 to 5 in Claude Code and OpenCode: start from the form, wait for an approval, the card and `room_changes`, the checkout, a hostile note shown inert; then off again | Yes — the owner's go, the cloud-native-ref skill-copy PR merged first | ~2 h |
 | [20-runlore-agent-to-agent.md](20-runlore-agent-to-agent.md) | RunLore as the factory's internal principal, live proofs 1 to 5: the paths open, one incident filed as an `investigate` task and replayed idempotently, the old intake silent (stage 1); a fix verified after its soak, and a fix that does not hold (stage 2) | Yes — the owner's go, the ZITADEL sync and the webhook key seeded (runbook 14), a maintainer's `factory/publish` label created | ~2 h |
 | [21-test-first-tester.md](21-test-first-tester.md) | The tester's contract on a seeded `scripts` issue, the hook and row 2c that hold it, a renamed holdout | Yes — F1 to F5 live and the owner's go | ~2 h |
-| [22-slack.md](22-slack.md) | Slack, configure: the App from its manifest, the keys, the machine user, the Request URL, a channel's repositories (three places), who may file, one mention end to end. Users: the [user guide](../../../website/content/docs/use/guide.md) | Yes — the Slack console, OpenBao, the ZITADEL sync | ~1 h |
+| [22-slack.md](22-slack.md) | Slack, configure: the App from its manifest, the keys, the machine user, the Request URL, a channel's repositories (three places), who may file, one mention end to end. Users: the [user guide](../../../website/content/docs/use/guide/_index.md) | Yes — the Slack console, OpenBao, the ZITADEL sync | ~1 h |
 
 **Media**
 

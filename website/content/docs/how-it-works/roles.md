@@ -57,7 +57,7 @@ that is off for a class is skipped.
 
 | Role | What it does | Writes? |
 |---|---|---|
-| <span id="scoper"></span>**Scoper** | Reads the issue and turns it into a bounded task with acceptance checks. If one thing is unclear, it asks the author one question instead ([what you do then]({{< relref "/docs/use/guide.md#scoper-question" >}})) | No |
+| <span id="scoper"></span>**Scoper** | Reads the issue and turns it into a bounded task with acceptance checks. If one thing is unclear, it asks the author one question instead ([what you do then]({{< relref "/docs/use/guide/when-the-factory-needs-you.md#scoper-question" >}})) | No |
 | **Splitter** | Part of the scoper: proposes splitting a hard issue into smaller parts. A maintainer approves the split; the parts then run one at a time | No |
 | <span id="tester"></span>**Tester** | Writes tests that fail on the current code. They become the contract the implementer works to, and the implementer may not change them | Tests only |
 | **Implementer** | Writes the change on the task's branch, runs the repository's own checks and opens the pull request. It runs again for a review's changes or a red CI | Code |

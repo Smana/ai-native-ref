@@ -76,8 +76,20 @@ The full transcript (prompts and outputs) stays in the
 [room]({{< relref "/docs/how-it-works/rooms.md" >}}), behind room access. Alerting
 on runs belongs to the factory's rules, per the
 [observability design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-27-agent-observability-design.md).
-Which question each signal answers, from a developer's seat, is in the
-[user guide]({{< relref "/docs/use/guide.md#observability-what-you-can-inspect" >}}).
+
+### What you can inspect {#what-you-can-inspect}
+
+| Question | Where |
+|---|---|
+| Where is my run? | `kubectl get agentrun -n agents`, or the `agent-run` dashboard's status panel: phase, reason, PR, tokens against budget |
+| What did it do? | The step log, in `kubectl logs` or on the dashboard, with every gateway and MCP call of that run |
+| What did it cost, how fast was it? | The dashboard: tokens in and out, cost, model latency, error rate. `agent-fleet` shows every run |
+| Where did the time go? | A trace per run: steps, model calls and tool calls, with timings. Metadata only |
+
+A run's page is `/d/agent-run/agent-run?var-run=<id>`; its *This run's window* link sets the time range
+to the run. A resumed run counts each step once and has one trace per attempt. The room holds a run's
+transcript to its end: before the harness stops, even on a reclaimed node, it asks maku-bridge to read
+its log to the last event.
 
 ### The merge gate's signals {#merge-gate-signals}
 

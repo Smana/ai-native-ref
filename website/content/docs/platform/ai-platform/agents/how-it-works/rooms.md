@@ -2,7 +2,7 @@
 title: Rooms
 weight: 30
 description: "The shared, append-only log of a task: the broker, the bridge, the web view, steering, room tools, approvals, and maku."
-lastVerified: 2026-10-08
+lastVerified: 2026-10-31
 aliases:
   - /docs/platform/ai-platform/agents/rooms/
 ---
@@ -37,7 +37,7 @@ From the [rooms design](https://github.com/Smana/ai-native-ref/blob/main/docs/su
 | **Driver token** | One per room. In a factory room the factory holds it and yields at once when a human requests it; driver-only actions carry an epoch that fences races across broker replicas |
 | **Approvals** | Oversight, not a boundary: a run's capabilities are fixed at creation, and an agent run can never decide an approval |
 | **Fork** | A new room from a prefix of the log, owned and driven by the person who forked it, on their budget. Widening a run's egress means forking; the fork's PR carries `Forked-from: <branch>@<sha>` |
-| **Verdict** | A reviewer run records it with the room tools; the broker posts it on the PR as one comment. Advice only: it neither approves nor blocks |
+| **Verdict** | A reviewer run records it with the room tools; the broker posts it on the PR as one comment. It is not a GitHub review. For a live or shadow class the merge gate refuses a head without an approving verdict ([`no_approving_verdict`]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#reviewer" >}})); on a PR a human merges, it is advice |
 
 Watching a room needs SSO membership in `agents-member`, and a room is only as visible as its
 repository: you read it only if GitHub lets you read the repository, through the GitHub account

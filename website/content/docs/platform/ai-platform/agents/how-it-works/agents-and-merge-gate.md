@@ -75,7 +75,7 @@ compiles them into the gateway's rules, and a gate fails when the compiled rules
 |---|---|
 | `models`: the aliases the role may name. Only the public profiles list the provider aliases ([providers]({{< relref "/docs/platform/ai-platform/agents/how-it-works/providers.md" >}})) | The gateway answers 403 to any other alias; the factory refuses, at admission, an internal run that names a public-only alias |
 | `tools`: the MCP tools and arguments it may use. The reviewer cannot read the implementer's transcript, and no tool reads a Secret | The gateway, before the call reaches the MCP server |
-| One model per run (P4) | The identity proxy pins every call, the judge's included, to the alias the run was created with |
+| One model per run | The identity proxy pins every call, the judge's included, to the alias the run was created with |
 
 To change what a role may call, edit its profile, regenerate the rules with `gen-capabilities.py --write` (it lives in `scripts/ci/`), and let
 `task check` prove the compiled rules match.
@@ -122,6 +122,12 @@ Three parts, three owners: policy-bot posts a status, the factory's gate decides
 merges. Nothing merges unless the gate decided that exact head, or a maintainer approved it. Every
 switch is off by default in Maku; a class does only what its row turns on.
 
+Terms used below: a **live** class merges on its own, a **shadow** class is decided and recorded but
+never merged; a **holdout** check is a CI check the class requires, whose workflow the agent may not edit;
+an **oracle** is the scan that found the problem a class fixes, and that must report it gone; the
+**trailer** is the `Agent-Run:` line naming the run that made a commit; the **control issue** is the
+issue where the factory posts its notices and takes its kill switch.
+
 ```mermaid
 flowchart TD
   pr["Agent PR in AwaitingCI"] --> base{"1–2c: secret scan, fence,<br/>required checks, test contract"}
@@ -153,11 +159,11 @@ class `live` or `shadow` it reads nothing and hands off as `merge_gate_off`.
 | # | Check | If it fails |
 |---|---|---|
 | 1 | The secret scan (`merge.leakScanCheck`) is not red | Escalated, `secret_scan_red` |
-| 2a | The repository names this factory (the fence) | `not_owned` |
+| 2a | The repository names this factory (the ownership fence: [Maku](https://github.com/Smana/maku/blob/v0.32.3/docs/factory.md#the-ownership-fence)) | `not_owned` |
 | 2 | Every `merge.requiredChecks` is green | Red: a fix run, up to `merge.fixRuns`, then `ci_red`. Cancelled: a re-run, up to `merge.checkReruns`. Pending: wait |
 | 2b, 2c | A task with a test contract: its check is green, and no contract file changed | As row 2; `contract_modified`, never a fix run |
 | 3 | `policy-bot: main` is green, posted by policy-bot | `policy_absent`, `policy_pending`, `gate_path` |
-| 4 | The author is the agents App. With `approveToMerge`, a maintainer's approval of the current head arms the merger here | `not_agent_authored`, `approval_stale`, `changes_requested`, `human_commit_in_pr` |
+| 4 | The author is the agents App. With `approveToMerge`, a maintainer's approval of the current head arms the merger here | `not_agent_authored`, `approval_stale`, `changes_requested` |
 | 5 | The class is `live` or `shadow` | `class_unarmed` |
 | 6 | The reviewer approved, the room reported the head, every approval is of that head | `no_approving_verdict`, `head_unreported`, `verdict_stale` |
 | 7 | The head's `Agent-Run` trailer names one of the task's runs | `foreign_trailer` |
@@ -248,8 +254,6 @@ A hand-off moves the task to `AwaitingHuman` and comments on the issue once, wit
 and the [decision record](#decision-record). On a repository with approve-to-merge the action reads:
 "To merge: approve this pull request (a GitHub review by a maintainer). The merger merges the approved
 head within a minute, or says why not." The room page and `maku status` show the same reason.
-
-<!-- PR 5: the room screenshot (room-next-your-move.png) goes here once Maku's room text names the approval. -->
 
 | Reason | Means | Your move |
 |---|---|---|
@@ -372,14 +376,9 @@ does not arm the merger.
 
 ## What was proven live, and where {#proven}
 
-| Where | When | What |
-|---|---|---|
-| `gcp-0` | 2026-10-27 to 29 | v3's roles: the scoper and its split, the tester, the completion judge, the search tool (once), the reviewer; Slack and RunLore intake; `docs-links` and `revert` merging live |
-| `aws-0` | 2026-10-30 to 31, Maku v0.32.0 to v0.32.3 | The human path: the one-action hand-off and its record; a lifted Request changes returning on approval; an approved merge ([ai-native-ref#249](https://github.com/Smana/ai-native-ref/pull/249), recorded right since v0.32.2); an approval a force push did not carry over (#250); a regression pausing a class; a follow-up detected; shadow decisions kept while paused, and under a spent cap ([cloud-native-ref#2700](https://github.com/Smana/cloud-native-ref/pull/2700), `capped=true`); recovery after three clean merges (the gauge from 1 to 0 in 63 min); a `dead-links` merge by the class, verified by two oracle runs, then reverted as a drill ([cloud-native-ref#2698](https://github.com/Smana/cloud-native-ref/pull/2698)), that revert merged by the merger with no human and not counted |
-
-Still open: the policy replay, the release age (no eligible Renovate pull request yet), the `AwaitingCI`
-bound, the next-day return, the host's retroactive drill label, and Maku
-[#304](https://github.com/Smana/maku/issues/304), the approval binding's residuals. Details:
-[status]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}}),
-[runbook 12](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md),
-[runbook 15](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/15-dead-links.md).
+One list, kept on the status page: [row 16, the human path]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}}),
+and the session's evidence in the
+[results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-aws-0-2026-10-30.md).
+Two proofs of this page are still pending there: the approved merge's record on Maku v0.32.3
+([#270](https://github.com/Smana/ai-native-ref/issues/270)), and a lifted Request changes returning
+on approval (only its revision was seen live).

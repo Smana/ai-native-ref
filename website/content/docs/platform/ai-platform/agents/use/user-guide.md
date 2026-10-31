@@ -167,7 +167,7 @@ tally is 1,078 k.
 | Try again after a failure | Comment **`/factory retry`** on the issue (a maintainer only) |
 | Stop one task | Label its issue or pull request **`factory/stop`**: its runs are revoked, its branch stays |
 | Stop every task | `kubectl -n agent-system create configmap agent-factory-stop`, or the label `factory/stop` on the pinned control issue. Intake pauses, every run is revoked and new runs are refused, runs started by hand included |
-| Undo a merged change | Label it **`factory/revert`** within 7 days: the factory opens the revert, which merges as the `revert` class where that class is live. For a planned drill, label it **`factory/drill`** first, so the breaker does not count it ([drills]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#drills" >}})) |
+| Undo an auto-merged change | Label it **`factory/revert`** within 7 days: the factory opens the revert, which merges as the `revert` class where that class is live. A merge you approved or made counts as a human merge: it is yours to revert by hand. For a planned drill, label it **`factory/drill`** first, so the breaker does not count it ([drills]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#drills" >}})) |
 | Start a run by hand | `task agent:run -- --role implementer --class public --task-url <issue>`. The factory creates it under your SSO identity |
 | Resume a run a stop ended | The same command with **`--branch agent/<run id>`**: it continues from what the run pushed |
 

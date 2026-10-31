@@ -85,7 +85,7 @@ gateway's rules.
 | `tools`: the MCP tools and arguments it may use. The reviewer cannot read the implementer's transcript; no tool reads a Secret | The gateway, before the call reaches the MCP server |
 | One model per run | The identity proxy pins every call, the judge's too, to the run's alias |
 
-To change what a role may call, edit its profile, run `scripts/ci/gen-capabilities.py --write`, and let
+To change what a role may call, edit its profile, run `scripts/ci/gen-capabilities.py` with `--write`, and let
 `task check` prove the compiled rules match.
 
 ## A task's life {#lifecycle}

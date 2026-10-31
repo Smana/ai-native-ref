@@ -19,7 +19,7 @@ it and what it costs is on [Model routing and cost]({{< relref "/docs/platform/a
 | **Identity** | An API key per client, from AWS Secrets Manager | A projected token per run (JWT), verified on every call |
 | **Model choice** | Named by the client, or picked from the prompt by the Semantic Router (`model: MoM`) | An alias, mapped statically to one backend; nothing selects per request |
 | **Also carries** | — | MCP tool calls, the room tools, and the token exchange (`sts`) with octo-sts |
-| **Software** | Envoy Gateway + Envoy AI Gateway (Agent Router) `1.1.0` | [agentgateway](https://agentgateway.dev) `v1.6.0` ([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})) |
+| **Software** | Envoy Gateway + Envoy AI Gateway (Agent Router) `1.1.0` | [agentgateway](https://agentgateway.dev/docs/) `v1.6.0` ([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})) |
 
 ![The two gateways side by side. Top: humans and coding clients reach ai-gateway over the tailnet with an API key; the Semantic Router may pick the model, and the request lands on a vLLM model in the serving fleet. Bottom: an agent run's identity-proxy sidecar, beside the maku-harness, attaches the run's own token; the agent gateway verifies it, meters the run's tokens and routes the model alias to a frontier provider (Z.ai GLM, Moonshot Kimi and Mistral for public data only, Claude for internal data), the MCP tools, or octo-sts for a GitHub token. Both gateways write access logs and gen_ai metrics to the Victoria stack](/images/diagrams/ai-platform-2.svg)
 

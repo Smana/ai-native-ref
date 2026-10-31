@@ -64,9 +64,9 @@ issues.
 
 | Fact | Source |
 |---|---|
-| Most runs finish in 10–40 steps for under $0.20, with about 95% of input read from cache | [harness tuning, real runs](../../../website/content/docs/platform/ai-platform/agents/harness.md#examples) |
+| Most runs finish in 10–40 steps for under $0.20, with about 95% of input read from cache | [harness tuning, real runs](../../../website/content/docs/platform/ai-platform/agents/tune/harness.md#examples) |
 | The expensive runs are vague tasks: one spent its whole $2.55 on 319 `grep` steps and pushed nothing | same |
-| The agent mostly cannot run the repository's own checks before pushing: the harness image holds Python, git and `gh`, and a factory run reaches GitHub only. A red CI starts a new run, which reloads the whole context, to fix it | [harness reference](../../../website/content/docs/platform/ai-platform/agents/harness-reference.md#composition) |
+| The agent mostly cannot run the repository's own checks before pushing: the harness image holds Python, git and `gh`, and a factory run reaches GitHub only. A red CI starts a new run, which reloads the whole context, to fix it | [harness reference](../../../website/content/docs/platform/ai-platform/agents/tune/harness-reference.md#composition) |
 | On hard issues the model is the bottleneck: 0/15 for GLM-5.3 in either harness, 13/15 for Claude | [cohort](2026-10-12-v2-hard-task-cohort-design.md#results) |
 | At 15 issues, one run each, the standard error is about 13 points: only a gap as large as 13 vs 0 reads | sampling arithmetic |
 

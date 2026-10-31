@@ -1,8 +1,10 @@
 ---
 title: Slack
-weight: 34
+weight: 20
 description: "Hand work to the factory from a Slack thread: mention, draft, edit by reply, a maintainer's check mark files the issue and starts the task."
 lastVerified: 2026-10-29
+aliases:
+  - /docs/platform/ai-platform/agents/slack/
 ---
 
 `maku-slack`, Maku's Slack app, turns a Slack thread into a factory task. **Live, proven on 2026-10-29**:
@@ -18,7 +20,7 @@ thread then follows the room. Approvals and steering stay on the room page.
 | Act | Approve, answer or steer on the room page linked in the thread; merge on GitHub |
 
 The full guide, with every refusal and its fix, is in the
-[user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#from-slack" >}}). The task is
+[user guide]({{< relref "/docs/platform/ai-platform/agents/use/user-guide.md#from-slack" >}}). The task is
 sponsored by your linked GitHub login, filed by the factory's App, and capped by the channel's
 `maxCostUSD`.
 

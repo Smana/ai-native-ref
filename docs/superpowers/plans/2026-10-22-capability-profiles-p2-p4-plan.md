@@ -2364,7 +2364,7 @@ built
 ```bash
 git add HOST_REF infrastructure/base/agent-runtime/identity-proxy-configmap.yaml scripts/ci/tests/test-identity-proxy-model-pin.py \
   scripts/ci/tests/test-agent-capabilities-wire.sh website/content/docs/platform/ai-platform/gateways.md \
-  website/content/docs/platform/ai-platform/agents/runtime.md docs/superpowers/specs/2026-10-21-capability-profiles-design.md
+  website/content/docs/platform/ai-platform/agents/how-it-works/runtime.md docs/superpowers/specs/2026-10-21-capability-profiles-design.md
 git commit -m "feat(agent-runtime): capability profiles P4, the identity proxy pins the run's model and the judge's"
 ```
 

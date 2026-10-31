@@ -4,7 +4,7 @@ The one-time set-up of the factory's Slack App, in order, with a check after eac
 short path for an operator. [Runbook 18](18-factory-interfaces.md) is the switch-on of the whole
 second interface set (host listener, broker webhooks, the PR that turns it on); this page is what
 you do around it with Slack. Users read the
-[user guide](../../../website/content/docs/platform/ai-platform/agents/user-guide.md#from-slack)
+[user guide](../../../website/content/docs/platform/ai-platform/agents/use/user-guide.md#from-slack)
 instead. The App's own reference (config keys, flows, state) is Maku's `docs/slack.md`.
 
 ```mermaid

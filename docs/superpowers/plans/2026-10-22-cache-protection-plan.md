@@ -55,7 +55,7 @@ log moves to the bench); the drill is replaced by offline proofs now and a live 
 | `scripts/ci/tests/test-agent-observability.py` | modify: one needle | the dashboard reads the share |
 | `docs/runbooks/agent-factory/04-gateway-secrets-budgets.md` | modify: Part E | what each alert means and what to do |
 | `website/content/docs/platform/ai-platform/observability.md` | modify: alert table | the three alerts |
-| `website/content/docs/platform/ai-platform/agents/harness.md` | modify: one row | the alert beside the log line |
+| `website/content/docs/platform/ai-platform/agents/tune/harness.md` | modify: one row | the alert beside the log line |
 | `docs/superpowers/specs/2026-10-21-prompt-cache-design.md` | modify: status, gate 1 | the amendment |
 
 ---
@@ -698,7 +698,7 @@ git commit -m "test(agent-gateway): the prompt cache marker across the pinned pr
 - Modify: `scripts/ci/tests/test-agent-observability.py` (`check_agentgateway_dashboards`)
 - Modify: `docs/runbooks/agent-factory/04-gateway-secrets-budgets.md`
 - Modify: `website/content/docs/platform/ai-platform/observability.md`
-- Modify: `website/content/docs/platform/ai-platform/agents/harness.md`
+- Modify: `website/content/docs/platform/ai-platform/agents/tune/harness.md`
 - Modify: `docs/superpowers/specs/2026-10-21-prompt-cache-design.md`
 
 **Interfaces:**
@@ -830,7 +830,7 @@ and gate 1 becomes:
 python3 scripts/ci/tests/test-agent-observability.py && bash scripts/ci/tests/test-agent-alert-annotations.sh
 git add observability/base/agent-platform/vmrule-logs.yaml observability/base/agent-platform/grafana-dashboard-agent-gateway.yaml \
   scripts/ci/tests/test-agent-observability.py docs/runbooks/agent-factory/04-gateway-secrets-budgets.md \
-  website/content/docs/platform/ai-platform/observability.md website/content/docs/platform/ai-platform/agents/harness.md \
+  website/content/docs/platform/ai-platform/observability.md website/content/docs/platform/ai-platform/agents/tune/harness.md \
   docs/superpowers/specs/2026-10-21-prompt-cache-design.md
 git commit -m "feat(observability): the cache-read share on the gateway dashboard, its runbook and the marker log rule"
 ```

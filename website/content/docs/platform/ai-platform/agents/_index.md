@@ -1,6 +1,6 @@
 ---
 title: Agents
-weight: 20
+weight: 10
 description: "The Agent Factory: autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes end to end."
 lastVerified: 2026-10-29
 aliases:
@@ -79,18 +79,18 @@ marks how far each box had got; where it and the status page disagree, the
 
 | Part | What it covers |
 |---|---|
-| [Runtime]({{< relref "/docs/platform/ai-platform/agents/runtime.md" >}}) | The gVisor sandbox on each cloud, per-run identity, octo-sts, the branch and tag rulesets, network policy |
-| [Harness tuning]({{< relref "/docs/platform/ai-platform/agents/harness.md" >}}) | Which knob moves cost, time and quality; measuring a change; failure modes and recipes |
-| [Harness reference]({{< relref "/docs/platform/ai-platform/agents/harness-reference.md" >}}) | Every setting of a run, from the factory's tiers to the OpenHands loop, with its value and status |
-| [Rooms]({{< relref "/docs/platform/ai-platform/agents/rooms.md" >}}) | The broker's append-only log, the bridge, the web view, steering, room tools, approvals |
-| [Factory]({{< relref "/docs/platform/ai-platform/agents/factory.md" >}}) | Intake, triage, teams, revise, the merge gate and the kill switch |
-| [Run roles]({{< relref "/docs/platform/ai-platform/agents/roles.md" >}}) | The scoper, tester, implementer, judge, search tool, reviewer and splitter, and what each may call |
-| [Slack]({{< relref "/docs/platform/ai-platform/agents/slack.md" >}}) | Hand work to the factory from a Slack thread |
-| [RunLore]({{< relref "/docs/platform/ai-platform/agents/runlore.md" >}}) | Agent to agent: an incident in, a verified fix out |
-| [Providers]({{< relref "/docs/platform/ai-platform/agents/providers.md" >}}) | Kimi and Mistral for public work, switched on per class |
+| [Runtime]({{< relref "/docs/platform/ai-platform/agents/how-it-works/runtime.md" >}}) | The gVisor sandbox on each cloud, per-run identity, octo-sts, the branch and tag rulesets, network policy |
+| [Harness tuning]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md" >}}) | Which knob moves cost, time and quality; measuring a change; failure modes and recipes |
+| [Harness reference]({{< relref "/docs/platform/ai-platform/agents/tune/harness-reference.md" >}}) | Every setting of a run, from the factory's tiers to the OpenHands loop, with its value and status |
+| [Rooms]({{< relref "/docs/platform/ai-platform/agents/how-it-works/rooms.md" >}}) | The broker's append-only log, the bridge, the web view, steering, room tools, approvals |
+| [Factory]({{< relref "/docs/platform/ai-platform/agents/how-it-works/factory.md" >}}) | Intake, triage, teams, revise, the merge gate and the kill switch |
+| [Run roles]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md" >}}) | The scoper, tester, implementer, judge, search tool, reviewer and splitter, and what each may call |
+| [Slack]({{< relref "/docs/platform/ai-platform/agents/use/slack.md" >}}) | Hand work to the factory from a Slack thread |
+| [RunLore]({{< relref "/docs/platform/ai-platform/agents/how-it-works/runlore.md" >}}) | Agent to agent: an incident in, a verified fix out |
+| [Providers]({{< relref "/docs/platform/ai-platform/agents/how-it-works/providers.md" >}}) | Kimi and Mistral for public work, switched on per class |
 | [Gateways]({{< relref "/docs/platform/ai-platform/gateways.md#the-agent-gateway-agent-runs" >}}) | The agent gateway: per-run identity, models, MCP tools, token exchange |
 | [Observability]({{< relref "/docs/platform/ai-platform/observability.md#agents" >}}) | Per-run traces, step logs, `gen_ai` metrics, `AgentRun` state, dashboards |
-| [User guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md" >}}) | What a developer does with it |
+| [User guide]({{< relref "/docs/platform/ai-platform/agents/use/user-guide.md" >}}) | What a developer does with it |
 
 Everything that runs on the cluster is open source. The external services are GitHub and the model
 providers.
@@ -113,5 +113,5 @@ Runs are per repository: a task never spans two.
 
 - [Programme design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md): the contracts between the sub-projects, and the owner decisions.
 - [Runtime and identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md) · [Rooms](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md) · [Factory](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md) · [Model routing and budgets](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md) · [Observability](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-27-agent-observability-design.md)
-- [User guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md" >}}): what a developer does with it.
+- [User guide]({{< relref "/docs/platform/ai-platform/agents/use/user-guide.md" >}}): what a developer does with it.
 - [Status]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}): what has landed, what is left, and the roadmap.

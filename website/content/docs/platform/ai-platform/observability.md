@@ -72,11 +72,11 @@ it stands, what it did, what it cost and where its time went.
 | Dashboards | [Grafana](https://grafana.com) | `agent-run`, one page per run, `agent-fleet`, the overview, and `agent-identity`, spend per charged principal |
 
 The full transcript (prompts and outputs) stays in the
-[room]({{< relref "/docs/platform/ai-platform/agents/rooms.md" >}}), behind room access. Alerting
+[room]({{< relref "/docs/platform/ai-platform/agents/how-it-works/rooms.md" >}}), behind room access. Alerting
 on runs belongs to the factory's rules, per the
 [observability design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-27-agent-observability-design.md).
 Which question each signal answers, from a developer's seat, is in the
-[user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#observability-what-you-can-inspect" >}}).
+[user guide]({{< relref "/docs/platform/ai-platform/agents/use/user-guide.md#observability-what-you-can-inspect" >}}).
 
 ### Spend per identity {#spend-per-identity}
 

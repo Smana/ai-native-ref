@@ -1,8 +1,10 @@
 ---
 title: Runtime
-weight: 10
+weight: 40
 description: "How one AgentRun becomes an isolated, attributed run: a gVisor sandbox on each cloud, per-run identity, octo-sts, branch and tag rulesets, and default-deny network policy."
 lastVerified: 2026-10-01
+aliases:
+  - /docs/platform/ai-platform/agents/runtime/
 ---
 
 One `AgentRun` object becomes a fully isolated, fully attributed run. The agent in the loop is not
@@ -20,7 +22,7 @@ what runs today is on the [status page]({{< relref "/docs/platform/ai-platform/s
 | Run API | [Crossplane](https://www.crossplane.io) v2 composition, written in KCL | Turns one `AgentRun` claim into everything a run needs: ServiceAccount, task ConfigMap, network policy, Sandbox. Projects the run's phase, PR and token usage back into its status | The platform's standard for self-service APIs; one claim, one lifecycle, deleted as a whole |
 | Sandbox lifecycle | [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) | A `Sandbox` resource: one pod with a stable identity and a clean start, and no restarts that hide failures | Kubernetes-native and built for agent workloads; the same building block as AWS's agents-on-EKS blueprint |
 | Isolation | [gVisor](https://gvisor.dev/docs/) (`runsc`) on a dedicated pool: GKE Sandbox `agents-gvisor` on `gcp-0`, [Karpenter](https://karpenter.sh/docs/) `agents-gvisor` on `aws-0` | Runs the agent's commands against gVisor's user-space kernel, so an exploit has to break gVisor before it reaches the node's kernel | Strong isolation without VMs, and it runs on ordinary nodes (Kata would need bare metal or nested virtualisation) |
-| Harness | [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server and SDK, wrapped by a small `agent-run` entrypoint | The agent loop: shell, editor, git, MCP tools. `agent-run` clones the repository, starts the conversation, prints the step log and revokes the GitHub token at the end. Its settings and how to tune them: [Harness tuning]({{< relref "/docs/platform/ai-platform/agents/harness.md" >}}) | Open source, headless (an HTTP API rather than an IDE), model-agnostic, with MCP support |
+| Harness | [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server and SDK, wrapped by a small `agent-run` entrypoint | The agent loop: shell, editor, git, MCP tools. `agent-run` clones the repository, starts the conversation, prints the step log and revokes the GitHub token at the end. Its settings and how to tune them: [Harness tuning]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md" >}}) | Open source, headless (an HTTP API rather than an IDE), model-agnostic, with MCP support |
 | Identity proxy | [Envoy](https://www.envoyproxy.io) sidecar | Attaches the run's own short-lived token to every model, tool and token-exchange call, and pins the model: every model call reaches the alias the run was created with, and `/judge/v1` the completion judge's. The harness never sees that token | The agent cannot leak a gateway token it never sees. The one credential it holds is its GitHub token: in memory, one repository, one role, ≤ 1 h, revoked when the run ends |
 | Network policy | [Cilium](https://cilium.io) `CiliumNetworkPolicy` | Default deny, per run: egress only to named hosts (GitHub, the router, optional package registries) | FQDN-aware policy, plus Hubble to see every dropped flow |
 | GitHub access | [octo-sts](https://github.com/octo-sts/app) and a GitHub App, plus a repository ruleset | Exchanges the run's identity for a GitHub token scoped to one repository and its role's permissions, valid ≤ 1 h and revoked when the run ends. The rulesets let the App push only `agent/**` branches, and no tags | No long-lived GitHub token anywhere; the rules live in each repository's trust policies |
@@ -36,4 +38,4 @@ what runs today is on the [status page]({{< relref "/docs/platform/ai-platform/s
 | GitHub | Short-lived installation tokens from octo-sts, scoped to one repository and the role's permissions; rulesets let the agents' App push only `agent/**` branches, and no tags. Confinement is per repository: any run may push any `agent/**` branch, with no per-run branch isolation |
 
 Spend, merge and stop are the factory's controls: see
-[Factory → Controls]({{< relref "/docs/platform/ai-platform/agents/factory.md#controls" >}}).
+[Factory → Controls]({{< relref "/docs/platform/ai-platform/agents/how-it-works/factory.md#controls" >}}).

@@ -20,7 +20,7 @@ Alternatives for the first line:
 # The v3 clip (docs, not the feed)
 
 `agent-factory-v3`, 33 s, 1080×1280, no title card. It sits under the diagram on the
-[run roles](https://airef.ogenki.io/docs/platform/ai-platform/agents/roles/) page. What it says,
+[run roles](https://airef.ogenki.io/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate/) page. What it says,
 beat by beat:
 
 1. **0–7 s.** Before any code, a **scoper** bounds the task. Or asks the author **one question**.

@@ -1,12 +1,14 @@
 ---
 title: Harness reference
-weight: 16
+weight: 20
 description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its value on gcp-0, what it does, its bounds, and whether it is proven live."
 lastVerified: 2026-10-30
+aliases:
+  - /docs/platform/ai-platform/agents/harness-reference/
 ---
 
 Every knob of a run, layer by layer. How to use them is on
-[Harness tuning]({{< relref "/docs/platform/ai-platform/agents/harness.md" >}}).
+[Harness tuning]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md" >}}).
 
 {{< cards >}}
   {{< card link="#tiers" title="Tiers" icon="adjustments" subtitle="USD cap, deadline and model per tier." >}}
@@ -95,8 +97,8 @@ implementer's tier's. The tester keeps the implementer's tier.
 | `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="live" color="green" >}} aws-0 |
 | `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
 | `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since Maku v0.16.0). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
-| `loops.<class>` | `default: {scope: off}`; `docs` (scoper, loop policy, search; provider `models` only in a live session) and `scripts` (scoper, splitter) | The loop policy and the scope, off for every class without a row. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
-| `loops.<class>.search` | `true` on `docs` only | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/harness.md#search" >}}) |
+| `loops.<class>` | `default: {scope: off}`; `docs` (scoper, loop policy, search; provider `models` only in a live session) and `scripts` (scoper, splitter) | The loop policy and the scope, off for every class without a row. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md#loop-policy" >}}) |
+| `loops.<class>.search` | `true` on `docs` only | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md#search" >}}) |
 
 ## Factory: what a brief holds {#brief}
 

@@ -28,7 +28,7 @@ switched per class (D4), so one bench session measures the baseline, steering al
 | The task text | The issue's title and body as labelled (R5 refuses an edit after the label), sanitised, at most 14 KiB (`caps.maxTextBytes`), posted once as the room's first `task_state`. Comments are never task text (interfaces F8) | `intake/issues.go`, `reconciler/text.go` |
 | Briefs | `FirstBrief`: a preamble and the fenced snapshot. `ReviseBrief`, at most 13 KiB: a preamble, the room log's brief, the queued messages. Reviewers get no task text and read the room. `task.text` is capped at 16 KiB by the XRD | `reconciler/text.go`, `reconciler/team.go` |
 | Agent context | None: the harness sends the brief as the first user message and the composition's rules as the system suffix; no AGENTS.md, no skills | `images/agent-harness/agent_run.py`, `build_request` |
-| Asking | No path. An implementer that cannot tell what is wanted guesses or wanders: one spent its whole $2.55 on 319 `grep` steps and pushed nothing | [harness page](../../../website/content/docs/platform/ai-platform/agents/harness.md#examples) |
+| Asking | No path. An implementer that cannot tell what is wanted guesses or wanders: one spent its whole $2.55 on 319 `grep` steps and pushed nothing | [harness page](../../../website/content/docs/platform/ai-platform/agents/tune/harness.md#examples) |
 | Waiting on a person | `Escalated`, non-terminal: a maintainer's `/factory retry` re-queues it; a new `factory/ready` supersedes it with a fresh snapshot (R4); it stops after `caps.escalatedHours` (168 h). `AwaitingHuman` needs a pull request | `reconciler/watch.go`, `intake/issues.go` |
 | Agent text on an issue | Only `RoundsExhausted`: a public task's verdict summary, sanitised and quoted as an inert code block (ruling TE); an internal task's stays in the room (C7). Every other narration is the factory's own words | `narrate/narrate.go` |
 | Acceptance | The `factory-handoff` issue template's `## Acceptance check` section; the judge reads it until the scoper exists ([loops L2](2026-10-21-loops-and-teams-design.md#decisions)) | `internal/roomctl/skill/factory-handoff/references/issue-template.md` |
@@ -92,7 +92,7 @@ such object per sub-issue.
 {
   "state": "ready",
   "task": "Fix the user guide's link to the removed runbook 07 so it points at runbook 08, and change nothing else.",
-  "touches": ["website/content/docs/platform/ai-platform/agents/user-guide.md"],
+  "touches": ["website/content/docs/platform/ai-platform/agents/use/user-guide.md"],
   "leave": ["docs/superpowers/", "website/content/docs/decisions/"],
   "plan": ["Find the link to runbook 07 in the user guide.", "Point it at runbook 08's page with relref."],
   "assumptions": ["Runbook 08 replaces 07: its front matter says so."],

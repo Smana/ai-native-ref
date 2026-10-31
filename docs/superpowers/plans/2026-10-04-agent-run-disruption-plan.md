@@ -1755,7 +1755,7 @@ Applying it: at the next gcp-0 rebuild (`cd opentofu && TM_CLOUD=gcp terramate s
 **Repo:** Smana/cloud-native-ref · **branch:** `feat/rooms-disruption` · **draft PR base:** `feat/rooms-driver`
 
 **Files:**
-- Modify: `website/content/docs/platform/ai-platform/agents/user-guide.md` (phase table L197, *Stop or resume* L207–209, F11 note L233–235)
+- Modify: `website/content/docs/platform/ai-platform/agents/use/user-guide.md` (phase table L197, *Stop or resume* L207–209, F11 note L233–235)
 - Modify: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md` (risk table, R7 row L587)
 
 **Interfaces:**
@@ -1805,7 +1805,7 @@ Expected: each exits 0. The R7 link resolves because Task 2 merged `docs/agent-r
 - [ ] **Step 6: Commit and push**
 
 ```bash
-git add website/content/docs/platform/ai-platform/agents/user-guide.md docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md
+git add website/content/docs/platform/ai-platform/agents/use/user-guide.md docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md
 git commit -m "docs(agents): the run's end reasons, the SIGTERM checkpoint, R7 corrected"
 git push
 ```
@@ -2603,7 +2603,7 @@ Runbook 09 is `09-app-key-compromise.md` on this stack, so the disruption runboo
 - Create: `docs/runbooks/agent-factory/10-disruption.md`
 - Modify: `docs/runbooks/agent-factory/README.md` (status table after the 08 row; *What each runbook proves* table)
 - Modify: `docs/runbooks/agent-factory/01-runtime-sandbox.md` (Step 7 expectation), `docs/runbooks/agent-factory/02-identity-tokens.md` (L147)
-- Modify: `website/content/docs/platform/ai-platform/agents/user-guide.md` (*2. Follow it*)
+- Modify: `website/content/docs/platform/ai-platform/agents/use/user-guide.md` (*2. Follow it*)
 
 **Interfaces:**
 - Consumes: the log line, the trailer, the reasons, the narration, the metric (*Shared contracts*).
@@ -2831,7 +2831,7 @@ Expected: each exits 0.
 - [ ] **Step 5: Commit and push**
 
 ```bash
-git add docs/runbooks/agent-factory website/content/docs/platform/ai-platform/agents/user-guide.md
+git add docs/runbooks/agent-factory website/content/docs/platform/ai-platform/agents/use/user-guide.md
 git commit -m "docs(runbooks): runbook 10, disruption live checks; the factory resumes a lost run"
 git push
 ```

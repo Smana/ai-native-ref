@@ -105,7 +105,7 @@ Record "no forms" in the user guide's portability table, in the Forms cell.
    (on since v0.23.1).
 2. Remove the planted `.opencode/plugins/` test branch and the checked-out worktrees
    (`git worktree remove <path>`).
-3. In the user guide's portability table (`website/content/docs/platform/ai-platform/agents/user-guide.md`),
+3. In the user guide's portability table (`website/content/docs/platform/ai-platform/agents/use/user-guide.md`),
    the Claude Code and OpenCode Status cells become `proven, <date>`, and fix any cell a proof
    contradicted. In the design's Status line, replace "live proofs wait" with the session's date.
 4. File the three recorded wordings (opencode's shape, ZITADEL's `invalid_client`, the deleted

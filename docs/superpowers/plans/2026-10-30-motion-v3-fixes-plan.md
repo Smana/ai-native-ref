@@ -130,7 +130,7 @@ be embedded; `roles.md` embeds v3 under its mermaid, as the study's S5 suggests.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add motion/ai-platform/README.md motion/ai-platform/POST.md website/layouts website/content/docs/platform/ai-platform/agents/roles.md
+git add motion/ai-platform/README.md motion/ai-platform/POST.md website/layouts website/content/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md
 git commit -m "docs(motion): the v3 clip's publishing recipe, a generalised video shortcode, the clip on the roles page"
 ```
 

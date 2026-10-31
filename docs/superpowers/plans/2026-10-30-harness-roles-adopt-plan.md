@@ -147,8 +147,8 @@ git commit -m "docs(agent-factory): steering notes: agent-checks is the sandbox'
 
 **Files:**
 - Modify: `website/content/docs/platform/ai-platform/status.md` (rows 4 and 5)
-- Modify: `website/content/docs/platform/ai-platform/agents/harness-reference.md` (the harness image row, the model-timeout row, the reviewer caps sentence, the tester's "read only")
-- Modify: `website/content/docs/platform/ai-platform/agents/roles.md` (the reviewer row, the mermaid order, the lastVerified)
+- Modify: `website/content/docs/platform/ai-platform/agents/tune/harness-reference.md` (the harness image row, the model-timeout row, the reviewer caps sentence, the tester's "read only")
+- Modify: `website/content/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md` (the reviewer row, the mermaid order, the lastVerified)
 - Modify: `docs/runbooks/agent-factory/README.md` (the search layer's status)
 
 - [ ] **Step 1: The edits**

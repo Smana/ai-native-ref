@@ -4,6 +4,7 @@ weight: 10
 description: "How a maintainer hands an issue to the Agent Factory, follows it, steers it and stops it, shown on one real task."
 lastVerified: 2026-10-29
 aliases:
+  - /docs/platform/ai-platform/agents/user-guide/
   - /docs/platform/agent-factory/user-guide/
 ---
 

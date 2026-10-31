@@ -171,7 +171,7 @@ the run's own identity. Runs moved to it on 2026-10-16 (#2408), Envoy's agent ro
 same day (#2429), and the human `ai-gateway` stays on Envoy Gateway
 ([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})). The harness
 never sees the run's token: its identity-proxy sidecar attaches it (see
-[Agent runtime]({{< relref "/docs/platform/ai-platform/agents/runtime.md" >}})). Manifests:
+[Agent runtime]({{< relref "/docs/platform/ai-platform/agents/how-it-works/runtime.md" >}})). Manifests:
 `infrastructure/base/agent-gateway/`.
 
 ```mermaid
@@ -201,7 +201,7 @@ flowchart LR
 
 | Listener | Port | Audiences | Routes |
 |---|---|---|---|
-| `public` | 8080 | `agent-router.<role>.public` | `/v1` and `/anthropic` to Z.ai, and `/v1` to Moonshot or Mistral when the run's pinned alias names one ([providers]({{< relref "/docs/platform/ai-platform/agents/providers.md" >}}), public data only); `/v1/models` answers a 404 body, not a model list; `/mcp` with documentation and room tools |
+| `public` | 8080 | `agent-router.<role>.public` | `/v1` and `/anthropic` to Z.ai, and `/v1` to Moonshot or Mistral when the run's pinned alias names one ([providers]({{< relref "/docs/platform/ai-platform/agents/how-it-works/providers.md" >}}), public data only); `/v1/models` answers a 404 body, not a model list; `/mcp` with documentation and room tools |
 | `internal` | 8081 | `agent-router.<role>.internal` | `/mcp` with cluster, metric and log reads per role; the model route to Claude through the Anthropic API (Bedrock or Vertex optional per cloud; ADR-0054) and a read-only GitHub route for clones of either repository ([ai-native-ref#11](https://github.com/Smana/ai-native-ref/pull/11)) |
 | `sts` | 8082 | `octo-sts/Smana/{cloud-native-ref,ai-native-ref}/<role>` | `/sts/exchange` to octo-sts, with the bearer forwarded (`preserveToken`) |
 

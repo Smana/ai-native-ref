@@ -1703,7 +1703,7 @@ pre.mermaid { cursor: zoom-in; }
 .diagram-zoom svg { width: 90vw; height: 90vh; background: var(--diagram-bg, #fff); border-radius: 8px; transform-origin: center; }
 ```
 
-- [ ] **Step 2: Build**: `cd website && hugo --minify`. Expected: rc=0, and the built `docs/platform/ai-platform/agents/user-guide/index.html` contains `diagram-zoom`.
+- [ ] **Step 2: Build**: `cd website && hugo --minify`. Expected: rc=0, and the built `docs/platform/ai-platform/agents/use/user-guide/index.html` contains `diagram-zoom`.
 - [ ] **Step 3: Check by hand** with `hugo server`: open the user guide, then click, zoom, pan and close a diagram, in both light and dark themes.
 - [ ] **Step 4: Commit**: `git commit -m "feat(website): zoomable mermaid diagrams"`
 
@@ -1722,7 +1722,7 @@ pre.mermaid { cursor: zoom-in; }
 **Dependency:** FR-10 (#2192) is merged first; merge `origin/main` into this branch before this task.
 
 **Files:**
-- Modify: `website/content/docs/platform/ai-platform/agents/user-guide.md` ("What you can do" and the roomctl subsection), `rooms.md` (the access paragraph), `status.md` (the roomctl and UX rows)
+- Modify: `website/content/docs/platform/ai-platform/agents/use/user-guide.md` ("What you can do" and the roomctl subsection), `rooms.md` (the access paragraph), `status.md` (the roomctl and UX rows)
 
 - [ ] **Step 1:** In the user guide, add:
   - "Hand off from your coding agent": the skill, `roomctl skill install`, and the D1 rule;

@@ -203,7 +203,7 @@ EOF
 
 ### Task 5: The docs
 
-**Files:** Modify `website/content/docs/platform/ai-platform/agents/harness.md`, `factory.md`, `website/content/docs/platform/ai-platform/status.md`.
+**Files:** Modify `website/content/docs/platform/ai-platform/agents/tune/harness.md`, `factory.md`, `website/content/docs/platform/ai-platform/status.md`.
 
 - [ ] **Step 1:** `harness.md`, "How a run works": a paragraph "The tester's run" — it writes tests
   under the repository's test paths and commits; the harness checks them red on the base, signs and

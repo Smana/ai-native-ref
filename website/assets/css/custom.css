@@ -667,3 +667,35 @@ pre.mermaid { cursor: zoom-in; }
   .anr-hero-video { display: none; }
   .anr-hero-poster { display: block; }
 }
+
+/* The sponsor note (layouts/_partials/custom/sponsor.html): the footer line and the status page's
+ * card. Muted on purpose: both reuse the stamp colour and the link accent, so they read as a
+ * footnote rather than a call to action. */
+.anr-sponsor-line {
+  margin: 1.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--cnref-stamp);
+}
+.anr-sponsor-card {
+  margin-top: 3rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgb(148 163 184 / 0.35);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--cnref-stamp);
+}
+.anr-sponsor-card p {
+  margin: 0;
+  line-height: inherit;
+}
+.anr-sponsor-card .anr-sponsor-title {
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+.anr-sponsor-line a,
+.anr-sponsor-card a {
+  color: var(--cnref-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

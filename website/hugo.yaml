@@ -91,3 +91,11 @@ params:
   theme:
     default: system
     displayToggle: true
+  # The sponsor note (layouts/_partials/custom/sponsor.html): message is the footer line on every
+  # page, card the status page's card ({{< sponsor-card >}}). [text][sponsor] links to url.
+  sponsor:
+    url: "https://github.com/sponsors/Smana"
+    message: "One person maintains this reference and pays for the AWS, GCP and model-API time that verifies it; [sponsoring][sponsor] helps cover that."
+    card:
+      title: "Keep it running"
+      message: "Every line above is proven in live sessions on AWS and GCP with paid model APIs, run by one maintainer. [Sponsorship][sponsor] pays for more of them: more sessions, more providers, faster releases."

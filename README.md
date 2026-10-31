@@ -189,6 +189,11 @@ task check   # builds the host profile, then runs the host's gates on it
 CI renders this tree inside cloud-native-ref at the commit in `HOST_REF`, so a change here is judged
 by the same gates the host applies to its own tree.
 
+## Support this work
+
+One person maintains this repository and pays for the AWS, GCP and model-API time its live sessions
+need; [sponsoring it](https://github.com/sponsors/Smana) helps cover that.
+
 ## License
 
 [Apache-2.0](LICENSE).

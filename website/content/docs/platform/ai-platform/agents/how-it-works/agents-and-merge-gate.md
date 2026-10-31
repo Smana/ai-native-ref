@@ -379,6 +379,5 @@ does not arm the merger.
 One list, kept on the status page: [row 16, the human path]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}}),
 and the session's evidence in the
 [results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-aws-0-2026-10-30.md).
-Two proofs of this page are still pending there: the approved merge's record on Maku v0.32.3
-([#270](https://github.com/Smana/ai-native-ref/issues/270)), and a lifted Request changes returning
-on approval (only its revision was seen live).
+One proof of this page is still open there: a lifted Request changes returning on approval (only its
+revision was seen live).

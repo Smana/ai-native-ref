@@ -87,7 +87,10 @@ dead = next(r for r in config["repositories"] if r["name"] == "Smana/cloud-nativ
 if dead is None:
     fails.append("self-test: the host declares no dead-links class")
 else:
-    probe = copy.deepcopy(host)
+    # The host may carry its own dead-links rule: the self-test runs on the host without it.
+    bare = copy.deepcopy(host)
+    bare["approval_rules"] = [r for r in bare["approval_rules"] if r["name"] != "low-risk: dead-links"]
+    probe = copy.deepcopy(bare)
     twin = copy.deepcopy(rules_of(probe)["low-risk: docs-links"])
     twin["name"] = "low-risk: dead-links"
     probe["approval_rules"].append(twin)
@@ -98,7 +101,7 @@ else:
                        ("protectedFiles", [r"^website/"])]:
         if not check("self-test", {"dead-links": dict(live, **{key: value})}, probe):
             fails.append(f"self-test: a {key} mismatch went unnoticed")
-    if not check("self-test", {"dead-links": live}, host):
+    if not check("self-test", {"dead-links": live}, bare):
         fails.append("self-test: a live class without its rule went unnoticed")
 
 # OD-F3-1 (R50): this repository's dead-links lane needs its own rule, or a shadow decision here

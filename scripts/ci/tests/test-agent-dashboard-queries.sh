@@ -114,7 +114,7 @@ series = [
     # the breaker: a paused live class, another at 0, and pauses the tile must ignore (shadow, empty class, other repository)
     {"series": 'maku_factory_class_paused{repository="Smana/cloud-native-ref", class="docs-links"}', "values": "1x30"},
     {"series": 'maku_factory_class_paused{repository="Smana/cloud-native-ref", class="revert"}', "values": "0x30"},
-    {"series": 'maku_factory_class_paused{repository="Smana/cloud-native-ref", class="dead-links"}', "values": "1x30"},
+    {"series": 'maku_factory_class_paused{repository="Smana/cloud-native-ref", class="deps-patch"}', "values": "1x30"},
     {"series": 'maku_factory_class_paused{repository="Smana/cloud-native-ref", class=""}', "values": "1x30"},
     {"series": 'maku_factory_class_paused{repository="Smana/ai-native-ref", class="docs-links"}', "values": "1x30"},
 ]

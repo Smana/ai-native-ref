@@ -50,7 +50,7 @@ tests:
       - series: 'maku_factory_class_paused{repository="Smana/cloud-native-ref",class="alert-rules"}'
         values: '0x10100'
       # shadow and unarmed classes, and the empty class, paused for 8 days: no alert
-      - series: 'maku_factory_class_paused{repository="Smana/cloud-native-ref",class="dead-links"}'
+      - series: 'maku_factory_class_paused{repository="Smana/cloud-native-ref",class="deps-patch"}'
         values: '1x11600'
       - series: 'maku_factory_class_paused{repository="Smana/cloud-native-ref",class="tests"}'
         values: '1x11600'

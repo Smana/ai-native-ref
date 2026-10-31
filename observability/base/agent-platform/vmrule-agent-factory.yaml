@@ -48,7 +48,7 @@ spec:
           # that goes live there fails the test until this regex follows. A static regex, not a
           # recording rule: a rule would need the same list. The gauge can be absent for a paused
           # class with no decision and no watched merge: absent means not reported, never not paused.
-          expr: max by (repository, class) (maku_factory_class_paused{repository="Smana/cloud-native-ref", class=~"docs-links|revert|alert-rules"}) == 1
+          expr: max by (repository, class) (maku_factory_class_paused{repository="Smana/cloud-native-ref", class=~"docs-links|revert|alert-rules|dead-links"}) == 1
           for: 7d
           labels:
             severity: warning

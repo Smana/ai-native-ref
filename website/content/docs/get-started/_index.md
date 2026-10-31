@@ -4,9 +4,6 @@ linkTitle: Get started
 weight: 10
 description: "Self-hosted model serving and the Agent Factory, which puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
 lastVerified: 2026-10-29
-aliases:
-  - /docs/platform/ai-platform/
-  - /docs/platform/
 ---
 
 Two halves, one platform. **Serving** runs open-weights models on the cluster's own GPUs behind an

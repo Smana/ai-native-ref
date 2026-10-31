@@ -3,8 +3,6 @@ title: Model routing and cost
 weight: 80
 description: "Every place a request is routed to a model, every knob that tunes it, and what each costs: the Semantic Router and LoRA canaries for humans, data-class tiers and the run meter for agents, prompt caching, budgets, and when self-hosting pays."
 lastVerified: 2026-10-29
-aliases:
-  - /docs/platform/ai-platform/routing/
 ---
 
 **Routing is static. Prompt caching drives the bill, and the model decides the outcome.**

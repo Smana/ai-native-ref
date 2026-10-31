@@ -3,8 +3,6 @@ title: Observability
 weight: 20
 description: "What the AI platform emits and where to read it: vLLM, KEDA and gateway metrics for serving; per-run traces, step logs, gen_ai metrics and AgentRun state for agents."
 lastVerified: 2026-10-16
-aliases:
-  - /docs/platform/ai-platform/observability/
 ---
 
 Both halves land in the platform's Victoria stack and Grafana; nothing here runs a second

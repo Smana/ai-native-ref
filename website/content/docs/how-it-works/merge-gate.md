@@ -4,8 +4,6 @@ linkTitle: The merge gate
 weight: 15
 description: "When an agent's pull request merges by itself, when it waits for your approval, and what you do when it hands off to you."
 lastVerified: 2026-10-31
-aliases:
-  - /docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate/
 ---
 
 An agent's pull request either merges by itself or waits for a maintainer. The **merge gate** is the
@@ -128,22 +126,3 @@ On a repository with approve-to-merge, the action reads: "To merge: approve this
 A hand-off goes back to the gate by itself when its cause clears: your approval, a new day, a lifted
 pause. A few reasons, such as `human_commit_in_pr`, need you to act on the pull request and never return.
 The full list: [gate reasons]({{< relref "/docs/reference/gate-reasons.md#reasons" >}}).
-
-## Where the rest went {#moved}
-
-- <span id="roles"></span><span id="role-table"></span>[The roles]({{< relref "/docs/how-it-works/roles.md#role-table" >}}):
-  <span id="scoper"></span>[scoper]({{< relref "/docs/how-it-works/roles.md#scoper" >}}),
-  <span id="tester"></span>[tester]({{< relref "/docs/how-it-works/roles.md#tester" >}}),
-  <span id="judge"></span>[judge]({{< relref "/docs/how-it-works/roles.md#judge" >}}),
-  <span id="reviewer"></span>[reviewer]({{< relref "/docs/how-it-works/roles.md#reviewer" >}}),
-  <span id="profiles"></span>[what each role may call]({{< relref "/docs/how-it-works/roles.md#profiles" >}}),
-  <span id="lifecycle"></span>[a task's life]({{< relref "/docs/how-it-works/roles.md#lifecycle" >}}).
-- <span id="decision-rows"></span>[The decision rows]({{< relref "/docs/reference/gate-reasons.md#decision-rows" >}}),
-  <span id="caps"></span>[the settings and daily caps]({{< relref "/docs/reference/gate-reasons.md#settings" >}}),
-  <span id="decision-record"></span>[the decision record]({{< relref "/docs/reference/gate-reasons.md#decision-record" >}}).
-- <span id="breaker"></span>[The breaker]({{< relref "/docs/operate/auto-merge-safety.md#breaker" >}}),
-  <span id="drills"></span>[drills]({{< relref "/docs/operate/auto-merge-safety.md#drills" >}}),
-  <span id="recovery"></span>[recovery]({{< relref "/docs/operate/auto-merge-safety.md#recovery" >}}),
-  <span id="after-a-merge"></span>[after a merge]({{< relref "/docs/operate/auto-merge-safety.md#after-a-merge" >}}),
-  <span id="metrics"></span>[metrics and alerts]({{< relref "/docs/operate/auto-merge-safety.md#metrics" >}}),
-  <span id="adopted-classes"></span>[adopted classes]({{< relref "/docs/operate/auto-merge-safety.md#adopted-classes" >}}).

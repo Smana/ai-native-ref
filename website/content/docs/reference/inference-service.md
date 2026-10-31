@@ -3,9 +3,6 @@ title: The InferenceService claim
 weight: 20
 description: One model, one YAML file — the complete claim, what it renders, and every field it accepts.
 lastVerified: 2026-08-30
-aliases:
-  - /docs/platform/ai-platform/inference-service/
-  - /docs/platform/ai-platform/serving/inference-service/
 ---
 
 A model on this platform is one file. No Deployment, no Service, no HPA, no

@@ -4,10 +4,6 @@ linkTitle: Status
 weight: 60
 description: "The one place state lives: what is available, what is experimental, what is planned, and the known limitations."
 lastVerified: 2026-10-31
-aliases:
-  - /docs/platform/agent-factory/status/
-  - /docs/platform/ai-platform/roadmap/
-  - /docs/platform/ai-platform/status/
 ---
 
 The one place the platform's state lives. Every other page describes the design. Each line here

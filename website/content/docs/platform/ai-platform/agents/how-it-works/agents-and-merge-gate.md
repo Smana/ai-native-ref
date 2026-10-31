@@ -20,22 +20,31 @@ repository's config; what is proven is on the [status page]({{< relref "/docs/pl
 ## The roles {#roles}
 
 ```mermaid
-flowchart LR
-  issue["Labelled issue"] --> scoper["Scoper<br/>(triager run)"]
-  scoper -->|"bounded task + checks"| tester["Tester<br/>failing test contract"]
-  scoper -->|"a question"| author(["Author"])
-  scoper -.->|"hard issue"| split["Split proposal"]
-  tester --> impl["Implementer<br/>search tool · repo checks"]
-  impl -->|"opens"| pr["Pull request"]
-  impl --> judge{"Completion judge"}
-  judge -->|"not_yet"| impl
-  judge -->|"met"| reviewer["Reviewer<br/>other tier"]
-  judge -->|"impossible"| human(["Maintainer"])
-  reviewer -->|"verdict"| pr
-  pr --> gate{"Merge gate"}
-  gate -->|"live class, every row holds"| merger["Merger App"]
-  gate -->|"hand-off: one action"| human
-  human -->|"approves the head"| merger
+flowchart TB
+  subgraph shape["1 · Shape the task"]
+    direction LR
+    issue["Labelled issue"] --> scoper["Scoper<br/>(triager run)"]
+    scoper -->|"a question"| author(["Author"])
+    scoper -.->|"hard issue"| split["Split proposal"]
+    scoper -->|"bounded task<br/>+ checks"| tester["Tester<br/>failing test contract"]
+  end
+  subgraph build["2 · Build"]
+    direction LR
+    impl["Implementer<br/>search tool · repo checks"] --> judge{"Completion<br/>judge"}
+    judge -->|"not_yet"| impl
+    judge -->|"met"| reviewer["Reviewer<br/>other tier"]
+    judge -->|"impossible"| esc(["Maintainer"])
+    impl -->|"opens"| pr["Pull request"]
+    reviewer -->|"verdict"| pr
+  end
+  subgraph merge["3 · Merge"]
+    direction LR
+    gate{"Merge gate"} -->|"live class,<br/>every row holds"| merger["Merger App"]
+    gate -->|"hand-off:<br/>one action"| human(["Maintainer"])
+    human -->|"approves<br/>the head"| merger
+  end
+  shape -->|"tester → implementer"| build
+  build -->|"pull request → merge gate"| merge
 ```
 
 ### Every role in one table {#role-table}
@@ -88,29 +97,36 @@ from Maku's [full diagram](https://github.com/Smana/maku/blob/v0.32.3/docs/facto
 ```mermaid
 stateDiagram-v2
   [*] --> Received: factory/ready, Slack, API, RunLore
-  Received --> Rejected: too long, daily cap
-  Received --> Triaged: class, team, tier, budget
-  Triaged --> Implementing: scoper, tester, implementer
-  Implementing --> Escalated: needs_author, split_proposed, stalled, not_met, judge_impossible, budget
-  Escalated --> Split: /factory split
-  Split --> Done: children_merged
+  Received --> Implementing: triaged
+  Implementing --> Escalated: the run cannot finish
   Escalated --> Implementing: /factory retry
   Implementing --> Reviewing: PR opened, judge met
-  Reviewing --> Implementing: changes (at most 2 rounds)
+  Reviewing --> Implementing: changes
   Reviewing --> AwaitingCI: approve
-  AwaitingCI --> Implementing: CI red, fix run
   AwaitingCI --> AutoMerging: live class, every row holds
-  AwaitingCI --> AwaitingHuman: hand-off, one action named
-  AwaitingHuman --> AwaitingCI: returns (approval, day turned, unpaused, policy green)
-  AwaitingHuman --> Implementing: Request changes
-  AwaitingHuman --> Done: approved merge, or a maintainer merged
-  AutoMerging --> Verifying: the merger merged the decided head
-  Verifying --> Done: main green for verifyFor
+  AwaitingCI --> AwaitingHuman: hand-off
+  AwaitingHuman --> Done: approved merge
+  AutoMerging --> Verifying: merged
+  Verifying --> Done: main green
   Verifying --> Reverted: main red
-  Done --> Reverted: factory/revert in the window
   Done --> [*]
   Reverted --> [*]
 ```
+
+The diagram keeps the main path. The other transitions:
+
+- `Received` goes to `Rejected` (too long, the daily cap) or to `Triaged` (class, team, tier,
+  budget); the scoper, tester and implementer then run it in `Implementing`.
+- `Implementing` escalates on `needs_author`, `split_proposed`, `stalled`, `not_met`,
+  `judge_impossible` or the budget. From `Escalated`, `/factory retry` returns to `Implementing`, and
+  `/factory split` goes to `Split`, which ends `Done` on `children_merged`.
+- `Reviewing` sends changes back at most 2 rounds. A red CI in `AwaitingCI` starts a fix run.
+- `AwaitingHuman` returns to `AwaitingCI` on an approval, a turned day, an unpause or a green policy;
+  goes to `Implementing` on Request changes; and to `Done` on an approved merge, or when a maintainer
+  merged.
+- `AutoMerging` goes to `Verifying` once the merger merged the decided head. `Verifying` ends `Done`
+  when `main` stays green for `verifyFor`, `Reverted` when it goes red; `Done` goes to `Reverted` on
+  `factory/revert` within the window.
 
 `Rejected`, `NoOp`, `Done`, `Reverted`, `Closed` and `Stopped` are final. Any open phase goes to
 `Stopped` on `factory/stop` or the kill switch. An approved merge goes to `Done` without `Verifying`,
@@ -129,26 +145,37 @@ an **oracle** is the scan that found the problem a class fixes, and that must re
 issue where the factory posts its notices and takes its kill switch.
 
 ```mermaid
-flowchart TD
-  pr["Agent PR in AwaitingCI"] --> base{"1–2c: secret scan, fence,<br/>required checks, test contract"}
-  base -->|"red"| fix["fix run (up to fixRuns), then escalate"]
-  base -->|"green"| pb{"3: policy-bot: main green?"}
-  pb -->|"no"| ho
-  pb -->|"yes"| appr{"4: a maintainer approved<br/>the current head?"}
-  appr -->|"yes, approveToMerge"| amerge["merger merges it<br/>factory/approved-merge → Done"]
-  appr -->|"no"| cls{"5: class live or shadow?"}
-  cls -->|"neither"| ho
-  cls -->|"yes"| rows{"6–8: reviewer verdict, head reported,<br/>trailer, files, size, shape, holdouts, oracle"}
-  rows -->|"a row fails"| ho
-  rows -->|"all hold"| mode{"live or shadow?"}
-  mode -->|"shadow"| shadow["record shadow_would_arm<br/>paused= capped= read, nothing armed"]
-  mode -->|"live"| brk{"9: breaker clear?<br/>10: under the daily caps?"}
-  brk -->|"no"| ho
-  brk -->|"yes"| push{"12: every push the agents App's?"}
-  push -->|"no"| ho
-  push -->|"yes"| merge["merger merges the decided head<br/>factory/auto-merged:class → Verifying"]
-  ho["AwaitingHuman: reason, one action,<br/>decision record"]
-  ho -->|"approve the current head"| appr
+flowchart TB
+  subgraph s1["Agent PR in AwaitingCI · rows 1–3"]
+    direction LR
+    base(["1–2c: secret scan,<br/>fence, required checks,<br/>test contract"])
+    base -->|"red"| fix["fix run (up to fixRuns),<br/>then escalate"]
+    base -->|"green"| pb(["3: policy-bot:<br/>main green?"])
+    pb -->|"no"| ho1["AwaitingHuman: reason,<br/>one action, decision record"]
+  end
+  subgraph s2["Row 4"]
+    direction LR
+    back["AwaitingHuman:<br/>approve the current head"] --> appr(["4: a maintainer approved<br/>the current head?"])
+    appr -->|"yes, approveToMerge"| amerge["merger merges it<br/>factory/approved-merge<br/>→ Done"]
+  end
+  subgraph s3["Rows 5–8"]
+    direction LR
+    cls(["5: class live<br/>or shadow?"]) -->|"yes"| rows(["6–8: reviewer verdict,<br/>head reported, trailer,<br/>files, size, shape,<br/>holdouts, oracle"])
+    cls -->|"neither"| ho2["AwaitingHuman"]
+    rows -->|"a row fails"| ho2
+  end
+  subgraph s4["Rows 9–12: a live class"]
+    direction LR
+    brk(["9: breaker clear?<br/>10: under the daily caps?"]) -->|"yes"| push(["12: every push<br/>the agents App's?"])
+    brk -->|"no"| ho3["AwaitingHuman"]
+    push -->|"no"| ho3
+    push -->|"yes"| merge["merger merges<br/>the decided head<br/>factory/auto-merged:class<br/>→ Verifying"]
+  end
+  shadow["record shadow_would_arm<br/>paused= capped= read,<br/>nothing armed"]
+  s1 -->|"3: yes"| s2
+  s2 -->|"4: no"| s3
+  s3 -->|"all hold, live"| s4
+  s3 -->|"all hold, shadow"| shadow
 ```
 
 ### The decision rows {#decision-rows}
@@ -281,17 +308,23 @@ The gauge `maku_factory_class_paused{repository,class}` reads 1 while the class 
 each decision and each monitor pass; absent means not reported, not "not paused".
 
 ```mermaid
-flowchart LR
-  merged["merger merges #n"] -->|"factory/auto-merged:class"| gh[("GitHub labels")]
-  revert["revert PR of #n"] -->|"factory/revert-of:#n"| gh
-  merged --> tasks[("Task CRs")]
-  revert --> tasks
-  gh -->|"read once, at the first decision"| breaker{"newest 10 merges hold<br/>a revert or a follow-up?"}
-  tasks -->|"every decision"| breaker
-  breaker -->|"yes"| recover{"3 newest merges clean, mature,<br/>newer than the bad one?"}
-  recover -->|"no"| paused["class_paused"]
-  recover -->|"yes"| next
-  breaker -->|"no"| next["the daily cap, then live or shadow"]
+flowchart TB
+  subgraph ledger["The ledger"]
+    direction LR
+    merged["merger merges #n"] -->|"factory/auto-merged:class"| gh[("GitHub labels")]
+    revert["revert PR of #n"] -->|"factory/revert-of:#n"| gh
+    merged --> tasks[("Task CRs")]
+    revert --> tasks
+  end
+  subgraph decide["The breaker, at each decision"]
+    direction LR
+    breaker{{"newest 10 merges hold<br/>a revert or a follow-up?"}}
+    breaker -->|"yes"| recover{{"3 newest merges clean,<br/>mature, newer than<br/>the bad one?"}}
+    recover -->|"no"| paused["class_paused"]
+    recover -->|"yes"| next
+    breaker -->|"no"| next["the daily cap,<br/>then live or shadow"]
+  end
+  ledger -->|"Task CRs: every decision<br/>GitHub labels: read once, at the first decision"| decide
 ```
 
 ### Drills {#drills}

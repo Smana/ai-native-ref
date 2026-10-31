@@ -70,7 +70,7 @@ did not.
 GitHub-backed room visibility (D7).
 
 ```mermaid
-flowchart LR
+flowchart TB
   T["token: sub"] --> B{"broker: read room R (repo X)"}
   B -->|agents-admin| OK["allowed"]
   B -->|cache hit < 5 min| C{"can read X?"}

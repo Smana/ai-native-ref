@@ -38,27 +38,27 @@ An agent platform has several layers. Most "agent platforms" cover one or two of
 all five.
 
 ```mermaid
+%%{init: {"flowchart": {"wrappingWidth": 400}}}%%
 flowchart TB
   subgraph L5["Factory: issue → runs → PR, budgets, merge gate, stop switch"]
-    F5["Ours: maku-factory controller + Kueue + policy-bot"]
-    T5["Temporal: durable workflows (watched)"]
+    direction LR
+    F5["Ours: maku-factory controller<br/>+ Kueue + policy-bot"] ~~~ T5["Temporal: durable<br/>workflows (watched)"]
   end
   subgraph L4["Collaboration: shared sessions with humans and agents"]
-    F4["Ours: rooms (maku-broker + Postgres log)"]
-    K4["kagent sessions: single owner"]
+    direction LR
+    F4["Ours: rooms<br/>(maku-broker + Postgres log)"] ~~~ K4["kagent sessions:<br/>single owner"]
   end
   subgraph L3["Gateway: models, tools, per-run identity and budgets"]
-    F3["agentgateway (chosen, live since 2026-10-16)"]
-    O3["otari: LLM gateway (watched)"]
+    direction LR
+    F3["agentgateway (chosen,<br/>live since 2026-10-16)"] ~~~ O3["otari: LLM gateway<br/>(watched)"]
   end
   subgraph L2["Harness: the agent loop"]
-    F2["OpenHands (chosen)"]
-    A2["ax: Antigravity, Gemini only"]
-    K2["kagent: Claude Code, Codex, own ADKs"]
+    direction LR
+    F2["OpenHands<br/>(chosen)"] ~~~ A2["ax: Antigravity,<br/>Gemini only"] ~~~ K2["kagent: Claude Code,<br/>Codex, own ADKs"]
   end
   subgraph L1["Runtime: isolation, lifecycle, identity"]
-    F1["agent-sandbox + gVisor (chosen)"]
-    S1["Agent Substrate (google/ax and kagent v1 run on it)"]
+    direction LR
+    F1["agent-sandbox + gVisor<br/>(chosen)"] ~~~ S1["Agent Substrate (google/ax<br/>and kagent v1 run on it)"]
   end
   L5 --> L4 --> L3 --> L2 --> L1
 ```

@@ -93,13 +93,19 @@ Each layer lives in its own repository and is pinned into the next. A run's sett
 it is created; only its token cap can be raised while it runs.
 
 ```mermaid
-flowchart LR
-  F["Factory config<br/>tiers · templates · caps"]:::cfg --> T["Triage<br/>tier + template"]:::cfg
-  API["Run API<br/>task agent:run"]:::cfg --> C
-  T --> C["AgentRun claim<br/>role · model · budget"]:::claim
-  C --> K["Composition<br/>pod · env · egress"]:::claim
-  K --> H["Harness image<br/>loop settings"]:::run
-  H -- every call --> G["Gateway<br/>models · MCP · budgets"]:::gw
+flowchart TB
+  subgraph decide["Config and claim"]
+    direction LR
+    F["Factory config<br/>tiers · templates · caps"]:::cfg --> T["Triage<br/>tier + template"]:::cfg
+    API["Run API<br/>task agent:run"]:::cfg --> C
+    T --> C["AgentRun claim<br/>role · model · budget"]:::claim
+  end
+  subgraph run["The run"]
+    direction LR
+    K["Composition<br/>pod · env · egress"]:::claim --> H["Harness image<br/>loop settings"]:::run
+    H -- every call --> G["Gateway<br/>models · MCP · budgets"]:::gw
+  end
+  decide -->|"the claim composes"| run
   classDef cfg fill:#6366f1,stroke:#4f46e5,color:#fff
   classDef claim fill:#059669,stroke:#047857,color:#fff
   classDef run fill:#f59e0b,stroke:#d97706,color:#111
@@ -248,7 +254,7 @@ A review of a small PR takes under 10 steps: the cost is in the rounds.
 ## Debug a run that loops {#debug}
 
 ```mermaid
-flowchart LR
+flowchart TB
   A["Run long<br/>or failed"]:::start --> B{"execution<br/>status?"}
   B -- stuck --> S["Fix the repeated<br/>tool or host"]:::fix
   B -- error --> E{"Error line?"}
@@ -320,27 +326,28 @@ question about the repository instead of reading it file by file. Used live in o
 (3 calls), its value unmeasured (the paired on/off proof never ran); **only `docs` has `search: true`**, so every other run behaves as before.
 
 ```mermaid
+%%{init: {"sequence": {"actorMargin": 20, "width": 120, "messageMargin": 25}}}%%
 sequenceDiagram
   autonumber
-  participant I as implementer (agent-server)
-  participant S as search tool (same process)
-  participant C as child conversation
-  participant P as identity proxy /v1
-  participant G as gateway (meter, caps)
+  participant I as implementer<br/>(agent-server)
+  participant S as search tool<br/>(same process)
+  participant C as child<br/>conversation
+  participant P as identity<br/>proxy /v1
+  participant G as gateway<br/>(meter, caps)
   participant H as agent-run
   I->>S: search(question)
-  S->>S: call cap from the ledger · one at a time
-  S->>C: fresh context: search brief + question · grep, glob, read_file, list_directory
+  S->>S: call cap from the ledger<br/>one at a time
+  S->>C: fresh context:<br/>search brief + question<br/>grep, glob, read_file,<br/>list_directory
   loop at most 40 iterations, 300k tokens, 300 s
-    C->>P: chat completion (the run's model, effort low)
-    P->>G: the run's token · x-ar-model pinned
-    G-->>C: metered on the run, inside its caps
-    C->>C: read-only tool calls in /workspace/repo
+    C->>P: chat completion<br/>(the run's model,<br/>effort low)
+    P->>G: the run's token<br/>x-ar-model pinned
+    G-->>C: metered on the run,<br/>inside its caps
+    C->>C: read-only tool calls<br/>in /workspace/repo
   end
-  C-->>S: final message, or a stop with its partial answer
-  S->>S: ledger row · header · clip at 8,000 characters
-  S-->>I: observation (an error observation on a failure)
-  H->>H: reads the ledger: the child's steps join the stall count
+  C-->>S: final message,<br/>or a stop with<br/>its partial answer
+  S->>S: ledger row · header<br/>clip at 8,000 characters
+  S-->>I: observation<br/>(an error observation<br/>on a failure)
+  H->>H: reads the ledger:<br/>the child's steps<br/>join the stall count
 ```
 
 | Case | The child | The implementer sees | Ledger outcome |

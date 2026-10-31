@@ -180,3 +180,5 @@ class with a machine oracle (`dead-links`) and patch dependency bumps (`deps-pat
 revert rate decides how wide it opens. Dropping human review is a consequential choice, not only a
 productivity one ([Stanford CodeX](https://law.stanford.edu/2026/02/08/built-by-agents-tested-by-agents-trusted-by-whom/)),
 which is why each lane is reversible by one label.
+
+{{< sponsor-card >}}

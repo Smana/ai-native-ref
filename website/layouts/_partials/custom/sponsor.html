@@ -1,0 +1,17 @@
+{{- /* The sponsor note. The copy lives in params.sponsor; a message links with the markdown
+       reference [text][sponsor], which this partial resolves to params.sponsor.url.
+       Called with (dict "page" $page) from the footer, it is one muted line on every page; with
+       (dict "page" $page "card" true) from the sponsor-card shortcode, it is the titled card
+       params.sponsor.card describes. */ -}}
+{{- with site.Params.sponsor -}}
+  {{- $msg := cond $.card .card.message .message -}}
+  {{- $html := $.page.RenderString (printf "%s\n\n[sponsor]: %s" $msg .url) -}}
+  {{- if $.card -}}
+    <aside class="anr-sponsor-card" aria-label="Sponsoring">
+      <p class="anr-sponsor-title">{{ .card.title }}</p>
+      <p>{{ $html }}</p>
+    </aside>
+  {{- else -}}
+    <p class="anr-sponsor-line">{{ $html }}</p>
+  {{- end -}}
+{{- end -}}

@@ -16,6 +16,10 @@ When the agents have done what they can, the factory *hands off* the task to you
 issue once, with the reason and one thing to do. Most of the time that is: **approve the pull
 request**, and the merge bot merges it.
 
+![A room page waiting on a maintainer. The status line reads "Waiting — review and merge PR #42", the Next box gives the hand-off reason, and Needs you reads "a maintainer approves PR #42: approve the head you read on the PR page, or run gh api … -f commit_id=SHA -f event=APPROVE; the merger merges that head".](/images/screenshots/room-page-waiting-on-approval.png)
+
+*A room after a hand-off. **Needs you** names your one move: approve the commit you read, and the merge bot merges it.*
+
 The bot follows the factory's *merge gate*: its rules for what may merge, and when. Each hand-off
 carries a reason code. The four you will meet most:
 

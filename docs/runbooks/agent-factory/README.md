@@ -34,7 +34,7 @@ The runbooks keep their intended expectation for each, with a "Known issue" note
 | [maku#279](https://github.com/Smana/maku/issues/279) | A task's status cost freezes before the run's final settle | 04 Part F |
 | [maku#280](https://github.com/Smana/maku/issues/280) | A budget-exhausted run's ledger misses its last spend | 04 Part G |
 | [maku#304](https://github.com/Smana/maku/issues/304) | Residuals of the approval binding: the push record can lag, the run-end time, the reason's name; the base branch is never read | [results](results-aws-0-2026-10-30.md) (F4) |
-| F6 | While cloud-native-ref pins a pre-release ai-native-ref (`-prN`), `ai-overlay --from-git` refuses it: maku's `harness-checks` and the host's `test-ai-overlay-from-git` went red. Fixed by [maku#305](https://github.com/Smana/maku/pull/305) and cnref #2691: both skip the tree half on a pre-release pin | [results](results-aws-0-2026-10-30.md) |
+| F6 | While cloud-native-ref pins a pre-release ai-native-ref (`-prN`), `ai-overlay --from-git` refuses it: maku's `harness-checks` and the host's `test-ai-overlay-from-git` went red. Fixed by cnref #2691 (the host's test skips the tree half on a pre-release pin) and [maku#305](https://github.com/Smana/maku/pull/305) (`harness-checks` turns a step that fails on the repository's `main` into a warning, red only for a harness fault) | [results](results-aws-0-2026-10-30.md) |
 
 ## What each runbook proves
 
@@ -78,7 +78,7 @@ Grouped by purpose; the number is the order they were written in.
 | [12-live-auto-merge-drill.md](12-live-auto-merge-drill.md) | Design D4, gate G1–G3: an unattended `docs-links` merge at the run-reported head, its revert and the breaker (both classes live in the source) | Yes — the owner's go, the merger App's `issues: write` and `actions: write`, the `agent-merge` and `agent-branches` rulesets, policy-bot on aws-0, a maintainer's `factory/ready`, `factory/drill` on the drilled PR | ~2 h |
 | [15-dead-links.md](15-dead-links.md) | Merge gate classes: the `dead-links` class in shadow (an oracle-backed intake, a would-arm decision, the post-merge monitor) and, on the owner's go, one live drill with its revert | Shadow (in the source): no. The drill: the owner's go, the merger App's `actions` permission, a host `.policy.yml` rule | shadow: a day; drill: ~1 h |
 | [16-deps-patch.md](16-deps-patch.md) | Merge gate classes: the `deps-patch` class in shadow (Renovate's PRs adopted, a would-arm decision, a Flux monitor) and, on the owner's go, one live drill with its revert | Shadow (in the source): no. The drill: the owner's go, the merger App's `issues: write`, cloud-native-ref PR K | shadow: a day; drill: ~1 h |
-| [results-aws-0-2026-10-30.md](results-aws-0-2026-10-30.md) | The aws-0 session of 2026-10-30 and 31: the human path (approve-to-merge, lifted `changes_requested`, force-push safety), the regression and recovery proofs, the `dead-links` drill and its unattended revert, the bugs found and fixed, and what was not run | — (results; the owner approved by hand) | the session, ~2 days |
+| [results-aws-0-2026-10-30.md](results-aws-0-2026-10-30.md) | The aws-0 session of 2026-10-30 and 31: the human path (approve-to-merge, Request changes starting a revision, force-push safety), the regression and recovery proofs, the `dead-links` drill and its unattended revert, the bugs found and fixed, and what was not run | — (results; the owner approved by hand) | the session, ~2 days |
 
 **Features**
 

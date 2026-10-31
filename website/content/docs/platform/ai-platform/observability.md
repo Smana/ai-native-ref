@@ -69,7 +69,7 @@ it stands, what it did, what it cost and where its time went.
 | Logs | [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/) | Every run's step log and every gateway call, attributed to the run |
 | Metrics | [VictoriaMetrics](https://victoriametrics.com) | Tokens, cost, latency and errors per run, and each `AgentRun`'s state through kube-state-metrics |
 | Traces | [VictoriaTraces](https://docs.victoriametrics.com/victoriatraces/), behind an OpenTelemetry Collector that keeps only allowlisted metadata | One trace per run: steps, model calls and tool calls. Metadata only: no prompts or outputs |
-| Dashboards | [Grafana](https://grafana.com) | `agent-run`, one page per run, `agent-fleet`, the overview, and `agent-identity`, spend per charged principal |
+| Dashboards | [Grafana](https://grafana.com) | In `observability/base/agent-platform/`: `agent-run`, one page per run; `agent-fleet`; `agents-overview`; `agent-room`; `agent-gateway`; `agent-identity`, spend per charged principal; and `agent-factory`, the factory's own page: PR outcomes, merge decisions, a **Human path** row (hand-off to merge, waiting on a human, **Classes paused**) and **Cost by role** over 7 days |
 
 The full transcript (prompts and outputs) stays in the
 [room]({{< relref "/docs/platform/ai-platform/agents/how-it-works/rooms.md" >}}), behind room access. Alerting
@@ -77,6 +77,28 @@ on runs belongs to the factory's rules, per the
 [observability design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-27-agent-observability-design.md).
 Which question each signal answers, from a developer's seat, is in the
 [user guide]({{< relref "/docs/platform/ai-platform/agents/use/user-guide.md#observability-what-you-can-inspect" >}}).
+
+### The merge gate's signals {#merge-gate-signals}
+
+The `agent-factory` dashboard's **Human path** row reads these series; what each decision means is on
+[Agents and the merge gate]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#metrics" >}}).
+
+| Series | Reads |
+|---|---|
+| `maku_factory_handoff_to_merge_seconds{class,reason,how}` | Time from a hand-off to the merge. `reason` is the first hand-off's; `how` is `human`, `approved`, `class`. First live median on `aws-0`: 150 s, `how=human`, `reason=policy_pending` |
+| `maku_factory_merge_decisions_total{…,repository}` | The gate's decisions, per repository |
+| `maku_factory_human_wait_seconds_total{reason,class}` | Seconds a task waited on a human; closed reason codes only |
+| `maku_factory_class_paused{repository,class}` | 1 while the breaker holds a class. Absent means not reported: it refreshes only at a decision or a monitor pass |
+| `maku_factory_pr_outcomes_total{outcome="reverted"}` | Reverts, drills included: the metric has no drill label |
+| `maku_factory_run_cost_usd{tier,role}` | Cost by role |
+
+Alerts in `observability/base/agent-platform/vmrule-agent-factory.yaml`:
+
+| Alert | Fires when |
+|---|---|
+| `AgentFactoryAutoMergeReverted` | A merged agent PR was reverted. Unless it carries `factory/drill`, the breaker pauses its class |
+| `AgentFactoryMergeRegression` | The post-merge monitor found a regression after a merge; the class is demoted at its next decision |
+| `AgentFactoryClassPausedLong` | A live class of cloud-native-ref has been paused for 7 days |
 
 ### Spend per identity {#spend-per-identity}
 

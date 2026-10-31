@@ -1,8 +1,8 @@
 ---
 title: Harness reference
 weight: 20
-description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its value on gcp-0, what it does, its bounds, and whether it is proven live."
-lastVerified: 2026-10-30
+description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its value on aws-0, what it does, its bounds, and whether it is proven live."
+lastVerified: 2026-10-31
 aliases:
   - /docs/platform/ai-platform/agents/harness-reference/
 ---
@@ -19,7 +19,7 @@ Every knob of a run, layer by layer. How to use them is on
   {{< card link="#harness" title="Harness" icon="cog" subtitle="The loop's settings, baked into the image." >}}
 {{< /cards >}}
 
-**Pins on `main`, 2026-10-29:** Maku `v0.32.0`, composed by crossplane-configuration `v0.9.29`. Values below are the repository's; `live` means seen on `gcp-0`.
+**Pins on `main`, 2026-10-31:** Maku `v0.32.3`, composed by crossplane-configuration `v0.9.31`. Values below are the repository's; `live` means seen on `aws-0` (or on `gcp-0` until its teardown on 2026-10-29).
 
 | Status | Meaning |
 |---|---|
@@ -98,6 +98,7 @@ implementer's tier's. The tester keeps the implementer's tier.
 | `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
 | `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since Maku v0.16.0). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
 | `loops.<class>` | `default: {scope: off}`; `docs` (scoper, loop policy, search; provider `models` only in a live session) and `scripts` (scoper, splitter) | The loop policy and the scope, off for every class without a row. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md#loop-policy" >}}) |
+| `scoper.nudgeAt`, `scoper.maxToolCalls` | 25 and 40 (Maku's defaults; this repository sets no `scoper:` key) | The scoper's exploration bound: a nudge to wrap up at 25 tool calls, a stop at 40 with the end `budget_calls`; any end without a handoff leaves the implementer to run unscoped |
 | `loops.<class>.search` | `true` on `docs` only | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md#search" >}}) |
 
 ## Factory: what a brief holds {#brief}
@@ -156,7 +157,7 @@ turns the claim into the pod. Nothing here is set per run.
 
 | Setting | Value |
 |---|---|
-| Harness image | `ghcr.io/smana/maku-harness:v0.32.0@sha256:f59d3942cc352b9de461713efefd2680ad55fffdc9149de9f421e958b0935d17` (the release's image; the composition pin lives in crossplane-configuration): a harness change reaches runs only through the composition's digest, so the harness roles reach runs with that bump |
+| Harness image | `ghcr.io/smana/maku-harness:v0.32.3@sha256:d6ec677262d10342dee4e8ba53af087e7d6f227502c0cc7c2ecfe4d6636c040e` (the release's image, composed by crossplane-configuration v0.9.31; the `aws-0` session ran the v0.31.0 harness until that composition landed; the composition pin lives in crossplane-configuration): a harness change reaches runs only through the composition's digest, so the harness roles reach runs with that bump |
 | Environment | `MODEL`, `DATA_CLASS`, `ROLE`, `LLM_BASE_URL`, `MCP_URL`, `TASK_FILE`, `RULES_FILE`, tracing; `AGENT_CHECKS` and `AGENT_RUN_SECONDS` with `loop.checks`; `AGENT_SEARCH` with `loop.search`. `LLM_REASONING_EFFORT` is not set |
 | `rules.md` | One branch, one PR, never `.github/workflows/`, "a 429 means the budget is spent: stop". Each rule is also enforced outside the sandbox |
 | `task.md` | The task text: the biggest driver of a run's length |

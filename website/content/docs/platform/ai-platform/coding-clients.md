@@ -45,6 +45,8 @@ OpenAI API under `/v1`.
 | aws-0 | `https://llm.priv.aws.ogenki.io/v1` | `tier-frontier` always; the four `xplane-*` models and `MoM` once `llm-platform` is resumed |
 | gcp-0 | `https://llm.priv.gcp.ogenki.io/v1` | `tier-frontier` (GLM-5.3 through Z.ai, no GPU needed); `xplane-qwen3-8b` and `MoM` once `llm-platform` is resumed |
 
+`gcp-0` was torn down on 2026-10-29: its rows and the `gcp-0` notes below apply when it is up again.
+
 `llm-platform` is suspended by default on both clouds: until it is resumed, `MoM` has no model to
 route to and the `xplane-*` names return an error. The GPU models need all three
 [opt-in gates]({{< relref "/docs/platform/ai-platform/serving/_index.md#turning-it-on" >}}).

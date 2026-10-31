@@ -99,8 +99,8 @@ Sources and the full record: [status](https://airef.ogenki.io/docs/platform/ai-p
 
 ## Status and roadmap
 
-**v3 is built**: Maku v0.32.0 (CRD group `maku.ogenki.io`), ai-native-ref v2.8.18. The v3.0.0
-release is still a draft. v3 aims at more accepted pull requests per dollar by shaping the task, not
+**v3 is built**: Maku v0.32.3 (CRD group `maku.ogenki.io`), with the harness and bridge on v0.32.3
+through crossplane-configuration v0.9.31. The v3.0.0 release is still a draft. v3 aims at more accepted pull requests per dollar by shaping the task, not
 by changing the model. A scoper bounds each issue or asks its author; a test-first tester writes the
 contract; the implementer runs the repository's checks in the sandbox and asks a read-only search
 tool; a completion judge reads the result against its checks; a splitter proposes parts for a task
@@ -109,13 +109,15 @@ OpenCode) or RunLore, whose alerts come back as verified fixes.
 
 All of it was proven live on `gcp-0` from 2026-10-27 to 2026-10-29, with capability profiles and
 Kimi K3.1 Pro for public work; Mistral works through the gateway but is not recommended as an
-implementer. `gcp-0` was torn down on 2026-10-29; the next session bootstraps fresh. Auto-merge is
-live for Markdown link fixes only; `dead-links` and `deps-patch` run in shadow, `deps-minor` in
-observe. Every line, with its evidence and runbook:
+implementer. `gcp-0` was torn down on 2026-10-29. The factory runs on `aws-0` since 2026-10-30, where
+the human path was proven live: a maintainer's approval of the current head is the merge, a
+regression pauses a class and three clean merges lift it, and `dead-links` was drilled once (merged,
+then reverted by the merger itself with no human). Auto-merge is live for Markdown link fixes only;
+`dead-links` and `deps-patch` run in shadow, `deps-minor` in observe. Every line, with its evidence and runbook:
 [status page](https://airef.ogenki.io/docs/platform/ai-platform/status/#roadmap).
 
 We are **on the road to a dark factory**, one proven lane at a time: today a human writes the issue
-and approves the merge for most work, and one class ships with no human at all. What that means and
+and approves, the approval being the merge, for most work, and one class ships with no human at all. What that means and
 where we stand: [status and roadmap](https://airef.ogenki.io/docs/platform/ai-platform/status/#dark-factory).
 
 ## How it compares

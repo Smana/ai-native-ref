@@ -2,7 +2,7 @@
 title: Harness tuning
 weight: 10
 description: "How to tune an agent run: which lever moves cost, time and quality, how to measure a change, what goes wrong and how to fix it."
-lastVerified: 2026-10-18
+lastVerified: 2026-10-31
 aliases:
   - /docs/platform/ai-platform/agents/harness/
 ---
@@ -74,7 +74,7 @@ still fail. The model itself never pushes. Proven live on 2026-10-29, the `not_t
 included ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)).
 `testFirst: true` on `scripts` in cloud-native-ref is a session switch: the owner turns it on for a
 live session and off after it ([#199](https://github.com/Smana/ai-native-ref/pull/199)); every other class
-runs without a tester ([run roles]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#tester" >}})).
+runs without a tester ([agents and the merge gate]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#tester" >}})).
 
 {{< details title="What the step log looks like" closed="true" >}}
 One line per action, never its output, redacted for tokens. It is what you read most.
@@ -284,8 +284,7 @@ task escalated as "cannot be done as asked", with no false `met`, and a failing 
 
 **The switch** is the factory's `loops` key, one row per class (`default`, `review`, or a class a
 repository declares). A row that sets any of its three keys switches that class on. No row, or a row
-without them, is today's run (D4). **Only `docs` sets them**: `scripts` has a row for its scoper and splitter
-only, and `default: {scope: off}` switches nothing on.
+without them, is today's run (D4). **`docs` and `scripts` set them**: `scripts` has `judge: tier-light` since [#238](https://github.com/Smana/ai-native-ref/pull/238), so the defaults apply (a stall at 80 steps, 2 continuations), and `default: {scope: off}` switches nothing on.
 
 | Key | Default once a row exists | Bounds |
 |---|---|---|
@@ -309,14 +308,16 @@ refuses the claim, and the task escalates with `loop_unsupported`.
 
 The counter also reads `finished` for a run under the policy that ended normally, and `other` for any end not listed above, by `class`.
 
+**A pending check is waited for.** A `not_yet` whose only unmet check is still running waits for the check inside the 15-minute box, and spends no continuation. When a check fails, the judge is shown the log's last 60 lines, for up to 3 jobs. **That quote is inert live**: the logs sit on the Actions log host (`productionresultssa*.blob.core.windows.net`), which the harness's egress does not allow, and widening it is the owner's security decision.
+
 Switching a class on is last: add its row only after the platform session's live check passes. The
 meter and the factory's outcomes then say whether cost per accepted pull request fell.
 
 ## Search {#search}
 
-{{< badge content="live" color="green" >}} The implementer can ask a read-only helper one
-question about the repository instead of reading it file by file. Proven live on 2026-10-29 (3 calls
-in the drill); **only `docs` has `search: true`**, so every other run behaves as before.
+{{< badge content="built" color="yellow" >}} The implementer can ask a read-only helper one
+question about the repository instead of reading it file by file. Used live in one drill on 2026-10-29
+(3 calls), its value unmeasured (the paired on/off proof never ran); **only `docs` has `search: true`**, so every other run behaves as before.
 
 ```mermaid
 sequenceDiagram

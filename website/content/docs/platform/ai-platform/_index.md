@@ -26,7 +26,7 @@ What is proven, what is left and what comes next live on one page:
 | **Serving** | vLLM, one Crossplane `InferenceService` claim per model, on Karpenter L4 GPUs, scaled by KEDA | [Serving]({{< relref "/docs/platform/ai-platform/serving/_index.md" >}}) |
 | **Gateways** | `ai-gateway` for humans and coding clients; the agent gateway for agent runs, with a per-run identity | [Gateways]({{< relref "/docs/platform/ai-platform/gateways.md" >}}) |
 | **Routing and cost** | Every routing decision, the knobs that tune it, the meter's prices, caching and budgets | [Model routing and cost]({{< relref "/docs/platform/ai-platform/routing.md" >}}) |
-| **Coding clients** | OpenCode, Continue and OpenWebUI pointed at `ai-gateway` | [Coding clients]({{< relref "/docs/platform/ai-platform/coding-clients.md" >}}) |
+| **Coding clients** | OpenCode, Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, Continue and OpenWebUI pointed at `ai-gateway`, and the hand-off to the factory | [Coding clients]({{< relref "/docs/platform/ai-platform/coding-clients.md" >}}) |
 | **Agents** | The factory, rooms and the sandboxed runtime | [Agents]({{< relref "/docs/platform/ai-platform/agents/_index.md" >}}) |
 | **Observability** | vLLM, KEDA and gateway metrics; per-run traces, step logs and dashboards | [Observability]({{< relref "/docs/platform/ai-platform/observability.md" >}}) |
 
@@ -60,7 +60,7 @@ than a missing feature.
   {{< card link="/docs/platform/ai-platform/serving/autoscaling-and-gpu/" title="Autoscaling & GPUs" icon="chip" subtitle="Three KEDA triggers on leading vLLM signals, the scale-to-zero deadlock, the gpu-l4 NodePool and S3 Files weights." >}}
   {{< card link="/docs/platform/ai-platform/gateways/" title="Gateways" icon="switch-horizontal" subtitle="ai-gateway for humans and coding clients, the agent gateway for agent runs: identity, routing and what they share." >}}
   {{< card link="/docs/platform/ai-platform/routing/" title="Model routing and cost" icon="currency-dollar" subtitle="Where each request is routed, how to tune quality, cost and latency, what a run costs, and when self-hosting pays." >}}
-  {{< card link="/docs/platform/ai-platform/coding-clients/" title="Coding clients" icon="terminal" subtitle="Connecting OpenCode, Continue and OpenWebUI to the gateway — authentication, model IDs, and troubleshooting." >}}
+  {{< card link="/docs/platform/ai-platform/coding-clients/" title="Coding clients" icon="terminal" subtitle="Connecting OpenCode, Claude Code, Codex, Continue and more to the gateway, and handing work to the factory: authentication, model IDs, troubleshooting." >}}
   {{< card link="/docs/platform/ai-platform/agents/" title="Agents" icon="beaker" subtitle="Autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes." >}}
   {{< card link="/docs/platform/ai-platform/agents/how-it-works/runtime/" title="Agent runtime" icon="shield-check" subtitle="The gVisor sandbox, per-run identity, octo-sts and the rulesets that confine every run." >}}
   {{< card link="/docs/platform/ai-platform/agents/how-it-works/rooms/" title="Rooms" icon="chat-alt-2" subtitle="The append-only log of a task: live view, steering, room tools and approvals." >}}

@@ -74,7 +74,7 @@ them red on the base, signs the commit and pushes it, or answers once (`not_test
 nothing. The implementer that follows cannot commit a change to those files, and is told when they
 still fail. The model itself never pushes. `testFirst` is off by default; an operator turns it on
 per class ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)),
-and a class without it runs without a tester ([agents and the merge gate]({{< relref "/docs/how-it-works/merge-gate.md#tester" >}})).
+and a class without it runs without a tester ([the roles]({{< relref "/docs/how-it-works/roles.md#tester" >}})).
 
 {{< details title="What the step log looks like" closed="true" >}}
 One line per action, never its output, redacted for tokens. It is what you read most.

@@ -1,13 +1,14 @@
 ---
 title: How it works
 weight: 30
-description: "The parts of the platform: the agent roles and the merge gate, the factory, rooms, the runtime, RunLore, the providers, the gateways, routing and cost, serving, and the alternatives considered."
+description: "The parts of the platform: the agent roles, the merge gate, the factory, rooms, the runtime, RunLore, the providers, the gateways, routing and cost, serving, and the alternatives considered."
 aliases:
   - /docs/platform/ai-platform/agents/how-it-works/
 ---
 
 {{< cards >}}
-  {{< card link="/docs/how-it-works/merge-gate/" title="Agents and the merge gate" subtitle="Every agent role and the two Apps around them; how the merge gate decides, how one approval merges, and how the breaker, drills and recovery keep auto-merge reversible." >}}
+  {{< card link="/docs/how-it-works/roles/" title="Roles" subtitle="Who does what in a task: the scoper, tester, implementer, judge and reviewer, the two GitHub Apps beside them, and a task's life." >}}
+  {{< card link="/docs/how-it-works/merge-gate/" title="The merge gate" subtitle="When an agent's pull request merges by itself, when it waits for your approval, and what you do when it hands off to you." >}}
   {{< card link="/docs/how-it-works/factory/" title="Factory" subtitle="From a labelled issue to a merged PR: intake, triage, teams, revise, the merge gate and the kill switch." >}}
   {{< card link="/docs/how-it-works/rooms/" title="Rooms" subtitle="The shared, append-only log of a task: the broker, the bridge, the web view, steering, room tools, approvals, and maku." >}}
   {{< card link="/docs/how-it-works/runtime/" title="Runtime" subtitle="How one AgentRun becomes an isolated, attributed run: a gVisor sandbox on each cloud, per-run identity, octo-sts, branch and tag rulesets, and default-deny network policy." >}}

@@ -15,7 +15,7 @@ policy status, and the merger App, which merges only what the factory's gate dec
 maintainer approved. The facts here are Maku v0.32.3's (the factory's controller) and this
 repository's config; what is proven is on the [status page]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}}).
 
-{{< hero-video clip="agent-factory-v3" width="720" height="854" alt="The run roles in 33 s: a scoper bounds the task or asks the author one question; a hard issue is split into parts a maintainer approves; the implementer runs the repository's own checks, asks the search helper, opens the pull request and stops if it makes no commit; a fresh-context judge says done, a fresh-context reviewer cites the checks, a human approves; the merge gate merges only the low-risk classes." />}}
+{{< hero-video clip="agent-factory-v3" width="720" height="854" alt="The run roles in 33 s: a scoper bounds the task or asks the author one question; a hard issue is split into parts a maintainer approves; the implementer runs the repository's own checks, asks the search helper, opens the pull request and stops if it makes no commit; a fresh-context judge says done, a fresh-context reviewer cites the checks, a maintainer's approval is the merge; the gate decides only the low-risk classes and the merger App merges. Each stage is a per-class switch, off by default." />}}
 
 ## The roles {#roles}
 

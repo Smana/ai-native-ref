@@ -38,7 +38,7 @@ Which alternatives were considered, and why these choices? See
 | **Harness** | The program that runs that loop inside the sandbox. Here it is [OpenHands](https://github.com/OpenHands/software-agent-sdk), wrapped by a small `agent-run` entrypoint that clones the repository, starts the conversation and prints a step log |
 | **Run** | One agent, one role, one task, one branch, with a deadline. Declared as an `AgentRun` object in Kubernetes |
 | **Role** | What a run is allowed to do. An *implementer* pushes to its own `agent/<id>` branch and opens a PR; a *reviewer*, *tester* or *triager* only reads and reports to the room, which posts a reviewer's verdict on the PR |
-| **Sandbox** | The pod a run lives in, isolated by [gVisor](https://gvisor.dev) (a user-space kernel), with no long-lived credential and a network policy that denies everything not named |
+| **Sandbox** | The pod a run lives in, isolated by [gVisor](https://gvisor.dev/docs/) (a user-space kernel), with no long-lived credential and a network policy that denies everything not named |
 | **Run identity** | A token issued for that run only. Every call to a model or a tool carries it, and the run exchanges it for a short-lived GitHub token, so every action is attributed to the run that made it |
 | **agent-router** | The gateway every agent call goes through, an [agentgateway](https://agentgateway.dev) Gateway (ADR-0053): it checks the run's token, meters its tokens and routes to the model |
 | **Room** | A shared, append-only log of a task: what each agent did, what humans said, the handoffs between roles. Humans watch it live, post into it, steer the running agent and approve its actions |

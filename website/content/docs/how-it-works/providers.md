@@ -23,7 +23,7 @@ is on the [status page]({{< relref "/docs/status.md#roadmap" >}}).
 {{< callout type="warning" >}}
 **Public data only.** Both are processors approved for public repositories and tasks, not
 for internal data. Internal tasks never get them, held three times: the gateway routes them only from
-its `public` listener, only the public [capability profiles]({{< relref "/docs/how-it-works/merge-gate.md#profiles" >}})
+its `public` listener, only the public [capability profiles]({{< relref "/docs/how-it-works/roles.md#profiles" >}})
 list their aliases, and the factory applies a class's choice to public tasks only.
 {{< /callout >}}
 

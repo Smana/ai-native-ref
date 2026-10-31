@@ -13,7 +13,7 @@ aliases:
 A labelled issue, a Slack thread, your coding agent or RunLore starts a task; a scoper bounds it, a tester writes
 its contract, the implementer checks its work in the sandbox, a judge reads it against its checks, and a reviewer
 gives its verdict. A maintainer's approval merges; link fixes and their reverts merge on their own
-([the roles and the merge gate in 33 s]({{< relref "/docs/how-it-works/merge-gate.md" >}})). Runs are metered,
+([when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}})). Runs are metered,
 capped, resumed after a reclaim and stopped by the kill switch; people follow and approve in rooms. What is available,
 what is experimental and what comes next are on the
 [status page]({{< relref "/docs/status.md#roadmap" >}}).
@@ -46,6 +46,13 @@ Which alternatives were considered, and why these choices? See
 | **Room** | A shared, append-only log of a task: what each agent did, what humans said, the handoffs between roles. Humans watch it live, post into it, steer the running agent and approve its actions |
 | **Factory** | The controller that turns a labelled issue into runs, narrates progress on the issue, meters each run's tokens and owns the kill switch |
 | **Merge gate** | The rule that decides which agent PRs may merge themselves: only low-risk classes, only with green CI. Any other PR merges on a maintainer's approval of its current head |
+| **Class** | A kind of change the factory recognises, such as "link fixes only". Roles and auto-merge are switched on per class |
+| **Live, shadow** | A live class merges by itself when every check holds; a shadow class is decided and recorded, but a human merges |
+| **Tier** | A run's size: its model, deadline and token budget ([tiers]({{< relref "/docs/reference/harness.md#tiers" >}})) |
+| **Template** | Which roles a task runs, for example `solo` (the implementer) or `pair` (the implementer and a reviewer) ([templates]({{< relref "/docs/reference/harness.md#templates" >}})) |
+| **Hand-off** | The factory stops and asks a human for one action, in one comment on the issue |
+| **Breaker** | Pauses a live class after a revert or a regression, until enough clean merges follow |
+| **Drill** | A revert made on purpose to test the revert path, labelled so the breaker does not count it |
 
 The agent in the loop is not a trusted component. Every control sits **outside the sandbox**:
 - network policy;
@@ -86,7 +93,9 @@ marks how far each box had got; where it and the status page disagree, the
 | [Harness reference]({{< relref "/docs/reference/harness.md" >}}) | Every setting of a run, from the factory's tiers to the OpenHands loop, with its value and status |
 | [Rooms]({{< relref "/docs/how-it-works/rooms.md" >}}) | The broker's append-only log, the bridge, the web view, steering, room tools, approvals |
 | [Factory]({{< relref "/docs/how-it-works/factory.md" >}}) | Intake, triage, teams, revise and the kill switch |
-| [Agents and the merge gate]({{< relref "/docs/how-it-works/merge-gate.md" >}}) | Every role, the task's life, how the gate decides, approve-to-merge, the breaker, drills and recovery |
+| [Roles]({{< relref "/docs/how-it-works/roles.md" >}}) | Every role and a task's life |
+| [The merge gate]({{< relref "/docs/how-it-works/merge-gate.md" >}}) | When a pull request merges by itself, approve-to-merge, the hand-off |
+| [Run auto-merge safely]({{< relref "/docs/operate/auto-merge-safety.md" >}}) | Taking a class live, the breaker, drills and recovery |
 | [Slack]({{< relref "/docs/use/slack.md" >}}) | Hand work to the factory from a Slack thread |
 | [RunLore]({{< relref "/docs/how-it-works/runlore.md" >}}) | Agent to agent: an incident in, a verified fix out |
 | [Providers]({{< relref "/docs/how-it-works/providers.md" >}}) | Kimi and Mistral for public work, switched on per class |

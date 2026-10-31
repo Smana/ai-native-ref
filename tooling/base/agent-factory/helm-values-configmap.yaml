@@ -38,8 +38,8 @@ data:
           # since the gcp-0 session's live proofs (README, "v3 loop and sandbox layers").
           checks: {egress: [pypi]}
           classes:
-            # LIVE for the drill (runbook 12, design D4): revert with it, or an auto-merge waits on a
-            # human to merge its own revert (D5). Back to {shadow: true} once the drill is over.
+            # Live: the one class that merges unattended here (runbook 12, design D4). revert is live
+            # with it, or an auto-merge waits on a human to merge its own revert (D5).
             docs-links: {live: true, holdoutChecks: ["Check the documentation links 🔗"]}
             revert: {live: true, holdoutChecks: ["Check the documentation links 🔗"]}
             docs: {checks: true}  # public runs only: an internal claim with checks is refused by the XRD
@@ -133,7 +133,7 @@ data:
             contractCheck: "Test contract 🧪"  # required on a task with a contract (TF8, row 2b); report-only otherwise
             policyBotLogin: ogenki-merge-gate[bot]
             mergerLogin: ogenki-agent-merger[bot]
-            autoMergesPerDay: 1  # the drill: one unattended merge a day; 10 again with shadow
+            autoMergesPerDay: 1  # one unattended merge a day across live classes; shadow decisions are not counted
             fixRuns: 2
             # Re-runs of a cancelled required check per task (agent-platform #86); 0 hands it to a
             # human. Above 0 the merger App needs actions: write.

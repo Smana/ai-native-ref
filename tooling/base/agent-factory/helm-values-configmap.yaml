@@ -166,7 +166,7 @@ data:
             # dead-links.yaml agree on become one task. link-rot stays beside it until the
             # revert proof (runbook 15 §3) is done: a host change removes it (M4).
             - name: dead-links
-              cron: "0 7 * * *"  # daily, after the 04:23 UTC scan
+              cron: "*/10 * * * *"  # aws-0 session 2026-10-31 only (L2): probe every 10 min; never merged
               class: dead-links
               probe: dead-links
               text: Fix the dead external links listed below.

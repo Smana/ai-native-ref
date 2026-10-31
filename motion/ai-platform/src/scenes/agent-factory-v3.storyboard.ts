@@ -9,7 +9,7 @@ import type { Beat } from './beat.js';
 
 export const labels = {
   cluster: 'Kubernetes',
-  maintainer: { title: 'Maintainer', sub: 'labels · approves · merges' },
+  maintainer: { title: 'Maintainer', sub: 'labels · approves' },
   github: { title: 'GitHub', sub: 'issue · pull request' },
   readyLabel: 'factory/ready',
   scoper: { title: 'Scoper', sub: 'read-only · before any code' },
@@ -27,16 +27,16 @@ export const labels = {
   verdicts: 'met · not yet · impossible',
   reviewer: { title: 'Reviewer', sub: 'fresh context · the diff, not the story' },
   evidence: 'cites the checks\u2019 output',
-  gate: { title: 'Merge gate', sub: 'holdout checks · low-risk classes only' },
+  gate: { title: 'Merge gate', sub: 'decides · low-risk classes · breaker' },
   edges: {
     label: 'labels issue',
-    review: 'approves ·\nmerges',
+    review: 'approves =\nthe merge',
     question: 'one question to the author',
     oneAtATime: 'next part after the merge',
     finished: 'finished',
     notYet: 'not yet',
     met: 'met',
-    pr: 'merge · low-risk\nclasses only',
+    pr: 'merger App\nmerges',
     openPR: 'branch · PR',
     escalate: 'escalates to\na maintainer',
   },
@@ -66,7 +66,7 @@ export const beats = {
   outro: {
     start: 27,
     end: 33,
-    caption: 'Each stage is a per-class switch. **Only link fixes and reverts merge without a human.**',
+    caption: 'Each stage is a per-class switch, off by default. **Link fixes merge alone; one approval merges the rest.**',
   } as Beat,
 };
 

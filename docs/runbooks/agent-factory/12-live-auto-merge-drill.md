@@ -413,3 +413,5 @@ schedule (Mondays 06:00 UTC) produces unattended.
 | 5 | `factory/drill` then `factory/revert`; revert PR by the merger with both labels, auto-merged; `status.pullRequest.drill` true, the drill notice on #2188, no `ClassDemoted` | | |
 | 6 | both classes `{shadow: true}`, cap 10 | | |
 | G1 | after the restart, the drill's revert is not counted, no `class_paused` | | |
+
+The 2026-10-30/31 aws-0 session ran this drill on dead-links; its results are in the session's results page.

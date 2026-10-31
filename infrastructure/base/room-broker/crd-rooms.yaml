@@ -1,5 +1,5 @@
 # Vendored from Smana/maku (ruling P16): the release asset since the merge wave.
-# Source: the crd-rooms.yaml asset of maku v0.32.0, the maku-broker pin.
+# Source: the crd-rooms.yaml asset of maku v0.32.2, the maku-broker pin.
 # Refresh with every maku pin: gh release download <tag> --repo Smana/maku --pattern crd-rooms.yaml
 ---
 apiVersion: apiextensions.k8s.io/v1

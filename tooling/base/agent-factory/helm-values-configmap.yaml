@@ -59,7 +59,7 @@ data:
             # `low-risk: docs-links` rule, which approves its pull requests until `low-risk:
             # dead-links` lands with the live switch; test-agent-merge-gate-parity.py holds the two.
             dead-links:
-              shadow: true  # since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed
+              live: true  # aws-0 session 2026-10-31 only (L2 drill, runbook 15 §3); never merged
               allowedFiles: ['^(docs|website/content)/.+\.md$']
               protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
               modifyOnly: true

@@ -21,7 +21,7 @@ description: "The AI platform of Cloud Native Reference: self-hosted model servi
   One signed OCI artifact that Cloud Native Reference pins.
 {{< /hextra/hero-subtitle >}}
 
-{{< hextra/hero-button text="The AI platform" link="docs/platform/ai-platform/" >}}
+{{< hextra/hero-button text="The AI platform" link="docs/get-started/" >}}
 {{< hextra/hero-button text="The host: Cloud Native Ref ↗" link="https://cnref.ogenki.io/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
 
 {{< /hero-video >}}

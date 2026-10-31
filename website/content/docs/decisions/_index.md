@@ -1,6 +1,6 @@
 ---
 title: Decisions
-weight: 60
+weight: 70
 description: The AI platform's architecture decision records — what was chosen, and what it was chosen over.
 lastVerified: 2026-10-29
 ---

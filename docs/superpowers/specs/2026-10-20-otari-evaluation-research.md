@@ -5,7 +5,7 @@
 (just after v0.30.1) and any-llm
 [`d6b76fd`](https://github.com/mozilla-ai/any-llm/tree/d6b76fd9e594d308a1932fe5172bc8e37ec4d17d).
 Every claim is checked in code at these commits unless marked *unverified*. Summary on the site:
-[alternatives considered](../../../website/content/docs/platform/ai-platform/agents/alternatives.md#otari).
+[alternatives considered](../../../website/content/docs/how-it-works/alternatives.md#otari).
 
 ## Conclusion
 

@@ -4,7 +4,7 @@ The script for recording a 7–9 min screencast of the Agent Factory on aws-0: O
 (Maku), GitHub and the Grafana dashboards, one real `docs` task end to end. It proves nothing new: it
 shows what [runbook 19](19-factory-from-your-agent.md) proved, plus the human path's approve-to-merge
 ([runbook 12](12-live-auto-merge-drill.md)). The client-side commands are the
-[user guide](../../../website/content/docs/platform/ai-platform/agents/use/user-guide.md#hand-off-from-your-coding-agent)'s.
+[user guide](../../../website/content/docs/use/guide.md#hand-off-from-your-coding-agent)'s.
 
 The story in one sentence: **I'm working in OpenCode, I spot a small defect that isn't my current
 job, I hand it to the Agent Factory without leaving the terminal, and 40 minutes later a reviewed,

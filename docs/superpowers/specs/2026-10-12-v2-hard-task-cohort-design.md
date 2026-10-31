@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-12 · **Status:** approved by the maintainer 2026-10-12 ·
 **Part of:** the v2 roadmap on the
-[status page](../../../website/content/docs/platform/ai-platform/status.md#v2-roadmap), argued in the
+[status page](../../../website/content/docs/status.md#v2-roadmap), argued in the
 [v1 review](2026-10-12-agent-factory-v1-review.md#32-the-cohort-and-the-minimum-measurement)
 
 ## Outcome

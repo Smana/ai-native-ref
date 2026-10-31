@@ -1,7 +1,7 @@
 # Model pricing: where prices live, how they stay right, and how spend is enforced
 
 **Date:** 2026-10-20 · **Status:** research, for the owner's decision · **Feeds:** the "truthful costs"
-step before v3 on the [status page](../../../website/content/docs/platform/ai-platform/status.md#before-v3)
+step before v3 on the [status page](../../../website/content/docs/status.md#before-v3)
 
 ## Question
 

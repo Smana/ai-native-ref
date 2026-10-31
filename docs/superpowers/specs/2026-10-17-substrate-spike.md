@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-17 · **Status:** run on gcp-0 2026-10-18, torn down 2026-10-18 ·
 **Part of:** the v2 roadmap, row "Substrate spike";
-[alternatives § Reconsidering Substrate](../../../website/content/docs/platform/ai-platform/agents/alternatives.md#reconsidering-substrate-not-now-deliberately-open),
+[alternatives § Reconsidering Substrate](../../../website/content/docs/how-it-works/alternatives.md#reconsidering-substrate-not-now-deliberately-open),
 [runbook 14 step 10](../../runbooks/agent-factory/14-gcp-0-session.md#10-the-substrate-spike)
 
 ## Conclusion

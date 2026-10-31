@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-16 · **Status:** draft, owner review pending ·
 **Part of:** the v2 roadmap on the
-[status page](../../../website/content/docs/platform/ai-platform/status.md#v2-roadmap), row "Per-person spend caps"
+[status page](../../../website/content/docs/status.md#v2-roadmap), row "Per-person spend caps"
 
 ## Outcome
 

@@ -117,8 +117,8 @@ why vLLM Production Stack was chosen over KServe + llm-d.
 Today every model holds a whole L4. The two small always-warm models, the FIM coder
 (`xplane-qwen-coder-fim`) and LlamaGuard (`xplane-llamaguard3-1b`), use a fraction of its 24 GB:
 packing them on one GPU frees a node, about $263 a month on a `g6.xlarge` spot and $325 on a
-`g2-standard-4` spot. The L4 has no MIG, so sharing is done in software. Options checked on
-2026-10-20 ([evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-hami-gpu-sharing-research.md)):
+`g2-standard-4` spot. The L4 has no MIG, so sharing is done in software. Options checked in
+October 2026 ([evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-hami-gpu-sharing-research.md)):
 
 | Option | Isolation | Verdict |
 |---|---|---|

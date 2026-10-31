@@ -13,6 +13,7 @@ provides; anything not in it is not yours to rely on.
   `validate-manifests.sh`, this repository's gates on the bundle it renders, its suites, the
   link check, the site build and the doc-path check (paths may name host files: they resolve
   against `.host/`), and the source check. Never claim done without its output.
+- **Site pages follow [`docs/docs-style.md`](docs/docs-style.md)**: written for a reader who was not there; `task docs` enforces it.
 - **The site links to the host by absolute URL** (`https://cnref.ogenki.io/…`): a `relref` cannot
   cross sites. Keep those links few; the S4 link check fetches each one.
 - **Host scripts are used from the host profile, never vendored.** Only the AI-owned gates, suites

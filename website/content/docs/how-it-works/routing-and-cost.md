@@ -31,7 +31,7 @@ Dollar figures on this page are examples from the reference host, at the list pr
 | Agent model per data class (`public` → Z.ai, `internal` → Anthropic) | Yes, on by default | [ADR-0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}) |
 | `tier-light`, `tier-standard`, `tier-frontier` served by the agent gateway | Yes. No factory tier asks for them: every tier names `agent-default` | `llm.yaml`, `anthropic.yaml`, factory values |
 | `kimi-frontier`, `mistral-standard`, `mistral-light` on the `public` listener | Yes, public data only, selectable per class with `loops.<class>.models`, which no class sets by default | [Providers]({{< relref "/docs/how-it-works/providers.md" >}}) |
-| Triage classifier (`complexity-classifier`, C7) | No. The URL is configured and nothing answers it, so every task falls back to `standard` with `classifier: static` | factory values, `Task` status |
+| Triage classifier (`complexity-classifier`) | No. The URL is configured and nothing answers it, so every task falls back to `standard` with `classifier: static` | factory values, `Task` status |
 | 10% control group at `frontier` (`triage.controlPercent`) | Yes | `Task` status |
 | Run meter priced in USD, cache reads at their own rate | Yes | factory values |
 | Gateway budgets B1, B2, B6 | Yes, enforced: a call over its bucket is refused `429` | [runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets) |
@@ -234,7 +234,7 @@ factory task, so the change has not been made. Until it is:
 
 | Choice | Decision | Rejected | Why |
 |---|---|---|---|
-| Where to classify | Once per task, at factory intake (C7) | Per request in the data path | Switching models mid-run loses the prompt cache and the tool state, and one under-routed step can fail a whole trajectory |
+| Where to classify | Once per task, at factory intake | Per request in the data path | Switching models mid-run loses the prompt cache and the tool state, and one under-routed step can fail a whole trajectory |
 | Which classifier | The Semantic Router's own complexity signal through `POST /api/v1/eval`: OSS first | LiteLLM's complexity router; NeMo Switchyard; Jev in the path | One thin service insulates the factory from router API churn (0.2 → 0.3 broke the config) |
 | Jev (TypeSafe AI, SaaS) | An optional adapter in **shadow** only, on `dataClass: public` text, never acting | Jev deciding tiers | Latency, availability and data exposure; about $0.08 per 1,000 tasks if turned on |
 
@@ -254,10 +254,10 @@ drifts:
 |---|---|---|
 | The run meter: USD run and task caps, `maku_factory_run_cost_usd`, the `Task`'s `costMicroUSD` | The factory's config itself | — |
 | The *Spend per identity* dashboard (`agent-identity`): `maku_factory_charged_usd_total` and the day gauges | The factory's meter: no copy of the table | — |
-| Gateway budgets B1, B2, B6 | A CEL cost string in `infrastructure/base/agent-gateway/policy-budgets.yaml` | Gate AG8 regenerates it |
+| Gateway budgets B1, B2, B6 | A CEL cost string in `infrastructure/base/agent-gateway/policy-budgets.yaml` | The CI gateway check (`scripts/ci/flux-schema/assert-agent-gateway.py`) regenerates it |
 | The `agent-run` dashboard's *Cost (USD)* panel, `AnthropicFleetNearCap` | `llm_gateway:charge_usd_per_mtoken`, the `llm-gateway-prices` group of `infrastructure/base/llm-gateway/vmrule-llm-gateway.yaml` | `test-agent-prices`: the group is what `scripts/ci/gen-prices.py` renders |
 
-A price change is the row's edit, `python3 scripts/ci/gen-prices.py --write` (it renders the gateway's `agent-model-catalog` overlay too) and the cost string gate AG8 prints for `infrastructure/base/agent-gateway/policy-budgets.yaml`, in one commit.
+A price change is the row's edit, `python3 scripts/ci/gen-prices.py --write` (it renders the gateway's `agent-model-catalog` overlay too) and the cost string the CI gateway check prints for `infrastructure/base/agent-gateway/policy-budgets.yaml`, in one commit.
 
 `meter.prices`, USD per million tokens. Example (the reference host's list prices):
 
@@ -397,7 +397,7 @@ flowchart TB
 |---|---|---|---|
 | `runUSD`, `taskUSD` | USD, cache-aware | **yes** | The cap that decides a run's fate |
 | `factoryDailyUSD`, `humanDailyUSD` | USD, cache-aware: the same `meter.prices` | **shadow**, the fleet's day and each person's: with `enforcePrincipal: false` a run past its day is admitted and counted as `budget-principal-shadow` | `AgentFactoryDailyBudgetHigh` fires at 80%. The day's ledger is `agent-factory-ledger-usd-<YYYYMMDD>`, in micro-USD |
-| B1, B2, B6 | reference tokens: USD ÷ $1.70 per million, at `meter.prices` | **yes** (`SHADOW_MODE: "false"`, `infrastructure/base/agent-gateway/ratelimit.yaml`): `429 agent_budget_exhausted` | Sized above the factory's caps, so the gateway never refuses what the factory admits. Gate AG8 holds B2 at or above `factoryDailyUSD` plus four frontier runs |
+| B1, B2, B6 | reference tokens: USD ÷ $1.70 per million, at `meter.prices` | **yes** (`SHADOW_MODE: "false"`, `infrastructure/base/agent-gateway/ratelimit.yaml`): `429 agent_budget_exhausted` | Sized above the factory's caps, so the gateway never refuses what the factory admits. The CI gateway check holds B2 at or above `factoryDailyUSD` plus four frontier runs |
 | local limit | raw tokens per hour, per replica | always | Above the largest admitted run: $6.80 of Opus cache reads is 34M tokens |
 
 {{< callout type="info" >}}
@@ -472,7 +472,7 @@ it ([autoscaling]({{< relref "/docs/how-it-works/serving/autoscaling-and-gpu.md#
 Every knob, what it trades and how to see the effect. Factory values live in
 `tooling/base/agent-factory/helm-values-configmap.yaml`, a gate path a maintainer changes. A
 `meter.prices` change must be mirrored in the CEL cost of
-`infrastructure/base/agent-gateway/policy-budgets.yaml`: gate AG8 fails any difference.
+`infrastructure/base/agent-gateway/policy-budgets.yaml`: the CI gateway check fails any difference.
 
 | Goal | Knob | Trade-off | Measure with |
 |---|---|---|---|
@@ -480,8 +480,8 @@ Every knob, what it trades and how to see the effect. Factory values live in
 | Better hard-task outcomes | `defaults.dataClass` or the task's class, `internal` → Opus | Data class first, cost second: only internal data may reach Anthropic (ADR-0054) | the cohort's measure: accepted outcomes and USD per accepted |
 | A reviewer independent of the implementer | `templates.pair.reviewerModel` | Another *size* only on `public`: ADR-0058 rejected a Claude reviewer on data class and cost, and no other open-weight family has a route | review verdicts against maintainer rejections |
 | Measure model fit, not only budget fit | `triage.controlPercent` (10) | More control tasks run `frontier` with `trio`, at about 2.7× the run cap | `maku_factory_tier_fit_total{fit}` |
-| Fewer runs revoked mid-work | `tiers.<tier>.runUSD`, `taskUSD` | A run cap above $6.80 also needs B1 and the local limit raised: AG8 checks it | `maku_factory_run_revocations_total`, `budget-run` reasons |
-| A longer or shorter day | `budgets.factoryDailyUSD`, `humanDailyUSD` | Above $42.50, `factoryDailyUSD` also needs B2 raised: AG8 fails otherwise. Both count in shadow until `enforcePrincipal` | `maku_factory_budget_spent_usd` against `maku_factory_budget_cap_usd` |
+| Fewer runs revoked mid-work | `tiers.<tier>.runUSD`, `taskUSD` | A run cap above $6.80 also needs B1 and the local limit raised: the CI gateway check enforces it | `maku_factory_run_revocations_total`, `budget-run` reasons |
+| A longer or shorter day | `budgets.factoryDailyUSD`, `humanDailyUSD` | Above $42.50, `factoryDailyUSD` also needs B2 raised: the CI gateway check fails otherwise. Both count in shadow until `enforcePrincipal` | `maku_factory_budget_spent_usd` against `maku_factory_budget_cap_usd` |
 | Gateway budgets that only count | `SHADOW_MODE: "true"` in `ratelimit.yaml` | Nothing past a bucket is refused: the backstop under the factory's caps is gone | `agent_router:budget_shadow_overrun_tokens:increase10m` |
 | Lower chat latency | Clients name the model instead of `MoM` | Loses automatic choice; saves 250–300 ms | gateway TTFT on *LLM Gateway* |
 | Less chain-of-thought spend in chat | Trim `reasoning_keywords`, raise `long_query.min_tokens` | Fewer `use_reasoning: true` decisions; weaker answers on multi-step prompts | output tokens per model, promptfoo pass rate |
@@ -506,7 +506,7 @@ Do it with a measurement in place: run a cohort on the tier with fixed-tier arms
 ```yaml
 # infrastructure/base/agent-gateway/llm.yaml, on zai and zai-anthropic
 modelAliases:
-  tier-standard: glm-5.3-flashx   # a new model here needs its meter.prices row, or AG10 fails
+  tier-standard: glm-5.3-flashx   # a new model here needs its meter.prices row, or the CI gateway check fails
 ```
 
 In-flight runs see a mapping change on their next request. Use the factory's pause first when that

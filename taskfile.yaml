@@ -58,10 +58,11 @@ tasks:
     cmds: ["./scripts/ci/check-sources.sh"]
 
   docs:
-    desc: Build the site (an unresolved relref fails it) and check every repository path it names
+    desc: Build the site (an unresolved relref fails it), check every repository path it names and keep its pages free of session history
     cmds:
       - cd website && hugo --gc --minify
       - ./scripts/ci/verify-doc-paths.sh
+      - python3 scripts/ci/check-reader-first.py
 
   agent:run:
     desc: "Ask the agent factory for one AgentRun (roomctl login first; AGENT_FACTORY_CA=<private CA PEM>)"

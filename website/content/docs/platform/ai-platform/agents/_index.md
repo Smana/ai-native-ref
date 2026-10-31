@@ -2,16 +2,17 @@
 title: Agents
 weight: 10
 description: "The Agent Factory: autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes end to end."
-lastVerified: 2026-10-29
+lastVerified: 2026-10-31
 aliases:
   - /docs/platform/agent-factory/
 ---
 
 {{< callout type="info" >}}
-**v1 shipped on 2026-10-08 and v2.0 on 2026-10-18; v3 is built and was proven live on `gcp-0` by 2026-10-29.**
+**v1 shipped on 2026-10-08 and v2.0 on 2026-10-18; v3 is built, was proven live on `gcp-0` by 2026-10-29, and its human path on `aws-0` on 2026-10-30 and 31.**
 A labelled issue, a Slack thread, your coding agent or RunLore starts a task; a scoper bounds it, a tester writes
 its contract, the implementer checks its work in the sandbox, a judge reads it against its checks, and a reviewer
-gives its verdict. A human merges, except a link fix, which the merge gate merges on its own. Runs are metered,
+gives its verdict. A maintainer's approval merges; link fixes and their reverts merge on their own
+([the roles and the merge gate in 33 s]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md" >}})). Runs are metered,
 capped, resumed after a reclaim and stopped by the kill switch; people follow and approve in rooms. What is proven,
 what is left and what comes next are on the
 [status page]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}}).
@@ -23,7 +24,7 @@ The LLM platform serves models; the Agent Factory puts them to work. A maintaine
 and agents (an implementer, then a reviewer) work it on their own branch in a gVisor sandbox. They
 open a pull request, and the factory narrates each step on the issue. Humans steer through GitHub reviews, or by
 joining the agents' room. Only policy-defined low-risk changes merge themselves; everything else
-waits for a human.
+merges on a maintainer's approval.
 
 The Agent Factory is a bundle of open-source tools: Maku, agentgateway, OpenHands, gVisor, octo-sts, RunLore, Kueue and others. [Maku](https://github.com/Smana/maku) is one component of it: the factory controller, the rooms, the harness and bridge, the Slack app and the `maku` CLI.
 
@@ -37,13 +38,13 @@ Which alternatives were considered, and why these choices? See
 | **Agent** | A language model in a loop: it reads a task, runs tools (shell, git, file edits, queries), looks at the result and decides the next step, until the task is done or its budget runs out |
 | **Harness** | The program that runs that loop inside the sandbox. Here it is [OpenHands](https://github.com/OpenHands/software-agent-sdk), wrapped by a small `agent-run` entrypoint that clones the repository, starts the conversation and prints a step log |
 | **Run** | One agent, one role, one task, one branch, with a deadline. Declared as an `AgentRun` object in Kubernetes |
-| **Role** | What a run is allowed to do. An *implementer* pushes to its own `agent/<id>` branch and opens a PR; a *reviewer*, *tester* or *triager* only reads and reports to the room, which posts a reviewer's verdict on the PR |
+| **Role** | What a run is allowed to do. An *implementer* pushes to its own `agent/<id>` branch and opens a PR; a *tester* writes failing tests, which the harness signs and pushes; a *reviewer* or *triager* only reads and reports to the room, which posts a reviewer's verdict on the PR |
 | **Sandbox** | The pod a run lives in, isolated by [gVisor](https://gvisor.dev/docs/) (a user-space kernel), with no long-lived credential and a network policy that denies everything not named |
 | **Run identity** | A token issued for that run only. Every call to a model or a tool carries it, and the run exchanges it for a short-lived GitHub token, so every action is attributed to the run that made it |
 | **agent-router** | The gateway every agent call goes through, an [agentgateway](https://agentgateway.dev) Gateway (ADR-0053): it checks the run's token, meters its tokens and routes to the model |
 | **Room** | A shared, append-only log of a task: what each agent did, what humans said, the handoffs between roles. Humans watch it live, post into it, steer the running agent and approve its actions |
 | **Factory** | The controller that turns a labelled issue into runs, narrates progress on the issue, meters each run's tokens and owns the kill switch |
-| **Merge gate** | The rule that decides which agent PRs may merge themselves: only low-risk classes, only with green CI |
+| **Merge gate** | The rule that decides which agent PRs may merge themselves: only low-risk classes, only with green CI. Any other PR merges on a maintainer's approval of its current head |
 
 The agent in the loop is not a trusted component. Every control sits **outside the sandbox**:
 - network policy;
@@ -83,8 +84,8 @@ marks how far each box had got; where it and the status page disagree, the
 | [Harness tuning]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md" >}}) | Which knob moves cost, time and quality; measuring a change; failure modes and recipes |
 | [Harness reference]({{< relref "/docs/platform/ai-platform/agents/tune/harness-reference.md" >}}) | Every setting of a run, from the factory's tiers to the OpenHands loop, with its value and status |
 | [Rooms]({{< relref "/docs/platform/ai-platform/agents/how-it-works/rooms.md" >}}) | The broker's append-only log, the bridge, the web view, steering, room tools, approvals |
-| [Factory]({{< relref "/docs/platform/ai-platform/agents/how-it-works/factory.md" >}}) | Intake, triage, teams, revise, the merge gate and the kill switch |
-| [Run roles]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md" >}}) | The scoper, tester, implementer, judge, search tool, reviewer and splitter, and what each may call |
+| [Factory]({{< relref "/docs/platform/ai-platform/agents/how-it-works/factory.md" >}}) | Intake, triage, teams, revise and the kill switch |
+| [Agents and the merge gate]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md" >}}) | Every role, the task's life, how the gate decides, approve-to-merge, the breaker, drills and recovery |
 | [Slack]({{< relref "/docs/platform/ai-platform/agents/use/slack.md" >}}) | Hand work to the factory from a Slack thread |
 | [RunLore]({{< relref "/docs/platform/ai-platform/agents/how-it-works/runlore.md" >}}) | Agent to agent: an incident in, a verified fix out |
 | [Providers]({{< relref "/docs/platform/ai-platform/agents/how-it-works/providers.md" >}}) | Kimi and Mistral for public work, switched on per class |

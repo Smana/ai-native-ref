@@ -299,7 +299,7 @@ designed. The design keeps the door open:
 - Run identity accepts tokens from any issuer.
 - The room bridge avoids WebSocket, which Substrate's egress blocks.
 
-**Next step: a two-day spike at the next `gcp-0` rebuild.** Run OpenHands as a Substrate agent on a
+**Next step: a two-day spike at the next live session.** Run OpenHands as a Substrate agent on a
 gVisor worker pool, then suspend it, resume it and restore it on another node, and compare its start
 time with our sandbox pod.
 - **If OpenHands restores and continues its conversation**, we design the Substrate backend.

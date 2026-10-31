@@ -2,16 +2,16 @@
 title: User guide
 weight: 10
 description: "How a maintainer hands an issue to the Agent Factory, follows it, steers it and stops it, shown on one real task."
-lastVerified: 2026-10-29
+lastVerified: 2026-10-31
 aliases:
   - /docs/platform/ai-platform/agents/user-guide/
   - /docs/platform/agent-factory/user-guide/
 ---
 
 {{< callout type="info" >}}
-**Proven live on `gcp-0` for two public repositories, v3's features included, by 2026-10-29:** you label, or
-file from Slack or your coding agent; the agents work; you review and merge. The merge gate is live for link fixes: it merges them with no human,
-at most once a day. The task below ran on 2026-10-07, before v1's release. What has landed, and what
+**Proven live for two public repositories: v3's features on `gcp-0` by 2026-10-29, the human path on `aws-0`
+on 2026-10-30 and 31.** You label, or file from Slack or your coding agent; the agents work; you review, and your
+approval of the current head is the merge. The merge gate merges link fixes with no human, at most once a day. The task below ran on 2026-10-07, before v1's release. What has landed, and what
 comes next, is on the
 [status page]({{< relref "/docs/platform/ai-platform/status.md#landed" >}}).
 {{< /callout >}}
@@ -27,7 +27,7 @@ New to the vocabulary (run, role, sandbox, room)? Read
 | Your OS trusting the platform's root CA | The room page and `maku` talk to private endpoints signed by it. Without it, `maku` fails with `x509: certificate signed by unknown authority`. Fetch and trust it as in [runbook 11's prerequisites](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#prerequisites) |
 | SSO membership in `agents-member` | To watch rooms and runs, and to start a run by hand. Requesting `internal` work or a `triager` run needs `agents-admin`. A valid login that still 403s on the room UI: see the [FAQ](#frequently-asked-questions) |
 | Your GitHub account linked to your ZITADEL user | You see a room only if GitHub lets you read its repository: see [who sees a room](#who-sees-a-room) |
-| Maintainer rights on the repository | Labels and reviews are how you steer. The agents never merge on their own, except for the low-risk classes below |
+| Maintainer rights on the repository | Labels and reviews are how you steer, and your approval merges. The agents never merge on their own, except for the low-risk classes below |
 | `maku configure` then `maku login`, once ([commands](#from-a-terminal-maku)) | To follow tasks from a terminal or from your coding agent, and to start a run by hand: `task agent:run` sends the factory the token it prints, and the run is yours |
 
 ## What happens to a task
@@ -38,7 +38,8 @@ New to the vocabulary (run, role, sandbox, room)? Read
 2. **An implementer run works it** in its own sandbox, on that branch, and opens a pull request.
    The factory comments with the link.
 3. **A reviewer run reviews it** and records a verdict in the room, which posts it on the pull
-   request as one comment. The verdict is advice: it neither approves nor blocks.
+   request as one comment. It is not a GitHub review. For a low-risk class the merge gate needs it
+   to approve ([`no_approving_verdict`]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#reviewer" >}})); otherwise it is advice for you.
 4. **CI runs.** When it fails, an implementer run fixes it on the same branch.
 5. **The factory waits for you**, and comments that the task needs a maintainer's review.
 6. **You review on GitHub.** "Request changes" starts a revision: a new implementer run on the same
@@ -46,9 +47,10 @@ New to the vocabulary (run, role, sandbox, room)? Read
 7. **A lost sandbox is resumed.** When a run's node is reclaimed or its pod evicted, the factory
    starts the run again on the same branch and in the same room, at most twice per task, and says
    so on the issue. A run that failed on its own is not resumed: the task waits for you.
-8. **You approve, then merge or close.** Your approval is what the merge gate counts; outside the
-   low-risk classes you merge yourself. The factory comments how the task ended and the tokens it
-   used.
+8. **You approve, or close.** Your approval of the current head is the merge: the merger App
+   merges it within a minute, or says why not ([approve-to-merge]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#approve-to-merge" >}})).
+   Approve the commit you read, once the runs have ended. The factory comments how the task ended and
+   the tokens it used.
 
 ## One real task, end to end
 
@@ -161,11 +163,11 @@ tally is 1,078 k.
 | Hand over an issue | Label it **`factory/ready`** |
 | Watch it work | Open the *watch* link in the "started" comment: every step of every run, their messages and the handoffs between roles |
 | Ask for changes | A GitHub review with **"Request changes"**: the next run starts on the same branch with your review in its brief |
-| Accept the work | **Approve** it: the merge gate counts a maintainer's approval. Outside the low-risk classes, merge it yourself |
+| Accept the work | **Approve** the current head, from the web UI or with `gh api …/reviews -f commit_id=<sha> -f event=APPROVE`: the merger merges it. An approval within a minute of a run's end, or of an older head, reads `approval_stale`: approve again ([approve the commit you read]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#approve-the-commit-you-read" >}})) |
 | Try again after a failure | Comment **`/factory retry`** on the issue (a maintainer only) |
 | Stop one task | Label its issue or pull request **`factory/stop`**: its runs are revoked, its branch stays |
 | Stop every task | `kubectl -n agent-system create configmap agent-factory-stop`, or the label `factory/stop` on the pinned control issue. Intake pauses, every run is revoked and new runs are refused, runs started by hand included |
-| Undo a merged low-risk change | *(Once the merge gate is live)* Label it **`factory/revert`** within 7 days: the factory opens the revert, which merges as the `revert` class |
+| Undo an auto-merged change | Label it **`factory/revert`** within 7 days: the factory opens the revert, which merges as the `revert` class where that class is live. A merge you approved or made counts as a human merge: it is yours to revert by hand. For a planned drill, label it **`factory/drill`** first, so the breaker does not count it ([drills]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#drills" >}})) |
 | Start a run by hand | `task agent:run -- --role implementer --class public --task-url <issue>`. The factory creates it under your SSO identity |
 | Resume a run a stop ended | The same command with **`--branch agent/<run id>`**: it continues from what the run pushed |
 
@@ -285,7 +287,7 @@ merged as [#2267](https://github.com/Smana/cloud-native-ref/pull/2267).
 
 Starting from the session is offered only on the repositories listed in the broker's
 `human.mcp.sessionStart`. It is a session switch, empty outside a live session
-(`infrastructure/gcp-0/room-broker/config.yaml`).
+(`infrastructure/<cloud>/room-broker/config.yaml`; `aws-0` lists cloud-native-ref for the screencast session).
 
 ### From a terminal: `maku`
 
@@ -335,15 +337,21 @@ goes away when the broker's cached answer expires, within 5 minutes.
 
 ### The room page
 
-From top to bottom:
+The room list refreshes on its own (every 10 s by default; off, 5 s, 30 s or 1 min, per browser), and the
+tab's title counts the rooms that need you. A room page, from top to bottom (Maku v0.32.1):
 
-1. **Status**: phase, run and role, budget, PR, last verdict.
-2. **Needs you**, only when something does: an approval, its deadline and its button.
+1. **The run strip**: the phase and the issue (the title links it), your standing (`you: <role>`), then
+   labelled facts: `Tokens X of Y` (amber from 80 %, red once spent), the PR, the last verdict,
+   `Data: public` or `internal`, and who drives (`Driven by the factory`, `you`, or a principal).
+2. **Next**, when the task waits: why it waits, what comes next, and the commands, each with a Copy
+   button. With approve-to-merge on, the issue comment's action wins: approve the current head
+   ([the hand-off]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#hand-off" >}})).
+3. **Needs you**, only when something does: an approval, its deadline and its button.
    `…/r/<room>#<approvalId>` scrolls to that approval.
-3. **What you can do now**: queue a note, steer if you hold the driver token, stop. Only what your
-   standing allows; a watcher sees none of it.
-4. **Progress notes**, the agents' own claims, labelled as such.
-5. **The raw event stream**, folded.
+4. **What you can do now**: queue a note, steer if you hold the driver token, stop. Only what your
+   standing allows; a watcher who cannot approve sees `View only`.
+5. **Progress notes**, the agents' own claims, labelled as such.
+6. **The raw event stream**, folded.
 
 ## When the factory asks a question {#scoper-question}
 
@@ -386,127 +394,13 @@ part closed without landing ends the family and the remaining parts are never cr
 
 ## Using the factory from Slack {#from-slack}
 
-With the factory's Slack App on (proven live on `gcp-0`, one workspace), a thread can hand work to the factory
-without leaving Slack. You write a mention, the App drafts the issue, you tune the draft by replying,
-and a maintainer's check mark files it. Approvals and steering stay on the room page. Setting the App up
-is the operator's job: [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md).
-
-```mermaid
-sequenceDiagram
-  participant U as You
-  participant S as Slack thread
-  participant F as The factory
-  U->>S: @factory owner/repo what
-  S-->>U: Draft (title, what is wrong, acceptance)
-  U->>S: Reply: Title / Should / Acceptance / text
-  S-->>U: A newer draft
-  U->>S: A maintainer reacts ✅ on the latest draft
-  S->>F: File the issue
-  S-->>U: Filed #N, room link
-  F-->>S: Triaged, run started, PR opened, waiting, ended
-```
-
-### Link your Slack user, once
-
-Before your ✅ files anything, the factory must know whose GitHub account you are. Mention **`@factory link`** in
-a served channel: the App answers **only you** with a one-time link (valid 10 minutes, never send it to anyone).
-Open it, sign in to the rooms page, and press **Link** after checking that the Slack user and your GitHub login
-are yours. Your ✅ then files in the name of your **current** GitHub login, and only if it is a maintainer of the
-repository. **`@factory unlink`** removes the link. Someone the operator lists in git keeps that entry.
-
-### Write a mention
-
-One line is enough:
-
-```text
-@factory Smana/ai-native-ref docs: runbook 18 never says where the key lives
-```
-
-Add lines when you have more to say:
-
-```text
-@factory Smana/ai-native-ref docs: runbook 18 never says where the key lives
-The runbook names the factory's API but not where its key is stored.
-Should: say which Secret holds it.
-Acceptance: docs/runbooks/18.md gains one line naming the Secret.
-```
-
-| Part | Rule |
-|---|---|
-| Line 1 | `<owner/repo> <title>`. In a channel that serves one repository you may leave the repository out |
-| Title | `docs: …`, `fix(agents): …`. Without an area, the App adds `docs: ` (when you mention a doc, runbook or README) or `chore: ` |
-| Other lines | They become "What is wrong". With none, the title does |
-| `Should:` (or `Expected:`, `Want:`) | What it should be |
-| `Acceptance:` (or `Done when:`, `Check:`) | How we know it is done, up to the end of the message. Write one: an issue filed from Slack carries no `class:` label, so its task runs in the `review` class, which has no scoper to ask. Without it, the implementer and the reviewer work from the description alone |
-
-Enter or Shift+Enter in Slack does not matter any more: type it as it comes.
-
-### Edit the draft
-
-Reply **in the draft's thread**. Only the person who wrote the mention can edit, and only until the issue
-is filed. Each reply makes a new draft below the old one.
-
-| Reply | Effect |
-|---|---|
-| `Title: docs: new title` | Replaces the title |
-| `Should: …` | Replaces "What it should be" |
-| `Acceptance: …` (or `Done when:`) | Replaces the acceptance check, several lines allowed |
-| Any other text | Added to "What is wrong" |
-
-### File it
-
-A **maintainer reacts ✅** on the **latest** draft: hover the message, **Add reaction**, pick
-`white_check_mark`. Typing ✅ as a message does not file anything yet (a fix is coming in a release);
-react for now. One issue per thread: a second ✅ answers `Already filed` with the room link.
-
-Then the thread shows, in this order:
-
-| Line | Means |
-|---|---|
-| `Filed #N for @you; the factory starts it. Room: …` | The issue exists, and the room page link is yours to open |
-| `Triaged.` / `A run started.` | The work is under way |
-| `Pull request #… opened.` / `A review verdict is on #…` | A PR is ready for review |
-| `The work waits for a human (…)` | The run needs an answer or an approval: open the room page |
-| `#… merged.` / `#… reverted.` | The PR landed or was undone |
-| `A budget was reached (…)` | The run hit its cap and stopped |
-| `Ended, state: …` | The room is closed |
-
-### What needs you, and where
-
-| Need | Where |
-|---|---|
-| Merge a pull request | GitHub |
-| Approve a step, answer a question, steer or stop | The room page (the link in the thread). Nothing you write in the thread reaches the run |
-| Change the draft | The draft's thread, before the ✅ |
-
-### When it says no
-
-| You see | Why | Fix |
-|---|---|---|
-| `Draft refused: line 1 must be the repository, a space, then the title. Try: …` | The channel serves several repositories (or the line is malformed) and line 1 has none | Copy the `Try:` line, with the repository you mean (the list is in the message) |
-| `Draft refused: …` (other text) | The issue template's rule, quoted from the factory (empty title, no area, a heading missing) | Fix what it names and mention again |
-| `Draft not posted: it is too long to file from Slack` | The draft is over what Slack can carry | Shorten it, or file from the web UI |
-| `Change refused: …` | A reply broke the same rules | Reply again with the fix |
-| `This draft was replaced by a newer one: react on the latest draft.` | You reacted to an older draft | React on the last draft of the thread |
-| `Not filed: not_linked` | Your Slack account is not linked to a GitHub login | Mention `@factory link` and confirm the page it answers ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#6-who-may-file)) |
-| `Not filed: not_a_maintainer` | Your linked login is not a maintainer | A maintainer reacts instead |
-| `Not filed: max_cost_over_principal` / `principal_budget_exhausted` | The channel's cap or the App's day budget is over | Wait for the next day, or ask the operator |
-| `Not filed: repository_not_allowed` | The factory does not accept that repository from Slack | Ask the operator ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#5-declare-the-channel-in-git)) |
-| `Not filed: the factory could not be reached, react again to retry` | A passing failure | React again |
-| Nothing at all | The channel or repository is not served, or the bot is not in the channel | Invite `@factory`, check the channel with the operator |
-
-The link needs your GitHub account linked to your ZITADEL user ([who sees a room](#who-sees-a-room)); it
-grants nothing a maintainer of the repository did not have, and the task is sponsored by your **current**
-GitHub login. Users the factory's config lists by hand keep that entry whatever they link.
-
-The task is filed by the factory App, with no label and a footer naming its sponsor; its Task names the
-App and you. Its budget is the channel's `maxCostUSD`.
+Filing from a Slack thread, its replies and its refusals: [Slack]({{< relref "/docs/platform/ai-platform/agents/use/slack.md" >}}).
 
 ## What the factory never does
 
 | Never | What enforces it |
 |---|---|
-| Merge anything but a `docs-links` change or its revert | policy-bot evaluates `.policy.yml` from `main`; the `agent-merge` ruleset lets only the merger App merge, and only once that check passes ([ADR-0045]({{< relref "/docs/decisions/0045-merge-policy-gate.md" >}})) |
+| Merge without a maintainer's approval, except a `docs-links` change or its revert | policy-bot evaluates `.policy.yml` from `main`; the `agent-merge` ruleset lets only the merger App merge, and only once that check passes ([ADR-0045]({{< relref "/docs/decisions/0045-merge-policy-gate.md" >}})) |
 | Touch a gate path: CI, the rulesets, the merge policy, the agent platform's own manifests | `.policy.yml` lists every gate path in every agent rule: a pull request that touches one matches no rule, policy-bot reports an error, and it cannot merge |
 | Take a principal from a request body | The run-request API takes the principal from your SSO token, never from the body, and the Kyverno policy `agentrun-one-creator` admits no `AgentRun` creator but the factory |
 | Start public work from an internal finding on its own | An `investigate` task is the triager alone. It ends on a proposed public issue, which starts nothing until a maintainer labels it ([ADR-0048]({{< relref "/docs/decisions/0048-agent-factory-orchestrator.md" >}})) |
@@ -550,8 +444,8 @@ asks maku-bridge to read its log to the last event
 ## Frequently asked questions
 
 **Can an agent merge to `main`, or push anywhere else?**
-No. Its GitHub App may push only `agent/**` branches and no tags, enforced by two repository rulesets. Merging is
-the human's, except for the two low-risk classes above, which go through a separate App.
+No. Its GitHub App may push only `agent/**` branches and no tags, enforced by two repository rulesets. A separate
+App merges, and only a head a maintainer approved or one of the two low-risk classes above.
 That confinement is per repository, not per run: every run pushes as the same App, so one run can
 push to another's `agent/**` branch. The footer is provenance, never authorisation: the merge gate
 merges only the commit the task's own run reported in its room, with every reviewer approval naming

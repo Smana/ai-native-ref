@@ -3,8 +3,6 @@ title: Alternatives considered
 weight: 100
 description: "Work in progress. The alternatives considered for each layer of the Agent Factory, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
 lastVerified: 2026-10-20
-aliases:
-  - /docs/platform/ai-platform/agents/alternatives/
 ---
 
 {{< callout type="warning" >}}

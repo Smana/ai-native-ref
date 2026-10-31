@@ -3,9 +3,6 @@ title: Slack
 weight: 20
 description: "Hand work to the factory from a Slack thread: mention, draft, edit by reply, a maintainer's check mark files the issue and starts the task."
 lastVerified: 2026-10-31
-aliases:
-  - /docs/platform/ai-platform/agents/slack/
-  - /docs/platform/ai-platform/agents/use/slack/
 ---
 
 `maku-slack`, Maku's Slack app, turns a Slack thread into a factory task. Whether it is deployed on your

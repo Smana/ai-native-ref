@@ -3,9 +3,6 @@ title: Rooms
 weight: 30
 description: "The shared, append-only log of a task: the broker, the bridge, the web view, steering, room tools, approvals, and maku."
 lastVerified: 2026-10-31
-aliases:
-  - /docs/platform/ai-platform/agents/rooms/
-  - /docs/platform/ai-platform/agents/how-it-works/rooms/
 ---
 
 A room is the shared, append-only log of a task: what each agent did, what humans said, the

@@ -1,5 +1,0 @@
-{{- /* Hugo's alias page plus one line: a meta refresh drops the fragment, so an old
-       link such as /docs/platform/ai-platform/status/#roadmap would land at the top of
-       the moved page. The script carries the fragment over; the meta refresh stays as
-       the no-JavaScript fallback. */ -}}
-<!doctype html><html lang="en-us"><head><title>{{ .Permalink }}</title><link rel="canonical" href="{{ .Permalink }}"><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url={{ .Permalink }}"><script>location.replace({{ .Permalink }} + location.hash);</script></head></html>

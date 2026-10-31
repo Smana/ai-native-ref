@@ -3,9 +3,6 @@ title: Runtime
 weight: 40
 description: "How one AgentRun becomes an isolated, attributed run: a gVisor sandbox on each cloud, per-run identity, octo-sts, branch and tag rulesets, and default-deny network policy."
 lastVerified: 2026-10-01
-aliases:
-  - /docs/platform/ai-platform/agents/runtime/
-  - /docs/platform/ai-platform/agents/how-it-works/runtime/
 ---
 
 One `AgentRun` object becomes a fully isolated, fully attributed run. The agent in the loop is not

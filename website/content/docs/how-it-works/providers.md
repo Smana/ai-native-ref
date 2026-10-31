@@ -3,9 +3,6 @@ title: Providers
 weight: 50
 description: "Moonshot (Kimi K3.1 Pro) and Mistral (Medium, Small) as selectable providers for public work: what they are, where data is processed, and how a class switches them on."
 lastVerified: 2026-10-29
-aliases:
-  - /docs/platform/ai-platform/agents/providers/
-  - /docs/platform/ai-platform/agents/how-it-works/providers/
 ---
 
 Every run asks for `agent-default` unless its class picks otherwise: GLM-5.3 on Z.ai for public work,

@@ -3,9 +3,6 @@ title: RunLore
 weight: 60
 description: "Agent to agent: RunLore hands an incident to the factory, follows the fix, and checks after the merge that the alert is gone."
 lastVerified: 2026-10-29
-aliases:
-  - /docs/platform/ai-platform/agents/runlore/
-  - /docs/platform/ai-platform/agents/how-it-works/runlore/
 ---
 
 [RunLore](https://github.com/Smana/runlore) investigates alerts. With the factory it works agent to

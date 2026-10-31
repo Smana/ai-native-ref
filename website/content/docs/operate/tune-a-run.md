@@ -4,9 +4,6 @@ linkTitle: Tune a run
 weight: 10
 description: "How to tune an agent run: which lever moves cost, time and quality, how to measure a change, what goes wrong and how to fix it."
 lastVerified: 2026-10-31
-aliases:
-  - /docs/platform/ai-platform/agents/harness/
-  - /docs/platform/ai-platform/agents/tune/harness/
 ---
 
 The harness runs the agent loop inside the sandbox: OpenHands

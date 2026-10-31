@@ -4,9 +4,6 @@ linkTitle: The Agent Factory
 weight: 10
 description: "The Agent Factory: autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes end to end."
 lastVerified: 2026-10-31
-aliases:
-  - /docs/platform/agent-factory/
-  - /docs/platform/ai-platform/agents/
 ---
 
 {{< callout type="info" >}}

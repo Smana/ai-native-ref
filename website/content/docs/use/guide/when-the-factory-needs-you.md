@@ -35,7 +35,7 @@ status page's [class modes]({{< relref "/docs/status.md#class-modes" >}}).
 
 Want the detail? See [when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}}),
 [every hand-off reason]({{< relref "/docs/how-it-works/merge-gate.md#hand-off" >}}) and
-[the gate's checks]({{< relref "/docs/how-it-works/merge-gate.md#decision-rows" >}}).
+[the gate's checks]({{< relref "/docs/reference/gate-reasons.md#decision-rows" >}}).
 
 ## Approve the commit you read {#approve-the-commit-you-read}
 

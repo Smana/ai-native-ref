@@ -3,9 +3,6 @@ title: Factory
 weight: 20
 description: "From a labelled issue to a merged PR: intake, triage, teams, revise, the merge gate and the kill switch."
 lastVerified: 2026-10-31
-aliases:
-  - /docs/platform/ai-platform/agents/factory/
-  - /docs/platform/ai-platform/agents/how-it-works/factory/
 ---
 
 The factory is the controller that turns a labelled issue into runs, narrates progress on the issue,

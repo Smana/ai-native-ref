@@ -3,8 +3,6 @@ title: Coding Clients
 weight: 30
 description: "Connecting a coding client to the platform: the ai-gateway for models and the factory for hand-offs, on AWS and GCP, with each client's current configuration and the failure modes their errors mean."
 lastVerified: 2026-10-30
-aliases:
-  - /docs/platform/ai-platform/coding-clients/
 ---
 
 A coding client can use the platform in two ways, and they are independent:

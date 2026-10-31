@@ -169,6 +169,13 @@ experiment cannot pick this instance up if the interruption did not take it.
 
 ## Results
 
+### aws-0, 2026-10-30 (finding F1)
+
+During the merge gate session, both running implementers ended `Disrupted` at the same moment
+(`TaintManagerEviction` on the gVisor node): Karpenter replaced the Spot node, and the pods waited about a
+minute for a node. A spot reclaim, not an agent fault; the runs resume as designed
+([results](results-aws-0-2026-10-30.md)).
+
 ### aws-0, 2026-10-07
 
 Integration v3, `integration/agent-factory` @ `1d288ea6`: factory `v0.0.1-pr22.4a4abafc` (`resume.maxPerTask: 2`, `enforceTask: true`),

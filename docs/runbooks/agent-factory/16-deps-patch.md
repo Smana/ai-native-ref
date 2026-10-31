@@ -43,6 +43,11 @@ merging meanwhile (MC12). An adopted Task runs no agent, costs nothing and fills
 
 Record how many eligible PRs Renovate merged before the factory decided: they are not counted.
 
+On aws-0 (2026-10-30), steps 1 to 5 had no eligible PR to read. The five open Renovate PRs were rightly
+not adopted (zero Tasks): #2688 touches `opentofu/` (outside the class's `allowedFiles`), #2689 and #2685
+touch workflows, #2681 is a major, #2629 is `mise.toml`. The eligible half is still to come
+([results](results-aws-0-2026-10-30.md), L3).
+
 ## 3. The drill (L4)
 
 On the owner's go, after 20 shadow decisions merged unchanged and 0 bad mature.

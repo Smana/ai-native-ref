@@ -8,13 +8,12 @@ aliases:
 ---
 
 {{< callout type="info" >}}
-**v1 shipped on 2026-10-08 and v2.0 on 2026-10-18; v3 is built, was proven live on `gcp-0` by 2026-10-29, and its human path on `aws-0` on 2026-10-30 and 31.**
 A labelled issue, a Slack thread, your coding agent or RunLore starts a task; a scoper bounds it, a tester writes
 its contract, the implementer checks its work in the sandbox, a judge reads it against its checks, and a reviewer
 gives its verdict. A maintainer's approval merges; link fixes and their reverts merge on their own
 ([the roles and the merge gate in 33 s]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md" >}})). Runs are metered,
-capped, resumed after a reclaim and stopped by the kill switch; people follow and approve in rooms. What is proven,
-what is left and what comes next are on the
+capped, resumed after a reclaim and stopped by the kill switch; people follow and approve in rooms. What is available,
+what is experimental and what comes next are on the
 [status page]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}}).
 {{< /callout >}}
 
@@ -98,7 +97,7 @@ providers.
 
 ## More than one repository
 
-The factory serves two repositories since v2.0. Nothing in it is tied to one repository: the agents'
+The factory can serve several repositories. Nothing in it is tied to one repository: the agents'
 App, the trust policies and the rulesets live in the repository they protect, and every
 token audience names its repository. Adding another needs:
 

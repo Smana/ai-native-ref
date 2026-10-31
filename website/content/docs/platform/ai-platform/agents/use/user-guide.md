@@ -352,6 +352,8 @@ tab's title counts the rooms that need you. A room page, from top to bottom (Mak
 2. **Next**, when the task waits: why it waits, what comes next, and the commands, each with a Copy
    button. With approve-to-merge on, the issue comment's action wins: approve the current head
    ([the hand-off]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#hand-off" >}})).
+   Whether a pull request merges on its own, on your approval, or never on its own is in
+   [when it merges]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#when-it-merges" >}}).
 3. **Needs you**, only when something does: an approval, its deadline and its button.
    `…/r/<room>#<approvalId>` scrolls to that approval.
 4. **What you can do now**: queue a note, steer if you hold the driver token, stop. Only what your

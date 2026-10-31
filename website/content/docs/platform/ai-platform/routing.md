@@ -5,12 +5,12 @@ description: "Every place a request is routed to a model, every knob that tunes 
 lastVerified: 2026-10-29
 ---
 
-**Today, routing is static. Prompt caching drives the bill, and the model decides the outcome.**
+**Routing is static. Prompt caching drives the bill, and the model decides the outcome.**
 An agent run gets one model from its data class (GLM-5.3 for `public`, Claude Opus 5.5 for
 `internal`), whatever its tier. The tier sets the run's caps and its team, not its model. Nothing
 classifies a task yet: every task is triaged `standard` by the static fallback, and 10% go to
-`frontier` as a control group. On `gcp-0`, 95% of the input tokens agents sent in the last 24 hours
-were cache reads, which cut the bill about fourfold. On harder tasks the model changed the outcome
+`frontier` as a control group. Typically more than 90% of the input tokens agents send are cache
+reads, which cuts the bill about fourfold. On harder tasks the model changed the outcome
 more than any routing could: Claude was accepted on 13 of 15 issues, GLM-5.3 on none, in either
 harness.
 
@@ -19,29 +19,25 @@ carry is on [Gateways]({{< relref "/docs/platform/ai-platform/gateways.md" >}}).
 is on [Status]({{< relref "/docs/platform/ai-platform/status.md" >}}), which wins over this page if
 the two disagree.
 
-{{< callout type="info" >}}
-**Figures dated 2026-10-18.** Live numbers come from read-only queries against `gcp-0`'s
-VictoriaMetrics and its `Task` objects on 2026-10-18 (11:40 UTC). `gcp-0` had run the factory for
-about 17 hours, so "24 h" and "7 d" windows cover the same traffic. Prices are the list prices the
-repository pins, read on 2026-10-16.
-{{< /callout >}}
+Dollar figures on this page are examples from the reference host, at the list prices its
+`meter.prices` pins.
 
-## What is real today {#state}
+## What is built {#state}
 
-| Piece | State, last seen live on `gcp-0` | Source |
+| Piece | Built? | Source |
 |---|---|---|
-| Agent model per data class (`public` → Z.ai, `internal` → Anthropic) | **Deployed, proven live** | [ADR-0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}), status *Landed* |
-| `tier-light`, `tier-standard`, `tier-frontier` served by the agent gateway | **Deployed**. No factory tier asks for them: every tier names `agent-default` | `llm.yaml`, `anthropic.yaml`, factory values |
-| `kimi-frontier`, `mistral-standard`, `mistral-light` on the `public` listener (v3 feature 15) | **Proven live** 2026-10-29, public data only, selectable per class with `loops.<class>.models`, which no class sets now; Mistral is not recommended as an implementer | [Providers]({{< relref "/docs/platform/ai-platform/agents/how-it-works/providers.md" >}}) |
-| Triage classifier (`complexity-classifier`, C7) | **Design only**. The URL is configured and nothing answers it, so every task falls back to `standard` with `classifier: static` | factory values, live `Task` status |
-| 10% control group at `frontier` (`triage.controlPercent`) | **Deployed, live**: 2 of 12 tasks | live `Task` status |
-| Run meter priced in USD, cache reads at their own rate | **Deployed, proven live** | [plan, internal run](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/plans/2026-10-15-agent-router-agentgateway-plan.md#live-evidence-internal-run-2026-10-16) |
-| Gateway budgets B1, B2, B6 | **Deployed, enforced** since 2026-10-18: a call over its bucket is refused `429` | [runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets) |
-| `ai-gateway` with `tier-frontier` (GLM-5.3) | **Deployed**, CPU only | `aigatewayroute.yaml` |
-| Semantic Router `MoM` cascade | **Deployed but idle**: the router pod runs, and `llm-platform` is suspended, so no vLLM model exists to route to | `kubectl get ks llm-platform`: no status, suspended |
-| SR `complexity` signal, PII-gated frontier escalation, SR fail-open | **Design only** (SP4 PR 4: SR 0.3.0) | [SP4 design §2](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#2-complexity-signal-for-chat-mom) |
-| LoRA canary on `xplane-qwen-coder` | **Built**, serves only while `llm-platform` runs | `apps/base/ai/llm/qwen-coder.yaml` |
-| Endpoint picker (Gateway API Inference Extension) | **Built, enabled on no claim** | [serving known gaps]({{< relref "/docs/platform/ai-platform/serving/_index.md#known-gaps" >}}) |
+| Agent model per data class (`public` → Z.ai, `internal` → Anthropic) | Yes, on by default | [ADR-0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}) |
+| `tier-light`, `tier-standard`, `tier-frontier` served by the agent gateway | Yes. No factory tier asks for them: every tier names `agent-default` | `llm.yaml`, `anthropic.yaml`, factory values |
+| `kimi-frontier`, `mistral-standard`, `mistral-light` on the `public` listener | Yes, public data only, selectable per class with `loops.<class>.models`, which no class sets by default | [Providers]({{< relref "/docs/platform/ai-platform/agents/how-it-works/providers.md" >}}) |
+| Triage classifier (`complexity-classifier`, C7) | No. The URL is configured and nothing answers it, so every task falls back to `standard` with `classifier: static` | factory values, `Task` status |
+| 10% control group at `frontier` (`triage.controlPercent`) | Yes | `Task` status |
+| Run meter priced in USD, cache reads at their own rate | Yes | factory values |
+| Gateway budgets B1, B2, B6 | Yes, enforced: a call over its bucket is refused `429` | [runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets) |
+| `ai-gateway` with `tier-frontier` (GLM-5.3) | Yes, CPU only | `aigatewayroute.yaml` |
+| Semantic Router `MoM` cascade | Yes, idle while `llm-platform` is suspended: no vLLM model exists to route to | `kubectl get ks llm-platform` |
+| SR `complexity` signal, PII-gated frontier escalation, SR fail-open | No, designed for SR 0.3.0 | [routing design §2](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#2-complexity-signal-for-chat-mom) |
+| LoRA canary on `xplane-qwen-coder` | Yes, serves only while `llm-platform` runs | `apps/base/ai/llm/qwen-coder.yaml` |
+| Endpoint picker (Gateway API Inference Extension) | Yes, enabled on no claim | [serving known gaps]({{< relref "/docs/platform/ai-platform/serving/_index.md#known-gaps" >}}) |
 
 ## Every routing decision, end to end {#decision-points}
 
@@ -84,7 +80,7 @@ flowchart TB
 
 Decisions 4–7 are pinned by design: every name maps to one model at weight 100, with no fallback
 and no canary, so nothing re-routes a run mid-trajectory. Escalation is a new run at another tier,
-never a gateway failover ([SP4 S7, S8](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#decisions)).
+never a gateway failover ([routing design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#decisions)).
 
 ## Serving side: `ai-gateway` {#serving-routing}
 
@@ -116,7 +112,7 @@ flowchart TD
 | `context` | `long_query`: 500 to 32,000 tokens | Turns on reasoning for long code prompts |
 | `jailbreak` (`prompt_guard`) | threshold 0.7 | Blocks. A filter, not a route |
 | `pii` | model loaded, threshold 0.7, every model `allow_by_default: true` | **None**: no decision reads it |
-| `complexity` | not configured | **None**. Designed (SP4 S5) as a hard–easy margin of 0.12. The documented 0.70–0.75 never fires, because the margin stayed at or below 0.197 in tests ([semantic-router#3246](https://github.com/vllm-project/semantic-router/issues/3246)) |
+| `complexity` | not configured | **None**. Designed as a hard–easy margin of 0.12. The documented 0.70–0.75 never fires, because the margin stayed at or below 0.197 in tests ([semantic-router#3246](https://github.com/vllm-project/semantic-router/issues/3246)) |
 | `semantic_cache` | **off** | Would answer from a similar past prompt. Off because tool-calling clients' prompts all look alike, and a cached error re-poisons every retry |
 
 **Two behaviours to know before you rely on `MoM`.**
@@ -124,18 +120,18 @@ flowchart TD
 - **It sits in front of every request, and fails closed.** The filter is on the `http` listener,
   not only on `MoM`, and has no `failure_mode_allow`, with a 60 s `message_timeout`
   (`infrastructure/base/envoy-ai-gateway/envoypatchpolicy-semantic-router.yaml`). An unreachable
-  router fails every request on that listener, `tier-frontier` included (SP4 R13). A router that
+  router fails every request on that listener, `tier-frontier` included. A router that
   is up but not rewriting lets `MoM` reach vLLM, which answers 404 for an unknown model (the
-  HelmRelease's own note). The fix is SP4 PR 4, not built: two replicas, a PDB, and fail-open
+  HelmRelease's own note). The designed fix, not built: two replicas, a PDB, and fail-open
   with a 2 s timeout.
 - **Classification costs about 250–300 ms**
   ([gateways]({{< relref "/docs/platform/ai-platform/gateways.md#sending-a-request" >}})). A
   client that knows its model names it, and the router passes it through untouched. FIM traffic
   never uses `MoM`.
 
-### The designed cascade (SP4, not built)
+### The designed cascade (not built)
 
-The SP4 design replaces fleet names with roles that claims opt into (`spec.gateway.aliases`), and
+The routing design replaces fleet names with roles that claims opt into (`spec.gateway.aliases`), and
 adds the one escalation that leaves the cluster:
 
 | Band | Role | Served by |
@@ -208,7 +204,7 @@ The aliases, identical on both Z.ai backends and mirrored on Anthropic's
 | `agent-default` | `glm-5.3` | `claude-opus-5-5` |
 
 Any other name is refused 403 by the profile's model rule (`policy-capabilities.yaml`) before an
-upstream call; the transformation's 400 stays behind it (gate AG12). A run can still ask for any of the four names in its class (SP4 R10): the budgets bound what
+upstream call; the transformation's 400 stays behind it. A run can still ask for any of the four names in its class: the budgets bound what
 that costs.
 
 ### Why every tier still asks for `agent-default`
@@ -221,8 +217,8 @@ tiers:
   frontier: {model: agent-default, runTokens: 4000000, taskTokens: 8000000, runMinutes: 90, runUSD: 6.80, taskUSD: 13.60}
 ```
 
-When the factory was built the `tier-*` names answered 404 (plan R11). The gateway has served them
-on both listeners since AGW-8, so moving a tier to its own model is now a one-line change (see
+The gateway serves the `tier-*` names on both listeners, so moving a tier to its own model is a
+one-line change (see
 [tuning](#tuning)). Nobody has measured whether `glm-5.3-flashx` or `glm-5.3-flash` can do a
 factory task, so the change has not been made. Until it is:
 
@@ -240,10 +236,9 @@ factory task, so the change has not been made. Until it is:
 | Which classifier | The Semantic Router's own complexity signal through `POST /api/v1/eval`: OSS first | LiteLLM's complexity router; NeMo Switchyard; Jev in the path | One thin service insulates the factory from router API churn (0.2 → 0.3 broke the config) |
 | Jev (TypeSafe AI, SaaS) | An optional adapter in **shadow** only, on `dataClass: public` text, never acting | Jev deciding tiers | Latency, availability and data exposure; about $0.08 per 1,000 tasks if turned on |
 
-Source: [Maku design D8](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md)
-and [SP4 S6, §3](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#3-complexity-classifier-c7).
-ADR-0047 is reserved for it and not yet written. None of it is built: on `gcp-0` all 12 tasks
-read `classifier: static, fallback: static`.
+Source: [factory design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md)
+and [routing design §3](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#3-complexity-classifier-c7).
+None of it is built: every task reads `classifier: static, fallback: static`.
 
 ## What a call costs {#costs}
 
@@ -262,7 +257,7 @@ drifts:
 
 A price change is the row's edit, `python3 scripts/ci/gen-prices.py --write` (it renders the gateway's `agent-model-catalog` overlay too) and the cost string gate AG8 prints for `infrastructure/base/agent-gateway/policy-budgets.yaml`, in one commit.
 
-`meter.prices`, USD per million tokens, list prices read 2026-10-16:
+`meter.prices`, USD per million tokens. Example (the reference host's list prices):
 
 | Model | Input | Cache read | Cache write | Output | Cache read vs input |
 |---|---|---|---|---|---|
@@ -307,7 +302,7 @@ sum(
 The reply the wire test sends on Opus, 1,050 input of which 900 read and 50 written, and 10 output,
 reads 1050 × 4.00 − 900 × 3.80 + 50 × 1.00 + 10 × 20.00 = 1,030 per million, **$0.00103**: the
 meter's 100 × 4.00 + 900 × 0.20 + 50 × 5.00 + 10 × 20.00. The list-price rule it replaced read 4.3×
-that. `reasoning` is inside `output` and has no charge. The join prices the whole window at today's
+that. `reasoning` is inside `output` and has no charge. The join prices the whole window at the current
 charges; what each run was charged stays in `maku_factory_run_cost_usd` and the `Task`'s
 `costMicroUSD`.
 
@@ -349,9 +344,8 @@ flowchart TB
 
 ### Worked example: a real run {#worked-example}
 
-Run `xplane-run-jcp6kl72`, an implementer on a `standard` task, `public`, served by `glm-5.3`,
-which opened [cloud-native-ref#2508](https://github.com/Smana/cloud-native-ref/pull/2508). Its
-gateway counters on 2026-10-18:
+Example (the reference host): an implementer on a `standard` task, `public`, served by `glm-5.3`,
+which opened a pull request. Its gateway counters:
 
 | Series | Tokens | × price | USD |
 |---|---|---|---|
@@ -376,9 +370,9 @@ The same token mix on other models, as arithmetic from `meter.prices` and not a 
 
 **With caching, Opus is not ten times GLM.** Opus's cache read ($0.20) is cheaper than GLM-5.3's
 ($0.26), so on a 94%-cached run the list-price gap narrows from about 3× on input to 1.7× overall.
-Anthropic does bill cache writes ($5.00 per million on Opus), which this estimate leaves out. The one
-measured internal run, `wfeiraim` (triager, Opus 5.5), cost **$0.477** for 303,477 input tokens,
-85% of them cache reads.
+Anthropic does bill cache writes ($5.00 per million on Opus), which this estimate leaves out. One
+measured internal run, a triager on Opus 5.5, cost **$0.477** for 303,477 input tokens, 85% of them
+cache reads.
 
 ### Budgets: five layers, one exact {#budget-layers}
 
@@ -400,15 +394,14 @@ flowchart TB
 | Layer | Unit | Enforced | Note |
 |---|---|---|---|
 | `runUSD`, `taskUSD` | USD, cache-aware | **yes** | The cap that decides a run's fate |
-| `factoryDailyUSD`, `humanDailyUSD` | USD, cache-aware: the same `meter.prices`, since Maku v0.16.0 (#168) | **shadow**, the fleet's day and each person's: with `enforcePrincipal: false` a run past its day is admitted and counted as `budget-principal-shadow` | `AgentFactoryDailyBudgetHigh` fires at 80%. The day's ledger is `agent-factory-ledger-usd-<YYYYMMDD>`, in micro-USD |
-| B1, B2, B6 | reference tokens: USD ÷ $1.70 per million, at `meter.prices` | **yes**, since 2026-10-18 (`SHADOW_MODE: "false"`, `infrastructure/base/agent-gateway/ratelimit.yaml`): `429 agent_budget_exhausted` | Sized above the factory's caps, so the gateway never refuses what the factory admits. Gate AG8 holds B2 at or above `factoryDailyUSD` plus four frontier runs |
+| `factoryDailyUSD`, `humanDailyUSD` | USD, cache-aware: the same `meter.prices` | **shadow**, the fleet's day and each person's: with `enforcePrincipal: false` a run past its day is admitted and counted as `budget-principal-shadow` | `AgentFactoryDailyBudgetHigh` fires at 80%. The day's ledger is `agent-factory-ledger-usd-<YYYYMMDD>`, in micro-USD |
+| B1, B2, B6 | reference tokens: USD ÷ $1.70 per million, at `meter.prices` | **yes** (`SHADOW_MODE: "false"`, `infrastructure/base/agent-gateway/ratelimit.yaml`): `429 agent_budget_exhausted` | Sized above the factory's caps, so the gateway never refuses what the factory admits. Gate AG8 holds B2 at or above `factoryDailyUSD` plus four frontier runs |
 | local limit | raw tokens per hour, per replica | always | Above the largest admitted run: $6.80 of Opus cache reads is 34M tokens |
 
 {{< callout type="info" >}}
-**The daily caps count dollars.** Until Maku v0.16.0 they counted raw tokens, a cache read
-as a full token: on 2026-10-18 the fleet's 25M and a person's 5M both read 0 remaining after about
-$10 of real spend. `factoryDailyUSD` ($42.50) and `humanDailyUSD` ($8.50) are the same days at the
-reference $1.70 per million, now priced as the run caps are. They stay in shadow until a record in
+**The daily caps count dollars.** A cap in raw tokens counts a cache read as a full token, so a
+cache-heavy day runs out after a fraction of its real budget. `factoryDailyUSD` ($42.50) and
+`humanDailyUSD` ($8.50) are days at the reference $1.70 per million, priced as the run caps are. They stay in shadow until a record in
 dollars shows that enforcing would refuse only what it should. The raw-token alerts
 `AgentRunTokenSpendHigh` (5M in 8 h) and `AgentFleetTokenSpendHigh` are unchanged: they still fire
 on cache-heavy runs well inside their USD caps.
@@ -418,14 +411,10 @@ on cache-heavy runs well inside their USD caps.
 
 ### Prompt caching is the largest lever {#caching}
 
-| Where | Cache reads / input | Source |
-|---|---|---|
-| `gcp-0`, all agent calls, 24 h to 2026-10-18 | **95.1%** (27.40M of 28.83M) | `gen_ai_client_token_usage_sum`, live |
-| Cohort arm A (GLM-5.3, factory) | 91–96% | [cohort results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-v2-hard-task-cohort-design.md#results) |
-| `wfeiraim`, Opus 5.5 internal run | 85% | [plan, live evidence](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/plans/2026-10-15-agent-router-agentgateway-plan.md#live-evidence-internal-run-2026-10-16) |
-
-On those 24 hours the meter's figure is **$10.40**. The same tokens with no cache discount would be
-**$41.64**: caching cut the bill by 75%.
+Agent runs typically read 85–96% of their input from cache: GLM-5.3 factory runs 91–96%
+([cohort results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-v2-hard-task-cohort-design.md#results)),
+an internal Opus run 85%. On a whole fleet day that cuts the bill by about 75% against the same
+tokens with no cache discount.
 
 | Provider | How the cache engages | What to keep stable |
 |---|---|---|
@@ -439,13 +428,13 @@ a cold cache, and on a 95%-cached run that multiplies the next call's input cost
 
 The hard-task cohort found that the token cap, not the work, decided 11 of the factory's 15 issues:
 it counted every cache read as a full token, and runs stopped at about 1.5M tokens and $0.58–0.76.
-The owner's decision (OD-6, #2369) moved the caps to USD. Today's live record shows the change at
-work:
+Caps are in USD because a dollar cap prices cache reads at their real rate, so a cache-heavy run
+gets the work its budget pays for. Example (the reference host), two `standard` runs ($2.55 cap):
 
-| Run (`standard`, $2.55 cap) | Tokens | Meter USD | Under the old 1.5M token cap | Outcome |
-|---|---|---|---|---|
-| `jcp6kl72` | 4.48M | $1.65 | revoked at a third of its work | finished, PR opened |
-| `d3jacb5z` | 7.42M | $2.56 | revoked far earlier | revoked at its USD cap: `budget-run`, fit `under` |
+| Tokens | Meter USD | Under a 1.5M token cap | Outcome |
+|---|---|---|---|
+| 4.48M | $1.65 | revoked at a third of its work | finished, PR opened |
+| 7.42M | $2.56 | revoked far earlier | revoked at its USD cap: `budget-run`, fit `under` |
 
 ### Cheaper tiers: priced, not measured
 
@@ -468,8 +457,8 @@ token cap.
 
 | Question | Answer from the repository |
 |---|---|
-| Is self-hosting a cost play? | **No.** Four always-warm L4 models are about **$876 a month** on spot ($0.30 an hour each, the May design's AWS estimate, `docs/superpowers/specs/2026-05-06-oss-llm-foundation-showcase-design.md`). That buys about 84 days of the agents' 2026-10-18 GLM-5.3 spend, or about 2.4B tokens a month at its blended $0.357 per million |
-| Can the local fleet serve agents? | **No, by design.** "Local 7–8B models are never agent tiers" (SP4 §5): agents need frontier capability with zero GPUs |
+| Is self-hosting a cost play? | **No.** Four always-warm L4 models are about **$876 a month** on spot ($0.30 an hour each, the May design's AWS estimate, `docs/superpowers/specs/2026-05-06-oss-llm-foundation-showcase-design.md`). That buys about 2.4B GLM-5.3 tokens a month at a blended $0.357 per million |
+| Can the local fleet serve agents? | **No, by design.** "Local 7–8B models are never agent tiers" (routing design §5): agents need frontier capability with zero GPUs |
 | Why self-host at all | Prompts that never leave the tailnet, a model pinned to a commit, sub-200 ms tab completion on a warm replica ([why self-host]({{< relref "/docs/platform/ai-platform/_index.md#why-self-host-at-all" >}})) |
 | When does the trade change | The [serving roadmap]({{< relref "/docs/platform/ai-platform/status.md#serving-roadmap" >}}) triggers: a bigger coder when the 7B hits its limits, L40S or tensor-parallel when quantized quality loss becomes measurable, cost per tenant when several consumers share the platform |
 
@@ -508,8 +497,7 @@ tiers:
   light: {model: tier-light, runTokens: 300000, taskTokens: 600000, runMinutes: 20, runUSD: 0.51, taskUSD: 1.02}
 ```
 
-Do it with a measurement in place: run a cohort on the tier with fixed-tier arms, as the SP4
-measurement rule asks, and compare accepted outcomes and USD per accepted outcome.
+Do it with a measurement in place: run a cohort on the tier with fixed-tier arms, and compare accepted outcomes and USD per accepted outcome.
 
 **Change a provider model behind a name** (both Z.ai backends, and the gate's price row):
 
@@ -532,7 +520,7 @@ context_rules:
     max_tokens: 32000
 ```
 
-The `complexity` signal and role targets need SR 0.3.0 (SP4 PR 4). Do not add a `complexity` rule
+The `complexity` signal and role targets need SR 0.3.0. Do not add a `complexity` rule
 to the 0.2 config with the documented 0.70–0.75 threshold: it never fires.
 
 ## Measuring {#measuring}
@@ -545,7 +533,7 @@ to the 0.2 config with the documented 0.70–0.75 threshold: it never fires.
 | USD per run, by tier | `sum by (tier) (maku_factory_run_cost_usd_sum) / sum by (tier) (maku_factory_run_cost_usd_count)` |
 | One run's cost, exactly | `kubectl get task <id> -n agent-system -o jsonpath='{.status.runs[*].costMicroUSD}'` |
 | Did the tier fit? | `maku_factory_tier_fit_total{classifier, tier, fit}`: `under`, `fit`, `over` |
-| Model latency | `histogram_quantile(0.95, sum by (le, gen_ai_request_model) (rate(gen_ai_server_request_duration_seconds_bucket{namespace="agent-gateway"}[1h])))`: p50 2.8 s, p95 18.4 s on `glm-5.3`, 2026-10-18 |
+| Model latency | `histogram_quantile(0.95, sum by (le, gen_ai_request_model) (rate(gen_ai_server_request_duration_seconds_bucket{namespace="agent-gateway"}[1h])))` |
 | What B1, B2 and B6 refused | `agent_router:budget_refused_tokens:increase10m` by `key1` (`AgentBudgetRefused`) |
 | Daily budget left, in USD | `maku_factory_budget_remaining_usd / maku_factory_budget_cap_usd` by `principal`; `maku_factory_budget_spent_usd` is today's spend, unclamped |
 | Serving: which model is hot | `vllm:num_requests_running`, `vllm:kv_cache_usage_perc`, `vllm:num_requests_waiting` by `model_name` |
@@ -567,8 +555,8 @@ Signal definitions and alerts are on
 
 | Gap | Effect | Closes with |
 |---|---|---|
-| No triage classifier | Every task is `standard`; the tier never reflects difficulty | SP4 PR 5 |
+| No triage classifier | Every task is `standard`; the tier never reflects difficulty | The classifier ([routing design §3](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#3-complexity-classifier-c7)) |
 | Every tier is `agent-default` | Tiers change caps, not models; the reviewer shares the implementer's model | A measured tier move |
-| The router fails closed, on one replica | A router outage fails every `ai-gateway` request, `tier-frontier` included | SP4 PR 4 |
-| PII classifier loaded, read by no decision | No data-class protection on `MoM` today. Harmless while every `MoM` target is local | SP4 PR 4 (`NOT pii_any` on the frontier decision) |
-| No Semantic Router series in VictoriaMetrics on `gcp-0` | The router's decisions cannot be read from metrics today | Not investigated |
+| The router fails closed, on one replica | A router outage fails every `ai-gateway` request, `tier-frontier` included | Two replicas, a PDB and fail-open (SR 0.3.0) |
+| PII classifier loaded, read by no decision | No data-class protection on `MoM` today. Harmless while every `MoM` target is local | `NOT pii_any` on the frontier decision (SR 0.3.0) |
+| No Semantic Router series in VictoriaMetrics | The router's decisions cannot be read from metrics | Tracked on the [status page]({{< relref "/docs/platform/ai-platform/status.md#before-v3" >}}) |

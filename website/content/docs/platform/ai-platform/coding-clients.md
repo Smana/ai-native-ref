@@ -38,14 +38,12 @@ date above: each snippet says which docs page it was checked against, and
 
 Both are Tailscale-fronted (`tag:k8s` ACL, see
 [Private Access](https://cnref.ogenki.io/docs/platform/networking/private-access/)) and serve the
-OpenAI API under `/v1`.
+OpenAI API under `/v1`. Example (the reference host), one cluster per cloud:
 
-| Cloud | Base URL | Serves today |
+| Cluster | Base URL | Serves |
 |---|---|---|
 | aws-0 | `https://llm.priv.aws.ogenki.io/v1` | `tier-frontier` always; the four `xplane-*` models and `MoM` once `llm-platform` is resumed |
 | gcp-0 | `https://llm.priv.gcp.ogenki.io/v1` | `tier-frontier` (GLM-5.3 through Z.ai, no GPU needed); `xplane-qwen3-8b` and `MoM` once `llm-platform` is resumed |
-
-`gcp-0` was torn down on 2026-10-29: its rows and the `gcp-0` notes below apply when it is up again.
 
 `llm-platform` is suspended by default on both clouds: until it is resumed, `MoM` has no model to
 route to and the `xplane-*` names return an error. The GPU models need all three

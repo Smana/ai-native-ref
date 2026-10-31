@@ -50,7 +50,7 @@ flowchart TB
   end
   subgraph L3["Gateway: models, tools, per-run identity and budgets"]
     direction LR
-    F3["agentgateway (chosen,<br/>live since 2026-10-16)"] ~~~ O3["otari: LLM gateway<br/>(watched)"]
+    F3["agentgateway<br/>(chosen)"] ~~~ O3["otari: LLM gateway<br/>(watched)"]
   end
   subgraph L2["Harness: the agent loop"]
     direction LR
@@ -69,7 +69,7 @@ flowchart TB
 |---|---|---|---|
 | **Runtime** | [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) + [gVisor](https://gvisor.dev), one pod per run | Agent Substrate (with google/ax or kagent), Kata/Firecracker, OpenHands Enterprise, Coder, E2B/Daytona | Open source; runs on EKS and GKE, on spot nodes; each run gets its own ServiceAccount and Cilium policy, so the constitution's rules apply per run. Kata/Firecracker needs bare-metal hosts or nested virtualisation: the smallest AWS metal host has 128 vCPU, about $1.5/h spot or $5.4/h on demand ([Vantage](https://instances.vantage.sh/aws/ec2/c6i.metal)), against a few cents an hour for a run's spot node. An agent step mostly waits on the model (about 11 s a reply), so gVisor's system-call overhead does not show |
 | **Harness** | [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server | Headless Claude Code, kagent's harnesses, ax's Antigravity agent | Open source, headless (an HTTP API), works with any OpenAI-compatible model, supports MCP. Claude Code is proprietary; Antigravity is Gemini-only |
-| **Gateway** | [agentgateway](https://agentgateway.dev) (decided 2026-10-01, live since 2026-10-16) | Agent Router 1.1 on Envoy Gateway, [otari](#otari) | See [gateways]({{< relref "/docs/platform/ai-platform/gateways.md" >}}). otari has no MCP federation, token exchange, listener per data class or OpenTelemetry export, and no Kubernetes packaging: watched |
+| **Gateway** | [agentgateway](https://agentgateway.dev) | Agent Router 1.1 on Envoy Gateway, [otari](#otari) | See [gateways]({{< relref "/docs/platform/ai-platform/gateways.md" >}}). otari has no MCP federation, token exchange, listener per data class or OpenTelemetry export, and no Kubernetes packaging: watched |
 | **Rooms** | A log we own: maku-broker on PostgreSQL | OpenHands shared conversations, ACP, A2A through a gateway, Valkey Streams, NATS JetStream, ax or Substrate as the session layer, kagent sessions | Two different questions. **Protocols** (OpenHands shared conversations, ACP, A2A, ax or Substrate, kagent sessions): none records who said what among several people and agents, or who may approve. **Brokers** (Valkey Streams, NATS JetStream): an event is written to Postgres first, which fixes its place in the log, then announced with `LISTEN/NOTIFY`. At a few events per second a second stateful system adds nothing, and delivering live before the write would let watchers see events the audit log never records |
 | **Factory** | A small custom controller + [Kueue](https://kueue.sigs.k8s.io/docs/overview/) | Argo Workflows, Tekton, Temporal, a Crossplane `Task` composition, gh-aw, OpenAI's Symphony specification ([below](#openai-symphony)) | The factory's state lives in Kubernetes objects and GitHub. Waiting hours on CI or a review is a periodic re-check of that state, so a restart loses nothing. Budgets and the kill switch are domain logic any engine would still need. Argo has no budget concept and a Crossplane composition has no timers. Temporal suits workflows whose state lives in code, and is the one to watch ([below](#temporal)) |
 | **Merge gate** | [policy-bot](https://github.com/palantir/policy-bot) behind a repository ruleset | Required reviews, rulesets alone, a custom check, Prow/tide, Mergify, Kodiak | The policy lives in the repository and is reviewable, and the right to merge sits with one dedicated App |
@@ -189,8 +189,8 @@ objects and GitHub, and a controller restart loses nothing. Temporal would add i
 and workflows that are versioned as code, which is heavy at today's 20 tasks a day.
 
 **Reconsider** under the conditions in [the table above](#what-would-make-us-reconsider). The first
-candidate is the automatic resume of runs lost to spot reclamation, now being designed: if resume
-rules multiply, a workflow engine becomes worth its weight.
+candidate is the automatic resume of runs lost to spot reclamation: if resume rules multiply, a
+workflow engine becomes worth its weight.
 
 ### OpenAI Symphony
 
@@ -264,14 +264,14 @@ is already built.
 
 | Today | On Substrate |
 |---|---|
-| Four of the 18 issues found live on `gcp-0` come from one pod per run with a bridge sidecar: a lost pod restarting the conversation, transcripts lost at exit | Durable storage, suspend and resume, and a durable task log remove those classes of bug |
+| One pod per run with a bridge sidecar causes a class of failures: a lost pod restarting the conversation, transcripts lost at exit | Durable storage, suspend and resume, and a durable task log remove those classes of bug |
 | A run waiting on a human approval holds a pod or ends | A parked agent costs nothing and resumes with its memory |
 | A fork copies the log and starts a fresh run | A fork carries a snapshot of the running agent |
 | We maintain an identity sidecar to keep provider keys out of the sandbox | Substrate's egress gateway injects them (static keys only) |
 | Every run starts cold and pulls its image | Agents start from a pre-warmed snapshot |
 
-Warm pools, disk-backed suspend and GKE memory snapshots are already in agent-sandbox; the spike
-compares Substrate against them.
+Warm pools, disk-backed suspend and GKE memory snapshots are already in agent-sandbox; a spike
+compared Substrate against them ([spike](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-17-substrate-spike.md#conclusion)).
 
 **What we would still build:**
 - **The factory**, whole.
@@ -291,25 +291,24 @@ and brings its authorization gap.
 
 ## Reconsidering Substrate: not now, deliberately open
 
-We intend to reconsider Substrate, and kagent with it, in the near future. Until then, a run on a
-reclaimed spot node fails and is resumed from its branch; making that resume automatic is being
-designed. The design keeps the door open:
+A spike ran OpenHands as a Substrate agent: it suspended, resumed and restored on another node with
+its conversation intact, and warm-started in seconds. Substrate is **not adopted now**: it needs beta
+kubelet gates, a second control plane, and it has no published images. A run on a reclaimed spot node
+is resumed automatically from its branch. Its state is on the
+[status page]({{< relref "/docs/platform/ai-platform/status.md#later" >}}).
+
+The design keeps the door open:
 - `AgentRun` is the abstraction, so a Substrate backend would be a new composition behind it, not a
   rewrite.
 - Run identity accepts tokens from any issuer.
 - The room bridge avoids WebSocket, which Substrate's egress blocks.
 
-**Next step: a two-day spike at the next live session.** Run OpenHands as a Substrate agent on a
-gVisor worker pool, then suspend it, resume it and restore it on another node, and compare its start
-time with our sandbox pod.
-- **If OpenHands restores and continues its conversation**, we design the Substrate backend.
-- **If it crashes**, the path stays closed for OpenHands until it is fixed upstream.
-
-**We reconsider** on the spike's result, on **2026-12-15**, or as soon as any of these holds:
+**We reconsider** as soon as any of these holds:
 - Substrate ships per-agent tokens ([#1660](https://github.com/agent-substrate/substrate/issues/1660))
   and enforces authorization by default;
 - EKS serves the Kubernetes certificate APIs as stable (EKS 1.37);
 - Substrate gains a story for spot nodes, such as suspending agents on preemption;
+- its costs above shrink upstream (stable kubelet gates, published images);
 - for kagent: open-source authorization, sessions with several attributed participants, per-agent
   egress ([#3019](https://github.com/kagent-dev/kagent/pull/3019)), and a v1 release with a
   migration path.

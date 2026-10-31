@@ -10,8 +10,7 @@ OpenAI-compatible gateway. **Agents** put models to work: a labelled issue becom
 run that opens a pull request, under its own identity and in a room humans can watch and steer.
 
 {{< callout type="warning" >}}
-**Serving is off by default. The Agent Factory's v3 is built and proven live, its release still a draft.**
-What is proven, what is left and what comes next live on one page:
+What runs today, what is experimental and what comes next live on one page:
 [Status and roadmap]({{< relref "/docs/platform/ai-platform/status.md" >}}). Every other page describes the design.
 {{< /callout >}}
 
@@ -67,5 +66,5 @@ than a missing feature.
   {{< card link="/docs/platform/ai-platform/agents/how-it-works/factory/" title="Factory" icon="cog" subtitle="From a labelled issue to a merged PR: intake, triage, teams, revise, the merge gate and the kill switch." >}}
   {{< card link="/docs/platform/ai-platform/agents/use/user-guide/" title="Agents user guide" icon="book-open" subtitle="How a developer gives work to agents, follows it, steers it and stops it." >}}
   {{< card link="/docs/platform/ai-platform/observability/" title="Observability" icon="chart-bar" subtitle="Serving metrics and alerts, and per-run traces, step logs, gen_ai metrics and dashboards." >}}
-  {{< card link="/docs/platform/ai-platform/status/" title="Status and roadmap" icon="map" subtitle="The one place state lives: what serves, what is built, deployed and proven live, and the roadmap." >}}
+  {{< card link="/docs/platform/ai-platform/status/" title="Status and roadmap" icon="map" subtitle="The one place state lives: what is available, what is experimental, and what is planned." >}}
 {{< /cards >}}

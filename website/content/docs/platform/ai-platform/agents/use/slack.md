@@ -7,8 +7,8 @@ aliases:
   - /docs/platform/ai-platform/agents/slack/
 ---
 
-`maku-slack`, Maku's Slack app, turns a Slack thread into a factory task. **Proven live on `gcp-0` on
-2026-10-29, one workspace; not deployed on `aws-0`.** A mention drafts the issue, a reply edits it, a
+`maku-slack`, Maku's Slack app, turns a Slack thread into a factory task. Whether it is deployed on your
+platform is on the [status page]({{< relref "/docs/platform/ai-platform/status.md" >}}). A mention drafts the issue, a reply edits it, a
 maintainer's ✅ files it and starts the task, and the thread then follows the room. Approvals and
 steering stay on the room page; the merge is your approval on GitHub.
 
@@ -53,16 +53,16 @@ repository. **`@factory unlink`** removes the link. Someone the operator lists i
 One line is enough:
 
 ```text
-@factory Smana/ai-native-ref docs: runbook 18 never says where the key lives
+@factory acme/shop docs: the README's install link is dead
 ```
 
 Add lines when you have more to say:
 
 ```text
-@factory Smana/ai-native-ref docs: runbook 18 never says where the key lives
-The runbook names the factory's API but not where its key is stored.
-Should: say which Secret holds it.
-Acceptance: docs/runbooks/18.md gains one line naming the Secret.
+@factory acme/shop docs: the README's install link is dead
+The install section links to a page that was moved.
+Should: point the link at the current install page.
+Acceptance: README.md's install link returns 200.
 ```
 
 | Part | Rule |

@@ -6,8 +6,7 @@ lastVerified: 2026-10-16
 ---
 
 Both halves land in the platform's Victoria stack and Grafana; nothing here runs a second
-telemetry pipeline. Serving is watched per model, agents per run. Open findings on this page's
-signals are in [runbook 11's live findings](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md#live-findings).
+telemetry pipeline. Serving is watched per model, agents per run.
 
 ```mermaid
 flowchart LR
@@ -62,7 +61,7 @@ only exists once the opt-in umbrella is resumed.
 One trace, one step log and one dashboard page per run, so a human can open any run and see where
 it stands, what it did, what it cost and where its time went.
 
-> **Metric names.** Maku's metrics are `maku_factory_*` and `maku_rooms_*`, and the dashboards and alerts read those names ([#224](https://github.com/Smana/ai-native-ref/pull/224)). Maku v0.30.x also emitted the old `agent_factory_*` and `rooms_*` names, which stop in v0.31.0.
+> **Metric names.** Maku's metrics are `maku_factory_*` and `maku_rooms_*`, and the dashboards and alerts read those names.
 
 | Component | Software | What it does |
 |---|---|---|
@@ -83,7 +82,6 @@ Which question each signal answers, from a developer's seat, is in the
 The `agent-factory` dashboard's **Human path** row reads the factory's merge series; each series, its
 labels and what each decision means are on
 [Agents and the merge gate]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#metrics" >}}).
-The first live median from hand-off to merge, on `aws-0`: 150 s (`how=human`, `reason=policy_pending`).
 **Cost by role** reads `maku_factory_run_cost_usd{tier,role}`.
 
 Alerts in `observability/base/agent-platform/vmrule-agent-factory.yaml`:

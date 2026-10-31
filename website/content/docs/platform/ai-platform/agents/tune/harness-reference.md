@@ -1,7 +1,7 @@
 ---
 title: Harness reference
 weight: 20
-description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its value on aws-0, what it does, its bounds, and whether it is proven live."
+description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its example value, what it does, its bounds, and whether it is on by default."
 lastVerified: 2026-10-31
 aliases:
   - /docs/platform/ai-platform/agents/harness-reference/
@@ -19,19 +19,20 @@ Every knob of a run, layer by layer. How to use them is on
   {{< card link="#harness" title="Harness" icon="cog" subtitle="The loop's settings, baked into the image." >}}
 {{< /cards >}}
 
-**Pins on `main`, 2026-10-31:** Maku `v0.32.3`, composed by crossplane-configuration `v0.9.31`. Values below are the repository's; `live` means seen on `aws-0` (or on `gcp-0` until its teardown on 2026-10-29).
+**Pins on `main`:** Maku `v0.32.3`, composed by crossplane-configuration `v0.9.31`. Values below are
+examples: the reference host's configuration.
 
 | Status | Meaning |
 |---|---|
-| {{< badge content="live" color="green" >}} | Seen working on a real run |
-| {{< badge content="deployed" color="blue" >}} | Configured, not yet exercised |
+| {{< badge content="default" color="green" >}} | On by default |
+| {{< badge content="experimental" color="yellow" >}} | Built, on for a few classes only; its benefit is still measured |
 | {{< badge content="off" color="gray" >}} | Shipped, switched off |
-| {{< badge content="design" color="yellow" >}} | Specified, not built |
+| {{< badge content="planned" color="blue" >}} | Specified, not built |
 
 ## Factory: tiers {#tiers}
 
 `config.tiers` in `tooling/base/agent-factory/helm-values-configmap.yaml`. Triage fixes one tier per
-task; every run of the task inherits it. {{< badge content="deployed" color="blue" >}}, the USD cap {{< badge content="live" color="green" >}}
+task; every run of the task inherits it. {{< badge content="default" color="green" >}}
 
 | Tier | `runUSD` / `taskUSD` | `runMinutes` | `runTokens` / `taskTokens` |
 |---|---|---|---|
@@ -53,7 +54,7 @@ at $4.46 of $6.80, since 95% were cache reads. The gateway's per-run budget B1 i
 
 ## Factory: templates and triage {#templates}
 
-`config.templates`: the roles that run, in order, on one branch. {{< badge content="deployed" color="blue" >}}
+`config.templates`: the roles that run, in order, on one branch. {{< badge content="default" color="green" >}}
 
 | Template | Roles | Review rounds |
 |---|---|---|
@@ -75,7 +76,7 @@ Triage picks the template from the class and the tier:
 | `docs-links` | `solo`; `pair` on `frontier` |
 | Any other class | `pair`; `trio` on `frontier` |
 
-The tier would come from the complexity classifier, which is {{< badge content="design" color="yellow" >}}: every task falls back to
+The tier would come from the complexity classifier, which is {{< badge content="planned" color="blue" >}}: every task falls back to
 `standard`, except one in ten (`triage.controlPercent: 10`), the control group, on `frontier`.
 `defaults.template` and `defaults.tier` choose nothing at run time, but the factory still validates
 them at startup, as it requires `triage.classifierURL`: they leave the config only with an
@@ -94,10 +95,10 @@ implementer's tier's. The tester keeps the implementer's tier.
 | `caps.tasksPerDay` | 20 | Past it, a labelled issue is refused with a comment |
 | `caps.maxTextBytes` | 14,336 | The longest task text accepted |
 | `caps.maxPendingMinutes` | 30 (5 … 480) | A run still `Pending` escalates as `run_unschedulable` |
-| `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="live" color="green" >}} aws-0 |
-| `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
+| `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="default" color="green" >}} |
+| `sandbox.suspend.enabled` | `true` (example) | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="default" color="green" >}} |
 | `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since Maku v0.16.0). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
-| `loops.<class>` | `default: {scope: off}`; `docs` (scoper, loop policy, search; provider `models` only in a live session) and `scripts` (scoper, splitter) | The loop policy and the scope, off for every class without a row. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md#loop-policy" >}}) |
+| `loops.<class>` | `default: {scope: off}`; `docs` (scoper, loop policy, search) and `scripts` (scoper, splitter) | The loop policy and the scope, off for every class without a row. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md#loop-policy" >}}) |
 | `scoper.nudgeAt`, `scoper.maxToolCalls` | 25 and 40 (Maku's defaults; this repository sets no `scoper:` key) | The scoper's exploration bound: a nudge to wrap up at 25 tool calls, a stop at 40 with the end `budget_calls`; any end without a handoff leaves the implementer to run unscoped |
 | `loops.<class>.search` | `true` on `docs` only | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/tune/harness.md#search" >}}) |
 
@@ -117,7 +118,7 @@ implementer's tier's. The tester keeps the implementer's tier.
 The steering note and the scope are never clipped. The snapshot is inlined whole while the brief stays
 within 16 KiB, else the brief tells the implementer to read it with `room_read`. The scope is an
 agent's text drawn from an untrusted issue: sanitised and fenced as the snapshot is. The steering note
-is fenced as trusted. {{< badge content="live" color="green" >}} on `docs` and `scripts`
+is fenced as trusted. Example (the reference host): on for `docs` and `scripts`.
 
 ## Run API: runs started by hand {#run-api}
 
@@ -157,7 +158,7 @@ turns the claim into the pod. Nothing here is set per run.
 
 | Setting | Value |
 |---|---|
-| Harness image | `ghcr.io/smana/maku-harness:v0.32.3@sha256:d6ec677262d10342dee4e8ba53af087e7d6f227502c0cc7c2ecfe4d6636c040e` (the release's image, composed by crossplane-configuration v0.9.31; the `aws-0` session ran the v0.31.0 harness until that composition landed; the composition pin lives in crossplane-configuration): a harness change reaches runs only through the composition's digest, so the harness roles reach runs with that bump |
+| Harness image | `ghcr.io/smana/maku-harness:v0.32.3@sha256:d6ec677262d10342dee4e8ba53af087e7d6f227502c0cc7c2ecfe4d6636c040e` (the release's image, composed by crossplane-configuration v0.9.31, where the composition pin lives): a harness change reaches runs only through the composition's digest, so the harness roles reach runs with that bump |
 | Environment | `MODEL`, `DATA_CLASS`, `ROLE`, `LLM_BASE_URL`, `MCP_URL`, `TASK_FILE`, `RULES_FILE`, tracing; `AGENT_CHECKS` and `AGENT_RUN_SECONDS` with `loop.checks`; `AGENT_SEARCH` with `loop.search`. `LLM_REASONING_EFFORT` is not set |
 | `rules.md` | One branch, one PR, never `.github/workflows/`, "a 429 means the budget is spent: stop". Each rule is also enforced outside the sandbox |
 | `task.md` | The task text: the biggest driver of a run's length |
@@ -174,22 +175,22 @@ None is a claim field.
 
 | Knob | Value | Effect | Status |
 |---|---|---|---|
-| `reasoning_effort` | `high` | Unsent, GLM-5.3 thinks at maximum: 150 s per reply instead of 11 s | {{< badge content="live" color="green" >}} |
-| Model timeout | 300 s per call | A call that timed out before its first token is retried once (maku #224) when the run has time left; a second timeout ends the run | {{< badge content="deployed" color="blue" >}} |
-| Retries | 3 attempts, 10 s then 20 s apart | On a 503 or a reset. **Never** a 429; a timeout has its own single retry (above) | {{< badge content="live" color="green" >}} |
-| `max_iterations` | 500 | Past it the run ends `error`; the USD cap and deadline usually end it first | {{< badge content="deployed" color="blue" >}} |
-| Stuck detection | last 20 events | Ends the run `stuck` on 4 identical cycles, 3 repeated errors or 3 messages with no action | {{< badge content="live" color="green" >}} |
-| Condenser | 80 events, keep first 4 | Summarises history with the same model, on the run's budget | {{< badge content="deployed" color="blue" >}} |
-| Event size | 30,000 chars | A huge output is truncated, not refused | {{< badge content="deployed" color="blue" >}} |
-| Tools | terminal, file editor, task tracker, MCP | No browser; MCP tools filtered per role by the gateway | {{< badge content="live" color="green" >}} |
-| `search` | 40 iterations, 300k tokens, 300 s, 6 a run, effort `low`, 8,000 characters back | A read-only child (`grep`, `glob`, `read_file`, `list_directory`) on the run's token; its steps are the run's; ledger `/workspace/.agent-search.jsonl` | {{< badge content="deployed" color="blue" >}} |
-| Prompt caching | on for `internal` | 85% of input from cache: $0.48 instead of $2.13 | {{< badge content="live" color="green" >}} |
-| `autotitle` | off | Saves a model call per title | {{< badge content="live" color="green" >}} |
-| `agent-checks` | the CI's fast subset from `.github/agent-checks.yaml` | Before every push; the harness re-runs it on a finished implementer's head and notes the result | {{< badge content="deployed" color="blue" >}} |
-| Step log | every 15 s | Lines arrive in batches | {{< badge content="live" color="green" >}} |
-| Progress notes | 5 milestones, ≤ 8 a run | Fixed texts in the room, nothing the model wrote | {{< badge content="live" color="green" >}} |
-| Checkpoint on SIGTERM | implementer only | A reclaimed run's work survives on its branch | {{< badge content="live" color="green" >}} aws-0 |
-| Tracing | span per model and MCP call | No prompt or output content | {{< badge content="live" color="green" >}} |
+| `reasoning_effort` | `high` | Unsent, GLM-5.3 thinks at maximum: 150 s per reply instead of 11 s | {{< badge content="default" color="green" >}} |
+| Model timeout | 300 s per call | A call that timed out before its first token is retried once when the run has time left; a second timeout ends the run | {{< badge content="default" color="green" >}} |
+| Retries | 3 attempts, 10 s then 20 s apart | On a 503 or a reset. **Never** a 429; a timeout has its own single retry (above) | {{< badge content="default" color="green" >}} |
+| `max_iterations` | 500 | Past it the run ends `error`; the USD cap and deadline usually end it first | {{< badge content="default" color="green" >}} |
+| Stuck detection | last 20 events | Ends the run `stuck` on 4 identical cycles, 3 repeated errors or 3 messages with no action | {{< badge content="default" color="green" >}} |
+| Condenser | 80 events, keep first 4 | Summarises history with the same model, on the run's budget | {{< badge content="default" color="green" >}} |
+| Event size | 30,000 chars | A huge output is truncated, not refused | {{< badge content="default" color="green" >}} |
+| Tools | terminal, file editor, task tracker, MCP | No browser; MCP tools filtered per role by the gateway | {{< badge content="default" color="green" >}} |
+| `search` | 40 iterations, 300k tokens, 300 s, 6 a run, effort `low`, 8,000 characters back | A read-only child (`grep`, `glob`, `read_file`, `list_directory`) on the run's token; its steps are the run's; ledger `/workspace/.agent-search.jsonl` | {{< badge content="experimental" color="yellow" >}} |
+| Prompt caching | on for `internal` | 85% of input from cache: $0.48 instead of $2.13 | {{< badge content="default" color="green" >}} |
+| `autotitle` | off | Saves a model call per title | {{< badge content="default" color="green" >}} |
+| `agent-checks` | the CI's fast subset from `.github/agent-checks.yaml` | Before every push; the harness re-runs it on a finished implementer's head and notes the result | {{< badge content="default" color="green" >}} |
+| Step log | every 15 s | Lines arrive in batches | {{< badge content="default" color="green" >}} |
+| Progress notes | 5 milestones, ≤ 8 a run | Fixed texts in the room, nothing the model wrote | {{< badge content="default" color="green" >}} |
+| Checkpoint on SIGTERM | implementer only | A reclaimed run's work survives on its branch | {{< badge content="default" color="green" >}} |
+| Tracing | span per model and MCP call | No prompt or output content | {{< badge content="default" color="green" >}} |
 
 ```promql
 # One run's tokens by model and type, as the meter prices them

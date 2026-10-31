@@ -143,9 +143,9 @@ endpoint picker stands and what turning it on would take.
 ### Frontier models and token budgets
 
 `tier-frontier` is served by GLM-5.3 through Z.ai with the **platform** key, which only the gateway
-holds. It needs no GPU, so it answers with `llm-platform` suspended: the `ai-gateway` umbrella is
-live on `gcp-0`, which generates its API keys in-cluster (Secret `ai-gateway-api-keys` in
-`envoy-ai-gateway-system`).
+holds. It needs no GPU, so it answers with `llm-platform` suspended. The `ai-gateway` umbrella generates
+its API keys in-cluster (Secret `ai-gateway-api-keys` in `envoy-ai-gateway-system`). Example (the
+reference host's GKE endpoint):
 
 ```bash
 curl -s https://llm.priv.gcp.ogenki.io/v1/chat/completions \
@@ -167,8 +167,7 @@ counted in **shadow mode**: nothing is rejected yet
 
 Every call an agent makes, to a model, a tool or the token exchange, crosses
 [agentgateway](https://agentgateway.dev)'s Gateway `agent-router` in namespace `agent-gateway` under
-the run's own identity. Runs moved to it on 2026-10-16 (#2408), Envoy's agent router was removed the
-same day (#2429), and the human `ai-gateway` stays on Envoy Gateway
+the run's own identity. The human `ai-gateway` stays on Envoy Gateway
 ([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})). The harness
 never sees the run's token: its identity-proxy sidecar attaches it (see
 [Agent runtime]({{< relref "/docs/platform/ai-platform/agents/how-it-works/runtime.md" >}})). Manifests:
@@ -203,7 +202,7 @@ flowchart LR
 |---|---|---|---|
 | `public` | 8080 | `agent-router.<role>.public` | `/v1` and `/anthropic` to Z.ai, and `/v1` to Moonshot or Mistral when the run's pinned alias names one ([providers]({{< relref "/docs/platform/ai-platform/agents/how-it-works/providers.md" >}}), public data only); `/v1/models` answers a 404 body, not a model list; `/mcp` with documentation and room tools |
 | `internal` | 8081 | `agent-router.<role>.internal` | `/mcp` with cluster, metric and log reads per role; the model route to Claude through the Anthropic API (Bedrock or Vertex optional per cloud; ADR-0054) and a read-only GitHub route for clones of either repository ([ai-native-ref#11](https://github.com/Smana/ai-native-ref/pull/11)) |
-| `sts` | 8082 | `octo-sts/Smana/{cloud-native-ref,ai-native-ref}/<role>` | `/sts/exchange` to octo-sts, with the bearer forwarded (`preserveToken`) |
+| `sts` | 8082 | `octo-sts/<owner>/<repo>/<role>` (example (the reference host): `octo-sts/Smana/{cloud-native-ref,ai-native-ref}/<role>`) | `/sts/exchange` to octo-sts, with the bearer forwarded (`preserveToken`) |
 
 ### Identity
 
@@ -278,7 +277,7 @@ human ones (`policy-budgets.yaml`, `ratelimit.yaml`, `kvstore.yaml`):
 They are a backstop: the factory's run meter stays the exact cap, and the gateway never refuses a
 call the factory would admit. Each call is charged at the meter's own prices, so a cache read
 costs its cache rate; gate AG8 holds the gateway's price expression and limits to the factory's
-values. They are **enforced** since 2026-10-18 (`SHADOW_MODE: "false"` on the server): a call over
+values. They are **enforced** (`SHADOW_MODE: "false"` on the server): a call over
 budget gets a `429` whose body, `agent_budget_exhausted`, the harness logs
 ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)). The server is `envoyproxy/ratelimit` (`agent-ratelimit`) on the Valkey
 `KVStore` `xplane-agent-ratelimit`; if it is down the router fails open and `AgentRateLimitDown`

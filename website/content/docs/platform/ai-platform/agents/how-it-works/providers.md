@@ -8,11 +8,10 @@ aliases:
 ---
 
 Every run asks for `agent-default` unless its class picks otherwise: GLM-5.3 on Z.ai for public work,
-Claude for internal work. Two more providers are **live, for public data only**, and selectable per class. Nothing changes by
-default. Proven on 2026-10-29 ([status page]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}})):
-a reviewer on Kimi and an implementer on Mistral Medium, each run's cost matching the gateway's within 1%.
-Mistral works but is **not recommended as an implementer yet**: its one live run spent its whole token
-budget (4.8M tokens) on a 5-line docs change.
+Claude for internal work. Two more providers are available **for public data only**, and selectable per class. Nothing changes by
+default. Each run's cost is metered at the provider's list price, like any other run. Mistral is **not
+recommended as an implementer**: it can spend a run's whole token budget on a small change. Their state
+is on the [status page]({{< relref "/docs/platform/ai-platform/status.md#roadmap" >}}).
 
 | Alias | Model | Tier | Processed in |
 |---|---|---|---|
@@ -21,7 +20,7 @@ budget (4.8M tokens) on a 5-line docs change.
 | `mistral-light` | Mistral Small 4 (`mistral-small-2603`) | light | EU |
 
 {{< callout type="warning" >}}
-**Public data only.** Both are processors the owner approved for public repositories and tasks, not
+**Public data only.** Both are processors approved for public repositories and tasks, not
 for internal data. Internal tasks never get them, held three times: the gateway routes them only from
 its `public` listener, only the public [capability profiles]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#profiles" >}})
 list their aliases, and the factory applies a class's choice to public tasks only.
@@ -29,9 +28,7 @@ list their aliases, and the factory applies a class's choice to public tasks onl
 
 ## Switch a class on
 
-`loops.<class>.models` is permanent; the rows that name a provider are not. The owner turns one on for a
-live session and off after it (the `docs` row's `models` of 2026-10-29 is removed by
-[#218](https://github.com/Smana/ai-native-ref/pull/218)). One key on the class's `loops` row, in `tooling/base/agent-factory/helm-values-configmap.yaml`:
+No class names a provider by default. One key on the class's `loops` row, in `tooling/base/agent-factory/helm-values-configmap.yaml`:
 `models.<role>.<tier>` is the alias that role runs on for a public task of that tier.
 
 ```yaml
@@ -57,8 +54,6 @@ provider's 429 ends the run, as Z.ai's does.
 ## Owner prerequisites
 
 The agents' own keys, in OpenBao: `bao kv put -mount=agents moonshot api_key=-` and
-`bao kv put -mount=agents mistral api_key=-` (owner action 2c in the
-[runbooks README](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md#owner-actions-in-order)),
-each capped on its provider's console: Mistral is pay-as-you-go, capped at $20, and Kimi Code is a
-flat-rate plan. The smoke through the gateway is in
+`bao kv put -mount=agents mistral api_key=-`. Set a spend cap for each key on its provider's console.
+A smoke test through the gateway is in
 [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#feature-15-providers-a-smoke-through-the-gateway).

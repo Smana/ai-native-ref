@@ -17,6 +17,17 @@ repository's config; what is proven is on the [status page]({{< relref "/docs/pl
 
 {{< hero-video clip="agent-factory-v3" width="720" height="854" alt="The run roles in 33 s: a scoper bounds the task or asks the author one question; a hard issue is split into parts a maintainer approves; the implementer runs the repository's own checks, asks the search helper, opens the pull request and stops if it makes no commit; a fresh-context judge says done, a fresh-context reviewer cites the checks, a maintainer's approval is the merge; the gate decides only the low-risk classes and the merger App merges. Each stage is a per-class switch, off by default." />}}
 
+## When does an agent's pull request merge? {#when-it-merges}
+
+| Case | When |
+|---|---|
+| **On its own** | Only if its class is live for that repository, and CI, policy-bot and the reviewer agent all approve the current head, and the change stays inside the class's limits (files, size, shape, holdout checks, oracle), and the breaker has not paused the class, and the daily cap is not reached. The merger App then merges it |
+| **On one approval** | Any other agent pull request, when a maintainer approves its current head (`approveToMerge`). The merger App merges it at once |
+| **Never on its own** | A class in shadow is decided and recorded only. A class with no mode is a normal pull request for a human |
+
+The detail is in [the decision rows](#decision-rows). Which classes are live in this repository's
+config: see the [status page]({{< relref "/docs/platform/ai-platform/status.md#class-modes" >}}).
+
 ## The roles {#roles}
 
 ```mermaid

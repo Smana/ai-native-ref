@@ -70,11 +70,9 @@ sequenceDiagram
 A tester run writes tests under the repository's test paths and commits them. The harness then runs
 them red on the base, signs the commit and pushes it, or answers once (`not_testable`) and pushes
 nothing. The implementer that follows cannot commit a change to those files, and is told when they
-still fail. The model itself never pushes. Proven live on 2026-10-29, the `not_testable` case
-included ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)).
-`testFirst: true` on `scripts` in cloud-native-ref is a session switch: the owner turns it on for a
-live session and off after it ([#199](https://github.com/Smana/ai-native-ref/pull/199)); every other class
-runs without a tester ([agents and the merge gate]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#tester" >}})).
+still fail. The model itself never pushes. `testFirst` is off by default; an operator turns it on
+per class ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)),
+and a class without it runs without a tester ([agents and the merge gate]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#tester" >}})).
 
 {{< details title="What the step log looks like" closed="true" >}}
 One line per action, never its output, redacted for tokens. It is what you read most.
@@ -172,19 +170,19 @@ sum by (reason) (agentrun_outcome_info)
 
 ### What real runs look like {#examples}
 
-On `gcp-0`, 2026-10-18, all on GLM-5.3:
+Example (the reference host): typical runs, all on GLM-5.3.
 
-| Run | Task | Steps | Cost | End |
-|---|---|---|---|---|
-| `dkpa4r4o` | docs-links | 10 | $0.03 | ✅ succeeded |
-| `b4cnoos7` | docs | 36 | $0.17 | ✅ PR opened |
-| `jcp6kl72` | docs-links | 225 | $1.65 | ✅ PR opened |
-| `d3jacb5z` | dashboards | 319 | $2.65 | ❌ out of budget, nothing pushed |
-| `kk2egjta` | dashboards, frontier | 444+ | $4.46+ | ⏳ still running at 66 min |
+| Task | Steps | Cost | End |
+|---|---|---|---|
+| docs-links | 10 | $0.03 | ✅ succeeded |
+| docs | 36 | $0.17 | ✅ PR opened |
+| docs-links | 225 | $1.65 | ✅ PR opened |
+| dashboards | 319 | $2.65 | ❌ out of budget, nothing pushed |
+| dashboards, frontier | 444+ | $4.46+ | ⏳ still running at 66 min |
 
 {{< callout type="info" >}}
 **Step count, not tier, separates runs.** Most finish in 10–40 steps for under $0.20. And with 95%
-of input read from cache, a dollar cap fits better than a token cap: `d3jacb5z` read 7.7 M tokens
+of input read from cache, a dollar cap fits better than a token cap: the out-of-budget run above read 7.7 M tokens
 for $2.65.
 {{< /callout >}}
 
@@ -278,9 +276,8 @@ flowchart TB
 ## Loop policy {#loop-policy}
 
 The loop policy stops wandering runs and checks a finished run against the task's acceptance checks.
-{{< badge content="live" color="green" >}} Proven live on 2026-10-29 on the `docs` class: an impossible
-task escalated as "cannot be done as asked", with no false `met`, and a failing named check is never
-`met`. Only `docs` has a row, so every other run behaves as before.
+An impossible task escalates as "cannot be done as asked", never as a false `met`, and a failing
+named check is never `met`. A class without a row behaves as before.
 
 | Piece | What it does |
 |---|---|
@@ -290,7 +287,7 @@ task escalated as "cannot be done as asked", with no false `met`, and a failing 
 
 **The switch** is the factory's `loops` key, one row per class (`default`, `review`, or a class a
 repository declares). A row that sets any of its three keys switches that class on. No row, or a row
-without them, is today's run (D4). **`docs` and `scripts` set them**: `scripts` has `judge: tier-light` since [#238](https://github.com/Smana/ai-native-ref/pull/238), so the defaults apply (a stall at 80 steps, 2 continuations), and `default: {scope: off}` switches nothing on.
+without them, runs with no loop policy. Example (the reference host): **`docs` and `scripts` set them**; `scripts` has `judge: tier-light`, so the defaults apply (a stall at 80 steps, 2 continuations), and `default: {scope: off}` switches nothing on.
 
 | Key | Default once a row exists | Bounds |
 |---|---|---|
@@ -314,16 +311,16 @@ refuses the claim, and the task escalates with `loop_unsupported`.
 
 The counter also reads `finished` for a run under the policy that ended normally, and `other` for any end not listed above, by `class`.
 
-**A pending check is waited for.** A `not_yet` whose only unmet check is still running waits for the check inside the 15-minute box, and spends no continuation. When a check fails, the judge is shown the log's last 60 lines, for up to 3 jobs. **That quote is inert live**: the logs sit on the Actions log host (`productionresultssa*.blob.core.windows.net`), which the harness's egress does not allow, and widening it is the owner's security decision.
+**A pending check is waited for.** A `not_yet` whose only unmet check is still running waits for the check inside the 15-minute box, and spends no continuation. When a check fails, the judge is shown the log's last 60 lines, for up to 3 jobs. **That quote is empty unless the harness's egress allows the Actions log host** (`productionresultssa*.blob.core.windows.net`); allowing it is a security decision for your platform.
 
-Switching a class on is last: add its row only after the platform session's live check passes. The
+Switching a class on is last: add its row only after you have tried it on one class. The
 meter and the factory's outcomes then say whether cost per accepted pull request fell.
 
 ## Search {#search}
 
-{{< badge content="built" color="yellow" >}} The implementer can ask a read-only helper one
-question about the repository instead of reading it file by file. Used live in one drill on 2026-10-29
-(3 calls), its value unmeasured (the paired on/off proof never ran); **only `docs` has `search: true`**, so every other run behaves as before.
+Experimental. The implementer can ask a read-only helper one
+question about the repository instead of reading it file by file. Its benefit is unmeasured.
+Example (the reference host): **only `docs` has `search: true`**, so every other run behaves as before.
 
 ```mermaid
 %%{init: {"sequence": {"actorMargin": 20, "width": 120, "messageMargin": 25}}}%%

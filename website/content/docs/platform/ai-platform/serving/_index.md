@@ -33,7 +33,7 @@ plain Flux reconciliation both leave the cluster LLM-free.
 
 ## Turning it on
 
-The AWS gate and the two Kubernetes gates are independent of each other, so releasing one does not
+Example (the reference host): the paths below are its EKS cluster's, `aws-0`. The AWS gate and the two Kubernetes gates are independent of each other, so releasing one does not
 bring the others along — but `llm-platform` itself `dependsOn` `ai-gateway`, so the second
 Kubernetes command must run before the third:
 
@@ -65,20 +65,19 @@ The umbrella aggregates **5** child Flux Kustomizations under
 
 The gateway layer these children attach to (Envoy Gateway, the Envoy AI Gateway, the Semantic
 Router and the `ai-gateway` Gateway) is a separate umbrella, `ai-gateway`, under
-`clusters/aws-0-ai-gateway/`. It is CPU only and released on both clusters (live on `gcp-0`;
-`aws-0` is torn down);
-`llm-platform` depends on it.
+`clusters/aws-0-ai-gateway/`. It is CPU only and released by default, since the Agent Factory
+needs it; `llm-platform` depends on it.
 
 That directory is a **sibling** of `clusters/aws-0/`, not a child, on
 purpose: `flux-system` syncs `clusters/aws-0/` recursively, so a nested
 path would be auto-discovered and applied — bypassing the suspend gate
 entirely.
 
-### On `gcp-0`
+### On GKE
 
-`gcp-0` has **no OpenTofu gate**: the weights bucket is a Crossplane claim
+Example (the reference host): its GKE cluster is `gcp-0`. GKE has **no OpenTofu gate**: the weights bucket is a Crossplane claim
 rather than an OpenTofu stack, so there is no `TM_LLM_PLATFORM_ENABLED`.
-The two Kubernetes gates match aws-0's: `clusters/gcp-0/ai-gateway.yaml`,
+The two Kubernetes gates match EKS's: `clusters/gcp-0/ai-gateway.yaml`,
 then `clusters/gcp-0/llm-platform.yaml`, which depends on it. The first
 is released (`spec.suspend: false`, for the Agent Factory); the second
 ships `spec.suspend: true`. Weights are served from a GCS bucket over the Cloud
@@ -86,14 +85,12 @@ Storage FUSE CSI driver instead of an S3 Files POSIX mount — see
 [ADR-0021]({{< relref "/docs/decisions/0021-gcs-fuse-for-model-weights-on-gcp.md" >}})
 for why, including what it gives up.
 
-**On `gcp-0` the umbrella stays suspended on cost and an open GPU quota, not
-on missing identity**: each claim's per-claim GCP read identity *is* rendered
-as of `crossplane-configuration` v0.4.6. The first resume (2026-08-28) proved
-as much on a live cluster — the per-claim `GCPWorkloadIdentity` reached Ready
-and the preload Job wrote the weights to GCS — and stalled only once it reached
-the GPU itself: `GPUS_ALL_REGIONS` is `0` on the project, a Google quota this
-repository cannot route around. See `clusters/gcp-0-llm-platform/README.md` for
-the full failure-order watch list before the next resume.
+**On GKE the umbrella stays suspended on cost and GPU quota, not on missing
+identity**: each claim's per-claim GCP read identity is rendered by the
+composition. Check the project's `GPUS_ALL_REGIONS` quota before you resume it:
+a new project's is `0`, and no claim can schedule a GPU until Google raises it.
+See `clusters/gcp-0-llm-platform/README.md` (example path) for the failure-order
+watch list before a resume.
 
 ## Security posture
 

@@ -1,14 +1,16 @@
 ---
 title: Harness tuning
-weight: 15
+weight: 10
 description: "How to tune an agent run: which lever moves cost, time and quality, how to measure a change, what goes wrong and how to fix it."
 lastVerified: 2026-10-18
+aliases:
+  - /docs/platform/ai-platform/agents/harness/
 ---
 
 The harness runs the agent loop inside the sandbox: OpenHands
 [`agent-server`](https://github.com/OpenHands/software-agent-sdk), driven by a small entrypoint,
 `agent-run`. This page is the guide; every setting with its value and bounds is on the
-[Harness reference]({{< relref "/docs/platform/ai-platform/agents/harness-reference.md" >}}).
+[Harness reference]({{< relref "/docs/platform/ai-platform/agents/tune/harness-reference.md" >}}).
 
 {{< callout type="info" >}}
 **The levers that matter are outside the harness.** Money, time and model come from the **tier**,
@@ -25,7 +27,7 @@ whole $2.55 on 319 `grep` steps and pushed nothing.
   {{< card link="#recipes" title="Reviews cost too much" icon="currency-dollar" subtitle="Fewer rounds, solo for mechanical classes, or a smaller reviewer." >}}
   {{< card link="#debug" title="A run loops or fails" icon="refresh" subtitle="Read its end state, its step mix, then its room." >}}
   {{< card link="/docs/platform/ai-platform/routing/#agent-routing" title="Use another model" icon="chip" subtitle="Change the tier's model and add its price row." >}}
-  {{< card link="/docs/platform/ai-platform/agents/harness-reference/" title="Every setting" icon="adjustments" subtitle="Tiers, templates, caps, claim, composition, harness." >}}
+  {{< card link="/docs/platform/ai-platform/agents/tune/harness-reference/" title="Every setting" icon="adjustments" subtitle="Tiers, templates, caps, claim, composition, harness." >}}
 {{< /cards >}}
 
 ## The five levers {#levers}
@@ -72,7 +74,7 @@ still fail. The model itself never pushes. Proven live on 2026-10-29, the `not_t
 included ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)).
 `testFirst: true` on `scripts` in cloud-native-ref is a session switch: the owner turns it on for a
 live session and off after it ([#199](https://github.com/Smana/ai-native-ref/pull/199)); every other class
-runs without a tester ([run roles]({{< relref "/docs/platform/ai-platform/agents/roles.md#tester" >}})).
+runs without a tester ([run roles]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#tester" >}})).
 
 {{< details title="What the step log looks like" closed="true" >}}
 One line per action, never its output, redacted for tokens. It is what you read most.
@@ -353,7 +355,7 @@ sequenceDiagram
 
 The child sees nothing of the conversation, reads the uncommitted tree, never writes and never reaches
 the room. Its calls are metered on the run and bounded by the run's USD cap, and the bridge classes the
-call plain. The switch is `loops.<class>.search: true` ([reference]({{< relref "/docs/platform/ai-platform/agents/harness-reference.md#caps" >}})),
+call plain. The switch is `loops.<class>.search: true` ([reference]({{< relref "/docs/platform/ai-platform/agents/tune/harness-reference.md#caps" >}})),
 which does not switch the loop policy on.
 
 ## Not tunable today {#limits}
@@ -365,8 +367,8 @@ which does not switch the loop policy on.
 | A tier picked by task difficulty | The complexity classifier, not deployed: every task is `standard` |
 | A different harness | A new profile in the composition |
 
-Related: [Harness reference]({{< relref "/docs/platform/ai-platform/agents/harness-reference.md" >}}) ·
-[Factory]({{< relref "/docs/platform/ai-platform/agents/factory.md" >}}) ·
-[Rooms]({{< relref "/docs/platform/ai-platform/agents/rooms.md" >}}) ·
+Related: [Harness reference]({{< relref "/docs/platform/ai-platform/agents/tune/harness-reference.md" >}}) ·
+[Factory]({{< relref "/docs/platform/ai-platform/agents/how-it-works/factory.md" >}}) ·
+[Rooms]({{< relref "/docs/platform/ai-platform/agents/how-it-works/rooms.md" >}}) ·
 [Observability]({{< relref "/docs/platform/ai-platform/observability.md#agents" >}}) ·
-[User guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#budgets-and-costs" >}})
+[User guide]({{< relref "/docs/platform/ai-platform/agents/use/user-guide.md#budgets-and-costs" >}})

@@ -78,7 +78,7 @@ and highlights that approval's card.
 ### Step 4 — a diagram zooms
 
 Open any page of the docs site with a mermaid diagram, for example
-`https://cnref.ogenki.io/docs/platform/ai-platform/agents/user-guide/`. Click the diagram, then wheel-zoom and drag. Toggle the
+`https://cnref.ogenki.io/docs/platform/ai-platform/agents/use/user-guide/`. Click the diagram, then wheel-zoom and drag. Toggle the
 theme and repeat.
 
 Expected: full screen on click; zoom and pan work; the diagram is legible in the light and the dark theme; `Esc` closes it.

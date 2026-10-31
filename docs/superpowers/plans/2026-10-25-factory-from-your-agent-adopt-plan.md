@@ -171,7 +171,7 @@ diff <(tail -n +4 infrastructure/base/room-broker/crd-rooms.yaml) "$SCRATCH/crd-
   `tooling/base/agent-factory/slack-app/deployment.yaml`,
   `infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml`, and the "pinned here at"
   mentions in `observability/base/agent-platform/vmrule-agent-factory.yaml`,
-  `website/content/docs/platform/ai-platform/agents/harness-reference.md` and
+  `website/content/docs/platform/ai-platform/agents/tune/harness-reference.md` and
   `website/content/docs/platform/ai-platform/routing.md` (`git grep -n -F "${BASE#v}"`, from Task 1,
   lists them all)
 - Modify: `infrastructure/base/room-broker/config.yaml`, `infrastructure/gcp-0/room-broker/config.yaml`
@@ -276,7 +276,7 @@ git commit -m "docs(decisions): ADR-0059, the factory from your coding agent"
 ### Task 4: The user guide
 
 **Files:**
-- Modify: `website/content/docs/platform/ai-platform/agents/user-guide.md`, section `### Hand off from your coding agent`, and the `roomctl` block in `### From a terminal: roomctl`
+- Modify: `website/content/docs/platform/ai-platform/agents/use/user-guide.md`, section `### Hand off from your coding agent`, and the `roomctl` block in `### From a terminal: roomctl`
 
 - [ ] **Step 1: Rewrite the section** around setup, then what you say. Drop the symlink advice and
   "`cloud-native-ref` carries it": `setup` writes the skill where each client reads it.
@@ -307,7 +307,7 @@ git commit -m "docs(decisions): ADR-0059, the factory from your coding agent"
 Run: `task docs`. Expected: PASS.
 
 ```bash
-git add website/content/docs/platform/ai-platform/agents/user-guide.md
+git add website/content/docs/platform/ai-platform/agents/use/user-guide.md
 git commit -m "docs(agents): the factory from your coding agent, in the user guide"
 ```
 

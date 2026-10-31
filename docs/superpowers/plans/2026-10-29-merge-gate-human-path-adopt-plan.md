@@ -260,7 +260,7 @@ git commit -m "feat(observability): the human path row, the class_paused alert, 
 **Files:**
 - Modify: `docs/runbooks/agent-factory/12-live-auto-merge-drill.md` ("Know before the go", the revert step)
 - Modify: `docs/runbooks/agent-factory/README.md` (row 12's prerequisites)
-- Modify: `website/content/docs/platform/ai-platform/agents/factory.md` (the merge gate section)
+- Modify: `website/content/docs/platform/ai-platform/agents/how-it-works/factory.md` (the merge gate section)
 - Modify: `website/content/docs/platform/ai-platform/status.md` (row 8)
 
 - [ ] **Step 1: Runbook 12**

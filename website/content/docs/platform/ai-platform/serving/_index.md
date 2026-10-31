@@ -1,6 +1,6 @@
 ---
 title: Serving
-weight: 10
+weight: 20
 description: An OpenAI-compatible vLLM serving platform behind Envoy AI Gateway, declared one model per Crossplane claim — off by default until three independent gates are all released.
 lastVerified: 2026-08-30
 ---

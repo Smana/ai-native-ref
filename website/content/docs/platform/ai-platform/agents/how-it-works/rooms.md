@@ -1,8 +1,10 @@
 ---
 title: Rooms
-weight: 20
+weight: 30
 description: "The shared, append-only log of a task: the broker, the bridge, the web view, steering, room tools, approvals, and maku."
 lastVerified: 2026-10-08
+aliases:
+  - /docs/platform/ai-platform/agents/rooms/
 ---
 
 A room is the shared, append-only log of a task: what each agent did, what humans said, the
@@ -54,4 +56,4 @@ Everything ships through Git under `infrastructure/base/room-broker/`, so a roll
 | Schema (`atlasSchema.ref` in `sqlinstance.yaml`) | Atlas applies the new migrations | None: migrations are append-only and Atlas never runs a down migration, so the database keeps the newer schema after a binary revert |
 
 How a developer uses a room day to day is in the
-[user guide]({{< relref "/docs/platform/ai-platform/agents/user-guide.md" >}}).
+[user guide]({{< relref "/docs/platform/ai-platform/agents/use/user-guide.md" >}}).

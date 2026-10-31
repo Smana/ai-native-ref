@@ -45,7 +45,7 @@ Read and record, with file and line:
 - `website/content/docs/platform/ai-platform/routing.md` "What is real today", "one price table": the `tier-*` aliases and `agent-default`, which a human may name on `ai-gateway`.
 - `clusters/aws-0-ai-gateway/*.yaml`, `clusters/gcp-0-ai-gateway/*.yaml`, `infrastructure/aws-0/envoy-ai-gateway/*`, `infrastructure/gcp-0/*` (and the host's `security/…` where the API keys live): the hostnames per cloud (`llm.priv.aws.ogenki.io`, `llm.priv.gcp.ogenki.io`), the API-key source per cloud (the Secrets Manager entry `platform-llm-api-keys` on aws-0; the in-cluster Secret `ai-gateway-api-keys` in `envoy-ai-gateway-system` on gcp-0), the ExternalSecret names and namespaces the troubleshooting section must name.
 - `clusters/aws-0-llm-platform/`, `clusters/gcp-0-llm-platform/`: which `xplane-*` InferenceService claims exist per cloud and whether the umbrella is suspended (the opt-in gates).
-- `website/content/docs/platform/ai-platform/agents/user-guide.md` "Hand off from your coding agent" and "From a terminal: `maku`": the six clients, `maku setup <client>`, `--project`, `--print`, the Gemini trusted-folder caveat, the tool and prompt names, `maku doctor`.
+- `website/content/docs/platform/ai-platform/agents/use/user-guide.md` "Hand off from your coding agent" and "From a terminal: `maku`": the six clients, `maku setup <client>`, `--project`, `--print`, the Gemini trusted-folder caveat, the tool and prompt names, `maku doctor`.
 - `website/content/docs/platform/ai-platform/status.md` row 186: "Claude Code on the self-hosted models, through a protocol relay" (the roadmap row).
 
 - [ ] **Step 2: What the current page claims that is now false or missing**

@@ -1,8 +1,10 @@
 ---
 title: Providers
-weight: 38
+weight: 60
 description: "Moonshot (Kimi K3.1 Pro) and Mistral (Medium, Small) as selectable providers for public work: what they are, where data is processed, and how a class switches them on."
 lastVerified: 2026-10-29
+aliases:
+  - /docs/platform/ai-platform/agents/providers/
 ---
 
 Every run asks for `agent-default` unless its class picks otherwise: GLM-5.3 on Z.ai for public work,
@@ -21,7 +23,7 @@ budget (4.8M tokens) on a 5-line docs change.
 {{< callout type="warning" >}}
 **Public data only.** Both are processors the owner approved for public repositories and tasks, not
 for internal data. Internal tasks never get them, held three times: the gateway routes them only from
-its `public` listener, only the public [capability profiles]({{< relref "/docs/platform/ai-platform/agents/roles.md#profiles" >}})
+its `public` listener, only the public [capability profiles]({{< relref "/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md#profiles" >}})
 list their aliases, and the factory applies a class's choice to public tasks only.
 {{< /callout >}}
 

@@ -1,6 +1,6 @@
 ---
 title: Coding Clients
-weight: 10
+weight: 40
 description: "Connecting a coding client to the platform: the ai-gateway for models and the factory for hand-offs, on aws-0 and gcp-0, with each client's current configuration and the failure modes their errors mean."
 lastVerified: 2026-10-30
 ---
@@ -32,7 +32,7 @@ date above: each snippet says which docs page it was checked against, and
 - **Models.** The `ai-gateway` is the platform's gateway for humans and coding clients. It speaks
   the OpenAI chat-completions API. See [Gateways]({{< relref "/docs/platform/ai-platform/gateways.md" >}}).
 - **Hand-offs.** The factory takes work from a coding agent through an MCP server that `maku`
-  registers. See [Hand off from your coding agent]({{< relref "/docs/platform/ai-platform/agents/user-guide.md#hand-off-from-your-coding-agent" >}}).
+  registers. See [Hand off from your coding agent]({{< relref "/docs/platform/ai-platform/agents/use/user-guide.md#hand-off-from-your-coding-agent" >}}).
 
 ## Endpoints per cloud
 
@@ -288,7 +288,7 @@ curl -sS "$BASE/completions" \
        "max_tokens": 50, "temperature": 0.0}'
 ```
 
-Hand-offs (schema-checked against <https://github.com/Smana/ai-native-ref/blob/main/website/content/docs/platform/ai-platform/agents/user-guide.md>, not run): `maku doctor` must show every check `ok`, then ask the client to list the factory tools
+Hand-offs (schema-checked against <https://github.com/Smana/ai-native-ref/blob/main/website/content/docs/platform/ai-platform/agents/use/user-guide.md>, not run): `maku doctor` must show every check `ok`, then ask the client to list the factory tools
 (`rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`,
 `issue_file`) and prompts (`handoff`, `status`, `inbox`).
 

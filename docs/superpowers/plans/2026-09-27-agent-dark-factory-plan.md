@@ -17551,7 +17551,7 @@ issue's comments read, in order: started (run, branch, budget, room link), PR op
 **Files:**
 - Modify: `website/content/docs/platform/ai-platform/agents/_index.md` (the callout),
   `website/content/docs/platform/ai-platform/status.md` (the statuses, which live only there) and
-  `website/content/docs/platform/ai-platform/agents/user-guide.md` (Part 1 rewritten from the
+  `website/content/docs/platform/ai-platform/agents/use/user-guide.md` (Part 1 rewritten from the
   walkthrough's transcript, Part 2 retired). Both exist since #2092 merged; the steps below that
   write `what-happens-to-a-task.md` write Part 1 of `user-guide.md` instead.
 - Modify: `website/content/docs/platform/_index.md` (a card)

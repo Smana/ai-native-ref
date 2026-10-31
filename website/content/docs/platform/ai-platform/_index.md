@@ -62,10 +62,10 @@ than a missing feature.
   {{< card link="/docs/platform/ai-platform/routing/" title="Model routing and cost" icon="currency-dollar" subtitle="Where each request is routed, how to tune quality, cost and latency, what a run costs, and when self-hosting pays." >}}
   {{< card link="/docs/platform/ai-platform/coding-clients/" title="Coding clients" icon="terminal" subtitle="Connecting OpenCode, Continue and OpenWebUI to the gateway — authentication, model IDs, and troubleshooting." >}}
   {{< card link="/docs/platform/ai-platform/agents/" title="Agents" icon="beaker" subtitle="Autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes." >}}
-  {{< card link="/docs/platform/ai-platform/agents/runtime/" title="Agent runtime" icon="shield-check" subtitle="The gVisor sandbox, per-run identity, octo-sts and the rulesets that confine every run." >}}
-  {{< card link="/docs/platform/ai-platform/agents/rooms/" title="Rooms" icon="chat-alt-2" subtitle="The append-only log of a task: live view, steering, room tools and approvals." >}}
-  {{< card link="/docs/platform/ai-platform/agents/factory/" title="Factory" icon="cog" subtitle="From a labelled issue to a merged PR: intake, triage, teams, revise, the merge gate and the kill switch." >}}
-  {{< card link="/docs/platform/ai-platform/agents/user-guide/" title="Agents user guide" icon="book-open" subtitle="How a developer gives work to agents, follows it, steers it and stops it." >}}
+  {{< card link="/docs/platform/ai-platform/agents/how-it-works/runtime/" title="Agent runtime" icon="shield-check" subtitle="The gVisor sandbox, per-run identity, octo-sts and the rulesets that confine every run." >}}
+  {{< card link="/docs/platform/ai-platform/agents/how-it-works/rooms/" title="Rooms" icon="chat-alt-2" subtitle="The append-only log of a task: live view, steering, room tools and approvals." >}}
+  {{< card link="/docs/platform/ai-platform/agents/how-it-works/factory/" title="Factory" icon="cog" subtitle="From a labelled issue to a merged PR: intake, triage, teams, revise, the merge gate and the kill switch." >}}
+  {{< card link="/docs/platform/ai-platform/agents/use/user-guide/" title="Agents user guide" icon="book-open" subtitle="How a developer gives work to agents, follows it, steers it and stops it." >}}
   {{< card link="/docs/platform/ai-platform/observability/" title="Observability" icon="chart-bar" subtitle="Serving metrics and alerts, and per-run traces, step logs, gen_ai metrics and dashboards." >}}
   {{< card link="/docs/platform/ai-platform/status/" title="Status and roadmap" icon="map" subtitle="The one place state lives: what serves, what is built, deployed and proven live, and the roadmap." >}}
 {{< /cards >}}

@@ -198,7 +198,7 @@ the prototype's.
 | `scripts/ci/tests/test-agent-observability.py` | `check_factory_budget` | 4 |
 | `website/content/docs/platform/ai-platform/routing.md` | The budget layers (R11) | 5 |
 | `docs/runbooks/agent-factory/04-gateway-secrets-budgets.md` | Parts C and D; new Part F | 5 |
-| `website/content/docs/platform/ai-platform/agents/harness-reference.md` | The `budgets.*` row | 5 |
+| `website/content/docs/platform/ai-platform/agents/tune/harness-reference.md` | The `budgets.*` row | 5 |
 | `website/content/docs/platform/ai-platform/status.md` | The per-person caps row | 5 |
 | `infrastructure/base/agent-gateway/{ratelimit,kustomization,policy-budgets}.yaml` | Comments only | 5 |
 | `docs/superpowers/specs/2026-10-22-truthful-costs-design.md` | Live proof 5; "Ruled in PR 3" | 5 |
@@ -1098,7 +1098,7 @@ git commit -m "feat(observability): the factory's daily budget alert and panel r
   500–501 and 521 (R11)
 - Modify: `docs/runbooks/agent-factory/04-gateway-secrets-budgets.md`: lines 7, 11–12, 268–277, 291,
   298–299, 304 and 343, and a new Part F before `## Results` (line 414) (R13)
-- Modify: `website/content/docs/platform/ai-platform/agents/harness-reference.md:96`
+- Modify: `website/content/docs/platform/ai-platform/agents/tune/harness-reference.md:96`
 - Modify: `website/content/docs/platform/ai-platform/status.md:79`
 - Modify: `infrastructure/base/agent-gateway/ratelimit.yaml:8-10`, `kustomization.yaml:8`,
   `policy-budgets.yaml:1-2` (comments only, R12)
@@ -1380,7 +1380,7 @@ flux resume kustomization agent-factory -n flux-system   # restores the ConfigMa
 
 - [ ] **Step 5: The reference, the status page, the three comments**
 
-In `website/content/docs/platform/ai-platform/agents/harness-reference.md`, replace:
+In `website/content/docs/platform/ai-platform/agents/tune/harness-reference.md`, replace:
 
 ```markdown
 | `budgets.*` | `factoryDaily` 25 M, `humanDaily` 5 M | Daily caps; the per-person one counts in shadow |
@@ -1495,7 +1495,7 @@ Expected: `==> All relative Markdown links resolve (0 allowlisted).`, then `hugo
 
 ```bash
 git add website/content/docs/platform/ai-platform/routing.md docs/runbooks/agent-factory/04-gateway-secrets-budgets.md \
-  website/content/docs/platform/ai-platform/agents/harness-reference.md website/content/docs/platform/ai-platform/status.md \
+  website/content/docs/platform/ai-platform/agents/tune/harness-reference.md website/content/docs/platform/ai-platform/status.md \
   infrastructure/base/agent-gateway/ratelimit.yaml infrastructure/base/agent-gateway/kustomization.yaml \
   infrastructure/base/agent-gateway/policy-budgets.yaml docs/superpowers/specs/2026-10-22-truthful-costs-design.md
 git commit -m "docs: the daily caps count dollars, and B1, B2 and B6 refuse"

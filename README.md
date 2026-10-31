@@ -95,7 +95,7 @@ flowchart LR
 
 Sources and the full record: [status](https://airef.ogenki.io/docs/platform/ai-platform/status/),
 [routing and cost](https://airef.ogenki.io/docs/platform/ai-platform/routing/),
-[harness tuning](https://airef.ogenki.io/docs/platform/ai-platform/agents/harness/).
+[harness tuning](https://airef.ogenki.io/docs/platform/ai-platform/agents/tune/harness/).
 
 ## Status and roadmap
 

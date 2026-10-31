@@ -69,7 +69,7 @@ Most edits need no engine knowledge:
 | Clip | Scene | Length | Made for |
 |---|---|---|---|
 | `agent-factory` | v1/v2, one task end to end, with a title card | 32 s | the feed and the homepage |
-| `agent-factory-v3` | the scoper, the split, the loop policy and the judgement roles; no title card, 1080×1280, loops from an empty cluster | 33 s | the [run roles](../../website/content/docs/platform/ai-platform/agents/roles.md) page |
+| `agent-factory-v3` | the scoper, the split, the loop policy and the judgement roles; no title card, 1080×1280, loops from an empty cluster | 33 s | the [run roles](../../website/content/docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate.md) page |
 
 The v3 beats map to the harness runbook layers: `scoper` (0–7 s) is layer 1; `split` (7–13 s) is
 layer 5, the splitter; `implement` (13–20 s) is layer 4 (search) plus the tester (layer 6, shown as a

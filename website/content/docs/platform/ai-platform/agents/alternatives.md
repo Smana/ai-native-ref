@@ -1,6 +1,6 @@
 ---
 title: Alternatives considered
-weight: 50
+weight: 90
 description: "Work in progress. The alternatives considered for each layer of the Agent Factory, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
 lastVerified: 2026-10-20
 ---

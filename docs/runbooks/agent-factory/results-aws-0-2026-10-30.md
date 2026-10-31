@@ -9,9 +9,9 @@ harness and bridge; crossplane-configuration v0.9.31), through session pins of a
 [the aws-0 merge gate session plan](../../superpowers/plans/2026-10-29-aws-0-merge-gate-session-plan.md);
 the design, the [human path](../../superpowers/specs/2026-10-29-merge-gate-human-path-design.md). Times are UTC.
 
-**Verdict.** The human path works on aws-0. Of the proofs run, every one passes except that the approved
-merge's *record* (N6) failed on v0.32.0 and its re-proof on v0.32.3 is **pending**, and the lifted
-`changes_requested` (A5) is **partial**: its revision ran, its return on approval was not read. The session
+**Verdict.** The human path works on aws-0. Of the proofs run, every one passes except the lifted
+`changes_requested` (A5), which is **partial**: its revision ran, its return on approval was not read. The
+approved merge's *record* (N6) failed on v0.32.0 and passed on v0.32.3, after the fix ([bug 1](#bugs-found-and-fixed)). The session
 found seven issues: five fixed in Maku v0.32.1 to v0.32.3 (#297, #301, #302, #303, #306), one in the host
 (cnref #2691), one reported (the room's "Your move" text). Five proofs were not run. Release tags, merges to `main` and every approval were the owner's.
 
@@ -24,7 +24,7 @@ found seven issues: five fixed in Maku v0.32.1 to v0.32.3 (#297, #301, #302, #30
 | policy-bot | PASS, after a fix | First deliveries on scratch ANR #239 failed the signature: the webhook secret restored from the OpenBao snapshot of 2026-10-16 did not match the App's ([ops findings](#ops-findings)). After the owner set the App's secret to the OpenBao value, `policy-bot: main = success`, deliveries 200 |
 | AM3 and AM8 | PASS | ANR #241's hand-off comment: one action named ("approve this pull request"), and a decision record `<!-- agent-factory-decision head=67dfa768 class=docs decision=human:class_unarmed … -->`. Unread fields print `-` since [maku#303](https://github.com/Smana/maku/pull/303) |
 | L3 — negative half | PASS | 0 adopted Tasks is right: the 5 open Renovate PRs are all ineligible. #2688 touches `opentofu/` (outside `allowedFiles`), #2689 and #2685 workflows, #2681 a major, #2629 `mise.toml`. `github_up=1`, kill switch 0 |
-| N6 — approve-to-merge | PARTIAL: merge PASS, record FAIL on v0.32.0 | ANR #249, 07:19:24Z owner approved `a369c962` → 07:19:34 `reentered_approved` → 07:19:36 `arm` / `maintainer_approved` → 07:19:39 merged by `ogenki-agent-merger[bot]` at the approved head. But the PR carried `factory/auto-merged:docs`, the task sat in `Verifying`, and `mergedHow` / `approvedBy` were lost ([bug 1](#bugs-found-and-fixed)). **The re-proof on v0.32.3 is pending**: ANR #270 (12:21Z), waiting for the owner's approval; it must end `Done` / `merged`, `mergedHow: approved`, `factory/approved-merge`, `approved_merged` |
+| N6 — approve-to-merge | PASS on v0.32.3 (record FAIL on v0.32.0) | ANR #249, 07:19:24Z owner approved `a369c962` → 07:19:34 `reentered_approved` → 07:19:36 `arm` / `maintainer_approved` → 07:19:39 merged by `ogenki-agent-merger[bot]` at the approved head. But the PR carried `factory/auto-merged:docs`, the task sat in `Verifying`, and `mergedHow` / `approvedBy` were lost ([bug 1](#bugs-found-and-fixed)). **Re-proved on v0.32.3**: [ANR #271](https://github.com/Smana/ai-native-ref/pull/271) (issue #270), 13:10:55Z owner approved `32d1731b`; the merger merged it at that head with `factory/merged:docs` and `factory/approved-merge`; task `mnkjp57e` ended `Done` / `merged`, `mergedHow: approved`, `approvedBy: Smana`, no `armedAt` (outside the caps) |
 | A5 — lifted `changes_requested` | PARTIAL: step 1 PASS | The owner requested changes at `67dfa768` on ANR #242: 22:49:02Z the task turned to `revising` ("is revising after @Smana's review"), implementer run `j3pkh5vy` at 22:49:04Z. The return on approval was not read: attempt 1 was abandoned (revisions oscillated and the next push dismissed the approval); #249 was a `class_unarmed` approval, not this path |
 | A7 — approval vs force-push | PASS (safe) | ANR #250: the owner approved `bf5bac0d` at 07:19:24.2Z; force-push to `e009d19a` at 07:19:25.9Z; policy-bot dismissed the approval ("Invalidated by push of e009d19"). No merge; the task stayed `AwaitingHuman` / `class_unarmed`; its status head stayed `bf5bac0d` |
 | M1 — regression breaker | PASS | ANR #251 → PR #252 (shadow class `docs-links`): `shadow:shadow_would_arm`; merged by the owner 07:46Z; the monitor labelled it `factory/merged:docs-links`, then `factory/monitor:regression`; after a factory restart the ledger was re-read (classes=7) and `class_paused{docs-links}` = 1 at 07:48Z; no revert opened |
@@ -65,7 +65,7 @@ blocked by [bug 2](#bugs-found-and-fixed); the second ran on v0.32.3.
 
 | # | Bug | Fix |
 |---|---|---|
-| 1 | **Lost approved-merge record.** A pass that merged on a stale cache then conflicted on its end-of-pass status update, dropping `mergedHow`, `approvedBy`, the comment and the decision metric; the replay took the lost-write branch and recorded a class auto-merge. The same race could open a second revert PR | [maku#302](https://github.com/Smana/maku/pull/302), in v0.32.2: the merge and the revert write a narrow patch right after GitHub takes them. Live: `mergedHow=class` kept on the L2 merge, one revert PR. The approved path is re-proved on v0.32.3 (ANR #270, pending) |
+| 1 | **Lost approved-merge record.** A pass that merged on a stale cache then conflicted on its end-of-pass status update, dropping `mergedHow`, `approvedBy`, the comment and the decision metric; the replay took the lost-write branch and recorded a class auto-merge. The same race could open a second revert PR | [maku#302](https://github.com/Smana/maku/pull/302), in v0.32.2: the merge and the revert write a narrow patch right after GitHub takes them. Live: `mergedHow=class` kept on the L2 merge, one revert PR. The approved path re-proved live on v0.32.3 ([ANR #271](https://github.com/Smana/ai-native-ref/pull/271)) |
 | 2 | **Oracle-class fallback.** Triage's oracle-class branch returned a classification with no `fallback`; the CRD refused every status write, so every `dead-links` task was stuck on v0.32.0 | [maku#306](https://github.com/Smana/maku/pull/306), in v0.32.3: fallback `none`, plus an envtest against the CRD. Proven live: the stuck task progressed |
 | 3 | **cnref #2691.** The host's `test-ai-overlay-from-git` failed on any pre-release pin of ai-native-ref (the session's `v2.8.21-pr248`): its tree half runs `ai-overlay.sh --from-git`, which refuses a pre-release by design | cnref #2691: the tree half runs on a release pin only and says why it skips. Maku's own `harness-checks` now only warns on such a failure ([maku#305](https://github.com/Smana/maku/pull/305), v0.32.3) |
 | 4 | **Judge path (#297).** The harness read `…/12-live-auto-merge-drill.md: proves` as the path `…/12-live-auto-merge-drill`, judged it missing, said `not_yet` three times and stalled the task on a done PR. Found live (22:52-22:55Z) and fixed in this session | [maku#297](https://github.com/Smana/maku/pull/297), in v0.32.1 (matches whole paths). Reaches runs with the harness bump to v0.32.2 or later (xpc v0.9.31 carries v0.32.3) |
@@ -109,8 +109,7 @@ R3 (the push record's lag, the run's end time, a reason's name, the base branch 
 | A4 next-day return | Clock-bound: it needs a day turn with a cap hand-off |
 | G1 host `docs-links` lift | No host `docs-links` decision; only `dead-links` was exercised on the host |
 
-Pending: the N6 re-proof on v0.32.3 (ANR #270 awaits the owner's approval). Partial: A5, the lifted
-`changes_requested`'s return on approval (only its revision ran).
+Partial: A5, the lifted `changes_requested`'s return on approval (only its revision ran).
 
 `dead-links` is back in shadow on cloud-native-ref, and `docs-links` in shadow on ai-native-ref. A class leaves
 shadow after a full day's live proof, not after this session.

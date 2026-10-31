@@ -117,8 +117,8 @@ v3 made the factory land more accepted pull requests per dollar on the reference
 run **for anyone, outside the reference host**: first the whole factory loop on a laptop, then a
 production install on your own cluster. v4.0 holds what an outside adopter needs on day one; the
 increments after it each ship behind their own switch. Nothing here is built yet; each feature gets
-its own design first ([roadmap](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-31-v4-roadmap-design.md),
-[research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-31-v4-landscape-research.md)).
+its own design first ([roadmap](https://github.com/Smana/ai-native-ref/blob/16ebc770ab95cea72d2135ca076659223b56260b/docs/superpowers/specs/2026-10-31-v4-roadmap-design.md),
+[research](https://github.com/Smana/ai-native-ref/blob/16ebc770ab95cea72d2135ca076659223b56260b/docs/superpowers/specs/2026-10-31-v4-landscape-research.md)).
 
 ### v4.0: the core {#v4-core}
 

@@ -178,9 +178,6 @@ policy carries the identical message as a second layer, but the CRD-level CEL ch
 object before any webhook runs, so Kyverno's copy is never the one you actually see here). Record
 each denial message.
 
-> Corrected 2026-09-27: the branch check is a schema `pattern`, not a CEL rule — the error format
-> differs from the name check's CEL message. Verified live: both denied as above (dry-run=server).
-
 **What this proves:** SC-03.
 
 ### Step 7 — R7: a lost pod ends the run, and a new run resumes its branch
@@ -210,10 +207,9 @@ Expected:
 The controller's `serviceaccount "xplane-run-<id>" not found` log line is the withheld ServiceAccount
 refusing the recreate, not an error.
 
-> Known issue (F12, round 9): a deleted pod can come back within ~1 s while the run stays `Running`,
-> and the harness re-runs the task; the `kubectl wait … Failed` then times out. Seen on a run with a
-> `roomRef` on `147819ff`; round 7 on a run without one still passed. Delete the run rather than
-> waiting it out, and record the step as FAIL (F12).
+> Known issue (F12): a deleted pod of a run with a `roomRef` can come back within ~1 s while the run
+> stays `Running`, and the harness re-runs the task; the `kubectl wait … Failed` then times out. A run
+> without a `roomRef` passes. Delete the run rather than waiting it out, and record the step as FAIL (F12).
 
 **What this proves:** R7 as built. A lost pod fails closed, and `agent-run --branch` resumes the work; a factory run resumes on its own ([10](10-disruption.md)).
 
@@ -231,10 +227,10 @@ same ServiceAccount and the same conversation.
 | Composition | crossplane-configuration ≥ v0.9.15 | A suspendable run: `workspace` on a PVC from the default class (`standard-rwo` on gcp-0), `AGENT_SUSPENDABLE=true` on the harness and the bridge, `operatingMode` from the `operating-mode` annotation |
 | Broker | `infrastructure/gcp-0/room-broker/config.yaml` | `suspend: {enabled: true, after: 5m}`: writes `operating-mode` + `remaining-seconds` at suspend, `operating-mode` + `resumed-at` at resume |
 | Grant | `room-broker-suspend` Kustomization | `patch` on `agentruns`, fenced by Kyverno's `agentrun-broker-patch-limit` to those three annotations of a suspendable run |
-| Harness and bridge | agent-platform ≥ v0.15.2 | agent-run reattaches the conversation it finds on the PVC; the bridge answers the reloaded confirmation from the room's decision |
+| Harness and bridge | Maku ≥ v0.15.2 | agent-run reattaches the conversation it finds on the PVC; the bridge answers the reloaded confirmation from the room's decision |
 
 ```bash
-flux get kustomizations -n flux-system room-broker-suspend room-broker agent-factory
+flux get kustomizations -n flux-system | grep -E '^(room-broker-suspend|room-broker|agent-factory)[[:space:]]'
 kubectl get validatingpolicy agentrun-broker-patch-limit -o jsonpath='{.status.conditionStatus.ready}{"\n"}'
 ```
 
@@ -345,7 +341,7 @@ and `NotFound` for the suspendable run's PVC.
 
 Notes:
 - The first attempt, `xplane-run-jede5jsq`, ended `BudgetExhausted`: the open-ended typo task, since reworded in Step 8.
-- Steering from the room page is impossible for a CLI-started run: Smana/agent-platform#147.
+- Steering from the room page is impossible for a CLI-started run: Smana/maku#147.
 - The broker's `run resumed` log line carries an empty `remainingSeconds` (cosmetic).
 
 ### Round 7 — gcp-0, 2026-09-30 (`integration/agent-factory` @ `a2c645ba`)

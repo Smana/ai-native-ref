@@ -4,7 +4,8 @@ Part 1 proves stage 1 of feature 14 on gcp-0: RunLore is a standard client of th
 `POST /v1/tasks` as its internal principal, follows its tasks through the broker's signed webhooks, and
 the old `/intake/runlore` path stays silent. Design:
 [RunLore agent to agent](../../superpowers/specs/2026-10-27-runlore-agent-to-agent-design.md) (RA1 to
-RA14). Part 2 (RunLore's verdict on the fix, stage 2) follows PR 7. See [README.md](README.md) for `CLOUD`.
+RA14). Part 2 (RunLore's verdict on the fix, stage 2) runs on PR 7, merged. RunLore is a session
+switch: on for a live session, off after. See [README.md](README.md) for `CLOUD`.
 
 ## 0. Prerequisites
 
@@ -47,7 +48,7 @@ Seed a broken alerting rule: a `VMRule` in `apps` whose expression is `vector(1)
 
 ## 3. Live 3: the old intake is silent
 
-Pass: `agent_factory_intake_errors_total` and the intake's request counter for `runlore` are flat for
+Pass: `maku_factory_intake_errors_total` and the intake's request counter for `runlore` are flat for
 the whole session (query both in VictoriaMetrics), and RunLore's rendered config holds no `templated`:
 
 ```bash
@@ -84,7 +85,7 @@ retires `/intake/runlore` (the factory's `runlore:` block and both intake Extern
   kubectl get task <fix> -o jsonpath='{.status.monitor}'
   ```
 
-  `agent_factory_monitor_verifications_total{class="alert-rules",verdict="resolved"}` is 1.
+  `maku_factory_monitor_verifications_total{class="alert-rules",verdict="resolved"}` is 1.
 - [ ] Before reading the verdict, one holder for the soak's span (G8: each RunLore replica has its own
   volume, so a failover loses the soak). A change of holder reruns the case.
 

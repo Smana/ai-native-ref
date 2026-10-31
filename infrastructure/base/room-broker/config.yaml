@@ -48,7 +48,7 @@ human:
     ttl: 5m
   # The developer's MCP server (roomctl mcp, ADR-0059): only roomctl's token and sponsored principals
   # are admitted. sessionStart lists the repositories whose issue_file form offers "start the factory
-  # now", applied with the developer's own gh (FA5); none here (D4), a gcp-0 session lists one (runbook 19).
+  # now", applied with the developer's own gh (FA5); none here (D4), a session lists one in its cloud's copy (runbook 19).
   mcp:
     enabled: true
     sessionStart: []

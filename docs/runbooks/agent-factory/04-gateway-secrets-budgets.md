@@ -4,7 +4,7 @@ Two independent gateways are in scope here. **Part A (SP1)** proves that no prov
 in namespace `agents`, and that the `agents-secrets` OpenBao role reads the `agents` mount and
 nothing else — plus the `internal`-listener half of SC-17 (an `internal` run has no route to Z.ai
 at all), and that the agents' budgets B1–B2 count on agentgateway's own rate-limit server.
-**Part D** turns those budgets from counting to refusing, behind one flag, refusing since 2026-10-18.
+**Part D** turns those budgets from counting to refusing, behind one flag (refusing in the source).
 **Part B (SP4 PR 1)** proves the human/system Gateway's frontier route answers real chat
 requests, its token usage is counted (in shadow mode, nothing is rejected on the real route), and a
 route-level rate-limit policy actually fires a 429 when its bucket is exhausted — the mechanism
@@ -32,8 +32,6 @@ kubectl get secretstore -n agent-system agents-secrets -o jsonpath='{.status.con
 kubectl get externalsecret -n agent-system agents-zai-api-key -o jsonpath='{.status.conditions[0].reason}{"\n"}'
 ```
 
-> Corrected 2026-09-27: `flux get kustomization` only reads the first positional name; list-then-grep.
-
 Expected: both `Ready=True`; `True`; `SecretSynced` (needs owner action 2).
 
 ### Step 2 — the gateway-name label exists (both data-plane CNPs depend on it)
@@ -55,9 +53,8 @@ session is meaningless until it's fixed.
 
 ### Step 3 — SC-10: no key in `agents`, and the store's reach
 
-> Note: the OpenBao capability probe (`bao write auth/jwt/$CLOUD-0/login ...`) mints a live OpenBao
-> token via a `bao write` call. This session's rules forbid any write to OpenBao, so this half of
-> the step is not run here — the owner must run it (see the Results table).
+> The OpenBao capability probe (`bao write auth/jwt/$CLOUD-0/login ...`) mints a live OpenBao token:
+> the owner runs this half, never an agent.
 
 ```bash
 kubectl get secrets -n agents -o name | grep -vx secret/room-broker-ca | wc -l
@@ -101,12 +98,11 @@ curl -sS --cacert opentofu/$CLOUD/openbao/management/.tls/ca.pem https://vl.priv
   'query=kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"agent-router" _time:15m | unpack_json | log.x_ar_agent:"system:serviceaccount:agents:agent-probe" AND log.http.path:~"chat/completions" | stats by (log.http.status, log.route) count() hits'
 ```
 
-Expected: `internal chat 404` — the Z.ai route (`agentgateway-models` in
-`infrastructure/base/agent-gateway/llm.yaml`) attaches to the `public` listener only; `internal` is served by the direct Anthropic API (key in OpenBao,
-gateway-injected; ADR-0054) once the agentgateway migration's phase I lands, with Bedrock/Vertex
-optional per cloud. The internal route does not exist on this cluster yet. In
-VictoriaLogs, a `404` row with an empty `log.route` and no row naming `agentgateway-models` (verify on
-next run: the empty-route form is not yet recorded on agentgateway).
+Expected: no VictoriaLogs row for the probe names `agentgateway-models`. The Z.ai route
+(`agentgateway-models` in `infrastructure/base/agent-gateway/llm.yaml`) attaches to the `public`
+listener only; `internal` is served by the Anthropic API directly (`anthropic.yaml`, key in OpenBao,
+gateway-injected; ADR-0054). Verify on next run: the `internal chat` status code is not yet recorded
+since the Anthropic route landed (it was `404` while `internal` had no route).
 
 **What this proves:** SC-17 (listener half) — an `internal`-class run has no path to Z.ai whatsoever,
 structurally (the route doesn't exist on that listener), not just by audience mismatch.
@@ -263,16 +259,16 @@ kubectl delete btp -n llm-gateway zz-budget-marker-probe --ignore-not-found
 
 `budgets.perPerson.enabled: true` with `enforcePrincipal: false` charges every run to its person
 (`github:<login>`) and to the fleet, and refuses nothing: a run past a day is admitted and counted
-as `agent_factory_run_revocations_total{reason="budget-principal-shadow", principal}`
-([agent-platform: per-person caps](https://github.com/Smana/agent-platform/blob/main/docs/factory.md#per-person-caps)).
+as `maku_factory_run_revocations_total{reason="budget-principal-shadow", principal}`
+([Maku: per-person caps](https://github.com/Smana/maku/blob/main/docs/factory.md#per-person-caps)).
 `AgentPersonCapShadowRefusal` (info) fires on each one. Turning on `enforcePrincipal` refuses on
-the person's day **and** on the fleet's, so both count. Since agent-platform v0.16.0 (#168), pinned here at v0.17.1, the days are in
-USD (`budgets.humanDailyUSD`, $8.50 a person), so the week's record starts again, in dollars.
+the person's day **and** on the fleet's, so both count. Since Maku v0.16.0 (#168) the days are in
+USD (`budgets.humanDailyUSD`, $8.50 a person).
 
 ### Step 1 — attribution is on
 
 ```bash
-kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=agent_factory_budget_spent_usd%7Bprincipal%3D~%22github%3A.%2B%22%7D" | jq -c '.data.result[] | [.metric.principal, .value[1]]'
+kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=maku_factory_budget_spent_usd%7Bprincipal%3D~%22github%3A.%2B%22%7D" | jq -c '.data.result[] | [.metric.principal, .value[1]]'
 ```
 
 Expected, once a labelled task has run: a `github:<login>` row, that person's spend today in USD.
@@ -281,15 +277,15 @@ None means no run was charged to a person, and an empty Step 2 proves nothing.
 ### Step 2 — after 7 days
 
 ```bash
-kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=sum%20by%20(principal)%20(increase(agent_factory_run_revocations_total%7Breason%3D%22budget-principal-shadow%22%7D%5B7d%5D))" | jq -c '.data.result[] | [.metric.principal, .value[1]]'
+kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=sum%20by%20(principal)%20(increase(maku_factory_run_revocations_total%7Breason%3D%22budget-principal-shadow%22%7D%5B7d%5D))" | jq -c '.data.result[] | [.metric.principal, .value[1]]'
 ```
 
-The query, decoded: `sum by (principal) (increase(agent_factory_run_revocations_total{reason="budget-principal-shadow"}[7d]))`.
+The query, decoded: `sum by (principal) (increase(maku_factory_run_revocations_total{reason="budget-principal-shadow"}[7d]))`.
 
 | Exit criterion (D8) | Then |
 |---|---|
 | 7 days since the release went live, Step 1 shows a person, and every Step 2 row is a run that *should* have been refused | Set `enforcePrincipal: true` |
-| A row is a false refusal: the wrong person charged, or a day filled by reservations the meter later released | Fix in agent-platform; the week restarts |
+| A row is a false refusal: the wrong person charged, or a day filled by reservations the meter later released | Fix in Maku; the week restarts |
 | Rows are correct but frequent for one person | Raise `perPerson.dailyUSD` (default `humanDailyUSD`) before enforcing; the week restarts |
 
 ## Part D — enforcing the agents' budgets
@@ -297,8 +293,8 @@ The query, decoded: `sum by (principal) (increase(agent_factory_run_revocations_
 The gateway's budgets are a backstop under the factory's own caps: they hold if the factory
 misbehaves, and they never refuse a call the factory would admit. One flag turns them from
 counting to refusing: `SHADOW_MODE` on the `agent-ratelimit` Deployment
-(`infrastructure/base/agent-gateway/ratelimit.yaml`). It is `"false"` in the source since
-2026-10-18 ([#65](https://github.com/Smana/ai-native-ref/pull/65)), so a rebuild refuses too. No
+(`infrastructure/base/agent-gateway/ratelimit.yaml`). It is `"false"` in the source
+([#65](https://github.com/Smana/ai-native-ref/pull/65)), so a rebuild refuses too. No
 descriptor sets its own `shadow_mode` (gate AG8), so the flip is one line.
 
 | Bucket | Key | Limit per day (reference tokens, $1.70/M) | The factory's cap it sits above |
@@ -343,7 +339,7 @@ always refuses and uses the same body). A provider's own `429` keeps its body an
 kubectl get deploy -n agent-gateway agent-ratelimit -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="SHADOW_MODE")].value}{"\n"}'
 ```
 
-Expected: `false`, since 2026-10-18.
+Expected: `false`.
 
 ### Step 2 — the shadow record
 
@@ -404,8 +400,8 @@ back on the way to Anthropic ([cache design](../../superpowers/specs/2026-10-21-
 |---|---|---|
 | `AgentCacheReadZero` (critical) | An internal run read nothing after 100k input tokens | Read the run's log for `prompt cache NOT applied`. None: the gateway stopped converting the marker, or the harness or SDK stopped sending it. If `test-agent-gateway-cache-wire` passes on the deployed digest, the gateway converts: look at the last harness pin change. A run whose steps are all more than 5 minutes apart also reads nothing (the cache lives 5 minutes). Stop a long run: `kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run` |
 | `AgentCacheReadShareLow` | Under 60% over 15 minutes, with 200k input in the window | One window after a condensation or a resume is expected. If it stays low, read the run's MCP tool lists: a federated target that fails is dropped from the list and re-added, and each change rewrites the cache |
-| `AgentCacheMarkerMissing` | The harness could not patch the SDK | Roll the harness pin back; the patch in agent-platform's `sitecustomize.py` needs the SDK's new method |
-| `AgentMeterInputExcludesCache` | The meter read a model's `input` below its cache tokens: a gateway or the provider stopped counting cache tokens inside `input`. The meter prices such a run right; the run's *Cost (USD)* panel and `AnthropicFleetNearCap` under-count it, down to a negative figure, and the cache-read share can read above 100% | Run `test-agent-gateway-cache-wire` against the deployed agentgateway digest: a failure on the streamed reply is the gateway. If it passes, read one reply's `usage` from the provider of the model the alert names. Until it is fixed, read money from `agent_factory_run_cost_usd` |
+| `AgentCacheMarkerMissing` | The harness could not patch the SDK | Roll the harness pin back; the patch in Maku's `sitecustomize.py` needs the SDK's new method |
+| `AgentMeterInputExcludesCache` | The meter read a model's `input` below its cache tokens: a gateway or the provider stopped counting cache tokens inside `input`. The meter prices such a run right; the run's *Cost (USD)* panel and `AnthropicFleetNearCap` under-count it, down to a negative figure, and the cache-read share can read above 100% | Run `test-agent-gateway-cache-wire` against the deployed agentgateway digest: a failure on the streamed reply is the gateway. If it passes, read one reply's `usage` from the provider of the model the alert names. Until it is fixed, read money from `maku_factory_run_cost_usd` |
 
 Offline, `task check` proves both sides: `test-agent-cache-alerts` evaluates the two metric alerts on
 synthetic series, and `test-agent-gateway-cache-wire` runs the pinned agentgateway against a fake
@@ -419,13 +415,13 @@ for internal runs and neither alert fires. The drill (a run that sends no marker
 
 ## Part F — daily caps in dollars, the switch day
 
-From agent-platform v0.16.0 (#168), pinned here at v0.17.1, the factory's daily caps count dollars at `meter.prices`
+From Maku v0.16.0 (#168) the factory's daily caps count dollars at `meter.prices`
 ([truthful costs](../../superpowers/specs/2026-10-22-truthful-costs-design.md), TC5 to TC9). One
 ConfigMap per UTC day, `agent-factory-ledger-usd-<YYYYMMDD>`, holds `spent` (principal → micro-USD),
 `reserved.<runId>` (`maxMicroUSD`) and `settled.<runId>` (the micro-USD charged to that run that
 day). The first day starts at $0: nothing is carried over from the token ledger. Offline, `task
 check` holds the values, gates AG8 and AG10 and the alert (`test-agent-factory-budget-alerts`).
-These steps are the live half, for the first platform session on the release. Not run yet.
+These steps are the live half; no live run is recorded yet.
 
 ### Step 1 — the factory reads the USD keys
 
@@ -490,12 +486,12 @@ small issue `factory/ready`, and read:
 
 ```bash
 kubectl get task -n agent-system -o custom-columns=NAME:.metadata.name,PHASE:.status.phase,REASON:.status.reason
-kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=agent_factory_budget_spent_usd%7Bprincipal%3D%22system%3Afactory%22%7D" | jq -c '.data.result[] | [.metric.pod, .value[1]]'
+kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=maku_factory_budget_spent_usd%7Bprincipal%3D%22system%3Afactory%22%7D" | jq -c '.data.result[] | [.metric.pod, .value[1]]'
 ```
 
 Expected: the new task is `Queued` with reason `waiting_daily_budget`; `AgentFactoryDailyBudgetHigh`
 fires for `principal="system:factory"` within 6 minutes; the leader's
-`agent_factory_budget_spent_usd{principal="system:factory"}` is Step 2's `spent["system:factory"]`
+`maku_factory_budget_spent_usd{principal="system:factory"}` is Step 2's `spent["system:factory"]`
 ÷ 1e6. `enforcePrincipal: true` is part of the drill: while it is `false` the fleet's day is shadow
 too, and the task would run and count `budget-principal-shadow`. Put the values back:
 
@@ -505,7 +501,7 @@ flux resume kustomization agent-factory -n flux-system   # restores the ConfigMa
 
 ## Part G — the cost cross-check
 
-Two independent readings of a run's cost: the factory's ledger (`agent_factory_run_settled_usd{run}`,
+Two independent readings of a run's cost: the factory's ledger (`maku_factory_run_settled_usd{run}`,
 the sum of the run's `settled` entries, kept 1 h after the run) and agentgateway's own counter
 (`agentgateway_gen_ai_client_cost_usd_total`, priced from the `agent-model-catalog` overlay that
 `gen-prices.py` renders from `meter.prices`). Design:
@@ -523,8 +519,8 @@ Which side is high decides the first suspect:
 
 | Suspect | Reads as | Check |
 |---|---|---|
-| [agent-platform#166](https://github.com/Smana/agent-platform/issues/166), a double charge: a settle write answered 504 that commits later | Ledger above gateway by one tick's spend. Fixed in agent-platform v0.25.0; any recurrence is a new bug | The run's `settled.<id>` against `status.usage.costMicroUSD` on the task (Part F, step 3) |
-| [agent-platform#167](https://github.com/Smana/agent-platform/issues/167), a lifted run's late spend lost across a failover | Ledger below gateway, by the run's last reading; only on a run first seen already ended, after a leader change | `kubectl get lease -n agent-system agent-factory.agents.ogenki.io`: did the holder change near the run's end? |
+| [maku#166](https://github.com/Smana/maku/issues/166), a double charge: a settle write answered 504 that commits later | Ledger above gateway by one tick's spend. Fixed in Maku v0.25.0; any recurrence is a new bug | The run's `settled.<id>` against `status.usage.costMicroUSD` on the task (Part F, step 3) |
+| [maku#167](https://github.com/Smana/maku/issues/167), a lifted run's late spend lost across a failover | Ledger below gateway, by the run's last reading; only on a run first seen already ended, after a leader change | `kubectl get lease -n agent-system agent-factory.agents.ogenki.io`: did the holder change near the run's end? |
 | A price row, in the table or the overlay | Both sides consistently off by the same ratio on one model | `scripts/ci/gen-prices.py` (exit 1 on drift); the catalog the proxy mounted against `meter.prices`; the run's *Cost by model* panel |
 | An unpriced lookup | Ledger above gateway, with `AgentGatewayCostUnpriced` firing | Above |
 | A run through Envoy | Left out of the alert by design (XC7); counted in the factory dashboard's *Runs outside the cross-check* | The router the run's gateway series belong to |
@@ -539,6 +535,11 @@ cost with no ledger series, and a `Missing` lookup.
 Live, at the next platform session: the drill. Double `output` for Opus in `agent-model-catalog`, in
 place, under a suspended Kustomization (Part F's method); the next Opus run fires
 `AgentCostCrossCheckMismatch` within 30 min; put the row back.
+
+## A provider answers and the gateway returns 502
+
+The run's model call fails with a 502 whose body says `invalid type: sequence, expected a string`.
+Agentgateway parses a Chat Completions message's `content` as a string. Mistral, asked to reason (`reasoning_effort` other than `none`), returns `content` as a list of chunks. The transformation in `infrastructure/base/agent-gateway/mistral.yaml` sets `reasoning_effort` to `"none"`; Kimi is unaffected, its reasoning arrives in a separate `reasoning_content` string. The gateway's access log for the run shows the 502 on `/v1/chat/completions`.
 
 ## Results
 
@@ -574,14 +575,14 @@ already existed at 61: this proves the alert on a live series. The new-series ca
 
 Each shadow week ran as a deliberate same-day test, by the owner's choice, because a week-long
 platform costs too much. The record covers six real `solo` tasks (19:56–21:35 UTC, one person,
-agent-platform v0.15.2). That is enough to show that nothing is wrongly refused. It is too short
+Maku v0.15.2). That is enough to show that nothing is wrongly refused. It is too short
 to show how often a real week would cross a limit, so the D8 exit criterion ("7 days") is **not**
 met: this round only shows the mechanism works.
 
 | Step | Expected | Observed | Pass/Fail |
 |---|---|---|---|
 | C.1 — attribution | a `github:<login>` row | `agent_factory_budget_remaining_tokens{principal="github:smana"}` 4,047,669 of 5,000,000. The 952,331 spent is exactly the six tasks' meter totals (92,486–192,697 each); `system:factory` shows the same spend | PASS |
-| C.2 — shadow refusals on real runs | rows only for runs that should be refused | No `agent_factory_run_revocations_total` series at all; `AgentPersonCapShadowRefusal` healthy, inactive | PASS (zero) |
+| C.2 — shadow refusals on real runs | rows only for runs that should be refused | No `maku_factory_run_revocations_total` series at all; `AgentPersonCapShadowRefusal` healthy, inactive | PASS (zero) |
 | D.1 — the mode | `true` | `true` | PASS |
 | D.2 — shadow record on real runs | no row for a run under its caps | `ratelimit_service_rate_limit_over_limit` had no real-run series: `agent` and `fleet_agents` only `within_limit` (189,248 and 189,310 reference tokens at 21:34); no `RateLimit` 429 | PASS (zero) |
 | D.4, shadow variant | `200`, `200`; the shadow counters rise | A 1-token-per-hour bucket for `system:serviceaccount:agents:agent-probe`: `200` (`x-ratelimit-remaining: 1`), then `200` (`x-ratelimit-remaining: 0`). `over_limit{key1="agent_system_serviceaccount_agents_agent-probe"}` 61, `global_shadow_mode` 3, no 429. The Kustomization resume put the ConfigMap back (no probe descriptor) | PASS |

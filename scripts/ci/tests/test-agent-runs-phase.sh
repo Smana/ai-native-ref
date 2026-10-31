@@ -70,9 +70,9 @@ series = [
     phase("bbbbbbbb", "Running", NEW, "1x10 0x19"), phase("bbbbbbbb", "Succeeded", NEW, "0x10 1x19"),
     phase("cccccccc", "Pending", OLD, "1x10"), phase("cccccccc", "Running", NEW, "_x12 1x17"), phase("cccccccc", "Succeeded", NEW, "_x12 0x17"),
     # the payer's join key for the identity page
-    {"series": 'agent_factory_run_charge_info{principal="github:alice", run="aaaaaaaa"}', "values": "1x30"},
-    {"series": 'agent_factory_run_charge_info{principal="github:alice", run="bbbbbbbb"}', "values": "1x30"},
-    {"series": 'agent_factory_run_charge_info{principal="github:alice", run="cccccccc"}', "values": "1x30"},
+    {"series": 'maku_factory_run_charge_info{principal="github:alice", run="aaaaaaaa"}', "values": "1x30"},
+    {"series": 'maku_factory_run_charge_info{principal="github:alice", run="bbbbbbbb"}', "values": "1x30"},
+    {"series": 'maku_factory_run_charge_info{principal="github:alice", run="cccccccc"}', "values": "1x30"},
     # the task page's join key
     {"series": 'agentrun_info{namespace="agents", run_id="aaaaaaaa", task="t1", role="impl"}', "values": "1x30"},
     {"series": 'agentrun_info{namespace="agents", run_id="bbbbbbbb", task="t1", role="review"}', "values": "1x30"},

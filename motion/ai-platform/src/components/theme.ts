@@ -1,4 +1,5 @@
-// One place for colours, type and canvas size, shared by every clip.
+// One place for colours, type and canvas size, shared by the clips. `height` is the 4:5 feed clip
+// (agent-factory); agent-factory-v3 sets its own 1080×1280 canvas in its scene.
 
 export const theme = {
   width: 1080,
@@ -19,6 +20,7 @@ export const theme = {
   // cyan = what runs today, amber = the v2 roadmap.
   cyan: '#22d3ee',
   amber: '#f5a524',
+  violet: '#a78bfa', // judgement roles: scoper, judge, reviewer
 
   fonts: {
     // Install JetBrains Mono for the intended look; the others are fallbacks.

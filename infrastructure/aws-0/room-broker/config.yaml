@@ -1,0 +1,79 @@
+# aws-0's copy of ../../base/room-broker/config.yaml, plus human.mcp.sessionStart (a session
+# switch, runbook 19): the overlay's generator replaces the base file, since a ConfigMap key is one
+# string no patch can extend. test-room-broker-suspend.py fails when it differs from base in
+# anything but that key. Empty it, or delete this copy, after the session.
+# The broker's one config file (agent-platform internal/config), Flux-substituted.
+# Decoded strictly: an unknown key fails the rollout. tls is left to its default,
+# /etc/room-broker/tls/tls.{crt,key}, where app.yaml mounts room-broker-tls.
+# The broker reads it once at startup: kustomization.yaml's configMapGenerator rolls
+# the pods on a change.
+publicURL: https://rooms.${private_domain_name}
+# The only run issuer today is this cluster's (C2 r5). A runtime with its own
+# workload JWTs is one more entry here, not a new code path. The JWKS URI is
+# per cloud: <issuer>/keys on EKS, <issuer>/jwks on GKE (GCP parity GP-12).
+runIssuers:
+  - issuer: ${oidc_issuer_url}
+    jwksURL: ${oidc_jwks_uri}
+    subPattern: '^system:serviceaccount:agents:xplane-run-([a-z2-7]{8})$'
+# System callers present audience rooms-system (ruling P3).
+systemIssuer:
+  issuer: ${oidc_issuer_url}
+  jwksURL: ${oidc_jwks_uri}
+# SP3's factory (FR-1): system callers present audience rooms-system (ruling P3).
+systemPrincipals:
+  system:serviceaccount:agent-system:agent-factory: system:factory
+# SP3 phase 5: runs for hand to role, fork and add agent come from the factory, with the
+# human's own token; the broker no longer renders a claim for the owner (C3).
+factoryURL: http://agent-factory.agent-system.svc.cluster.local:8082
+# Humans, through oauth2-proxy (phase 2). Required by the broker. The ids are
+# files, never literals: gcp-0 mints a fresh ZITADEL every build (ruling AS-a).
+human:
+  issuer: ${identity_provider_url}
+  jwksURL: ${identity_provider_url}/oauth/v2/keys
+  clientIDFile: /etc/room-broker/oidc/client-id
+  roomctlClientIDFile: /etc/room-broker/roomctl/client-id
+  projectIDFile: /etc/room-broker/oidc/project-id
+  origin: https://rooms.${private_domain_name}
+  groups:
+    admin: agents-admin
+    member: agents-member
+  # The room page's Dashboards chip (agent-platform v0.29.3): the browser fills {room} and {run}
+  # with the room's own ids; a {run} link shows only once the room has a run. v0.29.2's strict
+  # decoder refuses this key, so it only ever lands with the v0.29.3 pin.
+  dashboards:
+    - label: Room metrics
+      url: https://grafana.${private_domain_name}/d/agent-room/agent-room?var-room={room}
+    - label: Run
+      url: https://grafana.${private_domain_name}/d/agent-run/agent-run?var-run={run}
+  # D7: room access is read from GitHub-link ZITADEL grants. v0.7.x's strict decoder
+  # refuses this key, so it only ever lands with the v0.8.0 pin.
+  access:
+    readerFile: /etc/room-broker/zitadel-reader/reader.json
+    ttl: 5m
+  # The developer's MCP server (roomctl mcp, ADR-0059): only roomctl's token and sponsored principals
+  # are admitted. sessionStart lists the repositories whose issue_file form offers "start the factory
+  # now", applied with the developer's own gh (FA5); none here (D4), a session lists one in its cloud's copy (runbook 19).
+  mcp:
+    enabled: true
+    # The session switch: the screencast session on aws-0 starts from cloud-native-ref (runbook 19).
+    sessionStart: [Smana/cloud-native-ref]
+    # Sponsored principals (factory interfaces part 2), none declared (D4): a gcp-0 session declares the
+    # Slack App in gcp-0's copy (runbook 18). It needs factoryURL above, and the same `name` as the
+    # factory's api.sponsored entry. clientIDFile is a machine client's id, in the whole-Secret mount
+    # app.yaml adds (room-broker-sponsored), the same id the factory reads:
+    # sponsored:
+    #   - name: slack-app
+    #     clientIDFile: /etc/room-broker/sponsored/slack-app-client-id
+# Webhooks (factory interfaces F6), none declared (D4): a gcp-0 session declares the Slack App, in
+# gcp-0's copy (runbook 18). The event names are the full room.* ones (the broker refuses a short one);
+# the key is a file the whole-Secret mount app.yaml adds provides. A change applies at restart, and
+# scripts/ci/gen-webhook-egress.py renders the network rule from the entries (--write).
+#
+# webhooks:
+#   - name: slack-app
+#     network: cluster
+#     url: http://factory-slack-app.agent-system.svc.cluster.local:8081/webhooks
+#     events: [room.task_triaged, room.run_started, room.waiting_for_human, room.pr_opened,
+#              room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended]
+#     secretFile: /etc/room-broker/webhooks/slack-app/signing-key
+#     repositories: [Smana/cloud-native-ref]

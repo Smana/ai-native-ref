@@ -1,7 +1,7 @@
 # ai-native-ref
 
-**A governed agent factory and open-weights model serving, on your own Kubernetes cluster, deployed
-with GitOps.**
+**The Agent Factory, a governed agent platform, and open-weights model serving, on your own Kubernetes cluster,
+deployed with GitOps.**
 
 Label a GitHub issue and agents take it from there. An implementer works it in a sandbox under its
 own identity and budget, a reviewer checks the result, and a pull request comes out. You follow
@@ -21,7 +21,7 @@ without a human reading every line, and with a way back when one gets it wrong.
 Hosted agents solve this inside a vendor's cloud: the agent loop, the model calls and your code go
 there. Self-hosted options are either licensed products, or general agent runtimes that know nothing
 about pull requests, reviews or merges. **ai-native-ref is an open reference for the missing piece:
-an agent factory you run yourself, whose every control is declared in Git and enforced outside the
+the Agent Factory, an agent platform you run yourself, whose every control is declared in Git and enforced outside the
 agent.**
 
 It is built to be read as much as run. Each design choice has an architecture decision record, each
@@ -56,7 +56,7 @@ says what works today, what does not yet, and what it costs.
 
 | Part | What it does |
 |---|---|
-| **Agent factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory |
+| **Agent Factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory. The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts, RunLore, Kueue and others); [Maku](https://github.com/Smana/maku) is one of them: the controller, rooms, harness and bridge, the Slack app and the `maku` CLI |
 | **Sandboxed runtime** | One gVisor pod per run, with a default-deny network policy, egress only to the hosts its profile allows, and a short-lived GitHub token scoped to its own branch |
 | **Rooms** | The append-only log of each task: watch, post, steer, approve, with approval deadlines and suspend while a person decides |
 | **Agent gateway** | Every model and tool call of a run goes through [agentgateway](https://agentgateway.dev): it checks the run's identity, enforces token budgets per run, fleet and provider, and routes to the model its tier names |
@@ -68,7 +68,7 @@ says what works today, what does not yet, and what it costs.
 
 ```mermaid
 flowchart LR
-  issue["Issue labelled<br/>factory/ready"] --> factory["Agent factory"]
+  issue["Issue labelled<br/>factory/ready"] --> factory["Agent Factory"]
   factory --> run["Agent run<br/>gVisor sandbox, own identity"]
   factory --> room["Room<br/>watch · steer · approve"]
   human(["Maintainer"]) <--> room
@@ -99,16 +99,20 @@ Sources and the full record: [status](https://airef.ogenki.io/docs/platform/ai-p
 
 ## Status and roadmap
 
-**v2.0 shipped on 2026-10-18** (`v2.0.1` is the latest release): the factory on GKE from signed
-release pins, live auto-merge of link fixes with a revert breaker, a second repository, budgets
-enforced at the gateway, suspend and resume, warm sandboxes (off by default) and its own repository
-and site. The reference cluster is **paused between releases**: torn down, its secrets, snapshots and
-databases saved, to be rebuilt from the release pins when work resumes.
+**v3 is built**: Maku v0.32.0 (CRD group `maku.ogenki.io`), ai-native-ref v2.8.18. The v3.0.0
+release is still a draft. v3 aims at more accepted pull requests per dollar by shaping the task, not
+by changing the model. A scoper bounds each issue or asks its author; a test-first tester writes the
+contract; the implementer runs the repository's checks in the sandbox and asks a read-only search
+tool; a completion judge reads the result against its checks; a splitter proposes parts for a task
+too big for one pull request. Work arrives from a label, Slack, your coding agent (Claude Code,
+OpenCode) or RunLore, whose alerts come back as verified fixes.
 
-**v3 makes the factory land more accepted pull requests per dollar** on the models it may use: an
-eval bench first, then a scoper that turns vague issues into bounded tasks, a stall limit, a
-test-first tester, a splitter for hard issues, an open-weights model bake-off, and more change
-classes merging alone. Each is a go/no-go on the bench.
+All of it was proven live on `gcp-0` from 2026-10-27 to 2026-10-29, with capability profiles and
+Kimi K3.1 Pro for public work; Mistral works through the gateway but is not recommended as an
+implementer. `gcp-0` was torn down on 2026-10-29; the next session bootstraps fresh. Auto-merge is
+live for Markdown link fixes only; `dead-links` and `deps-patch` run in shadow, `deps-minor` in
+observe. Every line, with its evidence and runbook:
+[status page](https://airef.ogenki.io/docs/platform/ai-platform/status/#roadmap).
 
 We are **on the road to a dark factory**, one proven lane at a time: today a human writes the issue
 and approves the merge for most work, and one class ships with no human at all. What that means and
@@ -139,7 +143,7 @@ guarantees back.
 
 The reference host is [cloud-native-ref](https://github.com/Smana/cloud-native-ref), a GitOps
 platform on GKE and EKS. The controllers, the room broker and the agent harness are built in
-[agent-platform](https://github.com/Smana/agent-platform); this repository deploys their released
+[Maku](https://github.com/Smana/maku), the software the Agent Factory runs on; this repository deploys their released
 images. Installing on any Kubernetes cluster without that host is on the roadmap, after v3.
 
 ## Repository layout
@@ -149,8 +153,8 @@ images. Installing on any Kubernetes cluster without that host is on the roadmap
 | `clusters/<cluster>-{ai-gateway,llm-platform,agent-platform}/` | The children of each of the host's three opt-in umbrellas |
 | `infrastructure/`, `security/`, `tooling/`, `observability/`, `apps/` | What those children apply |
 | `flux/sources/` | The AI-owned Flux sources, applied by the `ai-sources` child |
-| `website/` | The docs site, [airef.ogenki.io](https://airef.ogenki.io/), and the AI ADRs (the next is 0059) |
-| `scripts/ops/`, `scripts/docs/` | Agent-factory ops: `task agent:run`, `task agentgateway:live-check`, `task factory:walkthrough`, the identity probe, the cohort sheet |
+| `website/` | The docs site, [airef.ogenki.io](https://airef.ogenki.io/), and the AI ADRs (the next is 0060) |
+| `scripts/ops/`, `scripts/docs/` | Factory ops: `task agent:run`, `task agentgateway:live-check`, `task factory:walkthrough`, the identity probe, the cohort sheet |
 | `docs/` | Runbooks, specs and plans, and the drawio sources of the diagrams |
 
 ## Turning it on in a cluster

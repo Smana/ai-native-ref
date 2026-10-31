@@ -1,6 +1,6 @@
 # 14 — The gcp-0 session: a full test, then v2 and v2.1 on GCP
 
-This is an ordered checklist for bringing `gcp-0` up **alone** and running the agent factory on it. aws-0 is torn down.
+This is an ordered checklist for bringing `gcp-0` up **alone** and running the Agent Factory on it. aws-0 is torn down.
 Owner steps are marked **[OWNER]**. Everything else can be done by an agent holding the
 kubeconfig.
 
@@ -8,14 +8,9 @@ Each step points to the runbook that holds its detail. Results go in that runboo
 cluster-level evidence goes in a `results-gcp-0-<date>.md`, as in
 [the 2026-09-30 round](results-gcp-0-2026-09-30.md).
 
-| Progress, 2026-10-17 | State |
-|---|---|
-| 1, 3 | Done: option A. gcp-0 hosts ZITADEL, restored from `zitadel-20260828` |
-| 6 | Done: the go-live commit is on cloud-native-ref's `main`, and the fence names `gcp-0` |
-| 7 | Done: `gcp-0-v21-checks.sh` passed at 20:11 UTC. 7.2's second node came up at 21:16 UTC, when a forced headroom preemption scaled `agents-gvisor` 1 → 2 with no quota event ([A1](../../superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#a1-the-forced-preemption)) |
-| 8 | Done: [runbook 11's gcp-0 round](11-v1-validation.md#results). Step 7 passed on release pins; 5b–5e stay open, as on aws-0 |
-| 9 | Compressed same-day test: warm-sandbox start time passes, idle cost fails its cap ([results](../../superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)); caps and gateway budgets refuse nothing on real runs ([runbook 04](04-gateway-secrets-budgets.md#parts-c-and-d--gcp-0-2026-10-17-compressed-same-day-test)). The other rows of step 9 are not run |
-| 10 | Not run yet |
+gcp-0 was torn down on 2026-10-29. The next bootstrap is fresh, on Maku v0.32.0 (CRD group
+`maku.ogenki.io`): no cluster may still run v0.30.x Rooms, or Flux prunes `rooms.agents.ogenki.io` and
+every Room under it. Steps 1 and 6 are already on cloud-native-ref's `main`; check they still are.
 
 ```mermaid
 flowchart TD
@@ -38,13 +33,13 @@ flowchart TD
 | 0.1 | **[OWNER]** Interactive Google auth for both the CLI and ADC. A reauth can expire ADC mid-run with `invalid_rapt`, which needs this step again | `gcloud auth login`, then `gcloud auth application-default login`, then `gcloud auth application-default set-quota-project ogenki-435905` |
 | 0.2 | **[OWNER]** The CPU quota fits the platform (sizing below) | `gcloud compute project-info describe --project ogenki-435905 --flatten=quotas --filter='quotas.metric=CPUS_ALL_REGIONS' --format='value(quotas.limit,quotas.usage)'` and `gcloud compute regions describe europe-west4 --project ogenki-435905 --flatten=quotas --filter='quotas.metric:(CPUS N2_CPUS E2_CPUS)' --format='table(quotas.metric,quotas.limit,quotas.usage)'` |
 | 0.3 | **[OWNER]** Shell inputs | `export TF_VAR_tailscale_api_key=…`, plus AWS credentials for `opentofu/shared/*` (state, Route53 federation) |
-| 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Required for the agent platform: `zitadel-github-idp`. Without it the deploy skips the GitHub link IdP and so never writes `room-broker-zitadel-reader`, the broker's link reader. It was absent on 2026-10-17. Optional: `github-gha-runner-scale-set-default` (GHA runners only) |
-| 0.5 | cloud-native-ref pins the releases under test, and the pin carries the gcp-0 fixes. These fixes are the factory's IdP egress, the warm headroom and the RunLore intake. ai-native-ref v0.1.9 carries them | `flux/sources/ocirepo-ai-native-ref.yaml` tag `v0.1.9`; agent-platform v0.15.2; crossplane-configuration v0.9.15 |
-| 0.6 | Optional, decided now: serve the Substrate spike's APIs | `TF_VAR_enable_pod_certificate_apis=true` on step 3. It is safe to turn on later, but turning it off later replaces the cluster. It needs a control plane on 1.35 or later: `gcloud container get-server-config --zone europe-west4-a --format='yaml(channels)'`. On 2026-10-17 STABLE was 1.35.6 and REGULAR 1.36.4, so either qualifies |
+| 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Required for the agent platform: `zitadel-github-idp`. Without it the deploy skips the GitHub link IdP and so never writes `room-broker-zitadel-reader`, the broker's link reader. Optional: `github-gha-runner-scale-set-default` (GHA runners only) |
+| 0.5 | cloud-native-ref pins the releases under test | `flux/sources/ocirepo-ai-native-ref.yaml`: an ai-native-ref release on Maku v0.32.0; crossplane-configuration v0.9.29 (cloud-native-ref #2676) |
+| 0.6 | Optional, decided now: serve the Substrate spike's APIs | `TF_VAR_enable_pod_certificate_apis=true` on step 3. It is safe to turn on later, but turning it off later replaces the cluster. It needs a control plane on 1.35 or later: `gcloud container get-server-config --zone europe-west4-a --format='yaml(channels)'` |
 
 ### CPU sizing
 
-Every fixed machine is E2. Regional `E2_CPUS` was expected to bind first, but on 2026-10-17 it read usage 0 while E2 ran (below), so `CPUS_ALL_REGIONS` is the one to watch.
+Every fixed machine is E2. Regional `E2_CPUS` reads usage 0 while E2 runs: E2 counts against `CPUS` and `CPUS_ALL_REGIONS` only, so `CPUS_ALL_REGIONS` is the one to watch.
 
 | E2 capacity in europe-west4 | vCPU |
 |---|---|
@@ -56,8 +51,8 @@ Every fixed machine is E2. Regional `E2_CPUS` was expected to bind first, but on
 
 | Quota, measured 2026-10-17 | Limit | Verdict |
 |---|---|---|
-| europe-west4 `E2_CPUS` | **24** | Expected to bind: one gVisor node fits (20), the second does not (28). At 21:00 UTC it read usage **0** with 30 E2 vCPUs running, and the second `e2-standard-8` started at 21:16 UTC: E2 counted against `CPUS` and `CPUS_ALL_REGIONS` only. **[OWNER]** increase to 48 requested on 2026-10-17 |
-| `CPUS_ALL_REGIONS` | 48 | **The binding one.** 30 used at 21:00 UTC; a second gVisor node adds 8. It fits the static 28; only the cluster ceiling plus surge (≈ 56) exceeds it |
+| europe-west4 `E2_CPUS` | **24** (increase to 48 requested) | Not binding: it reads usage **0** with 30 E2 vCPUs running, and a second `e2-standard-8` starts |
+| `CPUS_ALL_REGIONS` | 48 | **The binding one.** 30 used with one gVisor node; a second adds 8. It fits the static 28; only the cluster ceiling plus surge (≈ 56) exceeds it |
 | europe-west4 `N2_CPUS` | 200 | Fits: the `io` class needs at least 16 |
 | europe-west4 `CPUS` | 200 | Not a constraint |
 
@@ -66,10 +61,10 @@ Short of quota, the `e2-standard-8` cannot start (finding F3 of 2026-09-30) and 
 
 ## 1. [OWNER] The identity-provider topology
 
-**Decided 2026-10-17: option A, merged.** `main` now has `primary_cloud = "gcp"`. Before that, AWS
-hosted ZITADEL, and gcp-0 alone pointed every login at the dead `auth.cloud.ogenki.io`. The
-OIDC-client registration only warns and exits 0, so the deploy reported success while SSO was dead.
-A later session starts from step 2 unless it changes the topology. The options were:
+**Option A is on `main`** (`primary_cloud = "gcp"`, 2026-10-17). A session starts from step 2 unless it
+changes the topology. With AWS primary, gcp-0 alone points every login at the dead
+`auth.cloud.ogenki.io`, and the OIDC-client registration only warns and exits 0: the deploy reports
+success while SSO is dead. The options:
 
 | Option | What it costs | |
 |---|---|---|
@@ -81,7 +76,7 @@ A later session starts from step 2 unless it changes the topology. The options w
 The 2026-09-30 round's directory is not an option: its masterkey lived only in-cluster, so its
 archive cannot be decrypted.
 
-The commit for A, in cloud-native-ref (merged 2026-10-17):
+The commit for A, in cloud-native-ref:
 
 | File | Change |
 |---|---|
@@ -98,14 +93,14 @@ migrating back, because `aws/eks/configure` hosts unconditionally.
 | # | Check | How |
 |---|---|---|
 | 2.1 | The ZITADEL seed for the option chosen is restorable | `./scripts/ops/k8s/cnpg-promote-seed.sh --cloud gcp --bucket ogenki-435905-ogenki-cnpg-backups --verify-seed zitadel-20260828` |
-| 2.2 | The OpenBao snapshot the rehydrate restores | `gcloud storage ls gs://ogenki-435905-ogenki-openbao-snapshot/`. On 2026-10-17 the newest objects were the S3→GCS mirror's `2026-10-16T040028Z-awskms.snap`, which a gcpckms node refuses with `SEAL MISMATCH`. The newest gcp-lineage object was `2026-10-02T200530Z-gcpckms.snap`: name it in step 3 with `OPENBAO_SNAPSHOT_KEY`. Agents keys written after 2026-10-02 are then missing (step 5) |
-| 2.3 | The rooms DB | gcp-0 starts it fresh unless opted in: [runbook 13, Step A0](13-rooms-restore.md#step-a0--gcp-0-opt-in). No gcp-0 teardown has written `rooms-pre-destroy` yet, so this rebuild starts empty. Run [Part B](13-rooms-restore.md#part-b--scratch-restore-on-a-live-cluster) later in the session for the RPO and RTO |
+| 2.2 | The OpenBao snapshot the rehydrate restores | `gcloud storage ls gs://ogenki-435905-ogenki-openbao-snapshot/`. The S3→GCS mirror's `*-awskms.snap` objects are refused by a gcpckms node with `SEAL MISMATCH`: name the newest `*-gcpckms.snap` in step 3 with `OPENBAO_SNAPSHOT_KEY`. Agents keys written after that snapshot are missing (step 5) |
+| 2.3 | The rooms DB | gcp-0 starts it fresh unless opted in: [runbook 13, Step A0](13-rooms-restore.md#step-a0--gcp-0-opt-in), once a gcp-0 teardown has written `rooms-pre-destroy`. Run [Part B](13-rooms-restore.md#part-b--scratch-restore-on-a-live-cluster) later in the session for the RPO and RTO |
 
 ## 3. [OWNER] Deploy
 
 ```bash
 cd opentofu && git pull   # deploys apply the checkout's disk, not main
-TM_CLOUD=gcp OPENBAO_SNAPSHOT_KEY=2026-10-02T200530Z-gcpckms.snap \
+TM_CLOUD=gcp OPENBAO_SNAPSHOT_KEY=<newest *-gcpckms.snap> \
   terramate script run deploy             # per 2.2; + TF_VAR_enable_pod_certificate_apis=true per 0.6
 ```
 
@@ -145,7 +140,7 @@ fix still owes.**
 
 ## 5. [OWNER] The agents keys, once per GCP lineage
 
-The 2026-10-02 snapshot (2.2) predates the keys written since, so expect gaps. Write each one that
+The snapshot (2.2) predates the keys written since, so expect gaps. Write each one that
 `bao kv list -mount=agents` lacks, using the [owner actions](README.md#owner-actions-in-order)
 (2, 2b, 2c, 4, 4b, 4c):
 
@@ -159,7 +154,7 @@ bao kv put -mount=agents mistral api_key=-
 bao kv put -mount=agents github-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem>
-bao kv put -mount=agents factory-slack-app bot-token=- signing-secret=- bot-user-id=<U…>
+# factory-slack-app: one JSON document on stdin, runbook 22 §2
 # runlore-intake + platform/runlore/factory-intake: retired by feature 14's PR 7 (README action 4d)
 # Feature 14 (runbook 20): one webhook key, two mounts: the broker reads agents/, RunLore platform/.
 KEY=$(openssl rand -base64 48 | tr -d '\n')
@@ -178,7 +173,7 @@ optional until the App is switched on ([runbook 18](18-factory-interfaces.md)).
 ### Feature 15 providers, a smoke through the gateway
 
 Once the two keys are seeded, with a public run's token (the identity proxy's `x-ar-model` pin is
-what routes; no class names these aliases yet, because `loops.<class>.models` waits on agent-platform):
+what routes; a class names these aliases with `loops.<class>.models`, switched on for a live session only):
 
 ```bash
 # GW = the public listener's address inside the cluster; TOKEN = a public role's run token
@@ -195,11 +190,12 @@ Kimi needs a generous `max_tokens`: its `reasoning_content` spends it before `co
 an internal token answers 403, and Hubble shows no flow to `api.kimi.ai` or `api.mistral.ai` from a run pod.
 Kimi is a flat-rate plan (tokens metered, nominal price, owner-accepted risk: plan terms aim at coding
 tools, rate limits are personal) and processed in China, so public data only. Mistral is EU, public
-only until the owner approves internal.
+only until the owner approves internal. Mistral works through the gateway but is not recommended as an
+implementer: a run spent its budget on a 5-line pull request.
 
 ## 6. [OWNER] Go-live commit
 
-**Done 2026-10-17.** Going live takes a commit, not `flux resume`: the parent Kustomization
+**On `main` since 2026-10-17**; check it was not reverted. Going live takes a commit, not `flux resume`: the parent Kustomization
 re-applies `suspend: true` at its next reconcile, so a resume does not stick. The cloud-native-ref
 commit:
 
@@ -230,16 +226,15 @@ fails a CNP that lacks it.
 
 | # | Blocker | What proves it closed | Scripted |
 |---|---|---|---|
-| 7.1 | The factory reaches the identity provider over GKE's network. Its CNP's IdP rule is replaced by a portless `toEntities: [all]`, as the broker's and rooms-proxy's already are. **Passed on 2026-10-17** (`gcp-0-v21-checks.sh`, 20:11 UTC) | The factory pod runs on a node with no ZITADEL pod; a co-located pod succeeds under any policy. Its log has `agent-factory starting`: the human verifier is eager, so that line follows the JWKS fetch, and a failed fetch exits with `initial JWKS fetch`. The live CNP carries the portless rule. The broker's `rooms_authn_jwks_last_refresh_timestamp_seconds` for the IdP is under 6 h old, and neither `RoomAuthnJWKSStale` nor `RoomAuthnHumanIssuerNeverFetched` fires | Yes |
-| | | A `roomctl` call to the run-request API (`:8082`) is accepted | No: the owner's human token |
-| 7.2 | The E2 quota allows its nodes (sizing above). **Passed on 2026-10-17**: one node at go-live, two at 21:16 UTC under a forced preemption (a 5.6-vCPU stand-in for a `large` run, since the factory sizes every run `small`) | `agents-gvisor` holds the headroom pod at 1 node, then 2 for a `large` run. There is no `FailedScaleUp` or quota event, and no gVisor node outside `agents-gvisor` (the `nap-e2-standard-4` fallback). Events live about 1 h: run it right after the scale-up | Yes |
+| 7.1 | The factory reaches the identity provider over GKE's network. Its CNP's IdP rule is a portless `toEntities: [all]`, as the broker's and rooms-proxy's are | The factory pod runs on a node with no ZITADEL pod; a co-located pod succeeds under any policy. Its log has `agent-factory starting`: the human verifier is eager, so that line follows the JWKS fetch, and a failed fetch exits with `initial JWKS fetch`. The live CNP carries the portless rule. The broker's `maku_rooms_authn_jwks_last_refresh_timestamp_seconds` for the IdP is under 6 h old, and neither `RoomAuthnJWKSStale` nor `RoomAuthnHumanIssuerNeverFetched` fires | Yes |
+| | | A `maku` call to the run-request API (`:8082`) is accepted | No: the owner's human token |
+| 7.2 | The E2 quota allows its nodes (sizing above). The factory sizes every run `small`, so a forced headroom preemption (a 5.6-vCPU stand-in for a `large` run) brings the second node | `agents-gvisor` holds the headroom pod at 1 node, then 2 for a `large` run. There is no `FailedScaleUp` or quota event, and no gVisor node outside `agents-gvisor` (the `nap-e2-standard-4` fallback). Events live about 1 h: run it right after the scale-up | Yes |
 
 ## 8. The full test: runbook 11 on gcp-0
 
 Run [runbook 11](11-v1-validation.md) end to end, with `CLOUD=gcp`: its private hosts are then
-`*.priv.gcp.ogenki.io` and its IdP `auth.gcp.cloud.ogenki.io`. Step 7, one task end to end on release pins, is the
-first gcp-0 run of the release-pinned factory. Runbook 01's GKE notes from the 2026-09-30
-round still apply: `sandbox.gke.io/runtime`, no `agents-nodepool`.
+`*.priv.gcp.ogenki.io` and its IdP `auth.gcp.cloud.ogenki.io`. Step 7 is one task end to end on release pins. Runbook 01's GKE notes apply:
+`sandbox.gke.io/runtime`, no `agents-nodepool`.
 
 ## 9. v2 on gcp-0
 
@@ -251,7 +246,7 @@ round still apply: `sandbox.gke.io/runtime`, no `agents-nodepool`.
 | The internal tier on Claude | One `--class internal` run is answered through agentgateway's Anthropic backend, which proves `agents/anthropic` |
 | The reviewer | A `pair` run's reviewer uses the implementer's model |
 | Rooms | Follow, steer and approve one run in its room (runbook 11 steps 3–5) |
-| Suspend | Off on both clouds by design. It is turned on in a later step |
+| Suspend | On on gcp-0 (`tooling/gcp-0/agent-factory/helm-values-suspend.yaml`, `infrastructure/gcp-0/room-broker/config.yaml`): [runbook 01 Step 8](01-runtime-sandbox.md#step-8--suspend-and-resume-a-waiting-run-gcp-0) |
 
 ## 10. The Substrate spike
 
@@ -268,5 +263,5 @@ feature gate off for the beta.
 - the headroom pod being scheduled and preempted by GKE's autoscaler, whose PriorityClass cutoff is -10
 - the beta APIs (10)
 
-The seed's restore and the rehydrate's snapshot choice ran live on 2026-10-17 (steps 1–3); the
-items above are still proven by render checks only.
+The seed's restore and the rehydrate's snapshot choice are proven live (steps 1–3); the items
+above only by render checks.

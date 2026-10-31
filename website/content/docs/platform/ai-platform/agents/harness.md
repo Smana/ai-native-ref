@@ -68,8 +68,11 @@ sequenceDiagram
 A tester run writes tests under the repository's test paths and commits them. The harness then runs
 them red on the base, signs the commit and pushes it, or answers once (`not_testable`) and pushes
 nothing. The implementer that follows cannot commit a change to those files, and is told when they
-still fail. The model itself never pushes. It is off everywhere: `testFirst` is `false` for every
-class, so no run takes this path yet.
+still fail. The model itself never pushes. Proven live on 2026-10-29, the `not_testable` case
+included ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)).
+`testFirst: true` on `scripts` in cloud-native-ref is a session switch: the owner turns it on for a
+live session and off after it ([#199](https://github.com/Smana/ai-native-ref/pull/199)); every other class
+runs without a tester ([run roles]({{< relref "/docs/platform/ai-platform/agents/roles.md#tester" >}})).
 
 {{< details title="What the step log looks like" closed="true" >}}
 One line per action, never its output, redacted for tokens. It is what you read most.
@@ -106,7 +109,7 @@ flowchart LR
 | Factory config | ai-native-ref | New runs, once Flux applies the release |
 | Run API | `task agent:run` flags | That run only |
 | Claim and composition | crossplane-configuration | Runs created after the package upgrade |
-| Harness image | agent-platform | Runs created after its digest reaches the composition |
+| Harness image | Maku | Runs created after its digest reaches the composition |
 | Gateway | ai-native-ref | Every call, running runs included |
 
 ## Trade-offs {#trade-offs}
@@ -150,9 +153,9 @@ kubernetes.pod_name:"xplane-run-<id>" AND kubernetes.container_name:"harness" AN
 {{< tab name="PromQL" icon="presentation-chart-line" >}}
 ```promql
 # Cost, as the meter computes it
-agent_factory_run_spend_usd{run="<id>"}
+maku_factory_run_spend_usd{run="<id>"}
 # Was the tier right? fit = under | fit | over
-sum by (tier, fit) (agent_factory_tier_fit_total)
+sum by (tier, fit) (maku_factory_tier_fit_total)
 # Why runs end
 sum by (reason) (agentrun_outcome_info)
 ```
@@ -186,7 +189,7 @@ for $2.65.
 | Out of budget, no commit, hundreds of `grep`/`cat` steps | The task has no stopping rule: [scope it](#recipes) |
 | Out of budget with limit `run-tokens` | A hand-started run or an unpriced model: raise `--max-tokens`, or add a `meter.prices` row |
 | `PodFailed` near the deadline | Raise `runMinutes` together with `runUSD` |
-| A `429`, then the agent stops | A gateway budget, never retried by design: check `agent_factory_run_revocations_total` |
+| A `429`, then the agent stops | A gateway budget, never retried by design: check `maku_factory_run_revocations_total` |
 
 ### Loops and errors
 
@@ -267,19 +270,20 @@ flowchart LR
 ## Loop policy {#loop-policy}
 
 The loop policy stops wandering runs and checks a finished run against the task's acceptance checks.
-{{< badge content="built, off" color="yellow" >}} The code ships (agent-platform v0.17.1,
-crossplane-configuration v0.9.18); only the `docs` class has a row (a gcp-0 session), so every other run behaves as before.
+{{< badge content="live" color="green" >}} Proven live on 2026-10-29 on the `docs` class: an impossible
+task escalated as "cannot be done as asked", with no false `met`, and a failing named check is never
+`met`. Only `docs` has a row, so every other run behaves as before.
 
 | Piece | What it does |
 |---|---|
 | Stall rule | An implementer run with no commit by `stallSteps` steps, or two continuations in a row that add none, stops and posts what it found |
 | Completion judge | After the run ends on its own, a fresh-context judge reads the acceptance checks and says `met`, `not_yet` or `impossible` |
-| Continuation | A `not_yet` continues the same conversation, so the prompt cache survives, at most `continuations` times |
+| Continuation | A `not_yet` continues the same conversation, so the prompt cache survives, at most `continuations` times, each time-boxed to 15 minutes |
 
 **The switch** is the factory's `loops` key, one row per class (`default`, `review`, or a class a
 repository declares). A row that sets any of its three keys switches that class on. No row, or a row
-without them, is today's run (D4). **Only `docs` has a row here**: besides it, the values' `loops` key holds only
-`default: {scope: off}`, which switches nothing on.
+without them, is today's run (D4). **Only `docs` sets them**: `scripts` has a row for its scoper and splitter
+only, and `default: {scope: off}` switches nothing on.
 
 | Key | Default once a row exists | Bounds |
 |---|---|---|
@@ -297,7 +301,7 @@ refuses the claim, and the task escalates with `loop_unsupported`.
 
 | End | Room | Task | Issue | Counter |
 |---|---|---|---|---|
-| `judge_impossible` | `harness_end` event, then the judge's text as a run note | `Escalated`, reason `judge_impossible` | Fixed narration with the reason category only, no judge text | `agent_factory_loop_runs_total{end="judge_impossible"}` |
+| `judge_impossible` | `harness_end` event, then the judge's text as a run note | `Escalated`, reason `judge_impossible` | Fixed narration with the reason category only, no judge text | `maku_factory_loop_runs_total{end="judge_impossible"}` |
 | `stalled` | `harness_end` event, then the run's findings as a note | `Escalated`, reason `stalled` | The same | `end="stalled"` |
 | `not_met` | `harness_end` event, then the last `not_yet` reason as a note | `Escalated`, reason `not_met` | The same | `end="not_met"` |
 
@@ -308,9 +312,9 @@ meter and the factory's outcomes then say whether cost per accepted pull request
 
 ## Search {#search}
 
-{{< badge content="built, off" color="yellow" >}} The implementer can ask a read-only helper one
-question about the repository instead of reading it file by file. The code ships (agent-platform
-v0.19.0); **no class has `search: true`**, so every run behaves as before.
+{{< badge content="live" color="green" >}} The implementer can ask a read-only helper one
+question about the repository instead of reading it file by file. Proven live on 2026-10-29 (3 calls
+in the drill); **only `docs` has `search: true`**, so every other run behaves as before.
 
 ```mermaid
 sequenceDiagram

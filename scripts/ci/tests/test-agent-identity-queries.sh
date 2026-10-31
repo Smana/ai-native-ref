@@ -49,7 +49,7 @@ G = 'gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent="system:s
 
 def charge(principal, run, task, room):
     labels = f'{X}, run="{run}", principal="{principal}"' + (f', task="{task}"' if task else "") + (f', room="{room}"' if room else "")
-    return "agent_factory_run_charge_info{" + labels + "}"
+    return "maku_factory_run_charge_info{" + labels + "}"
 
 
 def tokens(run, kind):
@@ -60,12 +60,12 @@ tests = [
     # Spend: alice $2 of tasks and $0.50 of rooms, bob $1 of rooms; the fleet's day is the sum.
     {"interval": "1m",
      "input_series": [
-         {"series": f'agent_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "0 2x50"},
-         {"series": f'agent_factory_charged_usd_total{{{X}, principal="{A}", kind="room"}}', "values": "0 0.5x50"},
-         {"series": f'agent_factory_charged_usd_total{{{X}, principal="{B}", kind="room"}}', "values": "0 1x50"},
-         {"series": f'agent_factory_budget_spent_usd{{{X}, principal="{A}"}}', "values": "0 2.5x50"},
-         {"series": f'agent_factory_budget_spent_usd{{{X}, principal="{B}"}}', "values": "0 1x50"},
-         {"series": f'agent_factory_budget_spent_usd{{{X}, principal="{F}"}}', "values": "0 3.5x50"},
+         {"series": f'maku_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "0 2x50"},
+         {"series": f'maku_factory_charged_usd_total{{{X}, principal="{A}", kind="room"}}', "values": "0 0.5x50"},
+         {"series": f'maku_factory_charged_usd_total{{{X}, principal="{B}", kind="room"}}', "values": "0 1x50"},
+         {"series": f'maku_factory_budget_spent_usd{{{X}, principal="{A}"}}', "values": "0 2.5x50"},
+         {"series": f'maku_factory_budget_spent_usd{{{X}, principal="{B}"}}', "values": "0 1x50"},
+         {"series": f'maku_factory_budget_spent_usd{{{X}, principal="{F}"}}', "values": "0 3.5x50"},
      ],
      "promql_expr_test": [
          {"expr": q("Spend in the range", "A", A), "eval_time": "50m", "exp_samples": [{"value": 2.5}]},
@@ -83,7 +83,7 @@ tests = [
     # [1d] at the midnight reads nothing, the "No data" the screenshot showed.
     {"interval": "1h",
      "input_series": [
-         {"series": f'agent_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "_ 0+0.5x30"},
+         {"series": f'maku_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "_ 0+0.5x30"},
      ],
      "promql_expr_test": [
          {"expr": q("Spend per day", "A", A).replace(" offset -1d", ""), "eval_time": "24h", "exp_samples": [{"labels": '{kind="task"}', "value": 11.5}]},
@@ -127,16 +127,16 @@ tests = [
     # Outcomes: alice's $3 of tasks, 2 merged and 1 reverted; bob's $4, 1 merged and 1 reverted.
     {"interval": "1m",
      "input_series": [
-         {"series": f'agent_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "0 3x50"},
-         {"series": f'agent_factory_charged_usd_total{{{X}, principal="{A}", kind="room"}}', "values": "0 7x50"},
-         {"series": f'agent_factory_charged_usd_total{{{X}, principal="{B}", kind="task"}}', "values": "0 4x50"},
+         {"series": f'maku_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "0 3x50"},
+         {"series": f'maku_factory_charged_usd_total{{{X}, principal="{A}", kind="room"}}', "values": "0 7x50"},
+         {"series": f'maku_factory_charged_usd_total{{{X}, principal="{B}", kind="task"}}', "values": "0 4x50"},
      ] + [
-         {"series": f'agent_factory_pr_outcomes_total{{{X}, principal="{who}", class="review", outcome="{o}", repository="Smana/cloud-native-ref"}}',
+         {"series": f'maku_factory_pr_outcomes_total{{{X}, principal="{who}", class="review", outcome="{o}", repository="Smana/cloud-native-ref"}}',
           "values": "0 1x50"}
          for who, o in ((A, "auto_merged"), (A, "human_merged"), (A, "reverted"), (B, "human_merged"))
      ] + [
          # alice's second merged PR of the range is auto-merged too: 3 merged, 1 reverted = 2 accepted
-         {"series": f'agent_factory_pr_outcomes_total{{{X}, principal="{A}", class="docs", outcome="auto_merged", repository="Smana/cloud-native-ref"}}',
+         {"series": f'maku_factory_pr_outcomes_total{{{X}, principal="{A}", class="docs", outcome="auto_merged", repository="Smana/cloud-native-ref"}}',
           "values": "0 1x50"},
          # bob has 1 accepted: under the floor of 3, it reads no value, never $4 for one lucky merge
      ],
@@ -146,14 +146,14 @@ tests = [
          {"expr": q("Cost per accepted PR", "A", B), "eval_time": "50m", "exp_samples": []},
          {"expr": q("Cost per accepted PR", "B", B), "eval_time": "50m", "exp_samples": [{"value": 1}]},
      ]},
-    # Three accepted PRs (4 merged, 1 reverted) over $3 of tasks read $1.00 each.
+    # Three accepted PRs (4 merged, one of them approved, 1 reverted) over $3 of tasks read $1.00 each.
     {"interval": "1m",
      "input_series": [
-         {"series": f'agent_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "0 3x50"},
+         {"series": f'maku_factory_charged_usd_total{{{X}, principal="{A}", kind="task"}}', "values": "0 3x50"},
      ] + [
-         {"series": f'agent_factory_pr_outcomes_total{{{X}, principal="{A}", class="review", outcome="{o}", repository="Smana/cloud-native-ref"}}',
+         {"series": f'maku_factory_pr_outcomes_total{{{X}, principal="{A}", class="review", outcome="{o}", repository="Smana/cloud-native-ref"}}',
           "values": "0 " + str(n) + "x50"}
-         for o, n in (("auto_merged", 3), ("human_merged", 1), ("reverted", 1))
+         for o, n in (("auto_merged", 2), ("human_merged", 1), ("approved_merged", 1), ("reverted", 1))
      ],
      "promql_expr_test": [
          {"expr": q("Cost per accepted PR", "A", A), "eval_time": "50m", "exp_samples": [{"value": 1}]},

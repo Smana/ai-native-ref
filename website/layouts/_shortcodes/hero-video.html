@@ -1,21 +1,30 @@
-{{- /* The homepage hero: its text on the left, the Agent Factory clip on the right; stacked on
-     narrow screens. Under prefers-reduced-motion the clip never plays: CSS swaps it for the
-     poster, and the script drops autoplay before the browser starts it. */ -}}
+{{- /* An Agent Factory clip, by basename under static/media/ (<clip>.mp4 and <clip>-poster.jpg).
+     Params: clip (default "agent-factory"), width and height of the encode (default 720x900), alt
+     (the text under the clip, read by assistive tech through aria-describedby).
+     With inner content it is the homepage hero: text on the left, the clip on the right, stacked on
+     narrow screens. Without, it is the clip alone, for a docs page.
+     Under prefers-reduced-motion the clip never plays: CSS swaps it for the poster, and the script
+     drops autoplay before the browser starts it. */ -}}
+{{- $clip := .Get "clip" | default "agent-factory" -}}
+{{- $w := .Get "width" | default 720 -}}
+{{- $h := .Get "height" | default 900 -}}
+{{- $id := printf "anr-clip-alt-%s" $clip -}}
+{{- $media := printf `<figure class="anr-hero-media">
+    <video class="anr-hero-video" autoplay muted loop playsinline preload="metadata" width="%v" height="%v" style="aspect-ratio: %v / %v"
+           poster="%s" aria-describedby="%s">
+      <source src="%s" type="video/mp4">
+    </video>
+    <img class="anr-hero-poster" src="%s" width="%v" height="%v" style="aspect-ratio: %v / %v" alt="" loading="lazy">
+    <figcaption id="%s">%s</figcaption>
+  </figure>` $w $h $w $h (printf "media/%s-poster.jpg" $clip | relURL) $id (printf "media/%s.mp4" $clip | relURL) (printf "media/%s-poster.jpg" $clip | relURL) $w $h $w $h $id (.Get "alt" | default "") -}}
+{{ if strings.TrimSpace .Inner -}}
 <div class="anr-hero">
   <div class="anr-hero-text">{{ .Inner }}</div>
-  <figure class="anr-hero-media">
-    <video class="anr-hero-video" autoplay muted loop playsinline preload="metadata" width="720" height="900"
-           poster="{{ "media/agent-factory-poster.jpg" | relURL }}" aria-describedby="anr-hero-alt">
-      <source src="{{ "media/agent-factory.mp4" | relURL }}" type="video/mp4">
-    </video>
-    <img class="anr-hero-poster" src="{{ "media/agent-factory-poster.jpg" | relURL }}" width="720" height="900" alt="" loading="lazy">
-    <figcaption id="anr-hero-alt">
-      The Agent Factory in 32 s: a labelled issue becomes a sandboxed agent run, watched and steered
-      in a room; every call goes through agentgateway under the run's own identity and budget; the
-      agent opens a pull request that a human reviews and merges.
-    </figcaption>
-  </figure>
+  {{ $media | safeHTML }}
 </div>
+{{- else -}}
+<div class="anr-clip">{{ $media | safeHTML }}</div>
+{{- end }}
 <script>
 if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
   document.querySelectorAll('.anr-hero-video').forEach(function (v) { v.removeAttribute('autoplay'); v.preload = 'none'; v.pause(); });

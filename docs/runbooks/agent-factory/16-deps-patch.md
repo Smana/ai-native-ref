@@ -4,12 +4,12 @@ Brings the merge gate's `deps-patch` class from declared and off to shadow, then
 to one live drill. Design: [merge gate classes](../../superpowers/specs/2026-10-22-merge-gate-classes-design.md)
 (MC10 to MC12). The class takes Renovate's pull requests (patch bumps of Flux-deployed YAML: at most
 3 files and 10 lines, Renovate's stability days, 2 a day) and `deps-minor` sits beside it, shadow
-only. Both are declared on the host with no `live` or `shadow` key: until a session writes one, they
-adopt nothing and decide nothing. See [README.md](README.md) for `CLOUD`.
+only. Both are in shadow on the host (`shadow: true`): `deps-patch` decides and never arms, `deps-minor`
+is observed only. A class with no `live` or `shadow` key adopts nothing and decides nothing. See [README.md](README.md) for `CLOUD`.
 
 ## 1. Prerequisites
 
-- [ ] agent-platform v0.22.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`): the adopted
+- [ ] Maku v0.22.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`): the adopted
   classes (`author.adopt`, `semver-patch`, `semver-minor`, `releaseAgeCheck`).
 - [ ] The host's `renovate` policy rule carries the gate list (cloud-native-ref PR I) on its `main`.
 - [ ] The merger App is installed with pull requests, contents and checks read on the host, and
@@ -29,7 +29,7 @@ adopt nothing and decide nothing. See [README.md](README.md) for `CLOUD`.
 
 ## 2. Shadow (L3)
 
-One commit, at the rebuild (M3): `deps-patch: {…, shadow: true}` and `deps-minor: {…, shadow: true}`
+One commit (M3), already in the source: `deps-patch: {…, shadow: true}` and `deps-minor: {…, shadow: true}`
 on the host's entries in `tooling/base/agent-factory/helm-values-configmap.yaml`. Renovate keeps
 merging meanwhile (MC12). An adopted Task runs no agent, costs nothing and fills no factory cap.
 

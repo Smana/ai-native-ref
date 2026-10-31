@@ -81,7 +81,7 @@ cat >"$tmp/bin/curl" <<'STUB'
 for a in "$@"; do url=$a; done
 case "$url" in
   */.well-known/openid-configuration) printf '{"issuer":"https://auth.gcp.example.io"}\n200' ;;
-  */metrics) printf 'rooms_authn_jwks_last_refresh_timestamp_seconds{issuer="https://auth.gcp.example.io"} %s\n' \
+  */metrics) printf 'maku_rooms_authn_jwks_last_refresh_timestamp_seconds{issuer="https://auth.gcp.example.io"} %s\n' \
     "$(awk -v t="$(date +%s)" 'BEGIN {printf "%.9e", t - 60}')" ;;
   */api/v2/alerts*) echo '[]' ;;
   *) exit 7 ;;

@@ -2,7 +2,7 @@
 title: Gateways
 weight: 30
 description: "Two gateways, one per kind of caller: ai-gateway for humans and coding clients, the agent gateway for agent runs — identity, routing, and what they share."
-lastVerified: 2026-10-16
+lastVerified: 2026-10-29
 aliases:
   - /docs/platform/ai-platform/gateway-and-routing/
 ---
@@ -19,9 +19,9 @@ it and what it costs is on [Model routing and cost]({{< relref "/docs/platform/a
 | **Identity** | An API key per client, from AWS Secrets Manager | A projected token per run (JWT), verified on every call |
 | **Model choice** | Named by the client, or picked from the prompt by the Semantic Router (`model: MoM`) | An alias, mapped statically to one backend; nothing selects per request |
 | **Also carries** | — | MCP tool calls, the room tools, and the token exchange (`sts`) with octo-sts |
-| **Software** | Envoy Gateway + Envoy AI Gateway (Agent Router) `1.1.0` | [agentgateway](https://agentgateway.dev) `v1.6.0` ([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})) |
+| **Software** | Envoy Gateway + Envoy AI Gateway (Agent Router) `1.1.0` | [agentgateway](https://agentgateway.dev/docs/) `v1.6.0` ([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})) |
 
-![The two gateways side by side. Top: humans and coding clients reach ai-gateway over the tailnet with an API key; the Semantic Router may pick the model, and the request lands on a vLLM model in the serving fleet. Bottom: an agent run's identity-proxy sidecar attaches the run's own token; the agent gateway verifies it, meters the run's tokens and routes the model alias to a frontier provider (Z.ai GLM, Claude), the MCP tools, or octo-sts for a GitHub token. Both gateways write access logs and gen_ai metrics to the Victoria stack](/images/diagrams/ai-platform-2.svg)
+![The two gateways side by side. Top: humans and coding clients reach ai-gateway over the tailnet with an API key; the Semantic Router may pick the model, and the request lands on a vLLM model in the serving fleet. Bottom: an agent run's identity-proxy sidecar, beside the maku-harness, attaches the run's own token; the agent gateway verifies it, meters the run's tokens and routes the model alias to a frontier provider (Z.ai GLM, Moonshot Kimi and Mistral for public data only, Claude for internal data), the MCP tools, or octo-sts for a GitHub token. Both gateways write access logs and gen_ai metrics to the Victoria stack](/images/diagrams/ai-platform-2.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 2.*
 
@@ -188,18 +188,20 @@ flowchart LR
   P -->|".internal JWT"| LI
   P -->|"octo-sts JWT"| LS
   LP -->|"/v1, /anthropic"| Z["Z.ai GLM-5.3<br/>backends zai, zai-anthropic"]
+  LP -->|"/v1, pinned alias only"| KM["Moonshot Kimi · Mistral<br/>public data only"]
+  LI -->|"model route"| A["Claude<br/>Anthropic API"]
   LP -->|"/mcp"| M["agent-mcp<br/>MCP federation"]
   LI -->|"/mcp"| M
   LS -->|"/sts/exchange"| O["octo-sts"]
   M --> T["flux-operator-mcp · mcp-victoriametrics<br/>mcp-victorialogs · room-broker"]
-  agw -.->|"B1, B2 in shadow"| RL["agent-ratelimit"] --> V[("Valkey<br/>xplane-agent-ratelimit")]
+  agw -.->|"B1, B2, B6 enforced"| RL["agent-ratelimit"] --> V[("Valkey<br/>xplane-agent-ratelimit")]
 ```
 
 ### Listeners and data classes
 
 | Listener | Port | Audiences | Routes |
 |---|---|---|---|
-| `public` | 8080 | `agent-router.<role>.public` | `/v1` and `/anthropic` to Z.ai; `/v1/models` answers a 404 body, not a model list; `/mcp` with documentation and room tools |
+| `public` | 8080 | `agent-router.<role>.public` | `/v1` and `/anthropic` to Z.ai, and `/v1` to Moonshot or Mistral when the run's pinned alias names one ([providers]({{< relref "/docs/platform/ai-platform/agents/providers.md" >}}), public data only); `/v1/models` answers a 404 body, not a model list; `/mcp` with documentation and room tools |
 | `internal` | 8081 | `agent-router.<role>.internal` | `/mcp` with cluster, metric and log reads per role; the model route to Claude through the Anthropic API (Bedrock or Vertex optional per cloud; ADR-0054) and a read-only GitHub route for clones of either repository ([ai-native-ref#11](https://github.com/Smana/ai-native-ref/pull/11)) |
 | `sts` | 8082 | `octo-sts/Smana/{cloud-native-ref,ai-native-ref}/<role>` | `/sts/exchange` to octo-sts, with the bearer forwarded (`preserveToken`) |
 
@@ -241,8 +243,9 @@ transformation makes. The rule reads the raw body, so a gzip request with no `x-
 403 too. The identity proxy sets it on every model path, over any value the harness
 sends: the run's alias (the claim's `spec.model`) on `/v1` and `/anthropic`, and the completion
 judge's on `/judge/v1` (`spec.loop.judgeModel`, or `none`, which the rule refuses, when the claim
-names no judge). Every profile lists the four aliases today, so the rule binds nothing until a
-role moves to its own size: narrowing a profile is the switch, and gate AG14 refuses one that would
+names no judge). Every profile lists the four tier aliases, and only the public ones add the
+provider aliases, so on tiers the rule binds nothing until a role moves to its own size: narrowing a
+profile is the switch, and gate AG14 refuses one that would
 refuse a model the factory's tiers pin.
 
 The arguments are generated too. A tool in a profile may read
@@ -275,8 +278,8 @@ human ones (`policy-budgets.yaml`, `ratelimit.yaml`, `kvstore.yaml`):
 They are a backstop: the factory's run meter stays the exact cap, and the gateway never refuses a
 call the factory would admit. Each call is charged at the meter's own prices, so a cache read
 costs its cache rate; gate AG8 holds the gateway's price expression and limits to the factory's
-values. They run in **shadow mode** until the owner flips one flag, `SHADOW_MODE` on the server:
-then a call over budget gets a `429` whose body, `agent_budget_exhausted`, the harness logs
+values. They are **enforced** since 2026-10-18 (`SHADOW_MODE: "false"` on the server): a call over
+budget gets a `429` whose body, `agent_budget_exhausted`, the harness logs
 ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)). The server is `envoyproxy/ratelimit` (`agent-ratelimit`) on the Valkey
 `KVStore` `xplane-agent-ratelimit`; if it is down the router fails open and `AgentRateLimitDown`
 fires. A per-replica backstop of 40M raw tokens per hour per `sub` always enforces, above the largest run

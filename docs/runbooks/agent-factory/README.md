@@ -1,59 +1,36 @@
-# Agent Factory live test session — gcp-0
+# Agent Factory runbooks — gcp-0
 
-Exercises SP1 (agent runtime and identity), SP4 PR 1 (AI gateway: frontier route and token budgets)
-and the agent observability work on the live test cluster `gcp-0`. Every command is copy-paste, and every step names its expected output.
-Start with [Runbook 00](#runbook-00-one-time-cluster-setup): the cluster is already deployed, but four
-owner actions gate most runbooks.
+Live procedures for the Agent Factory on the test cluster `gcp-0`. Every command is copy-paste, and
+every step names its expected output. A **room** is the per-task workspace the room broker serves at
+`https://rooms.<domain>/r/<id>`: one shared log of messages, handoffs and notes for one factory task.
 
-`roomctl setup <client>` installs the factory MCP server and the `factory-handoff` skill for that coding agent client (`claude`, `opencode`, ...); see [Runbook 19](19-factory-from-your-agent.md).
-When a run's sandbox is lost mid-run (spot reclaim, eviction, node loss), [10-disruption.md](10-disruption.md) covers how the factory checkpoints and resumes it.
+## State
 
-## Status (2026-10-17)
+gcp-0 was torn down on 2026-10-29. Live sessions run on aws-0 from 2026-10-30. The next bootstrap is fresh, on Maku v0.32.0 (CRD group
+`maku.ogenki.io`): start with [runbook 14](14-gcp-0-session.md), then
+[Runbook 00](#runbook-00-one-time-cluster-setup). The runbooks stay written for that session.
 
-gcp-0 is the live target again since 2026-10-17 ([runbook 14](14-gcp-0-session.md)), from `main` on release
-pins. Rounds 1–6 and v1 (to 2026-10-16) ran on aws-0, now torn down. The round 7 and 9 columns are
-gcp-0's earlier build, on `integration/agent-factory`.
+| What | In the source today |
+|---|---|
+| Live auto-merge | cloud-native-ref's `docs-links` (Markdown link fixes) and `revert`, `autoMergesPerDay: 1` ([12](12-live-auto-merge-drill.md)) |
+| Shadow | `dead-links` on both repositories ([15](15-dead-links.md)), `deps-patch` ([16](16-deps-patch.md)); `deps-minor` observed only |
+| Budgets | Gateway budgets refuse (`SHADOW_MODE: "false"`, [04 Part D](04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)); the fleet's and each person's day are counted, never refused (`enforcePrincipal: false`, [04 Part C](04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week)) |
+| Session switches, off after each live session | `testFirst` on `scripts` ([21](21-test-first-tester.md)), RunLore ([20](20-runlore-agent-to-agent.md)), the `docs` row's provider `models`, `human.mcp.sessionStart` ([19](19-factory-from-your-agent.md)) |
 
-| Runbook | Round 7, gcp-0 (PASS/FAIL/OWNER) | Round 9, gcp-0 (PASS/FAIL/OWNER) | Still open |
-|---|---|---|---|
-| [01](01-runtime-sandbox.md) | 7 / 1 / 1 | 1 / 1 / 0 | Step 2's FAIL (F2) is fixed (d9d75413, 5b77d0db) and passed from zero in round 9. Step 7: F12. Step 4 (SC-02) is aws-0 only |
-| [02](02-identity-tokens.md) | 8 / 0 / 1 | — | B.2 GitHub-token timing needs the owner's interactive session (credential capture) |
-| [03](03-egress.md) | 6 / 0 / 0 | — | — |
-| [04](04-gateway-secrets-budgets.md) | 10 / 0 / 1 | — | A.3's OpenBao half mints a token: owner |
-| [05](05-github-octo-sts.md) | 12 / 0 / 0 | — | — |
-| [06](06-mcp.md) | 7 / 0 / 0 | — | The `room_*` tools (since c6a56f78) are not yet observed live in Steps 3–4 |
-| [07](07-end-to-end.md) | 1 / 0 / 0 | — | Only SC-04 is recorded on gcp-0 (issue #2140 → PR #2141) |
-| [08](08-observability.md) | 5 / 0 / 1 | 9 / 1 / 2 | Step 10's FAIL (F18) is fixed in 60e02d9a; re-run pending. F16 |
-| [10](10-disruption.md) | — | — | Ran on aws-0 on 2026-10-07 (v3 @ `1d288ea6`): Steps 1–7 PASS, acceptance 1–6 met, §5 decided (no early warning on aws-0). gcp-0 not run yet |
-| **Total** | **56 / 1 / 4** | **10 / 2 / 2** | |
+`maku setup <client>` installs the factory MCP server and the `factory-handoff` skill for a coding
+agent client (`claude`, `opencode`, ...): [runbook 19](19-factory-from-your-agent.md).
 
-Round 7 ran on `integration/agent-factory` @ `a2c645ba`, round 9 on `147819ff`. Round 9 re-ran only 01
-Steps 2 and 7 (as the F2 smoke probe and a room run) and 08 Steps 6–10.
+### Known issues
 
-Open bugs the runbooks keep their intended expectation for, with a "Known issue" note at the step:
+The runbooks keep their intended expectation for each, with a "Known issue" note at the step.
 
-| Bug | What you see today | Runbook |
+| Bug | What you see | Runbook |
 |---|---|---|
-| F12 | A deleted run pod is re-created within ~1 s, the run stays `Running`, and the harness re-runs the task | 01 Step 7 |
+| F12 | A deleted pod of a run with a `roomRef` is re-created within ~1 s, the run stays `Running`, and the harness re-runs the task | 01 Step 7 |
 | F15 | A run refused the room's lease still executes its task, unmirrored, on the room's branch | rooms only, no step here |
 | F16 | Each MCP call through `agent-router` opens its own root trace instead of joining the run's | 08 Step 8 |
-
-### Latest aws-0 result per runbook (history)
-
-Mixes rounds 4 to 6 (from `580042e6` on). Round 6 took issue #2112 to PR #2114 (SC-04) and ran a
-58-minute run with no `401` (SC-06).
-
-| Runbook | PASS | FAIL | BLOCKED | Notes |
-|---|---|---|---|---|
-| [01](01-runtime-sandbox.md) | 9 | 0 | 0 | R7 fails closed by design and resumes via `--branch` (see Platform findings) |
-| [02](02-identity-tokens.md) | 5 | 1 | 1 | The FAIL (`/v1/models` auth bypass) is fixed in #2108 and verified live. GitHub-token timing needs the owner's interactive session (credential capture) |
-| [03](03-egress.md) | 6 | 0 | 0 | — |
-| [04](04-gateway-secrets-budgets.md) | 10 | 0 | 0 | Run by the coordinator directly |
-| [05](05-github-octo-sts.md) | 12 | 0 | 0 | The round-3 octo-sts 422 is fixed (see Platform findings) |
-| [06](06-mcp.md) | 6 | 0 | 0 | — |
-| [07](07-end-to-end.md) | 7 | 0 | 0 | Round 6: SC-04 (68 s to a PR the owner merged), SC-06 (58 min, 44 × `200`, 0 × `401`) |
-| [08](08-observability.md) | 5 | 0 | 0 | Data verified through the VM/VL proxy calls. The UI is SSO-gated |
-| **Total** | **60** | **1** | **1** | |
+| [maku#279](https://github.com/Smana/maku/issues/279) | A task's status cost freezes before the run's final settle | 04 Part F |
+| [maku#280](https://github.com/Smana/maku/issues/280) | A budget-exhausted run's ledger misses its last spend | 04 Part G |
 
 ## What each runbook proves
 
@@ -67,21 +44,22 @@ Mixes rounds 4 to 6 (from `580042e6` on). Round 6 took issue #2112 to PR #2114 (
 | [05-github-octo-sts.md](05-github-octo-sts.md) | SC-11, sts listener end to end | Yes — 1, 3, 4 | ~25 min |
 | [06-mcp.md](06-mcp.md) | SC-12, SC-17 (MCP half) | Yes — 1 | ~15 min |
 | [07-end-to-end.md](07-end-to-end.md) | SC-04, SC-06, SC-13, SC-14 | Yes — 1–5 | ~2 h |
-| [08-observability.md](08-observability.md) | Agent-platform VMRules, dashboard, SP4 gateway metrics, the per-run view (SO-1…SO-5) | No | ~15 min |
+| [08-observability.md](08-observability.md) | The VMRules (`agent-platform`, `agent-platform-logs`, `agent-factory`, `agent-rooms`), the dashboards, SP4 gateway metrics, the per-run view (SO-1…SO-5) | No | ~15 min |
 | [09-app-key-compromise.md](09-app-key-compromise.md) | The App key-compromise procedure (SD14): stop, rotate, reload, revoke, resume and audit, for all four Apps | Yes — the App's installation page and settings | ~20 min |
 | [10-disruption.md](10-disruption.md) | Disruption design acceptance 1–6 | Yes — a maintainer's `factory/ready`; aws-0 Step 7 needs IAM | ~60 min |
-| [11-v1-validation.md](11-v1-validation.md) | Local-first UX: the skill, `roomctl status`, the room page, zoomable diagrams, D7 room access, observability on one run, one task end to end on release pins | Yes — a maintainer's `factory/ready`; a second, non-admin identity and a private test repo | ~90 min |
-| [12-live-auto-merge-drill.md](12-live-auto-merge-drill.md) | Design D4, gate G1–G3: the first unattended `docs-links` merge at the run-reported head, its revert and the breaker | Yes — the owner's go, the merger App's `issues: write` and `actions: write`, the `agent-merge` and `agent-branches` rulesets, policy-bot on gcp-0, a maintainer's `factory/ready` | ~2 h |
+| [11-v1-validation.md](11-v1-validation.md) | Local-first UX: the skill, `maku status`, the room page, zoomable diagrams, D7 room access, observability on one run, one task end to end on release pins | Yes — a maintainer's `factory/ready`; a second, non-admin identity and a private test repo | ~90 min |
+| [12-live-auto-merge-drill.md](12-live-auto-merge-drill.md) | Design D4, gate G1–G3: an unattended `docs-links` merge at the run-reported head, its revert and the breaker (both classes live in the source) | Yes — the owner's go, the merger App's `issues: write` and `actions: write`, the `agent-merge` and `agent-branches` rulesets, policy-bot on aws-0, a maintainer's `factory/ready`, `factory/drill` on the drilled PR | ~2 h |
 | [13-rooms-restore.md](13-rooms-restore.md) | Issue #27: the rooms database restores from `rooms-pre-destroy` on a rebuild, and into a scratch namespace; RPO and RTO | Part A: a teardown and rebuild. Part B: the owner's go (writes a seed) | A: the rebuild + 10 min; B: ~30 min |
 | [14-gcp-0-session.md](14-gcp-0-session.md) | The ordered gcp-0 session: gcp-0 up alone, the v2.1 blockers live, runbook 11 as the full test, v2 on gcp-0, the Substrate spike | Yes — Google auth, the quota request, the identity-provider topology, the agents keys, the go-live commit | a day, plus the spike's two |
-| [15-dead-links.md](15-dead-links.md) | Merge gate classes: the `dead-links` class in shadow (an oracle-backed intake, a would-arm decision) and, on the owner's go, one live drill with its revert | Shadow: no. The drill: the owner's go, the merger App's `actions` permission, a host `.policy.yml` rule | shadow: a day; drill: ~1 h |
-| [16-deps-patch.md](16-deps-patch.md) | Merge gate classes: the `deps-patch` class in shadow (Renovate's PRs adopted, a would-arm decision, a Flux monitor) and, on the owner's go, one live drill with its revert | Shadow: no. The drill: the owner's go, the merger App's `issues: write`, cloud-native-ref PR K | shadow: a day; drill: ~1 h |
-| [17-splitter.md](17-splitter.md) | Splitter design, live proofs 1–4: a hard issue proposed as a split, approved, landed part by part as sub-issues, stopped, and charged to the approver within the family's cap | Yes — the owner's go, a maintainer's `factory/ready` and `/factory split`, the scoper's live proofs first | ~2 h |
-| [18-factory-interfaces.md](18-factory-interfaces.md) | Factory interfaces, the switch-on: a sponsored principal filing through intake `api`, the broker's signed webhooks and the Slack App; live proofs 2 to 5, then off again | Yes — the owner's go, the Slack App's console, a host PR for the public listener | ~3 h |
+| [15-dead-links.md](15-dead-links.md) | Merge gate classes: the `dead-links` class in shadow (an oracle-backed intake, a would-arm decision, the post-merge monitor) and, on the owner's go, one live drill with its revert | Shadow (in the source): no. The drill: the owner's go, the merger App's `actions` permission, a host `.policy.yml` rule | shadow: a day; drill: ~1 h |
+| [16-deps-patch.md](16-deps-patch.md) | Merge gate classes: the `deps-patch` class in shadow (Renovate's PRs adopted, a would-arm decision, a Flux monitor) and, on the owner's go, one live drill with its revert | Shadow (in the source): no. The drill: the owner's go, the merger App's `issues: write`, cloud-native-ref PR K | shadow: a day; drill: ~1 h |
+| [17-splitter.md](17-splitter.md) | The splitter: a hard issue proposed as a split, approved, landed part by part as sub-issues, declined by `/factory retry`, stopped, and charged to the approver within the family's cap | Yes — the owner's go, a maintainer's `factory/ready` and `/factory split`, the scoper's live proofs first | ~2 h |
+| [18-factory-interfaces.md](18-factory-interfaces.md) | Factory interfaces: a sponsored principal filing through intake `api`, the broker's signed webhooks and the Slack App; the switch-on (merged), live proofs 2 to 5, and off again | Yes — the owner's go, the Slack App's console | ~3 h |
 | [19-factory-from-your-agent.md](19-factory-from-your-agent.md) | The factory from your coding agent, live proofs 1 to 5 in Claude Code and OpenCode: start from the form, wait for an approval, the card and `room_changes`, the checkout, a hostile note shown inert; then off again | Yes — the owner's go, the cloud-native-ref skill-copy PR merged first | ~2 h |
-| [20-runlore-agent-to-agent.md](20-runlore-agent-to-agent.md) | RunLore as the factory's internal principal, stage 1, live proofs 1 to 3: the paths open, one incident filed as an `investigate` task and replayed idempotently, the old intake silent | Yes — the owner's go, the ZITADEL sync and the webhook key seeded (runbook 14), a maintainer's `factory/publish` label created | ~2 h |
-| [21-test-first-tester.md](21-test-first-tester.md) | The tester's contract on a seeded `scripts` issue, the hook and row 2c, a renamed holdout | Yes — F1 to F5 live and the owner's go | ~2 h |
+| [20-runlore-agent-to-agent.md](20-runlore-agent-to-agent.md) | RunLore as the factory's internal principal, live proofs 1 to 5: the paths open, one incident filed as an `investigate` task and replayed idempotently, the old intake silent (stage 1); a fix verified after its soak, and a fix that does not hold (stage 2) | Yes — the owner's go, the ZITADEL sync and the webhook key seeded (runbook 14), a maintainer's `factory/publish` label created | ~2 h |
+| [21-test-first-tester.md](21-test-first-tester.md) | The tester's contract on a seeded `scripts` issue, the hook and row 2c that hold it, a renamed holdout | Yes — F1 to F5 live and the owner's go | ~2 h |
 | [22-slack.md](22-slack.md) | Slack, configure: the App from its manifest, the keys, the machine user, the Request URL, a channel's repositories (three places), who may file, one mention end to end. Users: the [user guide](../../../website/content/docs/platform/ai-platform/agents/user-guide.md) | Yes — the Slack console, OpenBao, the ZITADEL sync | ~1 h |
+| [24-screencast.md](24-screencast.md) | — (a recording script: one `docs` task from OpenCode, through the room page and GitHub's approve-to-merge, to the dashboards) | Yes — the session switch (`human.mcp.sessionStart` on aws-0), the owner's approval | ~75 min |
 
 **Out of scope:** SC-15/SC-16 (gVisor overhead ratio and `validate-manifests.sh`/`task check`
 exit codes) are already closed by the phase-0 spike and by CI — no live step adds evidence.
@@ -91,9 +69,9 @@ exit codes) are already closed by the phase-0 spike and by CI — no live step a
 Every runbook starts from the root of a `cloud-native-ref` checkout, the host, with `CLOUD` set: the
 CA paths under `opentofu/` and `task agent:run` are the host's. The probe and check scripts live
 here, so `AI_NATIVE_REF_DIR` names an `ai-native-ref` checkout; the host's `task agent:run` calls
-`$AI_NATIVE_REF_DIR/scripts/ops/k8s/agent-run.sh` with the host's CA. gcp-0 is the live target; the
-aws variants are kept for the next aws-0 rebuild.
-A **room** is the per-task workspace the room broker serves at `rooms.<domain>`: one shared log of messages, handoffs and notes for a single factory task, reached at `https://rooms.<domain>/r/<id>`.
+`$AI_NATIVE_REF_DIR/scripts/ops/k8s/agent-run.sh` with the host's CA. gcp-0 is the target; the
+aws variants are kept for an aws-0 rebuild. When a run's sandbox is lost mid-run (spot reclaim,
+eviction, node loss), [runbook 10](10-disruption.md) covers how the factory checkpoints and resumes it.
 
 ```bash
 CLOUD=gcp    # or aws
@@ -134,10 +112,9 @@ To restore the rooms database after a cluster rebuild, see [13-rooms-restore.md]
 
 ### What is already in place
 
-gcp-0 tracks cloud-native-ref's `main`, on release pins: the `ai-native-ref` source, agent-platform
+gcp-0 tracks cloud-native-ref's `main`, on release pins: the `ai-native-ref` source, Maku
 and crossplane-configuration. The go-live commit on `main` un-suspends the source and the
-`ai-gateway` and `agent-platform` umbrellas, and names `gcp-0` in the ownership fence. Rounds 7 and 9
-ran on the earlier `integration/agent-factory` branch instead.
+`ai-gateway` and `agent-platform` umbrellas, and names `gcp-0` in the ownership fence.
 
 Because the umbrellas are unsuspended **in git**, there is nothing to `flux resume`. A live resume
 would be reverted on the next `flux-system` reconcile.
@@ -147,10 +124,8 @@ kubectl get gitrepository -n flux-system flux-system -o jsonpath='{.spec.ref.nam
 flux get kustomizations -n flux-system | grep -E '^(ai-gateway|agent-platform)[[:space:]]'
 ```
 
-> Corrected 2026-09-27: `flux get kustomization` (flux CLI 2.9.5) silently reads only the first
-> name given and drops the rest — it never errors, so a multi-name invocation quietly checks one
-> Kustomization and reports nothing on the others. Every runbook command below now lists then
-> greps instead of passing multiple names positionally.
+> `flux get kustomization` (flux CLI 2.9.5) reads only the first name it is given and silently drops
+> the rest. Every runbook lists, then greps.
 
 Expected: `refs/heads/main`; both `Ready=True`, `Suspended=False`.
 
@@ -161,15 +136,19 @@ Expected: `refs/heads/main`; both `Ready=True`, `Suspended=False`.
 | 1 | OpenBao policy `agents-secrets` + JWT role `agents-secrets` on `jwt/<cluster>` — applied by the `opentofu/$CLOUD/openbao/management` stack | `agent-secrets` → `agent-router` → `agent-mcp`, `octo-sts` (runbooks 02, 04–07) | see below |
 | 2 | The agents' Z.ai key | runbook 04 (frontier route), 07 | `bao kv put -mount=agents zai api_key=-` (key on stdin, never as an argument) |
 | 2b | The agents' Anthropic key, read by the ExternalSecret `agents-anthropic-api-key` | the internal tier on Claude (agentgateway's Anthropic backend) | `bao kv put -mount=agents anthropic api_key=-` |
-| 2c | The agents' own Kimi Code and Mistral keys (feature 15, public data only), and a spend cap on Mistral's console (pay-as-you-go, $20) | the selectable `kimi-frontier`, `mistral-standard`, `mistral-light` aliases | `bao kv put -mount=agents moonshot api_key=-` and `bao kv put -mount=agents mistral api_key=-` |
+| 2c | The agents' own Kimi Code and Mistral keys (feature 15), each capped on its console: Mistral's spend cap (pay-as-you-go, $20; billing active first), and Kimi Code's flat-rate plan as its cap. Moonshot processes in China and Mistral in the EU, so both serve public data only | the selectable `kimi-frontier`, `mistral-standard`, `mistral-light` aliases, switched on per class with `loops.<class>.models` | `bao kv put -mount=agents moonshot api_key=-` and `bao kv put -mount=agents mistral api_key=-` |
 | 3 | Branch ruleset, **before** the App exists | runbook 05 | `task ops:github:agent-branch-ruleset -- Smana/cloud-native-ref` |
 | 4 | GitHub App `ogenki-agents` on `Smana`, installed on `Smana/cloud-native-ref` only | runbook 05, 07 | `bao kv put -mount=agents github-app app_id=<id> private_key=@<pem file>` |
 | 4b | The `factory-app` GitHub App key, read by SP3's ExternalSecret `agent-factory-github` | the `agent-factory` Kustomization | `bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem file>` |
 | 4c | The merger App `ogenki-agent-merger` key, read by the ExternalSecret `agent-factory-merger`. The App: Contents write, Checks read, Statuses read, Pull requests write, Metadata read, webhook off, installed on `Smana/cloud-native-ref` only (R16) | the `agent-factory` Deployment, which mounts it non-optionally | `bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem file>` |
-| 4d | Retired by feature 14's PR 7: the RunLore intake token (`runlore-intake`, `platform/runlore/factory-intake`) is no longer read; RunLore is a standard client ([runbook 20](20-runlore-agent-to-agent.md)). Delete both paths once PR 7 runs | — | — |
+| 4d | Retired by feature 14's PR 7: the RunLore intake token (`runlore-intake`, `platform/runlore/factory-intake`) is no longer read; RunLore is a standard client ([runbook 20](20-runlore-agent-to-agent.md)). Delete both paths where they remain | — | — |
+| 4e | The Slack App's keys (bot token, signing secret, bot user id), written from the Slack console | `maku-slack`, the Slack intake ([runbook 22](22-slack.md)) | `bao kv put -mount=agents factory-slack-app -` (one JSON document on stdin, [runbook 22 §2](22-slack.md#2-owner-store-the-keys-in-openbao)) |
+| 4f | The machine users the Slack App and RunLore act as, created by the host's ZITADEL sync | intake `api`: the Slack App and RunLore as sponsored and internal principals ([runbook 18](18-factory-interfaces.md#1-prerequisites), [runbook 20](20-runlore-agent-to-agent.md#0-prerequisites)) | `zitadel-oidc-clients.sh sync --apply` on the host |
+| 4g | One webhook signing key in two mounts, the broker's and RunLore's | the broker's signed webhooks to RunLore ([runbook 20](20-runlore-agent-to-agent.md)) | `bao kv put -mount=agents runlore-webhook signing-key=…` and `bao kv put -mount=platform runlore/factory-webhook signing-key=…`, the same key ([runbook 14 §5](14-gcp-0-session.md#5-owner-the-agents-keys-once-per-gcp-lineage)) |
+| 4h | The `factory/publish` label on each repository RunLore files on | publishing RunLore's proposals ([runbook 20](20-runlore-agent-to-agent.md#0-prerequisites)) | `gh label create factory/publish -R <owner/repo>` |
 | 5 | A trivial issue URL (e.g. a broken relative link) | runbook 07 SC-04 | — |
 
-These keys (2, 2b, 4, 4b, 4c) are the platform's one owner-written exception: GitHub, Z.ai and Anthropic issue
+These keys (2, 2b, 2c, 4, 4b, 4c, 4e, 4g) are the platform's one owner-written exception: GitHub, Z.ai, Anthropic, Moonshot, Mistral and Slack issue
 them, and the AWS snapshot cannot be restored across KMS seals (GCP parity). Once per GCP lineage.
 Without 4c the factory pod never starts: its Secret volumes are not optional.
 
@@ -195,9 +174,9 @@ flux get kustomizations -n flux-system | grep -E '^(agent-router|agent-mcp|octo-
 
 Expected: all four `Ready=True`.
 
-Runs use the harness released by `agent-platform`, pinned by digest in the composition
-(`agent-harness:v0.15.2` at crossplane-configuration `v0.9.15`). A harness pre-release for a live gate
-is a pre-release `v*` tag on `agent-platform` (its `release.yaml`; tags are admin-only under the
+Runs use the harness released by Maku, pinned by digest in the crossplane-configuration release the
+host runs ([runbook 07 Step 1](07-end-to-end.md#step-1--confirm-the-harness-pin)). A harness pre-release for a live gate
+is a pre-release `v*` tag on Maku (its `release.yaml`; tags are admin-only under the
 release-tags ruleset) or the `-pr<N>.<sha8>` image its `ci.yaml` pushes for same-repo PRs;
 cloud-native-ref verifies only signatures from `release.yaml@refs/tags/v…`.
 
@@ -215,17 +194,18 @@ Destroying the cluster is a separate owner call.
 
 ## v3 loop and sandbox layers on the `docs` class
 
-The gcp-0 session of 2026-10-27 switches v3 features on for the `docs` class only, one commit
-each in `tooling/base/agent-factory/helm-values-configmap.yaml`, so a failure is attributable. Merge
-and prove them in this order; the next layer waits for the previous one's proofs. The class is
+v3 features are switched on for the `docs` class one at a time, one commit each in
+`tooling/base/agent-factory/helm-values-configmap.yaml`, so a failure is attributable. Prove them in this
+order; the next layer waits for the previous one's proofs. Layers 1 to 4 and the splitter's `scripts` row
+are on in the source; `testFirst` (layer 6) is a session switch, off. The class is
 declared by both repositories, so each switch reads for `Smana/ai-native-ref` and
 `Smana/cloud-native-ref`; the drills below file on ai-native-ref unless said otherwise. Each issue is
 public. A maintainer labels it `class:docs` first (without the label the task's class is `review`, which
 reads `default`'s row, off), then `factory/ready`.
 
 The drills' issue texts live on the operator's machine (`~/.cache/v3/drills/`), not here: the agents
-read this README, and on the 2026-10-27 session they recognised the drills from it ("this task is the
-repository's own Drill E") and answered the drill rather than the issue. This page keeps each drill's
+read this README, and an agent that recognises a drill ("this task is the repository's own Drill E")
+answers the drill rather than the issue. This page keeps each drill's
 name, purpose and expected outcome; reword a drill's text before it runs again.
 
 | Layer | Switch (`loops.docs`, or `classes.docs` per repository) | Design |
@@ -233,8 +213,11 @@ name, purpose and expected outcome; reword a drill's text before it runs again.
 | 1. Scoper | `scope: scoper` | [scoper](../../superpowers/specs/2026-10-22-scoper-design.md#gate) |
 | 2. Loop policy | `stallSteps: 60`, `continuations: 2`, `judge: tier-light` | [loops](../../superpowers/specs/2026-10-21-loops-and-teams-design.md), [harness reference](../../../website/content/docs/platform/ai-platform/agents/harness.md#loop-policy) |
 | 3. Sandbox checks | `checks: true` | [sandbox checks](../../superpowers/specs/2026-10-22-sandbox-checks-design.md#gate) |
+| 4. Search tool (used live once; SQ5a open) | `search: true` | [search tool](../../superpowers/specs/2026-10-23-search-tool-design.md) |
+| 5. Splitter (`scripts`) | `split: {…}` | [splitter](../../superpowers/specs/2026-10-23-splitter-design.md) |
+| 6. Test-first tester (`scripts`) | `testFirst: true` | [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) |
 
-Before layer 1: the pins carry agent-platform v0.23.2 and crossplane-configuration v0.9.20 or later
+Before layer 1: the pins carry Maku v0.23.2 and crossplane-configuration v0.9.20 or later
 (`spec.loop` with `search`, `checks` and `judgeModel`), and `scripts/ops/k8s/gcp-0-platform-gates.sh`
 passes. Read a task with `kubectl -n agent-system get task <name> -o yaml`.
 
@@ -249,7 +232,7 @@ reaches the room and the implementer's brief) or asks its author the one questio
 | 2 | File drill issue B below and label it | One comment on the issue (the question, the assumption it would make), the label `factory/needs-author`, the task `Escalated` with reason `needs_author`, no implementer run |
 | 3 | Edit issue B's body to add the acceptance check, then re-apply `factory/ready` | A new task (a new generation) scopes `ready`; the first one is superseded |
 | 4 | File drill issue B again as a new issue, label it, then comment `/factory retry` | The implementer starts on the assumption (`status.scope` `assumed`), no second scoper run, the label is removed |
-| 5 | Read the counters | `agent_factory_scoper_runs_total` and `agent_factory_scope_bounces_total` carry one outcome per run above |
+| 5 | Read the counters | `maku_factory_scoper_runs_total` and `maku_factory_scope_bounces_total` carry one outcome per run above |
 
 Steering (live proof 3) needs a note at `.github/agent-factory/steering/docs.md` on the target's default
 branch, which exists on ai-native-ref and not yet on cloud-native-ref. To prove it, switch the row to
@@ -267,23 +250,22 @@ Text: `~/.cache/v3/drills/drill-b.md`, on the operator's machine, never in a rep
 ### Layer 2: the loop policy
 
 Prerequisites: layer 1's proofs passed (the judge reads the scope's checks) and the capability profiles'
-sidecar ([#103](https://github.com/Smana/ai-native-ref/pull/103)) is merged and live: a command in the
+sidecar ([#103](https://github.com/Smana/ai-native-ref/pull/103)) is live: a command in the
 sandbox that posts to the identity proxy's `/judge/v1` reaches the judge alias. Without the sidecar the
 judge call is refused (403 or 404) and silently skipped: the run ends as `finished`, as with no judge, and
 no error shows. Drills D and E run only after #103 is live; drill C (the stall rule) does not need it.
-The row now reads `docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light}`.
-The factory copies it
-into every implementer claim of the class: `kubectl -n agent-system get task <name> -o
+The row reads `docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}`.
+The factory copies it into every implementer claim of the class: `kubectl -n agent-system get task <name> -o
 jsonpath='{.spec.loop}'` shows `stallSteps`, `continuations` and `judgeModel`.
 
 | # | Do | Expected reading |
 |---|---|---|
-| 1 | In a commit of the session, set `loops.docs.stallSteps` to 20 for this drill. File drill issue C (a stall drill) and label it as in layer 1 | The implementer ends with no commit by step 20: the task is `Escalated`, reason `stalled`; the room holds the run's findings as a note; the issue carries the fixed narration with the reason category only; `agent_factory_loop_runs_total{end="stalled"}` is 1. The run's cost stays under the tier's `runUSD` |
+| 1 | In a commit of the session, set `loops.docs.stallSteps` to 20 for this drill. File drill issue C (a stall drill) and label it as in layer 1 | The implementer ends with no commit by step 20: the task is `Escalated`, reason `stalled`; the room holds the run's findings as a note; the issue carries the fixed narration with the reason category only; `maku_factory_loop_runs_total{end="stalled"}` is 1. The run's cost stays under the tier's `runUSD` |
 | 2 | File drill issue D (a clear issue whose first attempt misses a check) and label it | After the first run ends on its own, the judge answers `not_yet` against the scope's checks; the same conversation continues (the room shows one run's conversation, not a restart), at most twice |
 | 3 | On step 2's task, read the cache | `cache_read` over `input` for the continued steps is high (runbook 04, Part E); a continuation that restarted the conversation reads as a cold prefix |
 | 4 | An issue whose acceptance cannot be met (drill E) | The judge answers `impossible`: `Escalated`, reason `judge_impossible`, the judge's text only in the room, the issue carries the category only |
 | 5 | Read the reviewer's role in the room on any of the runs above | The reviewer's brief and calls hold no implementer transcript |
-| 6 | Read the counters | `agent_factory_loop_runs_total` by `end` (`finished`, `stalled`, `not_met`, `judge_impossible`) matches the runs above |
+| 6 | Read the counters | `maku_factory_loop_runs_total` by `end` (`finished`, `stalled`, `not_met`, `judge_impossible`) matches the runs above |
 
 After the drill, put `stallSteps` back to 60 (a real docs run takes 15 to 40 steps before its first
 commit; do not go under about 50), then set it from the accepted runs' step counts.
@@ -306,7 +288,7 @@ Text: `~/.cache/v3/drills/drill-e.md`, on the operator's machine, never in a rep
 
 ### Layer 3: the sandbox checks
 
-Both repositories now carry `docs: {checks: true}` (egress `[pypi]` on cloud-native-ref, `[golang, pypi]`
+Both repositories carry `docs: {checks: true}` (egress `[pypi]` on cloud-native-ref, `[golang, pypi]`
 on ai-native-ref). Prerequisites: each repository's `.github/agent-checks.yaml` is on its default branch
 (`gh api repos/<repo>/contents/.github/agent-checks.yaml`), the cluster's `AgentRun` XRD has
 `spec.loop.checks` (crossplane-configuration v0.9.20 or later), and `internal` runs never get it: the XRD
@@ -367,7 +349,7 @@ about $5 expected and $31 at the caps, inside `tasksPerDay: 20` and `factoryDail
 
 ### Layer 5: the splitter
 
-`scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard}}` lets the
+`scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}}` lets the
 scoper propose a split of a hard `scripts` task; nothing splits before a maintainer comments `/factory
 split`. The proofs are [runbook 17](17-splitter.md) section 3. Prerequisites: layer 1 passed (the split
 needs the scoper), the factory App holds `issues: write`. File the cohort on cloud-native-ref, label each
@@ -387,24 +369,19 @@ caps and exceed `factoryDailyUSD: 42.50` together with any other run that day: f
 days, or expect about $4 to $8 per family in practice (a scoper run, then up to four parts at about
 $1 to $2).
 
-### Layer 6: the test-first tester (blocked: no switch exists yet)
+### Layer 6: the test-first tester
 
-Design: [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) (TF1, TO4). Its
-switch is `repositories[].classes.scripts.testFirst: true` on cloud-native-ref only (TO4: none on
-ai-native-ref, whose tests live under the gate path `scripts/ci/`). **No commit sets it yet**, for two
-reasons found on 2026-10-27:
+Design: [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) (TF1, TO4).
+The switch is `repositories[].classes.scripts.testFirst: true` on cloud-native-ref only (TO4: none on
+ai-native-ref, whose tests live under the gate path `scripts/ci/`), with `merge: {contractCheck: "Test
+contract 🧪"}`. A session commit sets it, the session's last commit reverts it. The drills run on
+cloud-native-ref with `class:scripts` then `factory/ready`; [runbook 21](21-test-first-tester.md) holds
+the steps. Proofs: the tester runs first and commits a test that fails on the base; `status.contract`
+holds `{runId, commit, files, ids}`; the implementer's pull request passes "Test contract 🧪"; the gate
+reads `contract_modified` if the implementer edits a contract file.
 
-- `testFirst` and `merge.contractCheck` are in no agent-platform release (v0.25.0's `Class` has no such
-  key, and the factory's strict parse refuses an unknown one). Only the contract check (plan PR 1, the
-  harness's `test-contract`) is built; the factory slice (plan PR 6) is not.
-- The host's `.github/chainguard/agent-tester.sts.yaml` grants `contents: read`; TO2 needs `contents: write`,
-  a gate path and so a human pull request on cloud-native-ref.
-
-When both land: pin the release, then one commit sets `scripts: {testFirst: true}` on cloud-native-ref with
-`merge: {contractCheck: "Test contract 🧪"}`, and the drills run on cloud-native-ref with `class:scripts`
-then `factory/ready`. Proofs, from the design's live proofs: the tester runs first and commits a test that
-fails on the base; `status.contract` holds `{runId, commit, files, ids}`; the implementer's pull request
-passes "Test contract 🧪"; the gate reads `contract_modified` if the implementer edits a contract file.
+The texts below are T1 and T2 (`not_testable`). Runbook 21's own T2 (the contract holds) and T3
+(holdouts) have no text in `~/.cache/v3/drills/` yet: write them before that session.
 
 **Drill T1, testable behaviour** (a pure function with a clear contract):
 
@@ -426,174 +403,27 @@ verbatim; a summary line ("worked") is not evidence per this repo's evidence rul
 
 ### Platform findings
 
-**FIXED in round 6: a deleted run's CNP went before its pod, so the GitHub-token revoke could not
-reach GitHub (SC-07).** Two defects:
-- **The `Usage` was keyed on the Sandbox.** The Usage that should hold the run's CNP until the pod is
-  gone named the Sandbox as its `by` resource. A Sandbox has no finalizer and leaves the API the
-  moment it is deleted. Crossplane releases a composed Usage as soon as a GET of `by` returns
-  NotFound (`internal/controller/protection/usage/reconciler.go:327`, v2.4.2), and replayed the CNP
-  deletion in the same second.
-- **The harness profile never set `preStop`.**
+Fixed findings from the earlier rounds (aws-0 rounds 1 to 6, gcp-0 rounds 7 and 9); each runbook's
+Results tables keep the evidence.
 
-The consequences: once the CNP was gone, the namespace `default-deny` cut the pod's egress while
-`agent-run` was still revoking, so the token stayed live until GitHub expired it, up to 1 h.
-
-| Run | Endpoint removed | CNP deleted |
+| Finding | Cause | Fix |
 |---|---|---|
-| Before: `qeh6rf2k` (B.2) | 09:52:32 | 09:52:11.6, **21 s before the pod** |
-| After: `hb545ti2` | 10:38:37.1 | 10:38:40.3, **3 s after the pod** |
+| A deleted run's CNP went before its pod, so the GitHub-token revoke could not reach GitHub (SC-07): the token lived up to 1 h | The `Usage` was keyed on the Sandbox, which leaves the API at once; the harness profile set no `preStop` | crossplane-configuration PR #29: a `preStop` revoke (`4857e3f`) and the Usage keyed on the **Pod** (`c304bbf`); #2110 `17ec1f97` grants Crossplane `get pods` in `agents` only |
+| octo-sts's installation-token mint answered 422 for every trust policy | The `ogenki-agents` App lacked `pull_requests: read & write`, and the installation had not accepted the change | The owner granted and accepted it; runbook 05 re-verified both roles |
+| The OpenHands SDK crashed on the first model response (`'PromptTokensDetailsWrapper' object has no attribute 'cache_creation_tokens'`) | LiteLLM did not map `agent-default` and fell back to a wrapper without Anthropic's cache fields | OpenHands 1.49.6 with litellm `<1.95.1` (software-agent-sdk#5213) in the harness |
+| An `AgentRun` idled at `Running`: the upstream `agent-server` image never submitted a task | No wrapper read `TASK_FILE`/`CONVERSATION_ID` | The repo-built harness (#2110) |
+| `GET /v1/models` on the public listener answered `200` to any token, or none (SC-05) | AI Gateway's ext_proc answered `/v1/models` before `jwt_authn` ran | #2108 (`4fda7196`): an Exact-path `/v1/models` route with no ext_proc; check A7 in `scripts/ci/flux-schema/assert-ai-gateway.py`. agentgateway now answers it `404` behind the JWT ([02 Step 2](02-identity-tokens.md#step-2--the-401403-matrix-and-header-forgery-attribution-sc-05)). Not covered: the human gateway's `llm.priv…/v1/models` answers without credentials (tailnet only, model names only) |
+| `agent-sandbox` release rejected; `envoy-ai-gateway` upgrade stalled | `reconcileStrategy: Revision` put `+<sha>` in `helm.sh/chart`; ESO's second write cancelled an in-flight upgrade | A postRenderer replaces the label; the HelmRelease retries |
 
-The fix:
-- crossplane-configuration PR #29 `4857e3f` adds the `preStop` revoke.
-- crossplane-configuration PR #29 `c304bbf` keys the Usage on the **Pod**, which stays in the API until kubelet has finished
-  `preStop` and the SIGTERM cleanup.
-- #2110 `17ec1f97` grants Crossplane `get pods` in `agents` only. Checked with `kubectl auth can-i`:
-  `get` yes; `list`, and `get` in any other namespace, no. Without it the Usage could never release,
-  and run deletion would hang.
-
-Rolled out as `v0.7.2-pr29.3ad168a`. The earlier round's `usage_order_live.sh` (on the PR #27 pin) had
-passed only because the upstream image died within its 2 s poll.
-
-**FIXED for round 4 (owner) — octo-sts's installation-token mint returned 422 for every trust
-policy, both roles tested (round 3).** Cause confirmed by the owner: the `ogenki-agents` App was
-missing `pull_requests: read & write`, and the installation had not accepted that permission change.
-Both fixed; round 4 re-verified live on real implementer and reviewer runs — exchange, `GET
-/repos/...`, push-allowed-to-own-branch, push-refused-to-`main`, push-refused-for-reviewer, and the
-audience-mismatch case in both directions all now behave exactly as designed. See runbook 05's
-Results table.
-
-<details><summary>Original round-3 write-up</summary>
-
-`agent-router`'s `sts` listener correctly verifies the caller
-and forwards to octo-sts (confirmed: cross-repo and non-run-subject requests are denied with the
-*right* octo-sts-level errors, not a network failure), but the actual GitHub call octo-sts makes to
-mint the scoped installation token always fails:
+**R7: a lost pod ends its run as `Failed` and is not recreated** (runbook 01 Step 7, by design).
+agent-sandbox v1.0.3 reports `Finished=PodFailed` for every pod that ends `Failed`, a deleted or evicted
+one included, so the composition latches `Failed` and withholds the run's ServiceAccount; the Sandbox
+controller's recreate is then refused:
 
 ```
-github_api_call method=POST path_raw=/app/installations/165342698/access_tokens status_code=422
-```
-
-Reproduced from a real implementer run (`xplane-run-bx7qwi6i`, trust policy `contents:write,
-pull_requests:write, issues:read, checks:read, actions:read`) and a real reviewer run
-(`xplane-run-iqeuqxbv`, `contents:read, pull_requests:read, issues:read, checks:read, actions:read`)
-— both roles' *scoped* mint 422s identically, even though the *unscoped* installation token octo-sts
-uses internally to read the trust-policy file from the repo succeeds (`201`) most of the time. Since
-both a write-heavy and a read-only permission set fail the same way, the likely cause is a permission
-declared in **every** trust policy that the `ogenki-agents` GitHub App installation was not actually
-granted — `checks: read` and `actions: read` are the two most easily missed in the App's repository
-permissions UI (`docs/superpowers/plans/2026-09-25-agent-runtime-identity-plan.md` line ~5080 has the
-intended table). GitHub 422s an installation-token request that asks for a permission the app-level
-grant doesn't include. **Owner check:** compare `Smana` → Settings → GitHub Apps → `ogenki-agents` →
-Permissions against that table; if it was edited after the initial install, GitHub also requires the
-installation to re-accept the updated permission set before tokens honoring it can mint. This blocked
-every push-capable path in runbooks 05 and 07 until the round-4 fix above.
-
-</details>
-
-**FIXED in round 6, by OpenHands 1.49.6 with litellm `<1.95.1` (software-agent-sdk#5213) in the
-harness. Round 5 (2026-09-27, live on `c1691cee`, real harness `v0.1.0-pr2110.d8134ede`) — the
-OpenHands SDK crashes on the first model response, every time, before any git operation.** Everything
-up to and including the model call works: the run clones the repo, checks out `agent/<id>`, starts a
-conversation, and `agent-router` proxies one `POST /api/paas/v4/chat/completions` → `200` in 4539ms
-(`glm-5.3`; the gateway meters `8144` tokens for it, `sum(gen_ai_client_token_usage_sum{ar_agent=...})`).
-Then, inside the harness's own SDK, before the agent ever acts on that response:
-
-```
-AttributeError: 'PromptTokensDetailsWrapper' object has no attribute 'cache_creation_tokens'
-  File ".../openhands/sdk/llm/utils/telemetry.py", line 68, in normalize_usage
-    cache_write = int(prompt_details.cache_creation_tokens or 0)
-openhands.sdk.conversation.exceptions.ConversationRunError: Conversation run failed for id=...
-```
-
-A `UserWarning` just before it is the likely root: `Cost calculation failed: This model isn't mapped
-yet. model=agent-default, custom_llm_provider=openai` — LiteLLM doesn't recognize `agent-default`,
-falls back to a generic OpenAI-shaped response wrapper, and that wrapper's `prompt_tokens_details`
-lacks the Anthropic-style `cache_creation_tokens` field `normalize_usage` unconditionally reads.
-**Reproduced twice**, back to back (`xplane-run-3s7i55r7`, `xplane-run-mun2l7g2`), both crashing
-`phase=Failed`/`PodFailed` 30-45s after `Running`, before any octo-sts exchange or git push — no
-branch ever reaches GitHub, no PR is possible. This blocks every real end-to-end run (SC-04, SC-06)
-until either the SDK is patched/pinned past this bug or the gateway advertises a model name LiteLLM
-maps to a provider whose usage shape it expects. Not fixed here (no code changed).
-
-**FIXED by #2110 (the repo-built harness). Round 3 (2026-09-27, live on `580042e6`) — the upstream
-`agent-server` image never submits a task; an `AgentRun` idles at `Running` doing nothing.** With the
-repo-built harness image (#2110) not yet published, the Sandbox's only app container runs the bare OpenHands image with
-`command: ["--port","8000"]` — no wrapper reads the composition's `TASK_FILE`/`CONVERSATION_ID` env
-vars and calls `POST /api/conversations`. Verified on `xplane-run-n7tfcziv` (issue `#2112`): phase
-reached `Running`, `status.conversationId` was allocated, but after 8+ minutes: zero rows for
-`sum(gen_ai_client_token_usage_sum{ar_agent="system:serviceaccount:agents:xplane-run-n7tfcziv"})`,
-zero `agent-router` access-log lines for that `x_ar_agent`, zero octo-sts activity, no PR. This is a
-harder block than "no git credential helper" — the agent loop itself never starts. Expected until
-#2110 ships; not fixed here.
-
-> **FIXED 2026-09-27, in #2108 (PR 3, 4fda7196), live on `980b789f`.** The root cause was filter
-> order, not the `Overridden` status. On `public` the chain is
-> `ext_proc/aigateway → custom_response → jwt_authn → …`, and AI Gateway enables its ext_proc only on
-> the `agent-models` routes, where it answers `/v1/models` itself before `jwt_authn` runs.
-> A dedicated Exact-path `/v1/models` route with no ext_proc now answers 404 behind the
-> listener's JWT policy. Check A7 in `scripts/ci/flux-schema/assert-ai-gateway.py` requires that guard on every agent-router listener carrying an
-> AIGatewayRoute. Live after the fix:
-> - `/v1/models`: no token 401, forged 401, valid 404;
-> - chat: no token 401, valid 200, served by `glm-5.3`.
->
-> Not covered: the human gateway's `llm.priv…/v1/models` also answers without credentials. It is
-> tailnet-only and exposes model names only.
-
-**Round 2 (2026-09-27, live on `580042e6`) — `GET /v1/models` bypasses `agent-router`'s JWT
-authentication entirely (SC-05).** Every token combination tested against the public listener's
-`/v1/models` returns `200`, including no `Authorization` header at all and a self-signed,
-wrong-signature JWT:
-
-```
-none→public 200
-sts→public 200
-internal→public 200
-self-signed→public 200
-```
-
-The `agent-router-public` SecurityPolicy (JWT, `agent-router.implementer.public` etc. audiences) is
-correctly `Accepted=True` but carries an `Overridden=True` condition:
-
-```
-message: 'This policy is being overridden by other securityPolicies for these
-  routes: [agent-system/ai-eg-mcp-main-agent-mcp-public]'
-```
-
-`POST /v1/chat/completions` on the same listener, same Gateway, enforces JWT correctly
-(`none→401`, `sts→403`, `internal→403`, `public→200`) — the SecurityPolicy mechanism itself works.
-Only the ai-gateway-synthesized `/v1/models` listing bypasses it, most likely because that endpoint
-is answered by the `ai-gateway-extproc` filter before the JWT filter runs, independent of the
-per-route SecurityPolicy attachment. Anyone with network access to `agent-router` (any pod in the
-cluster, absent a CiliumNetworkPolicy restricting it) can currently enumerate configured models with
-no credential. Not fixed here per this session's scope (no code changes); use
-`/v1/chat/completions` for auth-matrix testing until this is fixed.
-
-**Fixed in git during the round-1 run (live since `76716898`):**
-- **`agent-sandbox`:** `reconcileStrategy: Revision` put `+<sha>` into the chart's `helm.sh/chart`
-  label, and the API server rejected the release. A postRenderer now replaces the label.
-- **`envoy-ai-gateway`:** ESO's second write to the watched MCP seed Secret cancelled an in-flight
-  upgrade. The HelmRelease had no upgrade remediation, so it stalled. It now retries.
-
-**R7: a lost pod ends its run as `Failed` and is not recreated.** Runbook 01, Step 7. This is by
-design, and Step 7 now tests it that way. The composition withholds the run's ServiceAccount once
-the run is terminal. agent-sandbox v1.0.3 reports `Finished=PodFailed` for every pod that ends in
-phase `Failed`, a deleted or evicted pod included. So the composition latches `Failed` before the
-Sandbox controller's recreate, which the missing ServiceAccount then refuses:
-
-```
-{"level":"info","ts":"...23:49:10Z","msg":"Creating a new Pod", ... "Sandbox":{"name":"xplane-run-kcerjyh5","namespace":"agents"}}
 {"level":"error","ts":"...23:49:10Z","msg":"Failed to create", ... "error":"pods \"xplane-run-kcerjyh5\" is forbidden: error looking up service account agents/xplane-run-kcerjyh5: serviceaccount \"xplane-run-kcerjyh5\" not found"}
 ```
 
-Recovery is the spec's documented mitigation: a new run on the same branch
-(`task agent:run -- … --branch agent/<id>`). The spike's "recreated at once, same name" held for the
-Sandbox controller alone, before the composition withheld the ServiceAccount and suspended a finished
-Sandbox. The spec's R7 text is corrected on #2092.
-
-> Known issue (F12, round 9): on `147819ff`, a deleted run pod was re-created within ~1 s, the run
-> stayed `Running`, and the harness re-ran the task in a fresh conversation. That run had a
-> `roomRef`; round 7 on a run without one still saw `Failed PodFailed`.
-
-Transparent resume would need the composition to see the pod itself (`deletionTimestamp` or a
-`DisruptionTarget` condition), so it could tell pod loss from a crash. That is a crossplane-configuration
-follow-up for the owner to decide.
+Recovery: a new run on the same branch (`task agent:run -- … --branch agent/<id>`); a factory run
+resumes on its own ([runbook 10](10-disruption.md)). F12 (above) is the exception seen on a run with a
+`roomRef`.

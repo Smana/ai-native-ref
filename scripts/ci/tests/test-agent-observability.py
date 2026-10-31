@@ -434,14 +434,14 @@ def check_factory_resumes():
     d = find(rel, "GrafanaDashboard", "agent-factory")
     board = json.loads(d.get("spec", {}).get("json", "{}").replace("$$", "$")) if d else {}
     panel = titled(board).get("Automatic resumes by reason", {})
-    check("agent_factory_resumes_total" in json.dumps(panel.get("targets", [])),
+    check("maku_factory_resumes_total" in json.dumps(panel.get("targets", [])),
           "the factory page counts automatic resumes by reason (disruption design §6)")
 
 
 def check_factory_budget():
     panel = titled(dashboard(f"{DASHBOARDS}/grafana-dashboard-agent-factory.yaml", "agent-factory")).get("Budget left today", {})
     exprs = [t.get("expr", "") for t in panel.get("targets", [])]
-    check(exprs == ["agent_factory_budget_remaining_usd / agent_factory_budget_cap_usd"],
+    check(exprs == ["maku_factory_budget_remaining_usd / maku_factory_budget_cap_usd"],
           f"the factory page's budget panel reads the day in USD (truthful costs TC8), got {exprs}")
     # agent-platform v0.17.1 has no token gauges: a reader left on them reads nothing, silently.
     for path in sorted((ROOT / PLATFORM).glob("*.yaml")):

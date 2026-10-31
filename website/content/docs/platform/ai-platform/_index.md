@@ -1,8 +1,8 @@
 ---
 title: AI Platform
 weight: 50
-description: "Self-hosted model serving and the agent factory that puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
-lastVerified: 2026-10-01
+description: "Self-hosted model serving and the Agent Factory, which puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
+lastVerified: 2026-10-29
 ---
 
 Two halves, one platform. **Serving** runs open-weights models on the cluster's own GPUs behind an
@@ -10,14 +10,14 @@ OpenAI-compatible gateway. **Agents** put models to work: a labelled issue becom
 run that opens a pull request, under its own identity and in a room humans can watch and steer.
 
 {{< callout type="warning" >}}
-**Serving is off by default, and the agents are a work in progress.** What runs where, what is proven live and what
-is planned lives on one page: [Status and roadmap]({{< relref "/docs/platform/ai-platform/status.md" >}}).
-Every other page here describes the design.
+**Serving is off by default. The Agent Factory's v3 is built and proven live, its release still a draft.**
+What is proven, what is left and what comes next live on one page:
+[Status and roadmap]({{< relref "/docs/platform/ai-platform/status.md" >}}). Every other page describes the design.
 {{< /callout >}}
 
 ## How the parts fit
 
-![The AI Platform in one view. On the serving side, developers and coding clients send OpenAI-compatible requests over the tailnet to ai-gateway (Envoy AI Gateway with an API key and the Semantic Router), which routes them to vLLM models declared as InferenceService claims, on L4 GPUs and scaled by KEDA. On the agents side, a maintainer labels a GitHub issue; the Agent Factory turns it into a task, starts an agent run in a gVisor sandbox and opens a room the maintainer watches and steers. Every call the agent makes goes through the agent gateway with a per-run identity, to frontier models, MCP tools and octo-sts for a GitHub token; the agent pushes a branch and opens a PR. Both halves send traces, logs and metrics to the Victoria stack and Grafana](/images/diagrams/ai-platform-1.svg)
+![The AI Platform in one view. On the serving side, developers and coding clients send OpenAI-compatible requests over the tailnet to ai-gateway (Envoy AI Gateway with an API key and the Semantic Router), which routes them to vLLM models declared as InferenceService claims, on L4 GPUs and scaled by KEDA. On the agents side, a maintainer labels a GitHub issue; the factory controller, maku-factory, turns it into a task, starts an agent run in a gVisor sandbox and opens a room on maku-broker that the maintainer watches and steers. Every call the agent makes goes through the agent gateway with a per-run identity, to frontier models (Z.ai GLM and Claude, with Kimi and Mistral for public work only), MCP tools and octo-sts for a GitHub token; the agent pushes a branch and opens a PR. Both halves send traces, logs and metrics to the Victoria stack and Grafana](/images/diagrams/ai-platform-1.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 1.*
 

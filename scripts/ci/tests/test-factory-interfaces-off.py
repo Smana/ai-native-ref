@@ -7,7 +7,9 @@ or a sponsored human MCP client, no repository may start from a session (human.m
 public route is still the one POST /v1/runs, and the Slack App's is the one POST /slack/events.
 A switch-on lands in gcp-0's own copies (runbook 18), never in base or aws-0: gcp-0's agent-platform
 cluster may apply the Slack App, and gcp-0's broker config and factory values may declare its switches
-(test-factory-slack-switchon.py holds that switch-on to its shape).
+(test-factory-slack-switchon.py holds that switch-on to its shape). human.mcp.sessionStart alone may
+also be listed in aws-0's copy, for a live session there (runbook 19); test-room-broker-suspend.py
+holds that copy to base's but for that key.
 """
 import pathlib
 import sys
@@ -22,6 +24,7 @@ except ImportError:
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 SLACK_DIRS = ("tooling/base/agent-factory/slack-app", "tooling/gcp-0/agent-factory/slack-app")
 SWITCHED_ON = "gcp-0"  # the one cloud whose copies may declare the switches (runbook 18)
+SESSION_START = {"gcp-0", "aws-0"}  # the clouds whose broker copy may list human.mcp.sessionStart (runbook 19)
 problems = []
 
 
@@ -51,15 +54,15 @@ for path in sorted(ROOT.rglob("kustomization.yaml")):
 # 2. Outside gcp-0's copies, the broker declares no webhook and no sponsored human MCP client; the factory no sponsored API client.
 for cfg in sorted(ROOT.glob("infrastructure/*/room-broker/config.yaml")):
     rel = cfg.relative_to(ROOT)
-    if rel.parts[1] == SWITCHED_ON:
-        continue
     for doc in load(str(rel)):
+        if ((doc.get("human") or {}).get("mcp") or {}).get("sessionStart") and rel.parts[1] not in SESSION_START:
+            problems.append(f"{rel} lists human.mcp.sessionStart (D4: a session's copy only, runbook 19)")
+        if rel.parts[1] == SWITCHED_ON:
+            continue
         if "webhooks" in doc:
             problems.append(f"{rel} declares webhooks (D4)")
         if "sponsored" in ((doc.get("human") or {}).get("mcp") or {}):
             problems.append(f"{rel} declares human.mcp.sponsored (D4)")
-        if ((doc.get("human") or {}).get("mcp") or {}).get("sessionStart"):
-            problems.append(f"{rel} lists human.mcp.sessionStart (D4: a gcp-0 session's copy only, runbook 19)")
 
 
 def sponsored_in(node, parent=None):

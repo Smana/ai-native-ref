@@ -50,13 +50,13 @@ human:
   access:
     readerFile: /etc/room-broker/zitadel-reader/reader.json
     ttl: 5m
-  # The developer's MCP server (base's copy says why). sessionStart lists the repository runbook 19's
-  # session starts from; sponsored declares the Slack App (runbook 18): the same name as the factory's
+  # The developer's MCP server (base's copy says why). sessionStart is a session switch: a live
+  # session lists the one repository runbook 19 (or the showcase, runbook 23) starts from, and empties
+  # it after; sponsored declares the Slack App (runbook 18): the same name as the factory's
   # api.sponsored entry (helm-values-sponsored.yaml), and the client id its whole-Secret mount holds.
   mcp:
     enabled: true
-    sessionStart:
-      - Smana/ai-native-ref
+    sessionStart: []
     sponsored:
       - name: slack-app
         clientIDFile: /etc/room-broker/sponsored/slack-app-client-id

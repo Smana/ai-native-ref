@@ -5,13 +5,13 @@ short path for an operator. [Runbook 18](18-factory-interfaces.md) is the switch
 second interface set (host listener, broker webhooks, the PR that turns it on); this page is what
 you do around it with Slack. Users read the
 [user guide](../../../website/content/docs/platform/ai-platform/agents/user-guide.md#from-slack)
-instead. The App's own reference (config keys, flows, state) is agent-platform's `docs/slack.md`.
+instead. The App's own reference (config keys, flows, state) is Maku's `docs/slack.md`.
 
 ```mermaid
 flowchart LR
-  S[Slack] -->|"POST /slack/events"| A[factory-slack-app]
-  A -->|"token of the machine user"| B[room-broker]
-  B -->|"task"| F[agent-factory]
+  S[Slack] -->|"POST /slack/events"| A[maku-slack]
+  A -->|"token of the machine user"| B[maku-broker]
+  B -->|"task"| F[maku-factory]
   B -.->|"signed webhook"| A
   A -->|"thread lines"| S
 ```
@@ -37,7 +37,7 @@ Check: `bao status` shows `Sealed false`.
 
 ## 1. [OWNER] Create the Slack App
 
-1. Open the manifest in agent-platform's [`docs/slack.md`](https://github.com/Smana/agent-platform/blob/main/docs/slack.md#manifest).
+1. Open the manifest in Maku's [`docs/slack.md`](https://github.com/Smana/maku/blob/main/docs/slack.md#manifest).
    Take it as is, but **remove `request_url`** for now: Slack checks the URL on save and the listener
    does not answer yet (step 4 sets it).
 2. api.slack.com/apps, **Create New App**, **From a manifest**, pick the workspace, paste the JSON.
@@ -170,7 +170,7 @@ all succeed, and `kubectl -n agent-system logs deploy/factory-slack-app | head` 
 
 A Slack user may file only when the factory knows whose GitHub account they are, in one of two ways.
 
-**Self-serve link** (agent-platform v0.29.9; gcp-0 has it on). It needs both sides: the broker's
+**Self-serve link** (Maku v0.29.9; gcp-0 has it on). It needs both sides: the broker's
 `human.slackLink: {principal: slack-app, teamID: <T…>, repository: <owner/name>}` in
 `infrastructure/<cloud>/room-broker/config.yaml` (it needs `human.access`), and `slackLinks: true` under the
 principal's `onBehalfOf` in `helm-values-sponsored.yaml`. The user mentions `@factory link`, opens the
@@ -213,8 +213,8 @@ If a step does not answer, find where it stopped:
 |---|---|
 | No reaction to the mention at all | `kubectl -n agent-system logs deploy/factory-slack-app`; `factory_slack_requests_total{outcome="bad_signature"}` (wrong signing secret), `ignored` (wrong team, unserved channel); the bot is invited |
 | Draft posted, check mark does nothing | The check mark is not on the latest draft, or the Slack user is not linked (step 6) |
-| Filed, but no state lines | The repository is missing from the broker's `webhooks` (step 5, #3), or the subscriber is disabled: bump `generation`, restart the broker (agent-platform `docs/slack.md`, State) |
+| Filed, but no state lines | The repository is missing from the broker's `webhooks` (step 5, #3), or the subscriber is disabled: bump `generation`, restart the broker (Maku `docs/slack.md`, State) |
 | `Not filed: repository_not_allowed` | The repository is missing from #2 |
 
-The series: `factory_slack_requests_total{route,outcome}`, `agent_factory_api_intake_total`,
-`rooms_webhook_deliveries_total`. Turning it off again is [runbook 18, section 8](18-factory-interfaces.md#8-off-again).
+The series: `factory_slack_requests_total{route,outcome}`, `maku_factory_api_intake_total`,
+`maku_rooms_webhook_deliveries_total`. Turning it off again is [runbook 18, section 8](18-factory-interfaces.md#8-off-again).

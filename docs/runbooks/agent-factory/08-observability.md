@@ -1,10 +1,13 @@
 # 08 — Observability
 
-Proves that the agent-platform VMRules load and their expressions evaluate against real data, that
+Proves that the Maku VMRules load and their expressions evaluate against real data, that
 the Grafana dashboard renders with live panels, that SP4's gateway metrics (`ar_agent`,
 `ar_client`) are queryable end to end, and (Steps 6–10) the per-run view. This is a light confirmation pass, best run after — or
 alongside — runbooks 01–07, since it needs live runs to have produced some signal. See
 [README.md](README.md) for prerequisites; run [00](README.md#runbook-00-one-time-cluster-setup) first.
+
+> **Metric names.** Maku's series are `maku_factory_*` and `maku_rooms_*`; the old `agent_factory_*`
+> and `agent_rooms_*` names are gone since v0.31.0. Results tables below keep the names of their day.
 
 ## Prerequisites
 
@@ -77,13 +80,10 @@ series, and `OctoStsExchangeFailures` valid LogsQL against this cluster's log fi
 Open Grafana at `https://grafana.priv.$CLOUD.ogenki.io`, folder **agents**,
 the capacity panels of the former **Agent platform** dashboard (`uid: agent-platform`, retired: its panels moved
 to **Agent fleet**, `uid: agent-fleet`, and **Agent gateway**, `uid: agent-gateway`; start from **Agents overview**,
-`uid: agents-overview`). Confirm all four panels render without a query error:
+`uid: agents-overview`). Confirm all four panels render without a query error.
 
-> Corrected 2026-09-27: Grafana is SSO-gated (`/api/dashboards/...` returns 401 without a browser
-> session) — an agent cannot open the actual dashboard headlessly. Verified live instead that all
-> four panel expressions evaluate cleanly through the same VM/VL proxy path as steps 2–3 (see
-> results table); the owner still needs one look at the UI itself to confirm layout/render, not the
-> data.
+> Grafana is SSO-gated (`/api/dashboards/...` returns 401 without a browser session): an agent checks
+> the four expressions through the VM/VL proxy, as in Steps 2–3; the owner looks at the UI once.
 
 | Panel | Expression | Expect |
 |---|---|---|
@@ -198,7 +198,7 @@ Expected, in order:
 | Markers | `PMARK 0`, `TMARK 0`, `CMARK 0` | Content leaked: SO-3 fails |
 | Redacted spans | > 0 | Zero markers prove nothing if no content was ever sent |
 | Attribute keys | `outside the allowlist: none` | |
-| Router trace ids | Equal to the harness trace's id | Other ids: no join. The run page still finds the router's spans, because it also looks them up by `agent.principal`. Known issue (F16, round 9): each `/mcp` call opens its own root trace today, so expect the harness trace id among the ids plus one per MCP call |
+| Router trace ids | Equal to the harness trace's id | Other ids: no join. The run page still finds the router's spans, because it also looks them up by `agent.principal`. Known issue (F16): each `/mcp` call opens its own root trace, so expect the harness trace id among the ids plus one per MCP call |
 | Root spans | `agent-run` | |
 | `conversation`'s parent | `agent-run` | No `conversation` span at all: raise the harness's `FLUSH_WAIT_S` |
 | Step-log `trace_id` | One row, equal to the trace id, `lines` equal to the run's step count | |
@@ -278,8 +278,7 @@ Expected:
   reading (the annotation) and its projection (`status.usage.tokens`), equal and > 0. Never overwrite
   `usage-tokens` here: the composition never lowers `status.usage.tokens`, so a smaller value is
   ignored and a larger one destroys the real reading.
-- `agentrun_pull_request_info` carries the `pull_request` label (a successful run emits it since
-  60e02d9a).
+- `agentrun_pull_request_info` carries the `pull_request` label.
 - Gateway tokens are > 0, and the budget is `2000000`.
 - Each `uniq -c` output has exactly one line: A's pod, then A's principal. B ran at the same time
   (SO-2).
@@ -288,7 +287,7 @@ Expected:
 1. Open **Agent fleet** at `https://grafana.priv.$CLOUD.ogenki.io` and click A's `run_id`.
 2. Check that **Agent run** shows:
    - the phase `Succeeded`, and the reason (empty for a success)
-   - the PR link (absent in round 9 from F18, fixed in 60e02d9a; not yet re-checked live)
+   - the PR link (F18, fixed in 60e02d9a; not yet re-checked live)
    - gateway tokens against `maxTokens` 2000000
    - the step log, with the `TMARK` command
    - the trace table, and a trace view whose `llm.*` spans carry token counts

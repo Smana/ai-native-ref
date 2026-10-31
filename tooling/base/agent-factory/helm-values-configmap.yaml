@@ -13,10 +13,10 @@ metadata:
 data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
-      repository: ghcr.io/smana/agent-factory
-      # agent-platform v0.29.12, the chart's appVersion.
-      # renovate: datasource=docker depName=ghcr.io/smana/agent-factory
-      tag: "v0.29.12@sha256:7240d4d068a5701cc98915044ea86765a88e0f92c42ebd03428839c095fb9168"
+      repository: ghcr.io/smana/maku-factory
+      # maku v0.32.0, the chart's appVersion.
+      # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
+      tag: "v0.32.0@sha256:ec23935c5495d2ffadb3ec0e2ad5cf2c396ac9e3b966d3d5eaa0d284c16e6b07"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.
@@ -46,8 +46,7 @@ data:
             tests: {}
             dashboards: {}
             # TO4: the bench's variant turns testFirst on; it needs checks: true (R17)
-            # session switch for runbook 21's drills (2026-10-28); back to false after
-            scripts: {checks: true, testFirst: true}
+            scripts: {checks: false, testFirst: false}
             review: {checks: false, testFirst: false}
             # Feature 14's seeded fix (runbook 20): an alerting rule RunLore found broken. No switch: a
             # maintainer merges, the monitor watches. RunLore's verdict is a signal for 2h after the merge;
@@ -144,7 +143,12 @@ data:
             leakScanCheck: "Security scanning 🔒"  # R42: TruffleHog's check run, in both lists above
             # MC8: a bad follow-up counts toward the breaker beside a revert, both 1 in 10.
             awaitingCIFor: 24h
-            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1}  # R41: 1 revert in the last 10 merges demotes a class
+            # Human path AM1: a maintainer's approval of the current head is the merge; the merger
+            # merges it as a human merge, outside the caps. The hand-off comment names that one action.
+            approveToMerge: true
+            # R41: 1 revert in the last 10 merges demotes a class; human path AM7: 3 clean mature merges
+            # after the bad one lift it (half-open), and a maintainer's factory/drill revert never counts (AM6).
+            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1, recoverAfter: 3}
           schedules:
             - name: link-rot
               cron: "0 6 * * 1"  # Mondays, 06:00 UTC
@@ -212,7 +216,12 @@ data:
             revertWindow: 168h
             leakScanCheck: lint
             awaitingCIFor: 24h
-            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1}
+            # Human path AM1: a maintainer's approval of the current head is the merge; the merger
+            # merges it as a human merge, outside the caps. The hand-off comment names that one action.
+            approveToMerge: true
+            # R41: 1 revert in the last 10 merges demotes a class; human path AM7: 3 clean mature merges
+            # after the bad one lift it (half-open), and a maintainer's factory/drill revert never counts (AM6).
+            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1, recoverAfter: 3}
           schedules:
             # dead-links' intake here (MC6, F3): what two nightly runs of this repository's
             # dead-links.yaml agree on. Inert only if the class is off (MC14). The name keys every
@@ -331,7 +340,10 @@ data:
         # last commit (D4): remove the row. anyTier: true offers the splitter to every scripts task
         # (agent-platform v0.29.12): gcp-0 deploys no classifier, so no task is ever frontier and the
         # default would never offer it; the splitter design's SP1 option (b), as an explicit opt-in.
-        scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}}
+        # Harness roles HR7: judge tier-light switches the loop on for scripts too (stallSteps 80,
+        # continuations 2 by default), so split parts and test-first tasks are judged; the judge reads
+        # the head's GitHub check runs, so checks: false on the class is fine.
+        scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}, judge: tier-light}
       # search: true on the docs row (above) offers that class's implementer runs the search tool
       # (agent-platform v3 feature 5): a read-only child on the run's token, 40 iterations, 300k
       # tokens, 300 s, six a run. No other class has it (D4): the gcp-0 session of 2026-10-27 flips

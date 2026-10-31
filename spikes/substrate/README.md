@@ -1,7 +1,8 @@
 # Substrate spike
 
-A time-boxed experiment on gcp-0, outside every umbrella: nothing here is applied by Flux. Plan,
-status and results: [the spike doc](../../docs/superpowers/specs/2026-10-17-substrate-spike.md).
+A time-boxed experiment on gcp-0, outside every umbrella: nothing here is applied by Flux. Run and
+torn down on 2026-10-18; verdict: pass, not adopted now. Plan, results and verdict:
+[the spike doc](../../docs/superpowers/specs/2026-10-17-substrate-spike.md).
 Every object created, and its cleanup: [`OBJECTS.md`](OBJECTS.md).
 
 ## Run

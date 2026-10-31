@@ -24,7 +24,7 @@ flowchart LR
 - `kubectl` on the cluster, `aws` or `gcloud` read access to the CNPG bucket, a cloud-native-ref checkout.
 - For Part A, ai-native-ref's claim restores from `rooms-pre-destroy` on this cloud:
   `infrastructure/base/room-broker/sqlinstance.yaml`. aws-0 does; gcp-0 starts fresh until it is opted
-  in ([Step A0](#step-a0--gcp-0-opt-in)), so the 2026-10-17 gcp-0 rooms started empty.
+  in ([Step A0](#step-a0--gcp-0-opt-in)): not yet, so the next gcp-0 bootstrap starts with no rooms.
 
 ```bash
 case $CLOUD in

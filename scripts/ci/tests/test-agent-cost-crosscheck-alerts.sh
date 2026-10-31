@@ -2,7 +2,7 @@
 # requires: promtool python3
 #
 # The cost cross-check (B-2 XC3-XC7), evaluated by promtool on synthetic series shaped as the two
-# sides leave them: agent_factory_run_settled_usd{run} (the ledger) and the agent router's
+# sides leave them: maku_factory_run_settled_usd{run} (the ledger) and the agent router's
 # agentgateway_gen_ai_client_cost_usd_total{ar_agent} (the gateway). An agreeing run is silent;
 # 1.5% off fires after 15 minutes; a 0.005 USD gap on a 0.20 USD run is silent (the floor); a run
 # still spending is silent; a run with an Envoy series is silent; gateway cost with no ledger
@@ -39,7 +39,7 @@ PY
 
 A='system:serviceaccount:agents:xplane-run-'
 G='agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", gen_ai_request_model="claude-opus-5-5", ar_agent="'"$A"
-L='agent_factory_run_settled_usd{namespace="agent-system", pod="agent-factory-0", run="'
+L='maku_factory_run_settled_usd{namespace="agent-system", pod="agent-factory-0", run="'
 E='gen_ai_client_token_usage_sum{namespace="envoy-gateway-system", gen_ai_token_type="input", ar_agent="'"$A"
 Z="$(printf '0x%s ' 720)"   # 6 h of nothing first: increase() then has no window-edge extrapolation
 cat > "$tmp/tests.yaml" <<EOT

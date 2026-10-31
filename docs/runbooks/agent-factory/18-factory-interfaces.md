@@ -5,24 +5,25 @@ that files tasks through intake `api`), the broker's signed webhooks, and the Sl
 (`factory-slack-app`). The webhooks are a shared switch: a second subscriber, RunLore, is switched on by
 [runbook 20](20-runlore-agent-to-agent.md). Design:
 [factory interfaces](../../superpowers/specs/2026-10-21-factory-interfaces-design.md).
-Everything ships off (D4): no cluster lists the App, no config declares a principal or a subscriber, and
-`tooling/base/agent-factory/slack-app/` and `tooling/gcp-0/agent-factory/slack-app/` are applied by nothing.
-A session declares the switches in gcp-0's own copies and removes them after. See [README.md](README.md)
+The switch-on is merged: gcp-0's own copies declare the principal, the webhooks and the App
+(`clusters/gcp-0-agent-platform/tooling-factory-slack-app.yaml`), and the host carries the
+`factory-slack` listener (HOST-CONTRACT H4), so a fresh gcp-0 bootstrap brings them up. Sections 3
+and 4 record what the switch-on changed; section 8 turns it off (D4). See [README.md](README.md)
 for `CLOUD`.
 
 ```mermaid
 flowchart LR
   S[Slack] -->|"POST /slack/events"| L["host listener factory-slack"]
-  L --> A[factory-slack-app]
-  A -->|"/mcp, token of the machine user"| B[room-broker]
-  B -->|"task, api intake"| F[agent-factory]
+  L --> A[maku-slack]
+  A -->|"/mcp, token of the machine user"| B[maku-broker]
+  B -->|"task, api intake"| F[maku-factory]
   B -.->|"signed webhook, ids only"| A
   A -->|"state lines"| S
 ```
 
 ## 1. Prerequisites
 
-- [ ] **[OWNER]** agent-platform v0.20.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`).
+- [ ] **[OWNER]** Maku v0.20.0 or later pinned (`flux/sources/ocirepo-agent-factory.yaml`).
 - [ ] The host sync has run, and `agents/factory-slack-principal` is present in OpenBao
   (`bao kv get -mount=agents factory-slack-principal`: client id, secret, project id). gcp-0's deploy
   already runs the sync, so this is usually "check the key". To re-run it, use the line the host's deploy
@@ -37,14 +38,14 @@ flowchart LR
     --openbao-ca-file opentofu/gcp/gke/configure/.tls/ca.pem --mirror-openbao --apply
   ```
 
-- [ ] **[OWNER]** The Slack App is created from the manifest of agent-platform's `docs/slack.md`, **without**
+- [ ] **[OWNER]** The Slack App is created from the manifest of Maku's `docs/slack.md`, **without**
   `event_subscriptions.request_url` (the listener does not exist yet and Slack verifies the URL when
   it is saved; check 4 of section 5 sets it), and installed in the workspace.
 - [ ] **[OWNER]** Noted: the team id (`T…`), the served channel ids (`C…`), the owner's Slack user id
   (`U…`) and the bot's `U…` user id (the App's page, "App Home", or `auth.test` with the bot token
   returns `user_id`).
-- [ ] **[OWNER]** The Slack keys are in the store ([runbook 14](14-gcp-0-session.md#5-owner-the-agents-keys-once-per-gcp-lineage)):
-  `bao kv put -mount=agents factory-slack-app bot-token=- signing-secret=- bot-user-id=<U…>`.
+- [ ] **[OWNER]** The Slack keys are in the store, `agents/factory-slack-app`: one JSON document on
+  stdin, [runbook 22 §2](22-slack.md#2-owner-store-the-keys-in-openbao).
 
 ## 2. The token: go or no-go for everything below
 
@@ -59,7 +60,7 @@ curl -s -d grant_type=client_credentials \
 
 Decode the access token: it must carry `client_id` equal to the stored client id and an `aud` holding
 the project id. **If `client_id` is missing, stop here**: nothing is declared yet, and R2's fallback
-(`userIDFile`, matched on `sub`) is a one-task change in agent-platform. Then, from the tailnet:
+(`userIDFile`, matched on `sub`) is a one-task change in Maku. Then, from the tailnet:
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer <token>" https://rooms.<domain>/mcp
@@ -85,7 +86,7 @@ inventory comment at the top, and add "a `factory-slack` listener for `agent-sys
 design §2. Merge it in the session.
 
 ```yaml
-    # The agent factory's Slack App (factory interfaces F9): Slack posts its Events API callbacks
+    # The Agent Factory's Slack App (factory interfaces F9): Slack posts its Events API callbacks
     # here, and the App verifies each against its signing secret (±5 min) before reading it. Routes
     # from agent-system only; its HTTPRoute matches POST /slack/events and nothing else.
     - name: factory-slack
@@ -114,13 +115,13 @@ version 4 (H4 gains the listener). Then:
 
 | Where | Change |
 |---|---|
-| gcp-0's broker config copy, `infrastructure/gcp-0/room-broker/config.yaml` | `human.mcp.enabled` is already on, since v0.23.1 (it is required by `human.mcp.sponsored`, and it opens human `/mcp` on the tailnet, to roomctl's token only). Add `human.mcp.sponsored: [{name: slack-app, clientIDFile: /etc/room-broker/sponsored/slack-app-client-id}]`, and the `webhooks` entry of the commented example in `infrastructure/base/room-broker/config.yaml` (full `room.*` event names, `secretFile`) — the same entry that [runbook 20](20-runlore-agent-to-agent.md) adds for its subscriber |
+| gcp-0's broker config copy, `infrastructure/gcp-0/room-broker/config.yaml` | `human.mcp.enabled` is already on, since v0.23.1 (it is required by `human.mcp.sponsored`, and it opens human `/mcp` on the tailnet, to maku's token only). Add `human.mcp.sponsored: [{name: slack-app, clientIDFile: /etc/room-broker/sponsored/slack-app-client-id}]`, and the `webhooks` entry of the commented example in `infrastructure/base/room-broker/config.yaml` (full `room.*` event names, `secretFile`) — the same entry that [runbook 20](20-runlore-agent-to-agent.md) adds for its subscriber |
 | `scripts/ci/tests/test-room-broker-suspend.py` | Widen the parity: gcp-0's copy may differ from base in `suspend`, `webhooks` and `human.mcp` alone |
 | The factory's gcp-0 values | A new ConfigMap, `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml`, appended to the HelmRelease's `valuesFrom` as `helm-values-suspend.yaml` is (Helm deep-merges, so `config.api.sponsored` lands); the off-test's glob then needs that file exempted. It holds `projectIDFile: /etc/agent-factory-sponsored/project-id` and `api.sponsored` with the owner as `sponsor`, the owner's Slack id linked (`onBehalfOf.slack: {"T…/U…": <login>}`), `dailyUSD: 5`, `maxCostUSD: 2`. It needs `meter.prices`. The commented example is in `tooling/base/agent-factory/helm-values-configmap.yaml`. The factory mounts `/etc/agent-factory-sponsored/` with the keys `<name>-client-id` and `project-id`; the broker mounts its own at `/etc/room-broker/sponsored` |
 | The App's config | A `configMapGenerator` with `behavior: replace` in `tooling/gcp-0/agent-factory/slack-app/`. It replaces the whole `config.yaml`, so the gcp-0 file is a full copy of base's with `teamID` and `channels` filled (each channel's `maxCostUSD` at most the principal's `maxCostUSD: 2`, for example `0.5`). The App refuses to start until both are filled. `brokerURL` stays `http://room-broker.agent-system.svc.cluster.local:8080`, with no path: the App appends `/mcp` |
 | The webhook egress | `python3 -I scripts/ci/gen-webhook-egress.py --write .` writes `infrastructure/gcp-0/room-broker/network-policy-webhooks-patch.yaml`; list it under the gcp-0 overlay's `patches` |
 | `clusters/gcp-0-agent-platform/tooling-factory-slack-app.yaml` | A Flux Kustomization, listed by that cluster's `kustomization.yaml` (block below) |
-| Self-serve link (agent-platform v0.29.9) | Broker `human.slackLink` and factory `onBehalfOf.slackLinks: true`: see [runbook 22](22-slack.md#6-who-may-file) |
+| Self-serve link (Maku v0.29.9) | Broker `human.slackLink` and factory `onBehalfOf.slackLinks: true`: see [runbook 22](22-slack.md#6-who-may-file) |
 | `scripts/ci/tests/test-factory-interfaces-off.py` | Drop clause 1 for gcp-0, and clause 2 for gcp-0's copies |
 
 ```yaml
@@ -167,7 +168,7 @@ The PR carries `OWNER-FILL-*` markers (the Slack team, channel and owner ids in 
 | # | Do | Expected reading |
 |---|---|---|
 | 1 | `for d in room-broker agent-factory factory-slack-app; do kubectl -n agent-system rollout status deploy/$d; done` | All three roll out |
-| 2 | Read the factory's `/metrics` | `agent_factory_principal_sponsor_info` reads 1 |
+| 2 | Read the factory's `/metrics` | `maku_factory_principal_sponsor_info` reads 1 |
 | 3 | `kubectl -n agent-system get httproute` | The App's route attaches; external-dns publishes `factory-slack.<domain>` |
 | 4 | Set the Slack App's request URL (event subscriptions) to `https://factory-slack.<domain>/slack/events` | Slack's request-URL challenge passes |
 
@@ -214,7 +215,7 @@ untrusted, and the run treats it as data.
 
 ### 6.5 Read the series
 
-`agent_factory_max_cost_usd_total`, `agent_factory_api_intake_total`, `rooms_webhook_deliveries_total`,
+`maku_factory_max_cost_usd_total`, `maku_factory_api_intake_total`, `maku_rooms_webhook_deliveries_total`,
 `factory_slack_requests_total`; the `agent-identity` dashboard's Sponsored row shows the principal.
 
 ## 7. A changed bot user id
@@ -237,7 +238,7 @@ App reads only at start.
    curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:8082/v1/tasks   # 404
    ```
 
-4. Confirm the emitter is idle: `rooms_webhook_deliveries_total` stops moving and there is no
-   `rooms_webhook_disabled` series (the broker's `/metrics`, or the metrics store).
+4. Confirm the emitter is idle: `maku_rooms_webhook_deliveries_total` stops moving and there is no
+   `maku_rooms_webhook_disabled` series (the broker's `/metrics`, or the metrics store).
 
 See also: [the test-first tester](21-test-first-tester.md).

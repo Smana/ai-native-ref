@@ -18,7 +18,7 @@ if len(rules) != 1:
 rules[0].pop("annotations", None)
 yaml.safe_dump({"groups": [{"name": "t", "rules": rules}]}, open(os.environ["OUT"], "w"), sort_keys=False)
 PY
-S='agent_factory_monitor_verdicts_total{class="dead-links", repository="Smana/cloud-native-ref"'
+S='maku_factory_monitor_verdicts_total{class="dead-links", repository="Smana/cloud-native-ref"'
 cat >"$tmp/tests.yaml" <<EOT
 rule_files: [rules.yaml]
 evaluation_interval: 1m

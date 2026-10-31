@@ -48,7 +48,7 @@ def panels(file):
 
 UIDS = {"agents-overview", "agent-fleet", "agent-factory", "agent-gateway", "agent-identity", "agent-room", "agent-run"}
 # Counters (and histogram parts) the meter, the factory or the gateway resets or births inside a range.
-RESET = re.compile(r"(?<!_)\bincrease\(\s*(agent_factory_\w+|gen_ai_client_token_usage_sum|gen_ai_server_request_duration_seconds_(?:count|sum|bucket))\b[^\[]*\[([^\]]+)\]")
+RESET = re.compile(r"(?<!_)\bincrease\(\s*((?:maku|agent)_factory_\w+|gen_ai_client_token_usage_sum|gen_ai_server_request_duration_seconds_(?:count|sum|bucket))\b[^\[]*\[([^\]]+)\]")
 
 
 def all_boards():
@@ -124,7 +124,7 @@ def check_sponsored():
     check(row.get("collapsed") is True and len(row.get("panels", [])) == 3, "the Sponsored row is collapsed, its three panels inside")
     check("off" in ident["Sponsor"]["fieldConfig"]["defaults"].get("noValue", ""), "Sponsor says it is off, not No data")
     ceilings = ident["Ceilings admitted"]
-    check(all("agent_factory_max_cost_usd_total" in t["expr"] and "charged_usd" not in t["expr"] for t in ceilings["targets"]),
+    check(all("maku_factory_max_cost_usd_total" in t["expr"] and "charged_usd" not in t["expr"] for t in ceilings["targets"]),
           "Ceilings admitted shows ceilings only, never task spend under a ceilings title")
     check("off" in ceilings["fieldConfig"]["defaults"].get("noValue", ""), "Ceilings admitted says it is off when F4 is")
 
@@ -175,10 +175,10 @@ def check_models():
 
 
 def check_effort():
-    # rooms_run_info{run, model, effort} (broker, one series per live run): the effort column of the room's runs table,
+    # maku_rooms_run_info{run, model, effort} (broker, one series per live run): the effort column of the room's runs table,
     # the run page's facts table and the fleet's breakdown; max_over_time over the range, since a finished run has no series.
     room = panels("grafana-dashboard-agent-room.yaml")["Runs of this room"]
-    check(any(t["refId"] == "I" and "rooms_run_info" in t["expr"] and "max_over_time" in t["expr"] and "effort" in t["expr"] for t in room["targets"]), "Runs of this room: query I reads the effort of rooms_run_info over the range")
+    check(any(t["refId"] == "I" and "maku_rooms_run_info" in t["expr"] and "max_over_time" in t["expr"] and "effort" in t["expr"] for t in room["targets"]), "Runs of this room: query I reads the effort of maku_rooms_run_info over the range")
     group = next((tr for tr in room["transformations"] if tr["id"] == "groupBy"), {})
     check("effort" in group.get("options", {}).get("fields", {}), "Runs of this room: effort is aggregated per run")
     keep = next(tr for tr in room["transformations"] if tr["id"] == "filterFieldsByName")["options"]["include"]["names"]
@@ -186,11 +186,11 @@ def check_effort():
     renames = next((tr for tr in room["transformations"][::-1] if tr["id"] == "organize"), {}).get("options", {}).get("renameByName", {})
     check(renames.get("effort (lastNotNull)") == "effort", "Runs of this room: the column is named effort")
     run = panels("grafana-dashboard-agent-run.yaml")["Run"]
-    check(any("rooms_run_info" in t["expr"] and "max_over_time" in t["expr"] and 'run="${run}"' in t["expr"] for t in run["targets"]), "Run: a query reads this run's effort from rooms_run_info")
+    check(any("maku_rooms_run_info" in t["expr"] and "max_over_time" in t["expr"] and 'run="${run}"' in t["expr"] for t in run["targets"]), "Run: a query reads this run's effort from maku_rooms_run_info")
     names = next(t for t in run["transformations"] if t["id"] == "filterFieldsByName")["options"]["include"]["names"]
     check("effort" in names and "model" in names, "Run: effort and the claimed model are in the facts table")
     fleet = panels("grafana-dashboard-agent-fleet.yaml").get("Runs by effort")
-    check(fleet is not None and all("rooms_run_info" in t["expr"] and "max_over_time" in t["expr"] and "by (effort)" in t["expr"] for t in fleet["targets"]), "fleet: Runs by effort counts rooms_run_info by effort over the range")
+    check(fleet is not None and all("maku_rooms_run_info" in t["expr"] and "max_over_time" in t["expr"] and "by (effort)" in t["expr"] for t in fleet["targets"]), "fleet: Runs by effort counts maku_rooms_run_info by effort over the range")
 
 
 for run in (check_folder, check_drilldown, check_colours, check_sponsored, check_gateway_ratio, check_trace_pipeline, check_models, check_effort):

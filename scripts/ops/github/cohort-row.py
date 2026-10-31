@@ -129,7 +129,7 @@ def main():
     p.add_argument("--issue", type=int, required=True)
     p.add_argument("--arm", choices="ABC", required=True)
     p.add_argument("--pr", type=int)
-    p.add_argument("--task-json", help="arm A: kubectl get tasks.agents.ogenki.io -o json, one Task")
+    p.add_argument("--task-json", help="arm A: kubectl get tasks.maku.ogenki.io -o json, one Task")
     p.add_argument("--vm-url", help="arm A: VictoriaMetrics base URL")
     p.add_argument("--exec-log", help="arms B, C: the action's execution file; absent after a timeout")
     p.add_argument("--ended", required=True, choices=sorted(ENDED))

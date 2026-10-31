@@ -2,7 +2,7 @@
 title: Harness reference
 weight: 16
 description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its value on gcp-0, what it does, its bounds, and whether it is proven live."
-lastVerified: 2026-10-18
+lastVerified: 2026-10-30
 ---
 
 Every knob of a run, layer by layer. How to use them is on
@@ -17,7 +17,8 @@ Every knob of a run, layer by layer. How to use them is on
   {{< card link="#harness" title="Harness" icon="cog" subtitle="The loop's settings, baked into the image." >}}
 {{< /cards >}}
 
-**On `gcp-0`, 2026-10-18:** harness `v0.15.2`, composed by crossplane-configuration `v0.9.15`.
+**Pins on `main`, 2026-10-29:** Maku `v0.32.0`, composed by crossplane-configuration `v0.9.29`. Values below are the repository's; `live` means seen on `gcp-0`.
+
 | Status | Meaning |
 |---|---|
 | {{< badge content="live" color="green" >}} | Seen working on a real run |
@@ -56,7 +57,7 @@ at $4.46 of $6.80, since 95% were cache reads. The gateway's per-run budget B1 i
 |---|---|---|
 | `solo` | implementer | — |
 | `pair` | implementer, reviewer | 2 |
-| `trio` | implementer, tester, reviewer | 2 |
+| `trio` | implementer, reviewer: `pair`'s shape until the bench; the tester runs first through `testFirst`, not the template | 2 |
 | `investigate` | triager: proposes an issue text, never writes | — |
 
 - `maxReviewRounds`: every revision or restarted review uses one. Out of rounds, the task escalates.
@@ -76,11 +77,11 @@ The tier would come from the complexity classifier, which is {{< badge content="
 `standard`, except one in ten (`triage.controlPercent: 10`), the control group, on `frontier`.
 `defaults.template` and `defaults.tier` choose nothing at run time, but the factory still validates
 them at startup, as it requires `triage.classifierURL`: they leave the config only with an
-agent-platform release that drops them.
+Maku release that drops them.
 
 The reviewer runs on **the other tier**: `frontier` for a `standard` or `light` implementer,
-`standard` for a `frontier` one. It keeps the implementer's `maxTokens`. The tester keeps the
-implementer's tier.
+`standard` for a `frontier` one. The reviewer's tier's USD cap applies; its tokens and minutes stay the
+implementer's tier's. The tester keeps the implementer's tier.
 
 ## Factory: caps, resume and suspend {#caps}
 
@@ -93,14 +94,14 @@ implementer's tier.
 | `caps.maxPendingMinutes` | 30 (5 … 480) | A run still `Pending` escalates as `run_unschedulable` |
 | `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="live" color="green" >}} aws-0 |
 | `sandbox.suspend.enabled` | `true` on gcp-0 | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="live" color="green" >}} 2026-10-18 |
-| `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since agent-platform v0.16.0, pinned here at v0.23.1). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
-| `loops.<class>` | only `default: {scope: off}`: **no class has a row (D4)** | The loop policy and the scope, off for every class. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
-| `loops.<class>.search` | absent: **off for every class (D4)** | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/harness.md#search" >}}) |
+| `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since Maku v0.16.0). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
+| `loops.<class>` | `default: {scope: off}`; `docs` (scoper, loop policy, search; provider `models` only in a live session) and `scripts` (scoper, splitter) | The loop policy and the scope, off for every class without a row. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/platform/ai-platform/agents/harness.md#loop-policy" >}}) |
+| `loops.<class>.search` | `true` on `docs` only | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/platform/ai-platform/agents/harness.md#search" >}}) |
 
 ## Factory: what a brief holds {#brief}
 
 `loops.<class>.scope` picks the mode per class; `loops.default` covers a class with no row and
-`review`. Every class is `off` here (D4).
+`review`. `docs` and `scripts` are `scoper` here; every other class is `off`.
 
 | Brief | `off` | `steering` | `scoper` |
 |---|---|---|---|
@@ -113,7 +114,7 @@ implementer's tier.
 The steering note and the scope are never clipped. The snapshot is inlined whole while the brief stays
 within 16 KiB, else the brief tells the implementer to read it with `room_read`. The scope is an
 agent's text drawn from an untrusted issue: sanitised and fenced as the snapshot is. The steering note
-is fenced as trusted. {{< badge content="off" color="gray" >}}
+is fenced as trusted. {{< badge content="live" color="green" >}} on `docs` and `scripts`
 
 ## Run API: runs started by hand {#run-api}
 
@@ -134,14 +135,14 @@ Only `budget.maxTokens` can change on a live run. The factory always writes `siz
 
 | Field | Default | Effect |
 |---|---|---|
-| `role` | required | `implementer` writes and pushes; `reviewer`, `tester`, `triager` read only |
+| `role` | required | `implementer` writes and pushes; `reviewer` and `triager` read only; the tester writes tests the harness signs and pushes |
 | `dataClass` | required | `public`: Z.ai, GitHub egress. `internal`: Claude, read-only clone, no egress, cluster read tools, prompt caching |
 | `model` | `agent-default` | The harness's `MODEL` |
 | `budget.maxTokens` | 2 M (1 … 5 M) | The token cap when the run is not priced |
 | `budget.maxMinutes` | 120 (1 … 480) | The pod's deadline and the TTL of its tokens |
 | `size` | `small` | `small` 1→2 CPU, 2→4 GiB; `medium` ×2; `large` ×4 |
 | `egress.profiles` | `[]` | Package registries on top of GitHub; refused on `internal` |
-| `roomRef` | — | Adds the room-bridge sidecar and the room rules |
+| `roomRef` | — | Adds the maku-bridge sidecar (container `room-bridge`) and the room rules |
 | `suspendable` | — | `/workspace` on a PVC, so the run can be suspended |
 | `loop.checks` | — | Runs the repository's checks in the sandbox: `AGENT_CHECKS=1`, refused on `internal` |
 | `loop.search` | — | The `search` tool for an implementer: `AGENT_SEARCH=1`. Alone, no loop policy |
@@ -153,7 +154,7 @@ turns the claim into the pod. Nothing here is set per run.
 
 | Setting | Value |
 |---|---|
-| Harness image | `ghcr.io/smana/agent-harness:v0.15.2@sha256:c49c…`: a harness change reaches runs only through this digest |
+| Harness image | `ghcr.io/smana/maku-harness:v0.32.0@sha256:f59d3942cc352b9de461713efefd2680ad55fffdc9149de9f421e958b0935d17` (the release's image; the composition pin lives in crossplane-configuration): a harness change reaches runs only through the composition's digest, so the harness roles reach runs with that bump |
 | Environment | `MODEL`, `DATA_CLASS`, `ROLE`, `LLM_BASE_URL`, `MCP_URL`, `TASK_FILE`, `RULES_FILE`, tracing; `AGENT_CHECKS` and `AGENT_RUN_SECONDS` with `loop.checks`; `AGENT_SEARCH` with `loop.search`. `LLM_REASONING_EFFORT` is not set |
 | `rules.md` | One branch, one PR, never `.github/workflows/`, "a 429 means the budget is spent: stop". Each rule is also enforced outside the sandbox |
 | `task.md` | The task text: the biggest driver of a run's length |
@@ -163,16 +164,16 @@ turns the claim into the pod. Nothing here is set per run.
 
 ## Harness {#harness}
 
-Set in [`agent_run.py`](https://github.com/Smana/agent-platform/blob/main/images/agent-harness/agent_run.py)
-and [`sitecustomize.py`](https://github.com/Smana/agent-platform/blob/main/images/agent-harness/site/sitecustomize.py),
+Set in [`agent_run.py`](https://github.com/Smana/maku/blob/main/images/maku-harness/agent_run.py)
+and [`sitecustomize.py`](https://github.com/Smana/maku/blob/main/images/maku-harness/site/sitecustomize.py),
 or left at the [SDK v1.49.6 defaults](https://github.com/OpenHands/software-agent-sdk/tree/v1.49.6/openhands-sdk/openhands/sdk).
 None is a claim field.
 
 | Knob | Value | Effect | Status |
 |---|---|---|---|
 | `reasoning_effort` | `high` | Unsent, GLM-5.3 thinks at maximum: 150 s per reply instead of 11 s | {{< badge content="live" color="green" >}} |
-| Model timeout | 300 s per call | A timeout is not retried: it ends the run | {{< badge content="live" color="green" >}} |
-| Retries | 3 attempts, 10 s then 20 s apart | On a 503 or a reset. **Never** a 429 or a timeout | {{< badge content="live" color="green" >}} |
+| Model timeout | 300 s per call | A call that timed out before its first token is retried once (maku #224) when the run has time left; a second timeout ends the run | {{< badge content="deployed" color="blue" >}} |
+| Retries | 3 attempts, 10 s then 20 s apart | On a 503 or a reset. **Never** a 429; a timeout has its own single retry (above) | {{< badge content="live" color="green" >}} |
 | `max_iterations` | 500 | Past it the run ends `error`; the USD cap and deadline usually end it first | {{< badge content="deployed" color="blue" >}} |
 | Stuck detection | last 20 events | Ends the run `stuck` on 4 identical cycles, 3 repeated errors or 3 messages with no action | {{< badge content="live" color="green" >}} |
 | Condenser | 80 events, keep first 4 | Summarises history with the same model, on the run's budget | {{< badge content="deployed" color="blue" >}} |

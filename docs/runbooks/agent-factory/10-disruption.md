@@ -7,7 +7,7 @@ for Step 7. See [README.md](README.md) for `CLOUD`; run [00](README.md#runbook-0
 
 ## Prerequisites
 
-- `integration/agent-factory` carries `feat/rooms-disruption` and `feat/factory-resume`.
+- The host runs its release pins: the composition reads run pods, the factory sets `resume.maxPerTask`.
 - No `AgentRun` is `Running` when Step 1's pool check is applied (it re-creates the pool's nodes).
 - A test issue on `Smana/cloud-native-ref` that a maintainer may label `factory/ready`.
 
@@ -24,7 +24,7 @@ gcloud container node-pools describe agents-gvisor --cluster gcp-0 --location eu
 kubectl get cm -n agent-system agent-factory-config -o jsonpath='{.data.config\.yaml}' | grep -A1 '^resume:'
 ```
 
-Expected: the `v0.7.2-pr<P>` package; `yes`; a version ≥ `1.35.0-gke.1171000`; `120	15`; `resume:` then `  maxPerTask: 2`.
+Expected: the released crossplane-configuration package the host pins; `yes`; a version ≥ `1.35.0-gke.1171000`; `120	15`; `resume:` then `  maxPerTask: 2`.
 
 **What this proves:** the composition, Crossplane's read of run pods, the pool's window and the cap are live.
 
@@ -78,9 +78,8 @@ _time:30m kubernetes.pod_name:"<RUN>" kubernetes.container_name:"harness" "agent
 Expected: five lines, in order `pause`, `checkpoint`, `final-read`, `stop`, `revoke`; `checkpoint done: pushed a checkpoint commit`;
 `final-read done: {"events": …, "unmirrored": 0, …}`; the five durations sum under 15 s. Record each duration.
 
-A node that shuts down (Step 3's preemption, Step 7's FIS) can take its log shipper with it before the last lines ship: on
-aws-0, 2026-10-07, VictoriaLogs ended 4 s before the run's shutdown began, as Vector ran at priority 0
-([#2242](https://github.com/Smana/cloud-native-ref/pull/2242) makes it node-critical). Capture the harness log live before you
+A node that shuts down (Step 3's preemption, Step 7's FIS) can take its log shipper with it before the last lines ship
+(seen on aws-0 with Vector at priority 0; [#2242](https://github.com/Smana/cloud-native-ref/pull/2242) makes it node-critical). Capture the harness log live before you
 disrupt the node, and read the five lines from that file:
 
 ```bash
@@ -187,13 +186,13 @@ were written for gcp-0: they ran on aws-0, with these deviations:
 | 1 | package, `yes`, version, `120 15`, cap | `v0.7.2-pr35.0069ea6` Healthy; `yes`; GKE checks n/a. The gVisor node's kubelet: `shutdownGracePeriod` 2m30s, critical 30s (120 s for regular pods); `maxPerTask: 2` | PASS |
 | 3 | `Failed Terminated TerminationByKubelet` | FIS on the probe, the Eviction API on `uw5nosxt`. Both pods `Failed` with `DisruptionTarget`, read by the composition; each pod was gone before kube-state-metrics scraped its phase | PASS |
 | 4 | `Failed Disrupted`; five lines < 15 s; trailer; `probe`; room tail = `events` | `Failed Disrupted`, twice. Probe: 0.12 / 4.31 / 0.01 / 0.22 / 0.28 = 4.94 s. `uw5nosxt`: 0.09 / 4.04 / 0.01 / 0.27 / 0.33 = 4.74 s. Both pushed a commit with `Agent-Checkpoint: disruption`: `probe` on the probe's branch, the issue's one-line fix on `agent/ry4rabmb` (3e83fb65). `final-read` `{"events":37,"unmirrored":0}`; room `max(origin_seq)/4` = 37 | PASS |
-| 5 | narration (1/2); `Implementing 1 resume`; same branch and room | "…resuming automatically (1/2)." 9 s after the eviction; `Implementing 1 resume`; `agent/ry4rabmb ry4rabmb`. `agent_factory_resumes_total{reason="Disrupted"}` 1 | PASS |
-| 6 | `PodLost`; `resumes` = 2; `Escalated resumes_exhausted` | `6urkxlbx` `PodLost`, "(2/2)"; `vuawv3lj` `PodLost`; `Escalated resumes_exhausted`, no fourth run. The task's `runs[].reason` reads `pod_lost` for all three, the `Disrupted` one included ([agent-platform#33](https://github.com/Smana/agent-platform/issues/33)) | PASS |
+| 5 | narration (1/2); `Implementing 1 resume`; same branch and room | "…resuming automatically (1/2)." 9 s after the eviction; `Implementing 1 resume`; `agent/ry4rabmb ry4rabmb`. `maku_factory_resumes_total{reason="Disrupted"}` 1 | PASS |
+| 6 | `PodLost`; `resumes` = 2; `Escalated resumes_exhausted` | `6urkxlbx` `PodLost`, "(2/2)"; `vuawv3lj` `PodLost`; `Escalated resumes_exhausted`, no fourth run. The task's `runs[].reason` reads `pod_lost` for all three, the `Disrupted` one included ([maku#33](https://github.com/Smana/maku/issues/33)) | PASS |
 | 7 | the outcome and the §5 decision | **The kubelet's shutdown completed.** FIS at 18:35:03Z; Karpenter tainted the node `karpenter.sh/disrupted` and evicted nothing (`do-not-disrupt`); EC2 terminated the instance at 18:37:28; five lines by 18:37:34; `Failed Disrupted`. **§5: no early warning on aws-0** | PASS |
 
 Criterion 3's `PodFailed`: the probe's harness was made to exit (`os.kill(1, SIGTERM)`). It ran the shutdown sequence, its
 pod failed with no `DisruptionTarget` and no deletion, and it read `Failed PodFailed`. Criterion 5 has no live step:
-`TestALostReviewerRunsAgainWithoutARound` passes at agent-platform `4a4abafc`.
+`TestALostReviewerRunsAgainWithoutARound` passes at Maku `4a4abafc`.
 
 The spec's open questions, measured the same day:
 

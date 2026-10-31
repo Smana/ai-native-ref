@@ -268,8 +268,8 @@ as is, and the response header `x-vsr-selected-model` shows what served the requ
 
 ## Verifying the connection
 
-Models, on either cloud (set `BASE` to the cloud's base URL; schema-checked against
-<https://github.com/Smana/ai-native-ref/blob/main/website/content/docs/how-it-works/gateways.md>, not run):
+Models, on either cloud (set `BASE` to the cloud's base URL; the endpoints are described in
+[Gateways]({{< relref "/docs/how-it-works/gateways.md" >}})):
 
 ```bash
 BASE=https://llm.priv.gcp.ogenki.io/v1   # or https://llm.priv.aws.ogenki.io/v1
@@ -290,7 +290,7 @@ curl -sS "$BASE/completions" \
        "max_tokens": 50, "temperature": 0.0}'
 ```
 
-Hand-offs (schema-checked against <https://github.com/Smana/ai-native-ref/blob/main/website/content/docs/use/guide.md>, not run): `maku doctor` must show every check `ok`, then ask the client to list the factory tools
+Hand-offs (the flow is in the [user guide]({{< relref "/docs/use/guide.md" >}})): `maku doctor` must show every check `ok`, then ask the client to list the factory tools
 (`rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`,
 `issue_file`) and prompts (`handoff`, `status`, `inbox`).
 

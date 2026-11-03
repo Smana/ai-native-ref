@@ -341,8 +341,7 @@ git commit -m "docs(runbooks): 25, RunLore's knowledge base, phase 1 on aws-0"
 
 ### Task 10: The fence file and the policy
 
-**Files** (in `Smana/runlore-kb`): Create `.github/agent-factory.yaml`, `.policy.yml`; modify
-`.github/workflows/validate-kb.yml:29`.
+**Files** (in `Smana/runlore-kb`): Create `.github/agent-factory.yaml`, `.policy.yml`.
 
 - [ ] **Step 1: The owner installs** the factory's App and policy-bot on `Smana/runlore-kb`
   (runbook 12's adoption steps for a repository).
@@ -352,9 +351,9 @@ git commit -m "docs(runbooks): 25, RunLore's knowledge base, phase 1 on aws-0"
   a RunLore entry PR (one added `incidents/*.md`, `index.md` and `log.md` modified) from `runlore[bot]`
   on a `runlore/kb-` branch, labelled `ready-to-merge`; every other PR needs a maintainer's approval.
   A human-authored gate-path PR, as AM12 requires.
-- [ ] **Step 4: The validator**: `validate-kb.yml` installs `lore@vL1` instead of `v0.10.0`, so the new
-  frontmatter (`origin`, `resolution`) validates; branch protection on `main` requires the
-  `validate` check. Run it on #163's head: green.
+- [ ] **Step 4: The validator**: branch protection on `main` requires the `validate` check of
+  `.github/workflows/validate-kb.yml`. Its `lore@v0.10.0` already passes the new frontmatter
+  (`origin`, `resolution`): the loader ignores unknown keys (RunLore plan KP11).
 - [ ] **Step 5: Check**: after a merge, the factory's log on aws-0 names `Smana/runlore-kb` fenced to
   `aws-0`.
 

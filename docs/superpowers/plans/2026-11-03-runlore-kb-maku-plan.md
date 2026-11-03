@@ -50,7 +50,7 @@ flowchart LR
 weekly issue), cloud-native-ref PR 3, ai-native-ref PRs 4 and 7 (the pins, `publishStarts: true`,
 the subscriber's event list, `classes.kb-entries` and its `autoMergesPerDay: 5`), runlore-kb PR 6
 (the fence file, the policy, the workflow that runs `lore validate-kb`), and phases 3 and 4
-(`status: draft`, RK19's breaker, the threat check, data classes, the lesson endpoint).
+(`status: draft`, RK19's breaker, the threat check, the lesson endpoint).
 
 ### This plan's rulings
 

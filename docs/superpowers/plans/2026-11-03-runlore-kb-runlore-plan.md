@@ -48,7 +48,7 @@ Interfaces, phase 1 of Phases and gates, row 2 of Pull requests, offline proofs 
 
 **Out of this plan:** Maku's PRs 1 and 5 ([its plan](2026-11-03-runlore-kb-maku-plan.md)), the host's PR 3, ai-native-ref's PRs 4 and 7, the
 replay itself (RK17, run with `lore kb resolve` in the live session). Phases 2 to 4: the KB class, `status: draft` on merge and RK7's
-promotion, the audit sample, RK19's breaker, data classes, lessons. Forges other than GitHub.
+promotion, the audit sample, RK19's breaker, lessons. Forges other than GitHub.
 
 ### This plan's rulings
 
@@ -61,7 +61,7 @@ promotion, the audit sample, RK19's breaker, data classes, lessons. Forges other
 | KP5 | **A generation's outcome**: `held` is soak `resolved`, monitor `healthy` and no revert. `failed` is `persisting`, `regression` or `room.reverted`. Anything else is pending: an `inconclusive` monitor waits for the window | RK5 and RK6, word for word |
 | KP6 | **A draft goes through the curator's own gates** (quality, fingerprint, BM25, coalesce). An open `runlore` PR that carries the held fingerprint is adopted, not re-drafted. A draft that yields no PR is terminal (`Drafted: "none"`) | One bar for every writer (RK9). Adoption covers a crash between `OpenPR` and the ledger write, and the backlog's open PRs |
 | KP7 | **A generation that verifies after a draft exists** (because the window passed or a PR was adopted) is written with `kbresolve.Resolve`, the function `lore kb resolve` calls | The spec's "the deferred path calls the same function" |
-| KP8 | **A follow-up fix opens a new generation**: a second fix room for a known origin, arriving after the current generation `failed`, is adopted. Today that room is dropped (`internal/factory/webhook.go:237-239`) | Without this, live proof 3 cannot pass through the factory's follow-up. It needs Maku to give the follow-up's fix an origin: today the follow-up is a plain `factory/proposed` issue, and only a published issue gets one (Maku `internal/factory/intake/publish.go:233-245`) |
+| KP8 | **The next generation comes from RunLore's next detection** of the still-firing alert (RA12 as built): a second fix room for a known origin is still dropped (`internal/factory/webhook.go:237-239`), and the factory's follow-up issue stays a notice | The spec's RK5. Maku's follow-up is a plain `factory/proposed` issue with no origin (Maku `internal/factory/intake/publish.go:233-245`); linking it would file the incident twice, beside RunLore's own next generation. Live proof 3 waits for Alertmanager's repeat |
 | KP9 | **RK6 is an outcome-ledger `verify` event**, one per fix room, latest wins. `Aggregate.Verified` and `Aggregate.Failed` each weigh 1, as a resolved or unresolved recall does. The event credits the entry the investigation maps to: the catalog entry with that fingerprint, else the path its draft will take (`okf.EntryPath`, moved from `internal/forge/github/github.go:547-556`). A `link` event gives the trigger the drafted URL | The aggregate is keyed by entry path (`internal/outcome/ledger.go:1455-1466`), and `Confirm` already takes a path from its caller. Without `link`, the open's empty `CuratedURL` hides a deferred PR from Contested and from recurrence pointers |
 | KP10 | **`merge_sha` and the diff summary come from GitHub**: `GET /repos/{repo}/pulls/{n}` and its `/files`, with the forge's App token. If they cannot be read, the draft proceeds without `merge_sha` | No event carries a SHA (`webhook.go:47-57`, and the spec's `room.monitor_verdict` payload) |
 | KP11 | **The entry's frontmatter**: every curated entry gets `origin: runlore` (`agent-factory:<task>` is phase 4's). `resolution` is written for a `resolved` verdict only; `persisting` adds one `## Unresolved` line. Both fields are written by `okf.Render` and not parsed by the loader: nothing in phase 1 reads them back, and the parsed-fields block that `TestOKFFormatDocMatchesLoader` pins stays the same. `lore validate-kb` needs no change | Spec "The entry". `confidence` and `provenance` already work this way (`internal/okf/okf.go:41-42`). The validator ignores unknown keys at `v0.10.0`, the KB repository's pin, and at `origin/main` (`yaml.Unmarshal` without `KnownFields`: `internal/catalog/load.go:77` at `v0.10.0`, `load_test.go:184-185`) |
@@ -410,7 +410,7 @@ A second test, `TestMeasures`, records two opens with a TriggerKey this week, on
   `HasEvidence` counts both. A `link` sets `byTrigger[key].curatedURL`, `count` untouched. Old binaries ignore both kinds (`ledger.go:522-524`).
 - [ ] **Step 4: Run, gate, commit:** `git add internal && git commit -m "feat(outcome): a verified fix is an observation on its entry; link a deferred draft to its trigger"`.
 
-### Task 8: `room.monitor_verdict`, `room.reverted`, the follow-up generation
+### Task 8: `room.monitor_verdict`, `room.reverted`, the generation's outcome
 
 **Files:** Modify `internal/factory/webhook.go:47-57`, `:225-274`, `:288-315`; `internal/factory/ledger.go:35-55`; `internal/factory/verifier.go:169-181`; and the tests beside them.
 
@@ -429,13 +429,12 @@ MonitorAt time.Time; Reverted, Resolved bool; Curation *Hold`. New `type Generat
 | `room.monitor_verdict` before `room.merged` | recorded; the outcome stays pending until RunLore's verdict |
 | `room.reverted` on the fix room | `Reverted == true` |
 | `room.merged` with `repo: Smana/cloud-native-ref` | `Repo` recorded |
-| A second fix room `fix00002` for the same origin, current generation `persisting` | adopted: `FixRoom == "fix00002"`; PR, merge, soak, verdict, monitor and revert reset; the closed generation is appended to `Curation.Generations` when a hold exists |
-| The same second room while the current generation is pending or `held` | ignored, as today |
+| A second fix room `fix00002` for the same origin, current generation `persisting` | ignored, as today (KP8): `FixRoom` stays `fix00001` |
 | `Outcome()`: resolved+healthy / resolved+inconclusive / resolved+"" / persisting / resolved+regression / resolved+healthy+reverted | `held` / `""` / `""` / `failed` / `failed` / `failed` |
 | The verifier's `201` | `Evidence` is the posted evidence cut to 2 KiB |
 
 - [ ] **Step 2:** `go test ./internal/factory -run 'Receiver|GenerationOutcome|Verifier'` should FAIL. Implement it, run it again to PASS, then gate.
-- [ ] **Step 3: Commit.** `git commit -am "feat(factory): record the monitor's verdict, a revert and a follow-up fix per generation"`
+- [ ] **Step 3: Commit.** `git commit -am "feat(factory): record the monitor's verdict and a revert per generation"`
 
 ### Task 9: `Curation.Curate`: file first, hold on `201` or `200`
 

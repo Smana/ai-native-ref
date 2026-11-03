@@ -1,4 +1,4 @@
-# RunLore's knowledge base from the factory, cloud-native-ref PRs 3 and 3b — Implementation Plan
+# RunLore's knowledge base from the factory, cloud-native-ref PRs 3, 3b and 3c — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -45,7 +45,7 @@ PRs land in Maku, runlore-kb and ai-native-ref, and the merge gate's config is a
 | R5 | **The router's ingress names `agent-gateway`, L4 on 8080** | The router's pods run in `agent-gateway` with `gateway.networking.k8s.io/gateway-name: agent-router` (`AIR/infrastructure/base/agent-gateway/network-policy.yaml:22-27`); only its routes live in `agent-system`. No host policy has an L7 `http` rule. RunLore's rules are L4, as the broker's is (`helmrelease.yaml:341-348`). Targets are `static` hosts (`AIR/.../mcp.yaml:35-58`), so `runlore` needs no ReferenceGrant |
 | R6 | **The route and the health rules return in the shared base** | This is the owner's own switch (`observability/aws-0/kustomization.yaml:17-19`, #2604). Alertmanager's `routes` list sits in one values string, and a per-cluster copy would restate the whole list. Cost: a gcp-0 rebuild without RunLore fails the route and fires `RunloreAgentDown`. The comments say so |
 | R7 | **No aws-0 identity-provider policy** | gcp-0's `observability/gcp-0/runlore/cnp-identity-provider.yaml` exists because ZITADEL is that cluster's own Gateway VIP (ruling AU). On aws-0, ZITADEL sits behind an internet-facing NLB (`security/aws-0/zitadel/gateway-patch.yaml`), which other workloads reach on 443 (`AIR/infrastructure/base/room-broker`, `toFQDNs: auth.${public_domain_name}`), and the chart opens 443. The base already holds the factory, Alertmanager and broker paths (`helmrelease.yaml:341-348,381-401`). Live 1 proves the token request; a reset there calls for an aws-0 policy |
-| R8 | **RK20's first step is two recording rules in their own file, with no panel** | The dashboard is RunLore's vendored `RL/deploy/observability/grafana/runlore.json`, and its "Cost & efficiency" row already shows tokens per investigation. vmsingle keeps 14 days (`helmrelease-vmsingle.yaml`, `retentionPeriod: "14d"`), so the month is two 14-day reads, never one 30-day query |
+| R8 | **RK20 in dollars: `config.model.pricing` set, one recording rule in its own file, no panel; the daily alert is PR 3c, once the month is measured** | With `model.pricing` RunLore reports `runlore_investigation_cost_usd`, a histogram (`RL/deploy/observability/grafana/runlore.json:1451`); without it nothing is priced (`RL/internal/config/config.go:531`). The dashboard's "Cost & efficiency" row already shows it. vmsingle keeps 14 days (`helmrelease-vmsingle.yaml`, `retentionPeriod: "14d"`), so the month is two 14-day reads, never one 30-day query |
 
 ## Global Constraints
 
@@ -192,10 +192,14 @@ Expected: `[1, 1]` for each render; no PDB.
   with: "On with RunLore on aws-0 (RK15). A gcp-0 without `./runlore` fails this route."
 - [ ] **Step 4: The rules.** At `:28-29`, list `- runlore.yaml` and `- runlore-spend.yaml`, with the comment
   "With RunLore (observability/aws-0/kustomization.yaml)."
-- [ ] **Step 5: The spend (RK20).**
+- [ ] **Step 5: The price (RK20).** In `observability/base/runlore/helmrelease.yaml`, under
+  `config.model`, set `pricing: {input_usd_per_mtok, output_usd_per_mtok, cached_input_usd_per_mtok}`
+  to the configured model's rates from its provider's price page, with a comment naming the page and
+  the date read, as the factory's `meter.prices` entries do.
+- [ ] **Step 6: The spend (RK20).**
 
 ```yaml
-# RunLore's model spend (RK20, step 1): measured over its first month on aws-0, then capped at 1.5x.
+# RunLore's model spend in dollars (RK20, step 1): measured over its first month on aws-0; PR 3c alerts.
 # Daily totals; vmsingle keeps 14d, so the month is two 14-day sums, never one 30d query.
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule
@@ -210,20 +214,18 @@ spec:
     - name: runlore.spend
       interval: 5m
       rules:
-        # Input tokens of every model call: the loop, the reranker, summaries, embeddings.
-        - record: runlore:model_input_tokens:increase1d
-          expr: sum(increase(runlore_model_input_tokens_total[1d]))
-        # Provider-reported input and output of every delivered investigation, recalls included.
-        - record: runlore:investigation_tokens:increase1d
-          expr: sum(increase(runlore_investigation_input_tokens_sum[1d])) + sum(increase(runlore_investigation_output_tokens_sum[1d]))
+        # Dollars a day of every delivered investigation, recalls included, priced from model.pricing.
+        - record: runlore:investigation_cost_usd:increase1d
+          expr: sum(increase(runlore_investigation_cost_usd_sum[1d]))
 ```
 
-- [ ] **Step 6: Render, check.** `./scripts/ci/validate-manifests.sh` prints `All gates passed`, and the
+- [ ] **Step 7: Render, check.** `./scripts/ci/validate-manifests.sh` prints `All gates passed`, and the
   PromQL step counts `runlore.spend` as checked. `.bundle/chart-observability-aws-0-runlore-runlore.yaml`
   exists. Then run
   `kubectl kustomize observability/base/victoria-metrics-k8s-stack | yq 'select(.metadata.name == "vm-common-helm-values") | .data."values.yaml"' | yq '.alertmanager.config.route.routes[1]'`.
-  Expected: `receiver: runlore`, `continue: true`.
-- [ ] **Step 7:**
+  Expected: `receiver: runlore`, `continue: true`. The rendered RunLore config holds `model.pricing`
+  with three non-zero rates.
+- [ ] **Step 8:**
 
 ```bash
 git add observability/
@@ -263,6 +265,22 @@ IDP_URL=https://auth.<public_domain_name> PRIVATE_DOMAIN=<private_domain_name> \
 task check
 git commit -am "feat(runlore): the stale sweep closes the knowledge backlog nobody kept (RK17)"
 git fetch origin && git rebase origin/main && git push -u origin feat/runlore-stale-sweep
+```
+
+## PR 3c: the daily spend alert
+
+### Task 8: Alert at 80% of the daily cap (RK20)
+
+- [ ] **Step 1: Gate.** Runbook 25 records the month `M`, in dollars: the sum of two 14-day reads of
+  `runlore:investigation_cost_usd:increase1d`. Otherwise stop.
+- [ ] **Step 2: The alert**, in `vmrules/runlore-spend.yaml`: `RunloreDailySpendHigh`, `expr:
+  runlore:investigation_cost_usd:increase1d > <0.8 × 1.5 × M / 30>`, `for: 15m`, `severity: warning`,
+  its annotation naming the cap (`1.5 × M / 30` a day) and the month it was measured on.
+- [ ] **Step 3:** `./scripts/ci/validate-manifests.sh` counts the group as checked; `task check` exits 0.
+
+```bash
+git commit -am "feat(observability): RunLore's daily spend alert at 80% of its cap (RK20)"
+git fetch origin && git rebase origin/main && git push -u origin feat/runlore-spend-alert
 ```
 
 ## Gate

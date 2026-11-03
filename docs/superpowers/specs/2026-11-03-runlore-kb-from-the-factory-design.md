@@ -49,7 +49,7 @@ more merged entries, and entries that recall and resolve.
 | RK2 | **RunLore's features are generic.** Each is a RunLore contract any producer can use; the factory is the reference client, through its config here and its events in Maku | Features shaped around the factory's labels and classes | RunLore is open source with adopters. Its factory client (`RL/internal/factory`) already calls the factory's public API, not a private hook |
 | RK3 | **RunLore still only drafts (D6 holds). Machine evidence sets `ready-to-merge`; the factory's merge gate merges through a new class on `Smana/runlore-kb`.** D1 becomes: a human owns the policy and audits, and decides every entry the evidence does not cover | (a) An auto-merge rung in RunLore; (c) a human merges everything, batched | (a) reverses D6, and the curator is a fallible model. The merge gate already has shadow mode, caps and a breaker, and any adopter's merge automation can act on the same label. (c) alone does not end the stall |
 | RK4 | **The human's queue is one weekly tracking issue** on `Smana/runlore-kb`, rewritten by `lore curate`: the entries that need a decision, riskiest first, each with its evidence and PR link; an audit sample of the week's auto-merged entries, max(3, 20%); the week's measures (RK1). One Slack line links it. Each entry keeps its own PR | One bundled digest PR; the factory's room page; a Slack digest | One PR per entry keeps merge and close one click each and keeps the sweeps working. The issue is the one place to look |
-| RK5 | **For an incident the factory takes, the entry is drafted once, after verification**: RunLore's soak `resolved` **and** the factory's monitor `healthy`. A `persisting` generation becomes `## Unresolved` (the fix that did not hold); a later verified generation of the same `TriggerKey` completes the entry. No verified outcome within the window: today's path, into the weekly queue. A factory answer other than `201` or `200`: today's path at once | Draft at investigation time and append later | One complete PR per incident instead of an incomplete one and an edit. The evidence must be captured before it goes: Task CRs are not in Git, rooms are purged 90 days after they close |
+| RK5 | **For an incident the factory takes, the entry is drafted once, after verification**: RunLore's soak `resolved` **and** the factory's monitor `healthy`. A `persisting` generation becomes `## Unresolved` (the fix that did not hold); a later verified generation of the same `TriggerKey` completes the entry. That generation comes from RunLore's next detection of the still-firing alert (RA12 as built); the factory's follow-up issue stays a notice. No verified outcome within the window: today's path, into the weekly queue. A factory answer other than `201` or `200`: today's path at once | Draft at investigation time and append later | One complete PR per incident instead of an incomplete one and an edit. The evidence must be captured before it goes: Task CRs are not in Git, rooms are purged 90 days after they close |
 | RK6 | **The verdict is an outcome-ledger observation.** `resolved` plus `healthy` is a resolved episode on the entry's fingerprint, weighted as an Alertmanager resolve; `persisting`, a monitor `regression` or `room.reverted` is a failure | Leaving the factory ledger apart (`RL` plan R4) | It is the same signal a resolve webhook gives, observed more carefully. Without it, the entries the factory fixes earn no trust |
 | RK7 | **An auto-merged entry lands `status: draft`** and becomes `active` after one shadow-recall agreement: an investigation ran, the draft would have passed recall's gates, and its cause agrees with the fresh root cause. The weekly queue can promote or retire any draft | Two agreements; the human audit only; 30 days without a contradiction | A draft cannot serve an instant recall, so a wrong one costs nothing until it agrees with an independent investigation, which runs anyway. Most patterns do not recur within a month: age proves nothing. Two agreements would keep most entries out of recall for months |
 | RK8 | **The knowledge base takes any operational lesson**, incident or not, in three new types the validator learns, `Decision`, `Procedure`, `Gotcha`. A lesson is proposed only when the code and Git history do not record it; at most 3 per run. It auto-merges only when its task's outcome confirmed it (merged, and verified where the class verifies). **Instant recall fires only on `Incident`** | Incidents only; anything an agent found notable | The owner's choice: the factory's agents learn more than incidents teach. The bar keeps diff summaries out and the queue small. A lesson never matches an incident, so it must never answer one |
@@ -57,14 +57,14 @@ more merged entries, and entries that recall and resolve.
 | RK10 | **A lesson is a validated run output** (v4.0 item 4's write path). When the task reaches its terminal outcome, the factory sends the lessons, the outcome and the entries the run cited to an authenticated RunLore endpoint, through the curator's gates | An MCP write tool called mid-task; agents opening KB PRs | The outcome RK8 needs exists only at the end. A mid-task write into shared memory is what v4.0's hardening forbids. Direct PRs skip dedup and the sweeps |
 | RK11 | **A lesson auto-merges only if every input of its task passed v4.0's author-trust filter.** Any other lesson goes to the weekly queue. Every entry records its origin (task, role, model); every reader receives entries as quoted data | Auto-merge on a verified outcome alone; never auto-merge a lesson | A lesson written under injected text becomes an instruction every later agent reads (RK12). The v4 research names agentjacking on RunLore's alert path |
 | RK12 | **Factory agents read the knowledge base before they work**, scoped to the repository, paths and resources the task touches, and report the entries they cited. A cited entry's task outcome is its trust signal: a lesson's recall | RunLore the only reader | A lesson nobody reads compounds nothing. Citations are the only signal an entry that never matches an incident can earn |
-| RK13 | **Each entry has a data class**, `internal` by default; `public` only for lessons from public tasks and the commons. The factory filters `kb_search` by the run's data class | Only internal roles read; a public knowledge base | R38 holds, and an implementer on a public repository still sees the public lessons for its paths |
+| RK13 | **The knowledge base is public text.** `Smana/runlore-kb` is a public repository: every entry is published, and secret redaction at each tool output is the boundary (`RL/internal/investigate/loop.go:1248`). Every factory role may read every entry. R33 and R38 keep covering the raw finding inside the factory | A data class per entry, `internal` by default; a private KB repository | A data class protects nothing the repository already shows. A private repository would hide the reference's own learning loop |
 | RK14 | **Split by subject.** How to work in a repository (conventions, build and test traps) goes to `AGENTS.md` or skills through v4.6, loaded every run; how the running platform behaves (component gotchas, procedures, incidents and fixes) goes to RunLore, retrieved by resource. One proposal format; the factory routes | RunLore holds everything; two independent memories | `AGENTS.md` loads every run and must stay short; RunLore retrieves by workload and resource. Both are reviewed in Git, so V5's "no hidden state" holds |
 | RK15 | **The showcase loses two steps.** `factory/publish` stays (the only reader between internal text and a public repository). The fix's class is inferred at publish. For an internal principal's task, `factory/publish` also starts the fix (RA9 amended). The fix's merge stays a maintainer's while `alert-rules` runs in shadow. RunLore runs on aws-0 all the time, as one replica on a volume (G8): aws-0's copies declare its internal principal and its broker subscriber, a standing exception to D4 ("every switch off" outside gcp-0) scoped to those two, as runbook 19 made one for `human.mcp.sessionStart` | Keeping four labels; automating the publish read now | A forgotten class label silently breaks the loop and protects nothing. The spend `factory/ready` approves is already capped ($2 a task, $10 a day). Publish carries R38 until v4.0's drills pass. A session switch fills no knowledge base, and aws-0 is the factory the fence names |
 | RK16 | **Incident entries auto-merge only after a threat check on the entry's text** exists, not only lessons | Auto-merging incident entries at once | They quote logs and alert labels, and RK12 makes every agent read them: a crafted log line would become a stored injection |
 | RK17 | **The backlog is replayed.** The seven showcase entries are rebuilt complete from what GitHub still holds (the fix PRs, `factory/merged:<class>`, the verdict comments); gcp-0's ledger is gone. The other 47 go through the first weekly queue once, and only then does the stale sweep, in `apply`, close those that never recurred: `stale_after: 0s` until that queue | One `kb-steward` triage by hand; closing all | The seven are the first real test of the outcome join, with known answers. With the chart's `720h`, the first sweep, 6h after start, would close most of the 47 unseen; dry-run is no hold, it also blocks `ready-to-merge` (`RL/internal/app/curate.go:118-130`). `apply` lets the sweeps comment, label and close, nothing more |
 | RK18 | **Four phases, each behind a gate** ([Phases and gates](#phases-and-gates)) | One release | Phase 1 alone should restart merging without trusting new machinery; each later phase spends trust the earlier one earned |
 | RK19 | **A breaker**: an audit that retires an auto-merged entry as wrong pauses the KB class, as `maxFollowUps` pauses a factory class | Counting wrong entries only in the measures | One wrong recall-grade entry repeats its error on every recall |
-| RK20 | **RunLore's model spend is capped**: measured over its first month on aws-0 (two 14-day reads: metrics keep 14 days), then 1.5× that, alerting at 80% | A dollar figure now | An investigation is about 79k tokens, a recall about 6k; the month's mix decides the number |
+| RK20 | **RunLore's model spend is capped in dollars**: `model.pricing` set, so `runlore_investigation_cost_usd` reports it. Measured over its first month on aws-0 (two 14-day reads: metrics keep 14 days); then a daily alert at 80% of 1.5 × that month / 30, and the provider's monthly limit at 1.5 × the month as the backstop | Tokens; a dollar figure now; the alert alone | Token prices differ about tenfold between RunLore's models. An investigation is about 79k tokens, a recall about 6k: the month's mix decides the number. An alert warns; only the provider's limit stops spending |
 | RK21 | **These plans live in this repository for now**; RunLore's D1 amendment ([below](#rl-d1-amended)) is ported to RunLore when its first PR is cut | Writing in RunLore now | The owner, 2026-11-03: "write the specs in the same dir as superpowers for now" |
 
 ## The life of an entry
@@ -132,12 +132,12 @@ RunLore's fixes take (`alert-rules`: 2h).
 
 **RunLore's knowledge over HTTP**: the read-only `kb_search` and `kb_get` of `lore mcp`, served as
 StreamableHTTP at `/mcp` on RunLore's server, the same handlers. The agent router gains the target
-`runlore-kb`; the internal triager's capability profile lists both tools.
+`runlore-kb`; the internal triager's capability profile lists both tools. No token: RunLore's ingress admits only the agent router, and the content is public (RK13).
 
 **The entry**, in the frontmatter: `origin` (`runlore`, or `agent-factory:<task>`), `resolution:
 {fix_pr, merge_sha, verdict, verified_at}` when verified; in the body, `## Resolution` becomes the
 applied fix (its PR, its diff summary, the soak's evidence) and the suggestion moves under it.
-Phase 3 adds `status: draft` on the KB class's merges; phase 4 adds `data_class`.
+Phase 3 adds `status: draft` on the KB class's merges.
 
 **`lore kb resolve --pr <n> --fix <url> --merge-sha <sha> --verdict resolved|persisting
 [--evidence <file>]`**: records an applied resolution on an entry, on its open PR or through an
@@ -170,7 +170,7 @@ that shape and stays a human merge. Shadow first; `maxPerDay: 5` (under the repo
 
 **The lesson endpoint** (phase 4, planned at its gate): `POST /v1/knowledge/proposals` on RunLore,
 authenticated as an internal principal. Body: `{task, repository, role, model, outcome, inputs_trusted,
-data_class, cited: [entry], lessons: [{type, subject, title, body, resources}]}`, `lessons` at most 3,
+cited: [entry], lessons: [{type, subject, title, body, resources}]}`, `lessons` at most 3,
 `subject` `platform` (RunLore files it) or `repository` (refused: the factory routes those to v4.6).
 
 ## Phases and gates
@@ -179,8 +179,8 @@ data_class, cited: [entry], lessons: [{type, subject, title, body, resources}]}`
 |---|---|---|---|
 | 1. Close the loop | `room.monitor_verdict`; RK5 and RK6; `lore kb resolve`; `ready-to-merge` from verified evidence; the weekly issue; RK15; the replay (RK17); the internal triager reads the knowledge base (`/mcp`, the `runlore-kb` target); live 5 of runbook 20 finally run | Merges every entry, from a decision-ready queue | Four weekly queues in a row cleared, none older than 14 days; the seven showcase entries merged; live 5 (`persisting`) passed |
 | 2. The KB class in shadow | `classes.kb-entries` in shadow; the KB repository adopted (fence file, policy) | The same, read against the shadow record | At least 20 shadow decisions; never a "would merge" on an entry a human closed; the threat check on entry text exists |
-| 3. Incident entries live | The class live; `status: draft` and RK7's promotion; the audit section; RK19's breaker | The weekly queue and the audit | v4.0's injection drills pass for every role; data classes enforced; four weeks with no auto-merged entry retired as wrong |
-| 4. Lessons | RK13 data classes; reads for every role; the lesson endpoint; v4.6's routing; RK11 | Every lesson through the queue until its drills pass | — |
+| 3. Incident entries live | The class live; `status: draft` and RK7's promotion; the audit section; RK19's breaker | The weekly queue and the audit | v4.0's injection drills pass for every role; four weeks with no auto-merged entry retired as wrong |
+| 4. Lessons | Reads for every role; the lesson endpoint; v4.6's routing; RK11 | Every lesson through the queue until its drills pass | — |
 
 Phases 3 and 4 consume v4.0 item 4's interfaces, which do not exist yet: their plans are written
 at their gate. Phases 1 and 2 are planned now.
@@ -193,6 +193,7 @@ at their gate. Phases 1 and 2 are planned now.
 | 2 | RunLore (three PRs, 2a to 2c, one release) | `factory.curation` (RK5); the outcome observation (RK6); `lore kb resolve`; the Queue pass on verified evidence; `curate.queue_issue`; `kb_search` and `kb_get` at `/mcp`; the D1 amendment; a release | Offline 3 to 6, 9 | nothing |
 | 3 | cloud-native-ref | Pin RunLore; RunLore on aws-0: one replica on a volume, its Alertmanager route; its ingress from the agent router; `curate.queue_issue`, `curate.sweeps.mode: apply` with `stale_after: 0s`. The `runlore` machine user exists (aws-0 hosts ZITADEL, so the name takes no suffix); the session mirrors its keys to OpenBao | the host's CI | 2 |
 | 3b | cloud-native-ref | `stale_after: 720h`, once the first weekly issue has listed the backlog | the host's CI | live 4 |
+| 3c | cloud-native-ref | RunLore's daily spend alert at 80% of 1.5 × the measured month / 30 (RK20) | the host's CI | the first month on aws-0 |
 | 4 | ai-native-ref | Pin Maku and `HOST_REF`; the `runlore` internal principal on aws-0 with `publishStarts` and `verification`; the broker's subscriber; `alert-rules` in shadow with `monitor.verification`; `factory.curation` in RunLore's factory values; the `runlore-kb` target and the internal triager's tools; the measures script; runbook 25 | `task check` | 1, 2, 3 |
 | — | aws-0 | Phase 1 live session, and the replay | Live 1 to 4 | 4 |
 | 5 | Maku | The adopted shape of a RunLore entry PR, with a required label; a release | Offline 7 | 1 |
@@ -233,7 +234,7 @@ at their gate. Phases 1 and 2 are planned now.
    the owner merges it; the soak, `room.monitor_verdict`, and one complete KB PR labelled
    `ready-to-merge`.
 3. Runbook 20's live 5: a fix that does not hold, `persisting`, the entry still pending; the
-   follow-up generation verified completes it.
+   alert's next notification makes RunLore file the next generation, whose verified fix completes it.
 4. The replay: #157 to #163 rebuilt with their fixes; the first weekly issue lists the backlog.
 
 ## Not in this design
@@ -259,10 +260,12 @@ Agreed in one session, question by question, recommendations taken unless noted:
 measures), RK2, RK3 and RK4 (the owner on the trust bar: "human still needs to be in the loop, but
 also there can be many incident to review we need to find the sweet spot"), RK5, RK7, RK8 (the
 owner chose any lesson over incidents only), RK9 to RK14, RK15 ("I let you choose the best"),
-RK16 to RK18 (this order), RK19 and RK20 (the gates as written), RK21.
+RK16 to RK18 (this order), RK19 and RK20 (the gates as written), RK21. Later the same day, on the
+plans' questions: the spend cap in dollars, with a daily alert and the provider's limit (RK20); the
+next generation from RunLore's re-detection (RK5); the knowledge base as public text over a private
+repository (RK13); `/mcp` behind network policy only; the plans' own rulings kept.
 
 ## Left to the builder
 
 The Go names. `factory.curation.window` against the classes' `followUpWindow`. The weekly schedule.
-How the risk order breaks ties. The threat check's mechanism (phase 2's gate). Where the spend cap is
-enforced: at the model provider's budget, or agentgateway once RunLore's model is behind it.
+How the risk order breaks ties. The threat check's mechanism (phase 2's gate). The model's rates in `model.pricing`, from the provider's published prices.

@@ -39,6 +39,7 @@ RunLore `vL1` (PR 2). Read each from its repository's releases when the step tha
 | 2 | RunLore | curation deferral, the outcome observation, `lore kb resolve`, the Queue pass, the weekly issue, `/mcp`; `vL1` | — | offline 3–6, 9 | — |
 | 3 | cloud-native-ref | RunLore on aws-0, one replica on a volume, its ingress from the agent router, curate values with `stale_after: 0s`; contract H8 | RunLore `vL1` | host CI | 2 |
 | 3b | cloud-native-ref | `stale_after: 720h` | — | host CI | live 4 |
+| 3c | cloud-native-ref | the daily spend alert (RK20) | — | host CI | the first month |
 | 4 | ai-native-ref | Tasks 1–9 | Maku `vK1`, `HOST_REF` = PR 3's merge | `task check` | 1, 3 |
 | — | aws-0 | phase 1 session and the replay, runbook 25 | | live 1–4 | 4 |
 | 5 | Maku | the adopted shape of a RunLore entry PR, its required label; `vK2` | — | offline 7 | 1 |
@@ -324,7 +325,7 @@ git commit -m "feat(ops): kb-measures, human touches per incident and the knowle
   verified generation completes the entry; 4. the replay (RK17): `lore kb resolve` on #157 to #163
   with CNR #2638 and #2659, the first weekly issue listing the backlog, then CNR PR 3b (`stale_after:
   720h`); 5. the phase 1 gate: `python3 scripts/ops/kb-measures.py --since <session day>` each week,
-  four cleared queues, RK20's two 14-day reads of `runlore:model_input_tokens:increase1d`, the
+  four cleared queues, RK20's two 14-day reads of `runlore:investigation_cost_usd:increase1d` (the month `M` for CNR PR 3c) and the provider's monthly limit set at 1.5 × `M`, the
   results recorded in the status record.
 - [ ] **Step 2: The README row**: proves live 1–4 and the phase 1 gate; needs the owner's go, the
   ZITADEL sync, the seeded keys; about 2 h plus four weeks.

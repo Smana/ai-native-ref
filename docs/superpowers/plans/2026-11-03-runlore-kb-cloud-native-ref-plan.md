@@ -31,14 +31,14 @@ ConfigMap owns RunLore's factory client (H8). It also carries the `runlore-kb` t
 triager's profile, the `runlore` principal on aws-0, `HOST-CONTRACT.md` version 6 (H8) and
 runbook 25. Runbook 25 holds the session: R2's mirror, the webhook key and RK20's two reads. RunLore
 PR 2 carries `curate.queue_issue`, `/mcp` and the release. Phase 2 changes nothing in the host: its
-PRs land in agent-platform, runlore-kb and ai-native-ref, and the merge gate's config is an AI path
+PRs land in Maku, runlore-kb and ai-native-ref, and the merge gate's config is an AI path
 (`scripts/ci/flux-schema/ai-boundary.yaml:9`).
 
 ### This plan's rulings
 
 | # | Ruling | Why |
 |---|---|---|
-| R1 | **This PR pins RunLore `vL1`** (RunLore PR 2's release) | The host pins RunLore (`flux/sources/gitrepo-runlore.yaml:49`, `helmrelease.yaml:106`). `curate.queue_issue` is a key only `vL1` parses, and the config is parsed with KnownFields(true) (`helmrelease.yaml:89-95`). Row 4 keeps the agent-platform pin. This repeats the a2a plan's R1 |
+| R1 | **This PR pins RunLore `vL1`** (RunLore PR 2's release) | The host pins RunLore (`flux/sources/gitrepo-runlore.yaml:49`, `helmrelease.yaml:106`). `curate.queue_issue` is a key only `vL1` parses, and the config is parsed with KnownFields(true) (`helmrelease.yaml:89-95`). Row 4 keeps the Maku pin. This repeats the a2a plan's R1 |
 | R2 | **No ZITADEL code. The client is `runlore`, not `runlore-aws-0`** | aws-0 hosts the directory, so `APP_SUFFIX` is empty (`scripts/provision/zitadel-oidc-clients.sh:262-266`). `runlore` is already in `MACHINE_USERS` (`:463-466`), and aws-0's deploy-time sync creates it (`opentofu/aws/eks/init/workflows.tm.hcl:181-186`). That sync passes no `--mirror-openbao`, so both keys stay in AWS Secrets Manager, while RunLore reads `platform/runlore/factory-principal` and the factory reads `agents/runlore-principal`, both in OpenBao (H5). The session re-runs the sync with the OpenBao flags (Task 6) |
 | R3 | **One replica, still a StatefulSet** | G8: each replica owns an RWO volume (`helmrelease.yaml:59-66`), and the factory ledger sits beside the outcome ledger on it (`RL/internal/app/factory.go:36-37`), so a failover lost the soak. With one replica a restart keeps it, because the verifier reschedules from the ledger (`RL/internal/factory/verifier.go:116-134`). The StatefulSet keeps the claim it already made; a Deployment would template another. No PDB renders at one replica (`RL/deploy/helm/runlore/templates/pdb.yaml:1`) |
 | R4 | **`sweeps.mode: apply` with `stale_after: 0s`; `720h` returns in PR 3b, after live 4** | With `apply` from RunLore's start and the chart's `stale_after: 720h` (`RL/deploy/helm/runlore/values.yaml:221`), the first sweep, 6h after start (`RL/internal/curate/sweeper.go:14-18`), closes every unprotected PR idle 30 days (`RL/internal/curate/lifecycle.go:139`). That closes most of the 47 before the first weekly queue lists them, against RK17's order. Dry-run is no fix: one guarded sweep runs Suppress, Dedup, Lifecycle and Queue (`RL/internal/app/curate.go:118-130`, `sweep.go:36`), so it would also block the `ready-to-merge` label live 2 needs |

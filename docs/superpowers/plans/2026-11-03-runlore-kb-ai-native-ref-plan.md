@@ -19,7 +19,7 @@ router's `runlore-kb` target and the internal triager's tools.
 
 **Spec:** [RunLore's knowledge base, filled by the agent factory](../specs/2026-11-03-runlore-kb-from-the-factory-design.md):
 RK3, RK5, RK12, RK15, RK17, RK20, "Interfaces", "Phases and gates", rows 4, 6, 7 of "Pull requests,
-in order", the Gate. The other plans: [agent-platform](2026-11-03-runlore-kb-agent-platform-plan.md)
+in order", the Gate. The other plans: [Maku](2026-11-03-runlore-kb-maku-plan.md)
 (PRs 1, 5), [RunLore](2026-11-03-runlore-kb-runlore-plan.md) (PR 2),
 [cloud-native-ref](2026-11-03-runlore-kb-cloud-native-ref-plan.md) (PR 3). The mechanics this plan
 repeats (pins, the subscriber, the principal) are the
@@ -30,20 +30,20 @@ values (the host's, PR 3). The fence flip on `Smana/cloud-native-ref` (already `
 
 ## Pull requests across the five repositories
 
-Releases are named by the plan that cuts them: agent-platform `vK1` (PR 1) and `vK2` (PR 5),
+Releases are named by the plan that cuts them: Maku `vK1` (PR 1) and `vK2` (PR 5),
 RunLore `vL1` (PR 2). Read each from its repository's releases when the step that pins it runs.
 
 | # | Repository | Content | Pins | Proof | Depends on |
 |---|---|---|---|---|---|
-| 1 | agent-platform | `room.monitor_verdict`, `publishStarts`, the class inferred at publish; `vK1` | — | offline 1, 2 | — |
+| 1 | Maku | `room.monitor_verdict`, `publishStarts`, the class inferred at publish; `vK1` | — | offline 1, 2 | — |
 | 2 | RunLore | curation deferral, the outcome observation, `lore kb resolve`, the Queue pass, the weekly issue, `/mcp`; `vL1` | — | offline 3–6, 9 | — |
 | 3 | cloud-native-ref | RunLore on aws-0, one replica on a volume, its ingress from the agent router, curate values with `stale_after: 0s`; contract H8 | RunLore `vL1` | host CI | 2 |
 | 3b | cloud-native-ref | `stale_after: 720h` | — | host CI | live 4 |
-| 4 | ai-native-ref | Tasks 1–9 | agent-platform `vK1`, `HOST_REF` = PR 3's merge | `task check` | 1, 3 |
+| 4 | ai-native-ref | Tasks 1–9 | Maku `vK1`, `HOST_REF` = PR 3's merge | `task check` | 1, 3 |
 | — | aws-0 | phase 1 session and the replay, runbook 25 | | live 1–4 | 4 |
-| 5 | agent-platform | the adopted shape "one added catalog file that passes a validator"; `vK2` | — | offline 7 | 1 |
+| 5 | Maku | the adopted shape of a RunLore entry PR, its required label; `vK2` | — | offline 7 | 1 |
 | 6 | runlore-kb | Task 10: the fence file and `.policy.yml` | — | the merge gate reads it | phase 1 gate |
-| 7 | ai-native-ref | Task 11 | agent-platform `vK2` | `task check` | 5, 6 |
+| 7 | ai-native-ref | Task 11 | Maku `vK2` | `task check` | 5, 6 |
 
 ### This plan's rulings
 
@@ -80,15 +80,15 @@ RunLore `vL1` (PR 2). Read each from its repository's releases when the step tha
    every entry unverified. Task 6's values suite pins `7d` and checks it against `alert-rules`.
 4. **The KB class armed early**: `kb-entries` with `live: true` before 20 shadow decisions. Task 11's
    suite refuses `live` on the class.
-5. **A bot counted as a human touch**: the factory's App applying `class:*` at publish (RK15) must not
-   count. Task 8's fixture carries an App-applied label and expects it excluded.
+5. **A bot counted as a human touch**: the factory's App labelling its stub `factory/proposed`, or the
+   merger App merging, must not count. Task 8's fixture carries an App-applied label and expects it excluded.
 
 ## File structure
 
 | File | Change | Task |
 |---|---|---|
 | `HOST_REF`, `HOST-CONTRACT.md` | the host at CNR PR 3, contract version 6 | 1 |
-| the agent-platform pin sites | `vK1`, then `vK2` | 2, 11 |
+| the Maku pin sites | `vK1`, then `vK2` | 2, 11 |
 | `scripts/ci/tests/test-factory-interfaces-off.py` | K1 | 3 |
 | `infrastructure/aws-0/room-broker/{config,kustomization}.yaml`, new `externalsecret-webhook-runlore.yaml`, new `network-policy-webhooks-patch.yaml`, `scripts/ci/tests/test-room-broker-suspend.py` | the subscriber on aws-0 | 4 |
 | `tooling/aws-0/agent-factory/kustomization.yaml`, new `helm-values-internal.yaml`, new `externalsecret-sponsored.yaml` | the principal on aws-0 | 5 |
@@ -122,9 +122,9 @@ git add HOST_REF HOST-CONTRACT.md
 git commit -m "chore(host): HOST_REF at RunLore on aws-0; contract version 6"
 ```
 
-### Task 2: Pin agent-platform `vK1`
+### Task 2: Pin Maku `vK1`
 
-**Files:** every agent-platform pin site, as the feature 14 plan's Task 2 lists them
+**Files:** every Maku pin site, as the feature 14 plan's Task 2 lists them
 (`git grep -n -F "$BASE"` finds them all).
 
 - [ ] **Step 1: Read the release.** As that Task 2's Step 1, with the greps
@@ -134,7 +134,7 @@ git commit -m "chore(host): HOST_REF at RunLore on aws-0; contract version 6"
 
 ```bash
 git add flux tooling infrastructure observability website
-git commit -m "feat(agent-factory): agent-platform vK1, the monitor verdict event and publish that starts"
+git commit -m "feat(agent-factory): Maku vK1, the monitor verdict event and publish that starts"
 ```
 
 ### Task 3: The D4 exception, two keys on aws-0
@@ -287,8 +287,8 @@ git commit -m "feat(agent-gateway): the internal triager reads RunLore's knowled
   merged, closed, open at the end, the oldest open's age in days. `measures(stubs, events, kb_prs) -> dict`.
 
 - [ ] **Step 1: Write the failing test.** Fixtures: two stubs; on the first, `factory/publish` by
-  `Smana` and the fix merged by `Smana`; on the second, `factory/publish` by `Smana`, `class:alert-rules`
-  by `agent-factory[bot]`, the fix merged by the merger App; three KB PRs, one merged by `Smana`.
+  `Smana` and the fix merged by `Smana`; on the second, `factory/proposed` by `factory-app[bot]`,
+  `factory/publish` by `Smana`, the fix merged by `merger-app[bot]`; three KB PRs, one merged by `Smana`.
 
 ```python
 m = kb.measures(stubs, events, kb_prs)
@@ -318,8 +318,8 @@ git commit -m "feat(ops): kb-measures, human touches per incident and the knowle
   user's keys mirrored to OpenBao, the cloud-native-ref plan's Task 6 command; the webhook key seeded
   in both mounts as runbook 14 does; the KB repo's `Knowledge queue` issue absent or closed); 1. live 1, a restart of `runlore-0` mid-soak keeps the
   soak (`kubectl -n runlore get lease runlore-leader -o json | jq .spec.holderIdentity` unchanged,
-  one replica); 2. live 2, a seeded `vector(1)` rule, one `factory/publish`, the class label applied
-  by the App, the owner's merge, `room.monitor_verdict` in RunLore's log, one KB PR labelled
+  one replica); 2. live 2, a seeded `vector(1)` rule, one `factory/publish`, `alert-rules` in the stub
+  task's `status.published.class`, the owner's merge, `room.monitor_verdict` in RunLore's log, one KB PR labelled
   `ready-to-merge` whose `resolution` names the fix; 3. live 3 = runbook 20's live 5, then the
   verified generation completes the entry; 4. the replay (RK17): `lore kb resolve` on #157 to #163
   with CNR #2638 and #2659, the first weekly issue listing the backlog, then CNR PR 3b (`stale_after:
@@ -341,17 +341,21 @@ git commit -m "docs(runbooks): 25, RunLore's knowledge base, phase 1 on aws-0"
 
 ### Task 10: The fence file and the policy
 
-**Files** (in `Smana/runlore-kb`): Create `.github/agent-factory.yaml`, `.policy.yml`.
+**Files** (in `Smana/runlore-kb`): Create `.github/agent-factory.yaml`, `.policy.yml`; modify
+`.github/workflows/validate-kb.yml:29`.
 
 - [ ] **Step 1: The owner installs** the factory's App and policy-bot on `Smana/runlore-kb`
   (runbook 12's adoption steps for a repository).
 - [ ] **Step 2: The fence**: `.github/agent-factory.yaml` naming `aws-0`, the content
   `Smana/cloud-native-ref`'s holds.
-- [ ] **Step 3: The policy**: `.policy.yml` with one approval rule, `low-risk: kb-entries`, admitting a
-  PR whose only change adds one file under the catalog, opened by RunLore's App (4106804), labelled
-  `ready-to-merge`; every other PR needs a maintainer's approval. A human-authored gate-path PR, as
-  AM12 requires.
-- [ ] **Step 4: Check**: after a merge, the factory's log on aws-0 names `Smana/runlore-kb` fenced to
+- [ ] **Step 3: The policy**: `.policy.yml` with one approval rule, `low-risk: kb-entries`, admitting
+  a RunLore entry PR (one added `incidents/*.md`, `index.md` and `log.md` modified) from `runlore[bot]`
+  on a `runlore/kb-` branch, labelled `ready-to-merge`; every other PR needs a maintainer's approval.
+  A human-authored gate-path PR, as AM12 requires.
+- [ ] **Step 4: The validator**: `validate-kb.yml` installs `lore@vL1` instead of `v0.10.0`, so the new
+  frontmatter (`origin`, `resolution`) validates; branch protection on `main` requires the
+  `validate` check. Run it on #163's head: green.
+- [ ] **Step 5: Check**: after a merge, the factory's log on aws-0 names `Smana/runlore-kb` fenced to
   `aws-0`.
 
 ## PR 7: the `kb-entries` class in shadow (phase 2)
@@ -359,7 +363,7 @@ git commit -m "docs(runbooks): 25, RunLore's knowledge base, phase 1 on aws-0"
 ### Task 11: Pin `vK2`; the third repository
 
 **Files:**
-- Modify: the agent-platform pin sites; `tooling/base/agent-factory/helm-values-configmap.yaml` (a
+- Modify: the Maku pin sites; `tooling/base/agent-factory/helm-values-configmap.yaml` (a
   third entry under `repositories`)
 - Create: `scripts/ci/tests/test-kb-class-shadow.py`
 
@@ -374,7 +378,7 @@ check("five a day at most", c["autoMergesPerDay"] == 5)
 check("the only class there", set(kb["classes"]) == {"kb-entries"})
 ```
 
-  The shape's keys are the agent-platform plan's (read `vK2`'s `docs/factory.md`); fill them in
+  The shape's keys are the Maku plan's (read `vK2`'s `docs/factory.md`); fill them in
   before running.
 - [ ] **Step 2: Run**: FAIL (`StopIteration`).
 - [ ] **Step 3: Pin `vK2`** as Task 2, then the entry: `name: Smana/runlore-kb`, `maintainers: [Smana]`,
@@ -385,7 +389,7 @@ check("the only class there", set(kb["classes"]) == {"kb-entries"})
 
 ```bash
 git add flux tooling infrastructure observability website scripts/ci/tests/test-kb-class-shadow.py
-git commit -m "feat(agent-factory): agent-platform vK2; runlore-kb's kb-entries class in shadow"
+git commit -m "feat(agent-factory): Maku vK2; runlore-kb's kb-entries class in shadow"
 ```
 
 ## Gate

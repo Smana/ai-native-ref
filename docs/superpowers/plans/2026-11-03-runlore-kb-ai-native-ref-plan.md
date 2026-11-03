@@ -67,7 +67,7 @@ RunLore `vL1` (PR 2). Read each from its repository's releases when the step tha
 - **Git hygiene:** `export PYTHONDONTWRITEBYTECODE=1`; `git add` named paths, never `-A`. Never `git stash`.
 - **Commits:** conventional, in English, no trailers.
 - **Verbatim from the spec:** the aws-0 principal `{name: runlore, sponsor: Smana, repositories: [Smana/cloud-native-ref], dailyUSD: 10, maxCostUSD: 2, maxOpenTasks: 3, minConfidence: 0.75, dailyTasks: 5, verification: true, publishStarts: true}`;
-  `factory.curation: {defer: true, window: 7d}`; the target `runlore-kb`; the class `kb-entries`, `autoMergesPerDay: 5`.
+  `factory.curation: {defer: true, window: 7d}`; the target `runlore-kb`; the class `kb-entries`, `maxPerDay: 5`.
 
 ## Review Focus
 
@@ -373,16 +373,18 @@ git commit -m "docs(runbooks): 25, RunLore's knowledge base, phase 1 on aws-0"
 kb = next(r for r in repos if r["name"] == "Smana/runlore-kb")
 c = kb["classes"]["kb-entries"]
 check("kb-entries is shadow", c.get("shadow") is True and "live" not in c)
-check("one added validated file", c["diffShape"] == "<vK2's shape name>" and c.get("addOnly") is True)
-check("five a day at most", c["autoMergesPerDay"] == 5)
+check("a RunLore entry PR's shape", (c["diffShape"], c["allowedFiles"], c["companionFiles"]) ==
+      ("added-entry", [r"^incidents/[^/]+\.md$"], [r"^index\.md$", r"^log\.md$"]))
+check("runlore[bot]'s labelled PRs only", c["author"]["adopt"] == {"logins": ["runlore[bot]"], "branches": ["^runlore/kb-"]}
+      and c["requiredLabel"] == "ready-to-merge")
+check("the validator holds", c["holdoutChecks"] == ["validate"])
+check("five a day at most", c["maxPerDay"] == 5)
 check("the only class there", set(kb["classes"]) == {"kb-entries"})
 ```
-
-  The shape's keys are the Maku plan's (read `vK2`'s `docs/factory.md`); fill them in
-  before running.
 - [ ] **Step 2: Run**: FAIL (`StopIteration`).
 - [ ] **Step 3: Pin `vK2`** as Task 2, then the entry: `name: Smana/runlore-kb`, `maintainers: [Smana]`,
-  `classes: {kb-entries: {shadow: true, …the shape…, autoMergesPerDay: 5}}`, the breaker as the
+  `classes: {kb-entries: {shadow: true, author: {adopt: {logins: ["runlore[bot]"], branches: ["^runlore/kb-"]}}, diffShape: added-entry, allowedFiles: ['^incidents/[^/]+\.md$'], companionFiles: ['^index\.md$', '^log\.md$'], requiredLabel: ready-to-merge, holdoutChecks: [validate], maxPerDay: 5}}`
+  (the Maku plan's Task 8 values), the breaker as the
   others', its comment "RK3: RunLore drafts, the merge gate merges verified entries; shadow until 20
   decisions (K8)".
 - [ ] **Step 4: Run** the suite and `task check`: PASS. **Commit**, the PR.

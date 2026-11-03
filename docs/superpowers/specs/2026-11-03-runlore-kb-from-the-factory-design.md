@@ -35,7 +35,7 @@ more merged entries, and entries that recall and resolve.
 | No write path for agents | RunLore's MCP server is read-only; Slack thread capture drops bot messages; an agent's only way in is a PR on the KB repository by hand, which skips the fingerprint and the sweeps | `RL/internal/kbmcp/kbmcp.go:3-7`, `RL/internal/server/server.go:768-770` |
 | No read path for factory agents | `kb_search` and `kb_get` are served by `lore mcp` over stdio only. A factory role reaches MCP servers through the agent router, as StreamableHTTP targets its capability profile lists | `RL/internal/kbmcp/kbmcp.go:3-7`, `RL/internal/app/mcp.go:110`; `infrastructure/base/agent-gateway/mcp.yaml:48-53`, `infrastructure/base/agent-gateway/profiles/triager.internal.yaml` |
 | Entry types | The catalog takes free-form types (`Incident`, `Playbook`) | `RL/internal/okf/okf_test.go:18,76` |
-| The merge gate | Per class `live` or `shadow`, `autoMergesPerDay`, `maxPerDay`, the breaker. Adopted classes need `modifyOnly` and a semver diff shape | `MK/docs/factory.md:724-761, 927` |
+| The merge gate | Per class `live` or `shadow` and `maxPerDay`, under the repository's `merge.autoMergesPerDay`; the breaker. Adopted classes need `modifyOnly` and a semver diff shape | `MK/docs/factory.md:724-761, 927` |
 | The showcase's human steps | Per incident: label the stub `factory/publish`, label the fix `class:alert-rules`, label it `factory/ready`, merge the fix, and (never done) merge the KB PR. A forgotten class label makes the class `review`, and RunLore's verdict is refused `not_own_task` | [Runbook 20](../../runbooks/agent-factory/20-runlore-agent-to-agent.md); `tooling/base/agent-factory/helm-values-configmap.yaml:281` |
 | Where RunLore runs | Neither cluster: aws-0 keeps it commented out, gcp-0 is torn down. The `runlore` internal principal is declared on gcp-0 only | `CNR/observability/aws-0/kustomization.yaml:17-20`, `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml:43-53` |
 | The factory's own memory plan | v4.6: agents propose what they learned as PRs to `AGENTS.md` or skills (V5, "no hidden state"), after v4.0 item 4's write path | [v4 roadmap](2026-10-31-v4-roadmap-design.md) V5 and v4.6 |
@@ -166,7 +166,7 @@ the shape of a RunLore entry PR, one added file under `incidents/` plus addition
 `index.md` and `log.md`, from `runlore[bot]` on a `runlore/kb-` branch, labelled `ready-to-merge` by
 RunLore. The merge gate runs no command, so the validator is the repository's required `validate`
 check (`lore validate-kb`) through `holdoutChecks`. An entry-edit PR (`runlore/<verb>-…`) is not
-that shape and stays a human merge. Shadow first; `autoMergesPerDay: 5`; the breaker per RK19.
+that shape and stays a human merge. Shadow first; `maxPerDay: 5` (under the repository's `merge.autoMergesPerDay`); the breaker per RK19.
 
 **The lesson endpoint** (phase 4, planned at its gate): `POST /v1/knowledge/proposals` on RunLore,
 authenticated as an internal principal. Body: `{task, repository, role, model, outcome, inputs_trusted,

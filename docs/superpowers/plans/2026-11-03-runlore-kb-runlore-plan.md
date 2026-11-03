@@ -8,7 +8,7 @@ This file lives in ai-native-ref (RK21); Task 14 copies it to `dev/superpowers/p
 
 **Goal:** an incident the factory takes becomes one complete KB entry, drafted after its fix is
 verified (soak `resolved` and monitor `healthy`) and labelled `ready-to-merge` from that evidence;
-the verdict becomes outcome-ledger trust; everything else waits in one weekly `Knowledge queue`
+the verdict becomes outcome-ledger trust; everything else waits in one `Knowledge queue`
 issue; factory agents read `kb_search` and `kb_get` over HTTP at `/mcp`.
 
 **Architecture:** with `factory.curation.defer` on, `factory.Curation` takes the curator's seat in `onInvestigationComplete`:
@@ -17,7 +17,7 @@ curator at once. A leader-only tick reads each held incident's generations (RunL
 `room.monitor_verdict`, `room.reverted`), records each outcome on the outcome ledger, and drafts through the curator's own
 gates once a generation verified or the window passed. `internal/kbresolve` is the one function that writes an applied
 resolution into an entry, for the drafter, for `lore kb resolve` and for a verification after the draft. Two `lore curate`
-passes read the outcome ledger: Queue labels verified, unflagged PRs `ready-to-merge`; the queue-issue pass rewrites the weekly issue.
+passes read the outcome ledger: Queue labels verified, unflagged PRs `ready-to-merge`; the queue-issue pass (or `lore curate queue-issue`, at a demo's end) rewrites the issue.
 
 ```mermaid
 sequenceDiagram
@@ -54,7 +54,7 @@ promotion, the audit sample, RK19's breaker, lessons. Forges other than GitHub.
 
 | # | Ruling | Why |
 |---|---|---|
-| KP1 | **Spec PR 2 lands as three RunLore PRs, one release**: 2a (`/mcp`, the entry's new fields, `lore kb resolve`), 2b (deferral, the observation, `room.monitor_verdict`), 2c (the Queue pass, the weekly issue, the D1 port, docs). Release-please cuts `vL1` (`0.19.0` when written) after 2c | Each PR stays reviewable. 2a has no factory dependency, and 2b needs 2a's `kbresolve` |
+| KP1 | **Spec PR 2 lands as three RunLore PRs, one release**: 2a (`/mcp`, the entry's new fields, `lore kb resolve`), 2b (deferral, the observation, `room.monitor_verdict`), 2c (the Queue pass, the queue issue, the D1 port, docs). Release-please cuts `vL1` (`0.19.0` when written) after 2c | Each PR stays reviewable. 2a has no factory dependency, and 2b needs 2a's `kbresolve` |
 | KP2 | **Config keys**: `factory.curation: {defer, window}`, `window` defaulting to `7d` and at least `24h`; `config.Duration` learns a whole-day `d` unit (`7d`, `7d12h`). `defer` needs `outcome.ledger_path`, `factory.verify.alertmanager_url` and `forge.kb_repo`. `curate.queue_issue: {schedule, slack}`, `schedule` being `"<Day> HH:MM"` in UTC (`"Mon 08:00"`); empty means off. `server.mcp: {enabled, token_env}` | The spec and the ai-native-ref plan write `window: 7d`, which does not parse today: `config.Duration` is `time.ParseDuration` (`internal/config/config.go:1623-1635`). A new unit breaks no config, since `d` was an error. RunLore cannot read the classes' `followUpWindow`; 24h covers a 30m soak, `alert-rules`' 2h and a same-day publish and merge. `mcp:` already configures outbound MCP servers (`config.go:389`), so the endpoint goes under `server` |
 | KP3 | **With `defer` on, filing moves ahead of curation**: `factory.Curation` replaces the curator in `onInvestigationComplete`, and the `factory.Notifier` is no longer added to `notify.Multi` | Today curation (`internal/app/investigate.go:913`) runs before the factory has answered (`notifier.Deliver`, `:1026`), so the 201 the deferral turns on does not exist yet |
 | KP4 | **The hold is `Record.Curation`** in `factory.jsonl`. It survives the reset at a new generation (`internal/factory/notifier.go:66-72`), which first archives the closed generation. The snapshot is the newest generation's investigation. `AcceptedAt` is the first 201 and starts the window | Leadership changes and restarts replay the file. The verified fix answered the newest investigation |
@@ -67,7 +67,7 @@ promotion, the audit sample, RK19's breaker, lessons. Forges other than GitHub.
 | KP11 | **The entry's frontmatter**: every curated entry gets `origin: runlore` (`agent-factory:<task>` is phase 4's). `resolution` is written for a `resolved` verdict only; `persisting` adds one `## Unresolved` line. Both fields are written by `okf.Render` and not parsed by the loader: nothing in phase 1 reads them back, and the parsed-fields block that `TestOKFFormatDocMatchesLoader` pins stays the same. `lore validate-kb` needs no change | Spec "The entry". `confidence` and `provenance` already work this way (`internal/okf/okf.go:41-42`). The validator ignores unknown keys at `v0.10.0`, the KB repository's pin, and at `origin/main` (`yaml.Unmarshal` without `KnownFields`: `internal/catalog/load.go:77` at `v0.10.0`, `load_test.go:184-185`) |
 | KP12 | **`## Resolution` becomes three lines**, `**Applied:**`, `**Diff:**` and `**Soak evidence:**`, followed by `### Suggested by the investigation` holding the old bullets. Evidence is capped at 2 KiB, which is also what the ledger keeps. The marker `<!-- runlore-resolution:<sha256(fix|verdict)[:8]> -->` makes a repeat a no-op | Spec "The entry". An entry is read by every later agent (RK12), so it holds a line of evidence, not the transcript |
 | KP13 | **Risk order**, shared by Decide and by the Queue's refusals: contested (a standing 👎 whose KB link is the PR) > contradicts (the PR carries the decider's `## Possible duplicate`) > security (a `security` label) > unverified. Ties go oldest first. The Queue promotes on verified evidence only when none of the first three applies. The `solved`+resolved and `accepted` paths stay | The spec leaves ties to the builder: oldest first keeps queue age down. Phase 1 has no other signal for "contradicting". Adopters without a factory keep their path (`internal/curate/resolution.go:31-58`) |
-| KP14 | **The weekly issue**: label `runlore-queue`, title `Knowledge queue`, a body marker `<!-- runlore:knowledge-queue week=YYYY-MM-DD -->`. It is rewritten once per scheduled instant, by the first curate run past it. The Slack line goes out only on a rewrite and never in dry-run. Audit says nothing is sampled before phase 3. Human touches are not counted by RunLore | Spec RK4 and "The weekly tracking issue". The marker makes the CronJob and the sweeper agree, with no store |
+| KP14 | **The queue issue**: label `runlore-queue`, title `Knowledge queue`, a body marker `<!-- runlore:knowledge-queue at=<RFC 3339> -->`. `lore curate queue-issue` rewrites it at once; with `schedule` set, so does the first curate run past each scheduled instant. Audit samples the KB-class merges since the marker's instant, and says nothing is sampled before phase 3. The Slack line goes out only on a rewrite and never in dry-run. Human touches are not counted by RunLore | Spec RK4: here RunLore runs only in demo sessions, so the switch-off step runs the command and `schedule` stays empty; an adopter running RunLore all the time sets it. The marker makes the command, the CronJob and the sweeper agree, with no store |
 | KP15 | **`/mcp` is not work-bearing**: each replica answers from its own warm catalog. It serves exactly `kbmcp.Tools`, POST only, stateless (no `Mcp-Session-Id`), with JSON replies and `202` for a notification. The bearer token in `token_env` is optional; if `token_env` is set and the variable is empty, every request gets `401` | The handlers only read the in-memory index (`internal/kbmcp/kbmcp.go:3-7`), and readiness already gates on the catalog. Every replica can answer, which spares the router a hop |
 | KP16 | **Tokens per incident**: the first open of each investigation carries `tokens` (input plus output) | The ledger records no spend today (`internal/outcome/ledger.go:63-119`) |
 | KP17 | **Entry PRs keep the shape the merge gate admits.** A deferred draft is today's `OpenPR`: it adds `incidents/<slug>-<8 hex>.md` and touches `index.md` (+1) and `log.md` (+4). `kbresolve` on an open PR adds a commit to that same added file. On a merged entry it opens an entry-edit PR (`runlore/resolve-…`, `internal/forge/github/entryedit.go:68`), which is not that shape and stays a human merge: `runlore-resolve` joins `entryEditLabels` (`internal/curate/lifecycle.go:30`), and the Queue never labels an entry-edit PR `ready-to-merge` | Maku's KB class admits exactly the `OpenPR` shape from `runlore[bot]` with `ready-to-merge` |
@@ -401,7 +401,7 @@ func TestVerifyIsAnObservation(t *testing.T) {
 }
 ```
 
-A second test, `TestMeasures`, records two opens with a TriggerKey this week, one of them a resolved recall, carrying
+A second test, `TestMeasures`, records two opens with a TriggerKey since the last rewrite, one of them a resolved recall, carrying
 `Tokens` 40000 and 6000. It expects `Measures{Incidents: 2, InstantRecalls: 1, RecallsResolved: 1, TokensPerIncident: 23000}`.
 
 - [ ] **Step 2: Run them.** `go test ./internal/outcome ./internal/investigate -run 'Verify|Measures|Outcome'` should FAIL to compile.
@@ -579,6 +579,7 @@ PR title: `feat(factory): an incident's entry is drafted once its fix is verifie
 implemented by `*notify.Slack`, `*notify.SlackBot` and `*notify.Multi`; `type curate.QueueIssueForge interface`; and
 `type curate.QueueIssue struct { Forge QueueIssueForge; Evidence Evidence; Stats interface{ Measures(time.Time) (outcome.Measures, error) }; Line providers.LineNotifier; KBRepo string; Weekday time.Weekday; Hour, Minute int; Now func() time.Time; Log *slog.Logger }`.
 `BuildCurateAgent(cfg, forge, ledger, line, log)` gets the extra `line` parameter, which is nil in dry-run.
+`func (q QueueIssue) RunNow(ctx context.Context) error` rewrites regardless of the schedule; `lore curate queue-issue` (in `cmd/lore`) calls it.
 
 - [ ] **Step 1: Write the failing test** (offline proof 6)
 
@@ -597,47 +598,47 @@ func TestQueueIssue(t *testing.T) {
 		!inOrder(b, "## Decide", "#14", "#12", "#15", "## Audit", "## Measures") { // contested first, then the oldest unverified
 		t.Fatalf("one issue, sections in order: %+v", f)
 	}
-	for _, s := range []string{"| Merged entries | 3 |", "median 3d, oldest 92d", "| Instant recalls | 2, 50% resolved |", "| Tokens per incident | 41k |", "week=2026-11-02"} {
+	for _, s := range []string{"| Merged entries | 3 |", "median 3d, oldest 92d", "| Instant recalls | 2, 50% resolved |", "| Tokens per incident | 41k |", "at=2026-11-02T09:00:00Z"} {
 		if !strings.Contains(b, s) {
 			t.Errorf("missing %q", s)
 		}
 	}
 	if must(t, q.Run(ctx)); f.created != 1 || f.edited != 0 || len(line.got) != 1 || !strings.Contains(line.got[0], f.url) {
-		t.Fatal("the Slack line links it; the same week is not rewritten")
+		t.Fatal("the Slack line links it; the same scheduled instant is not rewritten")
 	}
-	q.Now, f.open = func() time.Time { return mon.AddDate(0, 0, 7).Add(time.Minute) }, nil
-	if must(t, q.Run(ctx)); f.created != 1 || f.edited != 1 || !strings.Contains(f.body, "Nothing to decide this week.") || len(line.got) != 2 {
-		t.Fatal("next week: the same issue rewritten; an empty week says so")
+	q.Now, f.open = func() time.Time { return mon.Add(2 * time.Hour) }, nil
+	if must(t, q.RunNow(ctx)); f.created != 1 || f.edited != 1 || !strings.Contains(f.body, "Nothing to decide since the last rewrite.") || len(line.got) != 2 {
+		t.Fatal("RunNow: the same issue rewritten at once, whatever the schedule; nothing new says so")
 	}
 }
 ```
 
-More cases: `Mon 07:59` with last week's marker rewrites nothing; Audit reads "Nothing merged by automation to sample this week.";
+More cases: with `schedule` empty, `Run` writes nothing and `RunNow` writes; `Mon 07:59` with last week's marker rewrites nothing; Audit reads "Nothing merged by automation to sample since the last rewrite.";
 with no ledger, Measures says "outcome ledger not configured"; in dry-run the `Guard` records `kb.queue-issue` and writes nothing;
 `schedule: "Mon 08:00"` passes and `"monday 8am"` fails with ``curate.queue_issue.schedule must be "<Day> HH:MM" (UTC)``.
 
 - [ ] **Step 2:** `go test ./internal/curate ./internal/forge/github ./internal/notify ./internal/config -run 'QueueIssue|Issue|DeliverLine|Schedule'` should FAIL to compile.
-- [ ] **Step 3: Implement.** A Decide row is `| <risk> | [<title>](<url>) | <verdict> | <confidence%> | <evidence line> |` from the card marker and the `**Evidence:**` line (`—` on an older PR). The Slack line: `Knowledge queue, week of 2026-11-02: <n> to decide, <m> merged. <url>`. Two `runlore-queue` issues: the lowest number wins, with a warning. `BuildCurateAgent` adds the pass when `schedule` is set; `RunCurate` and `BuildSweeper` pass `BuildNotifier(cfg, nil, log)` when `slack` is set and the run is not dry-run.
-- [ ] **Step 4: Run, gate, commit:** `git add internal && git commit -m "feat(curate): one weekly Knowledge queue issue: decide, audit, measures"`.
+- [ ] **Step 3: Implement.** A Decide row is `| <risk> | [<title>](<url>) | <verdict> | <confidence%> | <evidence line> |` from the card marker and the `**Evidence:**` line (`—` on an older PR). The Slack line: `Knowledge queue, as of 2026-11-02 09:00 UTC: <n> to decide, <m> merged. <url>`. Two `runlore-queue` issues: the lowest number wins, with a warning. `BuildCurateAgent` adds the pass when `schedule` is set; `RunCurate` and `BuildSweeper` pass `BuildNotifier(cfg, nil, log)` when `slack` is set and the run is not dry-run.
+- [ ] **Step 4: Run, gate, commit:** `git add internal && git commit -m "feat(curate): the Knowledge queue issue, on demand or on a schedule: decide, audit, measures"`.
 
 ### Task 14: D1 amended, docs, the release
 
 **Files:** Modify `dev/superpowers/specs/2026-06-21-runlore-learning-curation-workflow-design.md` §2 (the D1 row) and §8 (line 156);
-`website/content/docs/concepts/{learning-loop.md:17-18,reviewing-knowledge.md}` (a "The weekly queue" section), `configuration/configuration.md` (`curate.queue_issue`),
+`website/content/docs/concepts/{learning-loop.md:17-18,reviewing-knowledge.md}` (a "The knowledge queue" section), `configuration/configuration.md` (`curate.queue_issue`),
 `plugins/kb-steward/skills/kb-steward/references/okf-format.md` (`origin`, `resolution` as extension fields). Create `dev/superpowers/plans/2026-11-03-runlore-kb-runlore-plan.md` (this file).
 
 - [ ] **Step 1:** The D1 row becomes the spec's "RL D1, amended" text, verbatim. §8 reads "Auto-merge inside RunLore (D6). An adopter's
   merge automation may merge a verified entry (D1, amended 2026-11-03)." `learning-loop.md` reads "RunLore drafts. A human owns the merge
-  policy; an entry whose fix a machine verified may be merged by the adopter's automation, and the rest wait in the weekly queue."
+  policy; an entry whose fix a machine verified may be merged by the adopter's automation, and the rest wait in the queue."
 - [ ] **Step 2:** `go test ./internal/docsguard ./internal/catalog`: the config fences parse and the parsed-fields block is unchanged (KP11). Then gate.
 - [ ] **Step 3: Commit, push, PR, release**
 
 ```bash
-git add dev website plugins && git commit -m "docs: D1 amended, the weekly queue, factory.curation and the entry's resolution"
+git add dev website plugins && git commit -m "docs: D1 amended, the knowledge queue, factory.curation and the entry's resolution"
 git fetch origin && git rebase origin/main && git push -u origin feat/kb-queue
 ```
 
-PR title: `feat(curate): ready-to-merge from verified evidence and a weekly Knowledge queue` (KP13, KP14, KP17, offline proof 6, the D1 port).
+PR title: `feat(curate): ready-to-merge from verified evidence and the Knowledge queue` (KP13, KP14, KP17, offline proof 6, the D1 port).
 Once merged, merge release-please's PR: `0.19.0`, image `ghcr.io/smana/runlore:0.19.0`, which ai-native-ref's PR 4 pins.
 
 ## Gate

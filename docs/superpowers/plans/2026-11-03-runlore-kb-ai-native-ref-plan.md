@@ -2,15 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Wire phase 1 into the platform on aws-0, where the fence says the factory acts: RunLore
-as a standing internal principal and broker subscriber, `publishStarts` and `alert-rules` in shadow,
+**Goal:** Wire phase 1 into the platform on aws-0, where the fence says the factory acts: RunLore's
+session switch (its internal principal, and its broker subscriber off on `main`), `publishStarts` and `alert-rules` in shadow,
 the deferred curation, the internal triager reading the knowledge base, the measures (PR 4, then the
 aws-0 session and the replay). Then phase 2: `Smana/runlore-kb` adopted (PR 6) and the
 `kb-entries` class in shadow (PR 7).
 
 **Architecture:** Feature 14 put every switch in gcp-0's copies; gcp-0 is torn down and aws-0 is
 the fenced factory, so this plan adds aws-0 copies for RunLore's two switches only, and widens the
-off-by-default suite by exactly those two (RK15). Everything else lands in base, where both clusters
+off-by-default suite by exactly those two (RK15). RunLore runs only on purpose, for a demo session:
+the subscriber is this repository's half of the switch, flipped with the host's three places by
+runbook 25. Everything else lands in base, where both clusters
 render it and only the fenced factory acts: the class settings, RunLore's factory values, the agent
 router's `runlore-kb` target and the internal triager's tools.
 
@@ -36,10 +38,10 @@ RunLore `vL1` (PR 2). Read each from its repository's releases when the step tha
 | # | Repository | Content | Pins | Proof | Depends on |
 |---|---|---|---|---|---|
 | 1 | Maku | `room.monitor_verdict`, `publishStarts`, the class inferred at publish; `vK1` | — | offline 1, 2 | — |
-| 2 | RunLore | curation deferral, the outcome observation, `lore kb resolve`, the Queue pass, the weekly issue, `/mcp`; `vL1` | — | offline 3–6, 9 | — |
-| 3 | cloud-native-ref | RunLore on aws-0, one replica on a volume, its ingress from the agent router, curate values with `stale_after: 0s`; contract H8 | RunLore `vL1` | host CI | 2 |
+| 2 | RunLore | curation deferral, the outcome observation, `lore kb resolve`, the Queue pass, the queue issue and `lore curate queue-issue`, `/mcp`; `vL1` | — | offline 3–6, 9 | — |
+| 3 | cloud-native-ref | RunLore's session switch on aws-0, off: one replica on a volume, its ingress from the agent router, curate values with `stale_after: 0s`; contract H8 | RunLore `vL1` | host CI | 2 |
 | 3b | cloud-native-ref | `stale_after: 720h` | — | host CI | live 4 |
-| 3c | cloud-native-ref | the daily spend alert (RK20) | — | host CI | the first month |
+| 3c | cloud-native-ref | the daily spend alert (RK20) | — | host CI | the first session |
 | 4 | ai-native-ref | Tasks 1–9 | Maku `vK1`, `HOST_REF` = PR 3's merge | `task check` | 1, 3 |
 | — | aws-0 | phase 1 session and the replay, runbook 25 | | live 1–4 | 4 |
 | 5 | Maku | the adopted shape of a RunLore entry PR, its required label; `vK2` | — | offline 7 | 1 |
@@ -55,9 +57,10 @@ RunLore `vL1` (PR 2). Read each from its repository's releases when the step tha
 | K3 | **`alert-rules` gets `shadow: true` in base** | RK15: decisions recorded, nothing armed. Both clusters render base; only the fenced factory acts |
 | K4 | **`runlore-kb` is a static target in base `mcp.yaml`**, `runlore.runlore.svc.cluster.local:8080`, `/mcp`, StreamableHTTP, listed only by `profiles/triager.internal.yaml` (`kb_search`, `kb_get`) | RK12: phase 1 is the internal triager only. A cluster without RunLore is Review Focus 1 |
 | K5 | **`factory.curation: {defer: true, window: 7d}`** in `observability/base/runlore-factory/helm-values-configmap.yaml` | The factory values are this repository's (H8). 7 days covers a publish, a merge and `alert-rules`' 2h `followUpWindow` |
-| K6 | **Human touches per incident come from `scripts/ops/kb-measures.py`**, from GitHub alone: on each RunLore stub of the week (`factory/proposed`, opened by the factory's App) and on what it published, count label events and merges whose actor is not a bot | RK1. GitHub outlives the Task CRs and rooms; the factory's Apps are the only non-human actors that label or merge |
+| K6 | **Human touches per incident come from `scripts/ops/kb-measures.py`**, from GitHub alone: on each RunLore stub of the session (`factory/proposed`, opened by the factory's App) and on what it published, count label events and merges whose actor is not a bot | RK1. GitHub outlives the Task CRs and rooms; the factory's Apps are the only non-human actors that label or merge |
 | K7 | **The phase 1 session is runbook 25**, not a rewrite of runbook 20 | Runbook 20 is feature 14's evidence and stays as run. 25 is the next free number |
 | K8 | **`Smana/runlore-kb` is the factory's third repository**, every class shadow until its own 20 shadow decisions | The rule the second repository set (v2 design D9); the spec's phase 2 gate is the same count |
+| K9 | **This repository's half of the switch is one place**: aws-0's `runlore` subscriber, commented on `main` and uncommented for a session (then `gen-webhook-egress.py --write`). The principal stays declared, inert while RunLore is off | RK15. A subscriber left on while RunLore is off is disabled after three failed deliveries (factory interfaces F6) and stays so; a principal nobody calls costs nothing. One place here plus the host's three |
 
 ## Global Constraints
 
@@ -180,12 +183,15 @@ git commit -m "test(agent-factory): aws-0 may declare RunLore's principal and su
   base's but for `human.mcp.sessionStart`; it now also allows a `webhooks` list that
   `test-factory-interfaces-off.runlore_only` accepts (import it, one rule), and its docstring says so.
   First run it on the Step 1 tree: FAIL naming aws-0; after: PASS.
-- [ ] **Step 4: Run**: `python3 scripts/ci/tests/test-gen-webhook-egress.py && bash scripts/ci/tests/test-room-broker-webhook-egress.sh && python3 scripts/ci/tests/test-factory-interfaces-off.py && python3 scripts/ci/tests/test-room-broker-suspend.py`;
+- [ ] **Step 4: Run, on**: `python3 scripts/ci/tests/test-gen-webhook-egress.py && bash scripts/ci/tests/test-room-broker-webhook-egress.sh && python3 scripts/ci/tests/test-factory-interfaces-off.py && python3 scripts/ci/tests/test-room-broker-suspend.py`;
   PASS.
+- [ ] **Step 5: Off, as committed (K9).** Comment the `runlore` entry, its comment: "RunLore's session
+  switch (RK15): uncomment for a demo session with the host's three places, then
+  `gen-webhook-egress.py --write` (runbook 25)". Regenerate the patch and run Step 4's suites again: PASS.
 
 ```bash
 git add infrastructure/aws-0/room-broker infrastructure/gcp-0/room-broker/config.yaml scripts/ci/tests
-git commit -m "feat(room-broker): RunLore as a standing webhook subscriber on aws-0, with the monitor verdict"
+git commit -m "feat(room-broker): RunLore's webhook subscriber on aws-0, a session switch, with the monitor verdict"
 ```
 
 ### Task 5: The internal principal on aws-0
@@ -198,7 +204,7 @@ git commit -m "feat(room-broker): RunLore as a standing webhook subscriber on aw
   sets `config.api.projectIDFile: /etc/agent-factory-sponsored/project-id` and
   `config.api.internalPrincipals` to the Global Constraints' entry, with
   `clientIDFile: /etc/agent-factory-sponsored/runlore-client-id`. Its comment carries gcp-0's dollar
-  note and "standing on aws-0 (RK15)".
+  note and "declared on aws-0, inert while RunLore is off (K9)".
 - [ ] **Step 2: The secret.** `agent-factory-sponsored` in `agent-system` from `agents-secrets`:
   `runlore-client-id` and `project-id`, both from `runlore-principal`.
 - [ ] **Step 3: The patch.** aws-0's kustomization lists both files and appends the ConfigMap to the
@@ -209,7 +215,7 @@ git commit -m "feat(room-broker): RunLore as a standing webhook subscriber on aw
 
 ```bash
 git add tooling/aws-0/agent-factory
-git commit -m "feat(agent-factory): RunLore as a standing internal principal on aws-0, publish starts its fix"
+git commit -m "feat(agent-factory): RunLore's internal principal on aws-0, publish starts its fix"
 ```
 
 ### Task 6: `alert-rules` in shadow; RunLore's curation values
@@ -315,20 +321,26 @@ git commit -m "feat(ops): kb-measures, human touches per incident and the knowle
 **Files:** Create `docs/runbooks/agent-factory/25-runlore-kb-phase-1.md`; modify
 `docs/runbooks/agent-factory/README.md` (the table after row 24), the spec's status line.
 
-- [ ] **Step 1: Runbook 25**, after runbook 20's shape: 0. prerequisites (the `runlore` machine
+- [ ] **Step 1: Runbook 25**, after runbook 20's shape: 0. prerequisites, once (the `runlore` machine
   user's keys mirrored to OpenBao, the cloud-native-ref plan's Task 6 command; the webhook key seeded
-  in both mounts as runbook 14 does; the KB repo's `Knowledge queue` issue absent or closed); 1. live 1, a restart of `runlore-0` mid-soak keeps the
+  in both mounts as runbook 14 does; the KB repo's `Knowledge queue` issue absent or closed);
+  **switch on** (RK15): a host PR uncommenting its three places, and a PR here uncommenting aws-0's
+  `runlore` subscriber with `gen-webhook-egress.py --write`; `RoomWebhookDisabled` stays silent;
+  1. live 1, a restart of `runlore-0` mid-soak keeps the
   soak (`kubectl -n runlore get lease runlore-leader -o json | jq .spec.holderIdentity` unchanged,
-  one replica); 2. live 2, a seeded `vector(1)` rule, one `factory/publish`, `alert-rules` in the stub
+  one replica), and after a previous session's switch-off its ledgers are still there; 2. live 2, a seeded `vector(1)` rule, one `factory/publish`, `alert-rules` in the stub
   task's `status.published.class`, the owner's merge, `room.monitor_verdict` in RunLore's log, one KB PR labelled
   `ready-to-merge` whose `resolution` names the fix; 3. live 3 = runbook 20's live 5, then the
   verified generation completes the entry; 4. the replay (RK17): `lore kb resolve` on #157 to #163
-  with CNR #2638 and #2659, the first weekly issue listing the backlog, then CNR PR 3b (`stale_after:
-  720h`); 5. the phase 1 gate: `python3 scripts/ops/kb-measures.py --since <session day>` each week,
-  four cleared queues, RK20's two 14-day reads of `runlore:investigation_cost_usd:increase1d` (the month `M` for CNR PR 3c) and the provider's monthly limit set at 1.5 × `M`, the
-  results recorded in the status record.
+  with CNR #2638 and #2659, the first queue issue listing the backlog, then CNR PR 3b (`stale_after:
+  720h`); 5. **switch off**: `kubectl -n runlore exec runlore-0 -- lore curate queue-issue` rewrites
+  the queue (RK4), then the two PRs revert the switch; the volume stays; 6. the phase 1 gate, read
+  after each session: `python3 scripts/ops/kb-measures.py --since <session start>`, three sessions in
+  a row whose queue was cleared before the next one; RK20 from the first session: `D`, its highest
+  daily `runlore:investigation_cost_usd:increase1d`, for CNR PR 3c, and the provider's monthly limit
+  set at 1.5 × `D` × the session days expected in a month; the results recorded in the status record.
 - [ ] **Step 2: The README row**: proves live 1–4 and the phase 1 gate; needs the owner's go, the
-  ZITADEL sync, the seeded keys; about 2 h plus four weeks.
+  ZITADEL sync, the seeded keys, the switch; about 2 h a session, three sessions for the gate.
 - [ ] **Step 3: `task check`** green, `pre-commit run --all-files`, the PR.
 
 ```bash
@@ -396,7 +408,8 @@ git commit -m "feat(agent-factory): Maku vK2; runlore-kb's kb-entries class in s
 
 ## Gate
 
-The spec's offline proof 8 and live proofs 1 to 4 (runbook 25), then the phase 1 gate (four cleared
-weekly queues, none older than 14 days; the seven showcase entries merged; live 3 passed). Phase 2's
-gate (20 shadow decisions, none a "would merge" on an entry a human closed, the threat check) is read
-from the factory's shadow record each week and recorded in the status record.
+The spec's offline proof 8 and live proofs 1 to 4 (runbook 25), then the phase 1 gate (three
+sessions in a row whose queue was cleared before the next one; the seven showcase entries merged;
+live 3 passed). Phase 2's gate (20 shadow decisions, none a "would merge" on an entry a human closed,
+the threat check) is read from the factory's shadow record after each session and recorded in the
+status record.

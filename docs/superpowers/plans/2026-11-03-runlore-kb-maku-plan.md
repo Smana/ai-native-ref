@@ -47,7 +47,7 @@ flowchart LR
 "Pull requests, in order" rows 1 and 5, offline proofs 1, 2, 7 and 8.
 
 **Out of this plan:** RunLore's PR 2 (deferral, the outcome observation, `lore kb resolve`, the
-weekly issue), cloud-native-ref PR 3, ai-native-ref PRs 4 and 7 (the pins, `publishStarts: true`,
+queue issue), cloud-native-ref PR 3, ai-native-ref PRs 4 and 7 (the pins, `publishStarts: true`,
 the subscriber's event list, `classes.kb-entries` and its `autoMergesPerDay: 5`), runlore-kb PR 6
 (the fence file, the policy, the workflow that runs `lore validate-kb`), and phases 3 and 4
 (`status: draft`, RK19's breaker, the threat check, the lesson endpoint).

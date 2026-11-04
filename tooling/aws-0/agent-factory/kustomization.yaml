@@ -7,6 +7,7 @@ resources:
   - ../../base/agent-factory
   - helm-values-internal.yaml
   - externalsecret-sponsored.yaml
+  - configmap-agent-factory-ca.yaml
 
 patches:
   # Helm deep-merges valuesFrom in order: this entry adds RunLore's internal principal (RK15), merged last,

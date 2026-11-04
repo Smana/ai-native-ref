@@ -10,5 +10,6 @@ resources:
   - externalsecret-oidc.yaml
   - externalsecret-zitadel-reader.yaml
   - httproute.yaml
+  - backendtlspolicy.yaml
   - network-policy.yaml
   - vmservicescrape.yaml

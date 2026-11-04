@@ -52,7 +52,7 @@ RunLore `vL1` (PR 2). Read each from its repository's releases when the step tha
 | 4b | cloud-native-ref | pins that release's tag and digest (CNR plan, Task 9) | the ai-native-ref release | host CI | the release |
 | — | aws-0 | phase 1 session and the replay, runbook 25 | | live 1–4 | 4b |
 | 5 | Maku | the adopted shape of a RunLore entry PR, its required label; `vK2` | — | offline 7 | 1 |
-| 6 | runlore-kb | Task 10: the fence file and `.policy.yml` | — | the merge gate reads it | phase 1 gate |
+| 6 | runlore-kb | Task 10: the fence file, `.policy.yml` and the `leak-scan` job | — | the merge gate reads it | phase 1 gate |
 | 7 | ai-native-ref | Task 11 | Maku `vK2` | `task check` | 5, 6 |
 | — | ai-native-ref | an owner's release carrying PR 7 | — | its release workflow | 7 |
 | 7b | cloud-native-ref | pins that release's tag and digest (CNR plan, Task 9) | the ai-native-ref release | host CI | the release |
@@ -77,7 +77,7 @@ until a release carries it and the host pin moves. The same holds for every sess
 | K9 | **This repository's half of the switch is a set of edits in aws-0's `room-broker` directory, never one line.** Off (as committed): the `runlore` entry commented in `config.yaml`; `externalsecret-webhook-runlore.yaml` out of `resources` (commented, so nothing syncs a key nobody seeded); no `network-policy-webhooks-patch.yaml` and no `patches:` line for it. On: the entry, the ExternalSecret in `resources`, the patch that `gen-webhook-egress.py --write` generates, and its `- path:` line under `patches:`. The principal stays declared, inert while RunLore is off | RK15. A subscriber left on while RunLore is off is disabled after three failed deliveries (factory interfaces F6) and stays so; a principal nobody calls costs nothing. `gen-webhook-egress.py` fails on a patch file the overlay no longer needs and on a config with subscribers whose patch is unlisted, and `--write` neither deletes the file nor edits the kustomization, so on and off differ in all four edits. Plus the host's three places |
 | K10 | **`/mcp` has no token and is open to any caller the port admits** (from the 2026-11-04 review) | The owner's decision stands: network policy only, read-only, public text (RK13). The router's rule is L4, so the host's H8 says "any caller the port admits reaches `/mcp`" (the router, the broker, the whole `observability` namespace, the Gateway's data plane); the wording changes, not the design. RunLore warns at start-up that `/mcp` has no token | A caller in an admitted namespace reads public entries; a token would need the router to inject it (`room-broker`'s `policies.auth`) and buys nothing the repository does not already publish |
 | K11 | **Each ai-native-ref release is the owner's decision**, and each on or off flip needs one (from the 2026-11-04 review) | The host applies this repository only through its pinned, cosigned artifact. A release (or the PR pre-release the host's D2 allows on a feature branch), then a host PR with the new tag and digest, stands between a merge here and the cluster, for PR 4, PR 7 and every session switch | A plan that cuts a release itself decides for the owner |
-| K12 | **PR 7's entry sets `leakScanCheck: validate`** (owner note, from the 2026-11-04 review) | `Smana/runlore-kb` is public text with secret redaction at each tool output (RK13), and has no leak scan of its own; Maku's validation refuses a repository with a shadow class and no `leakScanCheck` in both check lists, so the one check the repository has stands in | A real scan on the KB repository is later work |
+| K12 | **PR 6 adds a real `leak-scan` job to `Smana/runlore-kb`, and PR 7's entry sets `leakScanCheck: leak-scan`**, listed in `requiredChecks` and `verifyChecks` beside `validate` (revised from the 2026-11-04 build; the review's `leakScanCheck: validate` is withdrawn) | `Smana/runlore-kb` is public text with secret redaction at each tool output (RK13). Maku's validation refuses a repository whose `leakScanCheck` is not in both `merge.requiredChecks` and `merge.verifyChecks` (`internal/factory/config/config.go:1585-1586`, R42), and the gate reads that check's run: a red one escalates as `secret_scan_red` (`internal/factory/reconciler/arm.go:373-375`) and posts "found a live credential". With `validate` standing in, any invalid entry would say that about a credential that is not there; `validate` stays the holdout check only | One small workflow in `Smana/runlore-kb` |
 | K13 | **RK17's replay exercises the entry path only** (from the 2026-11-04 review) | `lore kb resolve` writes no outcome event, so #157 to #163 stay `unverified` under Decide, and RK17's test of the outcome join is not exercised by it. Runbook 25 says so | Reading the replay as proof of the join would overstate live 4 |
 | K14 | **Phase 3 only, not built:** `status: draft` has no writer after a merge, because the gate only merges and a modified entry is refused (RK10) (from the 2026-11-04 review) | RunLore writes `status: draft` in the PR itself, and a human merge promotes it | Noted so phase 3 plans for it |
 
@@ -419,6 +419,9 @@ git commit -m "feat(ops): kb-measures, human touches per incident and the knowle
      `Knowledge queue` issue absent or closed; and the three labels created, because RunLore adds a label
      without creating it and GitHub creates none on first use:
      `gh label create ready-to-merge -R Smana/runlore-kb`, `runlore-queue`, `runlore-resolve`, the same way.
+     RunLore's values carry `curate.sweeps.mode: apply` (the cloud-native-ref plan's Task 3): dry-run gates
+     `Resolve` and the `ready-to-merge` label through the guard, though not the curator's own draft, so a session
+     on dry-run drafts entries that never get their resolution or label.
      The ai-native-ref release carrying PR 4 is cut (the owner's decision) and the host pins it (PR 4b).
   1. **Switch on, in this order** (RK15). The subscriber must not exist while RunLore is off: three failed
      deliveries disable it for good. (a) A PR here makes aws-0's four edits (K9): the entry, the ExternalSecret in
@@ -436,10 +439,16 @@ git commit -m "feat(ops): kb-measures, human touches per incident and the knowle
   3. **Live 2.** A seeded `vector(1)` rule, one `factory/publish`, `alert-rules` in the stub task's
      `status.published.class`, the owner's merge, `room.monitor_verdict` in RunLore's log, one KB PR labelled
      `ready-to-merge` whose `resolution` names the fix (the label lands from RunLore's curation pass on the
-     verified generation, not from a sweep). `kubectl -n agent-system logs` of the internal triager's run, or the
+     verified generation, not from a sweep). Alertmanager repeats the alert every hour, and each repeat inside
+     this window files nothing: RunLore logs "a generation is undecided; filing nothing for this re-detection",
+     no second task and no second stub appear, and the hold keeps the one investigation (RunLore plan, KP8). A
+     second stub during live 2 is a failure of that rule, not a new generation. `kubectl -n agent-system logs` of the internal triager's run, or the
      run's transcript, names `runlore-kb_kb_search`: the triager reached the knowledge base.
   4. **Live 3** = runbook 20's live 5, then the verified generation completes the entry. The next generation
-     waits for Alertmanager's repeat, which the `runlore` route sets to 1h.
+     starts only when a repeat arrives after the first generation is decided: its verdict is `persisting` or
+     a regression, its fix room ended without a merge, or the alert is reverted. The repeat before that files
+     nothing (live 2). The `runlore` route sets the repeat to 1h, so the second generation starts up to 1h after
+     the first one's verdict, and its own verdict waits another soak.
   5. **Live 4, the replay (RK17).** `kubectl -n runlore exec runlore-0 -- lore kb resolve --config /etc/runlore/runlore.yaml …`
      on #157 to #163 with CNR #2638 and #2659. It exercises the entry path only: it writes no outcome event, so
      #157 to #163 stay `unverified` under Decide and RK17's test of the outcome join is not exercised (K13). Then
@@ -448,13 +457,31 @@ git commit -m "feat(ops): kb-measures, human touches per incident and the knowle
      merges after the session's switch-off, not during it: a restart at `720h` would make its first sweep a full
      interval later and the session would not see it.
   6. **Clear the queue while RunLore is on**: a human merge conflicts the next entry PR, and RunLore's
-     refresh of entry PRs (RunLore plan, the refresh task) rebuilds it only while it runs.
+     refresh of entry PRs (RunLore plan, KP19) rebuilds it only while it runs. Automatic refresh takes only a PR
+     labelled `ready-to-merge` or with held evidence, at most 10 a run, so a backlog entry the owner is about to
+     review is rebuilt by hand after each merge:
+     `kubectl -n runlore exec runlore-0 -- lore curate refresh-entries --pr <n> --config /etc/runlore/runlore.yaml`.
+     Any other conflicting PR waits in Decide as `conflict`. On the first rebuild, record four live checks:
+     (a) the rebuilt commit's real shape and signature after the force-update:
+     `gh api repos/Smana/runlore-kb/pulls/<n>/commits --jq '.[] | [.author.login, .committer.login, .commit.verification.verified]'`
+     must read `runlore[bot]`, `web-flow`, `true` for every commit, and a second conflict then rebuilds again;
+     RunLore's rule (KP19) is that it refuses any other shape, so a rebuild that lands unsigned would strand the
+     next one in Decide; (b) the `force_push` row: `gh api 'repos/Smana/runlore-kb/activity?ref=refs/heads/<branch>'`
+     lists the App-token PATCH as `force_push` by `runlore[bot]`, and Maku's `pushedBy` (`merge.go:699-722`) still
+     reads the branch as the adopted author's, not `pushStranger`; (c) `mergeable` timing: how long GitHub
+     reports it null after the rebuild and after the base moves, and whether a recompute alone bumps the PR's
+     `updated_at`, which RK17's stale sweep reads; (d) a `pull_request` run on the rebuilt PR: `validate` and
+     `leak-scan` both report on the new head, since a push made with an App token must start the workflows the
+     merge checks need.
   7. **Switch off, in this order** (RK15, the reverse): `lore curate queue-issue --config …` again to list what
      is left; the owner clears the queue; `queue-issue` once more; then the subscriber off (a PR here, the four
      edits reversed per K9, a release, the host pin); then the host PR with the three places off. The volume stays.
-  8. **Time.** Budget about 5h a session: a `healthy` verdict needs the 2h `followUpWindow` plus about 5m of
-     search lag, read at most every 10m, so about 2h15 after the merge before live 2's entry; live 3 waits one
-     Alertmanager repeat (1h); each flip is a PR here, a release and a host PR.
+  8. **Time.** A `healthy` verdict needs the 2h `followUpWindow` plus about 5m of search lag, read at most
+     every 10m, so about 2h15 after the merge before live 2's entry. Live 3 is two such waits in a row and a
+     repeat between them (up to 1h, and the repeats inside the first wait file nothing), about 5h30 from the
+     first merge before the second generation's merge is even soaking: budget about 8h for a session that
+     proves live 2 and live 3 on separate alerts started together, not 5h. Each flip is a PR here, a release
+     and a host PR.
   9. **The phase 1 gate**, read after each session: `python3 scripts/ops/kb-measures.py --since <session start>`, three
      sessions in a row whose queue was cleared before the next one; RK20 from the first session: `D`, its highest
      daily `runlore:investigation_cost_usd:increase1d`, for CNR PR 3c, and the provider's monthly limit
@@ -489,6 +516,12 @@ git commit -m "docs(runbooks): 25, RunLore's knowledge base, phase 1 on aws-0"
 - [ ] **Step 4: The validator**: branch protection on `main` requires the `validate` check of
   `.github/workflows/validate-kb.yml`. Its `lore@v0.10.0` already passes the new frontmatter
   (`origin`, `resolution`): the loader ignores unknown keys (RunLore plan KP11).
+- [ ] **Step 5: The leak scan** (K12): a workflow `.github/workflows/leak-scan.yml` with one job named `leak-scan`
+  that runs on `pull_request` and scans the PR's diff for credentials (TruffleHog, as the host's own scan does,
+  R42, the action pinned by digest). It is a separate job, never a step of `validate`, because the gate reads
+  the check run by its name: a red `validate` must mean an invalid entry, and a red `leak-scan` a credential.
+  Branch protection on `main` requires `validate` and `leak-scan`. Proof: a PR adding a file with a fake
+  credential turns `leak-scan` red and `validate` green; a PR with an invalid entry the opposite.
 
 ## PR 7: the `kb-entries` class in shadow (phase 2)
 
@@ -505,7 +538,7 @@ builds `POLICY` for two repositories and does `POLICY[r["name"]]` (`KeyError: 'S
 each (`KeyError: 'merge'` for an entry with no `merge` block). Maku's own validation
 (`internal/factory/config/config.go:1499,1503-1507,1566-1600`) refuses an entry with no `triggerLabel`, no
 `docs-links` and `revert` classes, or a shadow class and no full `merge` block with `leakScanCheck` in both check
-lists. So the entry is the full one.
+lists. So the entry is the full one, and its leak check is the `leak-scan` job PR 6 adds, never `validate` (K12).
 
 - [ ] **Step 1: Write the failing suite**:
 
@@ -523,8 +556,9 @@ check("the classes the factory requires, all shadow", set(kb["classes"]) == {"kb
       and all(cl.get("shadow") is True and "live" not in cl for cl in kb["classes"].values()))
 m = kb["merge"]
 check("the merge block the factory's validation needs",
-      kb["triggerLabel"] == "factory/ready" and m["requiredChecks"] == ["validate"] and m["verifyChecks"] == ["validate"]
-      and m["leakScanCheck"] == "validate" and m["approveToMerge"] is True and m["autoMergesPerDay"] == 5
+      kb["triggerLabel"] == "factory/ready" and m["requiredChecks"] == ["validate", "leak-scan"]
+      and m["verifyChecks"] == ["validate", "leak-scan"]
+      and m["leakScanCheck"] == "leak-scan" and m["approveToMerge"] is True and m["autoMergesPerDay"] == 5
       and m["breaker"] == {"window": 10, "maxReverts": 1, "maxFollowUps": 1, "recoverAfter": 3})
 ```
 - [ ] **Step 2: Run**: FAIL (`StopIteration`). Also run `python3 scripts/ci/tests/test-agent-merge-gate-parity.py` and
@@ -548,8 +582,8 @@ check("the merge block the factory's validation needs",
               holdoutChecks: [validate]
               maxPerDay: 5
           merge:
-            requiredChecks: [validate]
-            verifyChecks: [validate]
+            requiredChecks: [validate, leak-scan]
+            verifyChecks: [validate, leak-scan]
             policyBotLogin: ogenki-merge-gate[bot]
             mergerLogin: ogenki-agent-merger[bot]
             autoMergesPerDay: 5
@@ -557,9 +591,10 @@ check("the merge block the factory's validation needs",
             checkReruns: 0
             verifyFor: 30m
             revertWindow: 168h
-            # Owner note (K12): the knowledge base is public text with secret redaction at each tool
-            # output (RK13) and has no leak scan of its own; `validate` stands in, in both lists above.
-            leakScanCheck: validate
+            # K12: the knowledge base is public text with secret redaction at each tool output (RK13).
+            # `leak-scan` is the job PR 6 adds to the repository, in both lists above; a red `validate`
+            # would otherwise escalate as secret_scan_red and post "found a live credential".
+            leakScanCheck: leak-scan
             awaitingCIFor: 24h
             approveToMerge: true
             breaker: {window: 10, maxReverts: 1, maxFollowUps: 1, recoverAfter: 3}

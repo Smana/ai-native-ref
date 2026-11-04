@@ -256,8 +256,26 @@ The four plans were reviewed against the code before any build. What changes the
 |---|---|
 | `ready-to-merge` is set by the verification itself, not only by a sweep, and withdrawn when the evidence flips | The first sweep runs 6h after start and a session is shorter. A revert after labelling would otherwise keep the label and hide the entry from Decide |
 | A held incident keeps the fingerprint and entry path of its first hold | Both come from model-written text, so they drift between generations: a failed fix's trust would land on an entry that never exists, and a second PR could open |
-| `lore curate refresh-entries` rebuilds a conflicting entry PR on the current base, on RunLore's own branches only | Every entry inserts at the same place in `log.md`, so merging one makes the next conflict. A session's queue is therefore cleared while RunLore is on |
+| `lore curate refresh-entries` rebuilds a conflicting entry PR on the current base, on RunLore's own branches only: commits that GitHub reports as authored by `runlore[bot]`, committed by `web-flow` and verified | Every entry inserts at the same place in `log.md`, so merging one makes the next conflict. A session's queue is therefore cleared while RunLore is on |
 | The `security` category is a human-applied label in phase 1 | Nothing writes it by machine, and no signal is specified |
+
+Added from the 2026-11-04 build (the plans now say these in place):
+
+| Correction | Why |
+|---|---|
+| A re-detection files nothing while the hold's current generation is undecided: a bound fix with no verdict, no outcome, not reverted and no regression. An undrafted hold with no fix room yet files nothing either, until the window. Both release when the fix room ends without a merge and, for an unmerged fix, at the window. A `201` on a hold with no live artifact starts it again | Alertmanager's 1h repeat would otherwise reset the record under a running fix and buy a new triager and stub each hour. RK5's "next generation from RunLore's re-detection" therefore means the first repeat after a generation is decided |
+| Refresh's scope is narrow. A pass rebuilds only a PR labelled `ready-to-merge` or with a held latest observation, at most 10 a run, and stops on a 403 or 429. Any other conflicting PR is listed in Decide as `conflict`. `lore curate refresh-entries --pr <n>` rebuilds one a human is about to review. `lore curate queue-issue` reconciles labels, then refreshes, then rewrites | The first merge conflicts about 52 backlog PRs: about 312 writes and 52 CI runs a refresh, past GitHub's rate limit, and each rebuild bumps `updated_at`, which RK17's stale sweep reads. A session of about 5h is shorter than the first sweep's 6h, so a mid-session contest must still withdraw the label |
+| `Smana/runlore-kb` gets a real `leak-scan` job in phase 2, and the `kb-entries` class sets `leakScanCheck: leak-scan`, in both merge check lists beside `validate` | The gate reads the leak check by name, and a red one escalates as `secret_scan_red` saying a live credential was found. With `validate` standing in, an invalid entry would say that |
+| Maku's inference of a change's class never picks a live class | The file list is the triager's, written from alert text, and must not choose a class that merges by itself |
+
+### Open for phase 3's gate
+
+Phase 2 leaves these as built, failing closed. Phase 3's gate decides each with the owner before a class goes live:
+
+- `label_missing`, `policy_pending` and `not_mergeable` are terminal at the same head. After RunLore's refresh removes the label and pushes, an adopted entry is handed off and re-labelling does not revive it; `policy_pending` when the poller beats policy-bot's re-evaluation, and `not_mergeable` on a `log.md` conflict, end the same way.
+- Shadow records a conflicted entry as would-merge, so phase 2's gate reads the would-merge counts knowing they are inflated.
+- Inference excludes `alert-rules` once it is live: its fixes then infer `review` until the class has another source.
+- The trust factor is 0.4 after two failed fixes and then a verified one (prior `k=2`: `(1+1)/(3+2)`), below recall's 0.5 gate, so a fix verified on the third try still does not earn recall.
 
 ## RL D1, amended
 

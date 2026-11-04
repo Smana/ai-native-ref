@@ -1,0 +1,23 @@
+# The tailnet gateway verifies the factory's certificate (httproute.yaml): Cilium 1.20 originates TLS to a
+# backend through a BackendTLSPolicy. The target is the Service port named `https`, which the chart gives
+# port 8082 once api.tls is set. The hostname is the in-cluster name the certificate already carries, so no
+# tailnet name is added to it. The CA is the platform's, a static ConfigMap per cloud
+# (tooling/{aws-0,gcp-0}/agent-factory/configmap-agent-factory-ca.yaml): the policy and the ConfigMap share a
+# namespace, so no ReferenceGrant. A cloud without that ConfigMap has the policy rejected (NoValidCACertificate).
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: agent-factory
+  namespace: agent-system
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: agent-factory
+      sectionName: https
+  validation:
+    hostname: agent-factory.agent-system.svc
+    caCertificateRefs:
+      - group: ""
+        kind: ConfigMap
+        name: agent-factory-ca

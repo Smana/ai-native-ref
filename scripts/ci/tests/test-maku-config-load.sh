@@ -109,10 +109,13 @@ done
 for f in "$tmp"/cfg/factory-*.yaml; do
   if out="$("$tmp/load" factory "$f" 2>&1)"; then echo "ok    $tag loads $(basename "$f")"; else echo "FAIL  $tag refuses $(basename "$f"): $out"; fails=$((fails + 1)); fi
 done
-# It bites: without factoryInsecure the same config is refused, naming factoryURL.
-grep -v '^factoryInsecure:' "$tmp/cfg/broker-aws-0.yaml" > "$tmp/cfg/broker-bite.yaml"
-if out="$("$tmp/load" broker "$tmp/cfg/broker-bite.yaml" 2>&1)" || ! grep -q 'factoryURL: http:// sends human tokens in the clear' <<<"$out"; then
-  echo "FAIL  without factoryInsecure the broker config was not refused for factoryURL: $out"; fails=$((fails + 1))
-else echo "ok    without factoryInsecure the config is refused: factoryURL"; fi
+# It bites: the same config over http:// without factoryInsecure is refused, naming factoryURL.
+sed 's#^factoryURL: https://#factoryURL: http://#' "$tmp/cfg/broker-aws-0.yaml" > "$tmp/cfg/broker-bite.yaml"
+if cmp -s "$tmp/cfg/broker-aws-0.yaml" "$tmp/cfg/broker-bite.yaml"; then echo "FAIL  aws-0's factoryURL is not https://, so the bite proves nothing"; fails=$((fails + 1))
+elif out="$("$tmp/load" broker "$tmp/cfg/broker-bite.yaml" 2>&1)" || ! grep -q 'factoryURL: http:// sends human tokens in the clear' <<<"$out"; then
+  echo "FAIL  an http:// factoryURL without factoryInsecure was not refused for factoryURL: $out"; fails=$((fails + 1))
+else echo "ok    an http:// factoryURL without factoryInsecure is refused: factoryURL"; fi
+# And the loader reads factoryCAFile: a config without it loads too (system roots), so check the key is the one the loader knows.
+grep -q '^factoryCAFile: ' "$tmp/cfg/broker-aws-0.yaml" || { echo "FAIL  aws-0's broker config has no factoryCAFile"; fails=$((fails + 1)); }
 [ "$fails" -eq 0 ] || { echo "$fails failure(s)"; exit 1; }
 echo PASS

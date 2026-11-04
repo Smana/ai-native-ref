@@ -235,7 +235,7 @@ App reads only at start.
 
    ```bash
    kubectl -n agent-system port-forward deploy/agent-factory 8082:8082 &
-   curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:8082/v1/tasks   # 404
+   curl -sk -o /dev/null -w '%{http_code}\n' -X POST https://localhost:8082/v1/tasks   # 404 (the listener is TLS)
    ```
 
 4. Confirm the emitter is idle: `maku_rooms_webhook_deliveries_total` stops moving and there is no

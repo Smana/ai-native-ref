@@ -1,0 +1,26 @@
+# The platform CA, for the tailnet gateway's BackendTLSPolicy (tooling/base/agent-factory/backendtlspolicy.yaml,
+# whose caCertificateRefs takes a ConfigMap only). A public certificate, not a secret. It is the platform's offline root,
+# the same file as cloud-native-ref's .github/openbao-root-ca.pem: a subset of the chain in openbao-ca, and the factory
+# presents its intermediate, so the root verifies it. The session's first step verifies the factory's certificate against
+# it (runbook 25 section 10). Rotating the CA means a PR here and one in cloud-native-ref (RunLore's copies,
+# observability/{aws-0,gcp-0}/.../configmap-factory-ca.yaml): test-factory-backend-tls.py holds the copies equal.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-factory-ca
+  namespace: agent-system
+data:
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIICADCCAYagAwIBAgIUEzHBOi1xmj9QIMtHWiEM4LO9hl8wCgYIKoZIzj0EAwMw
+    NzEXMBUGA1UEAwwOT2dlbmtpIFJvb3QgQ0ExDzANBgNVBAoMBk9nZW5raTELMAkG
+    A1UEBhMCRlIwHhcNMjYwODI0MjE1ODI1WhcNMzYwODI0MjE1ODI1WjA3MRcwFQYD
+    VQQDDA5PZ2Vua2kgUm9vdCBDQTEPMA0GA1UECgwGT2dlbmtpMQswCQYDVQQGEwJG
+    UjB2MBAGByqGSM49AgEGBSuBBAAiA2IABO7orzgMIWbsVf7QdtvHrnhSAIcEXwXV
+    B243EOBH59LFLjYOUzA0Nq6suyAdd9+TBE8pdMCqBlRWL0DZZ24ev+ch3/5Z+gPx
+    eNKd128CccMwvJfd8bj9r2gpxkSt+h8NRqNTMFEwHQYDVR0OBBYEFLphgq6KIo0y
+    9VZZ2evda2PbxFIoMB8GA1UdIwQYMBaAFLphgq6KIo0y9VZZ2evda2PbxFIoMA8G
+    A1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwMDaAAwZQIwHy/UasGk9CQexknwyFjB
+    CorZQddilehlmq+I+CuSMSBVTeeYOK5yDtPlVt4sF4fsAjEA8msirlebVxErrKFl
+    row8Rpy7kvBOs8TtbnMSoUO3rQXOLliMtqsD2Zidqr1vDx+D
+    -----END CERTIFICATE-----

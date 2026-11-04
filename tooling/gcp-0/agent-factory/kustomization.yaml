@@ -8,6 +8,7 @@ resources:
   - ../../base/agent-factory
   - helm-values-suspend.yaml
   - helm-values-sponsored.yaml
+  - configmap-agent-factory-ca.yaml
 
 patches:
   # Helm deep-merges valuesFrom in order: these entries add sandbox.suspend, then api.sponsored, to base's config.

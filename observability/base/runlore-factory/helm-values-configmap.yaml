@@ -23,7 +23,14 @@ data:
       # RunLore hands each finding to the factory as its internal principal (feature 14): the factory
       # holds every gate (0.75, five a day), RunLore sends them all.
       factory:
-        url: http://agent-factory.agent-system.svc.cluster.local:8082
+        # TLS since tooling/base/agent-factory sets api.tls (Maku v0.33.0, S-1): a plain request gets 400. The name is
+        # on the factory's certificate. ca_file (RunLore v0.20.0, pinned by the host) trusts the platform CA besides the
+        # system roots, for the factory and the token endpoint only. The file is the host's static ConfigMap factory-ca,
+        # mounted at /etc/runlore-factory-ca: a sibling of /etc/runlore, since a mount inside the read-only config mount
+        # cannot be created. RunLore refuses a missing ca_file at start, so the ConfigMap goes on with RunLore's
+        # switch (runbook 25 section 1).
+        url: https://agent-factory.agent-system.svc:8082
+        ca_file: /etc/runlore-factory-ca/ca.crt
         token_url: ${identity_provider_url}/oauth/v2/token
         client_id_env: FACTORY_CLIENT_ID
         client_secret_env: FACTORY_CLIENT_SECRET  # pragma: allowlist secret

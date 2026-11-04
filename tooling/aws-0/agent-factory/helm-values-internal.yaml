@@ -1,0 +1,37 @@
+# RunLore, the factory's one internal principal on aws-0 (feature 14, RA2; the knowledge-base plan's K2): internal
+# data, the investigate template, today's gates. Declared on aws-0, inert while RunLore is off (K9): a
+# principal nobody calls costs nothing. Merged last over agent-factory-helm-values: Helm deep-merges, so
+# config.api.projectIDFile and config.api.internalPrincipals land beside base's api. gcp-0's own copy is
+# helm-values-sponsored.yaml; this file holds the internal principal alone, since aws-0 applies no Slack App
+# (test-factory-interfaces-off.py allows api.internalPrincipals here, RK15). The Secret behind both files is
+# externalsecret-sponsored.yaml in this directory.
+#
+# The dollar values: an investigate task (one triager run at tier standard, $2.55 a run) fits maxCostUSD 2
+# only below the run cap; confirm against the session's spend before raising them. verification: true: the
+# factory takes RunLore's verdict on a fix as a monitor signal (agent-platform v0.28.0). publishStarts: a
+# maintainer's factory/publish on the stub of RunLore's task starts its fix (Maku v0.33.0).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # As agent-factory-helm-values: a change upgrades the release at once.
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
+  name: agent-factory-helm-values-internal
+  namespace: agent-system
+data:
+  values.yaml: |  # pragma: allowlist secret -- Secret key file paths, no credential value
+    config:
+      api:
+        projectIDFile: /etc/agent-factory-sponsored/project-id
+        internalPrincipals:
+          - name: runlore
+            clientIDFile: /etc/agent-factory-sponsored/runlore-client-id
+            sponsor: Smana
+            repositories: [Smana/cloud-native-ref]
+            dailyUSD: 10
+            maxCostUSD: 2
+            maxOpenTasks: 3
+            minConfidence: 0.75
+            dailyTasks: 5
+            verification: true
+            publishStarts: true

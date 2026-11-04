@@ -6,6 +6,7 @@
 # at start. A strict key or a new refusal in a chart upgrade then fails here, before a release wedges a
 # rollout (Maku v0.33.0 refused an http:// factoryURL without factoryInsecure: nothing offline saw it).
 #
+# A build error that is not the environment's fails: only no clone, no tag or an offline module or toolchain gap skips.
 # Offline: the source is the pinned tag of a local Maku clone (MAKU_DIR, default ~/Sources/maku), read with
 # `git archive`, and its modules come from the Go module cache (GOPROXY=off). Without either this SKIPs (77):
 # no network is added to `task check`. test-room-broker-factory-insecure.py holds the same rule, statically,
@@ -20,7 +21,13 @@ git -C "$MAKU_DIR" rev-parse -q --verify "refs/tags/$tag" >/dev/null 2>&1 || { e
 
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 mkdir "$tmp/src" "$tmp/cfg"
-git -C "$MAKU_DIR" archive "$tag" go.mod go.sum internal api cmd 2>/dev/null | tar -x -C "$tmp/src" || { echo "SKIP: cannot read $tag"; exit 77; }
+# Skip only where the environment cannot build (no clone, no tag); an archive that fails for any other reason fails,
+# so a Maku bump that breaks the loader cannot turn this guard off.
+git -C "$MAKU_DIR" archive "$tag" go.mod go.sum internal api cmd 2>"$tmp/archive.err" | tar -x -C "$tmp/src"
+ps=("${PIPESTATUS[@]}")
+if [ "${ps[0]}" -ne 0 ] || [ "${ps[1]}" -ne 0 ]; then
+  echo "FAIL: cannot read $tag from $MAKU_DIR: $(head -c 200 "$tmp/archive.err")"; exit 1
+fi
 mkdir -p "$tmp/src/cmd/zzconfigload"
 cat > "$tmp/src/cmd/zzconfigload/main.go" <<'GO'
 package main
@@ -47,8 +54,28 @@ func main() {
 	}
 }
 GO
-(cd "$tmp/src" && GOFLAGS=-mod=mod GOPROXY=off GOCACHE="${GOCACHE:-$(go env GOCACHE)}" go build -o "$tmp/load" ./cmd/zzconfigload 2>"$tmp/build.err") \
-  || { echo "SKIP: cannot build $tag offline ($(head -c 160 "$tmp/build.err"))"; exit 77; }
+# build <source dir> <output binary>: 0 built; 77 the environment cannot build (offline module cache missing a
+# module, or a toolchain the local Go cannot supply); 1 any other error, which is Maku's or the loader's.
+ENV_ERRORS='GOPROXY=off|module lookup disabled|cannot find module providing|no required module provides|requires go >= |toolchain|dial tcp|no such host'
+build() {
+  (cd "$1" && GOFLAGS=-mod=mod GOPROXY=off GOCACHE="${GOCACHE:-$(go env GOCACHE)}" go build -o "$2" ./cmd/zzconfigload 2>"$tmp/build.err") && return 0
+  if grep -Eq "$ENV_ERRORS" "$tmp/build.err"; then return 77; fi
+  return 1
+}
+build "$tmp/src" "$tmp/load"; rc=$?
+[ "$rc" -eq 77 ] && { echo "SKIP: cannot build $tag offline ($(head -c 160 "$tmp/build.err"))"; exit 77; }
+[ "$rc" -eq 0 ] || { echo "FAIL: $tag's loaders do not build: $(head -c 400 "$tmp/build.err")"; exit 1; }
+
+# The guard cannot be turned off by a broken tree: a syntax error and a renamed loader must FAIL, not skip.
+mkdir "$tmp/mut"; cp -a "$tmp/src/." "$tmp/mut/"
+printf '\nfunc (\n' >> "$tmp/mut/internal/config/config.go"
+build "$tmp/mut" "$tmp/mut-load"; rc=$?
+[ "$rc" -eq 1 ] || { echo "FAIL: a syntax error at the tag ended $rc, not a failure"; exit 1; }
+cp "$tmp/src/internal/config/config.go" "$tmp/mut/internal/config/config.go"
+sed -i 's/^func Load(/func Loadx(/' "$tmp/mut/internal/config/config.go"
+build "$tmp/mut" "$tmp/mut-load"; rc=$?
+[ "$rc" -eq 1 ] || { echo "FAIL: a renamed config.Load ended $rc, not a failure"; exit 1; }
+echo "ok    a syntax error and a renamed Load fail the suite rather than skip it"
 
 # The rendered inputs: Flux's ${var} substituted with values the loaders accept; the factory's merged values
 # (the base ConfigMap, then aws-0's internal principal; Helm merges maps and replaces lists).

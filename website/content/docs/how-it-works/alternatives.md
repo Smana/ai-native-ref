@@ -2,7 +2,7 @@
 title: Alternatives considered
 weight: 100
 description: "Work in progress. The alternatives considered for each layer of the Agent Factory, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
-lastVerified: 2026-10-20
+lastVerified: 2026-11-04
 ---
 
 {{< callout type="warning" >}}
@@ -42,7 +42,7 @@ all five.
 flowchart TB
   subgraph L5["Factory: issue → runs → PR, budgets, merge gate, stop switch"]
     direction LR
-    F5["Ours: maku-factory controller<br/>+ Kueue + policy-bot"] ~~~ T5["Temporal: durable<br/>workflows (watched)"]
+    F5["Ours: maku-factory controller<br/>+ Kueue + policy-bot"] ~~~ T5["Temporal: durable<br/>workflows (watched)"] ~~~ D5["dsh-superagent: LLM router<br/>+ tickets, no sandbox"]
   end
   subgraph L4["Collaboration: shared sessions with humans and agents"]
     direction LR
@@ -50,7 +50,7 @@ flowchart TB
   end
   subgraph L3["Gateway: models, tools, per-run identity and budgets"]
     direction LR
-    F3["agentgateway<br/>(chosen)"] ~~~ O3["otari: LLM gateway<br/>(watched)"]
+    F3["agentgateway<br/>(chosen)"] ~~~ O3["otari: LLM gateway<br/>(watched)"] ~~~ M3["agentmesh: agent network<br/>behind a gateway (watched)"]
   end
   subgraph L2["Harness: the agent loop"]
     direction LR
@@ -68,10 +68,11 @@ flowchart TB
 | Layer | Chosen | Alternatives considered | Why |
 |---|---|---|---|
 | **Runtime** | [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) + [gVisor](https://gvisor.dev), one pod per run | Agent Substrate (with google/ax or kagent), Kata/Firecracker, OpenHands Enterprise, Coder, E2B/Daytona | Open source; runs on EKS and GKE, on spot nodes; each run gets its own ServiceAccount and Cilium policy, so the constitution's rules apply per run. Kata/Firecracker needs bare-metal hosts or nested virtualisation: the smallest AWS metal host has 128 vCPU, about $1.5/h spot or $5.4/h on demand ([Vantage](https://instances.vantage.sh/aws/ec2/c6i.metal)), against a few cents an hour for a run's spot node. An agent step mostly waits on the model (about 11 s a reply), so gVisor's system-call overhead does not show |
-| **Harness** | [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server | Headless Claude Code, kagent's harnesses, ax's Antigravity agent | Open source, headless (an HTTP API), works with any OpenAI-compatible model, supports MCP. Claude Code is proprietary; Antigravity is Gemini-only |
-| **Gateway** | [agentgateway](https://agentgateway.dev) | Agent Router 1.1 on Envoy Gateway, [otari](#otari) | See [gateways]({{< relref "/docs/how-it-works/gateways.md" >}}). otari has no MCP federation, token exchange, listener per data class or OpenTelemetry export, and no Kubernetes packaging: watched |
+| **Harness** | [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server | Headless Claude Code, kagent's harnesses, ax's Antigravity agent, [DeepSeek Harness](#dsh-superagent-prototype) | Open source, headless (an HTTP API), works with any OpenAI-compatible model, supports MCP. Claude Code is proprietary; Antigravity is Gemini-only; DeepSeek Harness has no HTTP API, no stable release, and uploads session logs unless you opt out |
+| **Gateway** | [agentgateway](https://agentgateway.dev) | Agent Router 1.1 on Envoy Gateway, [otari](#otari), [agentmesh](#agentmesh) | See [gateways]({{< relref "/docs/how-it-works/gateways.md" >}}). otari has no MCP federation, token exchange, listener per data class or OpenTelemetry export, and no Kubernetes packaging: watched. agentmesh is a network between agents, not a gateway: its own guide puts agentgateway in front of it |
+| **Gateway guardrails** | The gateways' own guard hooks with open classifiers: agentgateway's `promptGuard` and MCP guardrails, the Semantic Router's jailbreak classifier, LlamaGuard on vLLM | [Google Model Armor](#google-model-armor), NeMo Guardrails, Guardrails AI, LlamaFirewall, ShieldGemma, llm-guard | A filter, not a boundary: a guard earns a block only from the injection drills, and the boundaries stay per-run identity, capability profiles, egress policy and the merge gate. Model Armor is a SaaS in the data path, inline on Google infrastructure only. Where this stands: [status]({{< relref "/docs/status.md#v4-core" >}}) |
 | **Rooms** | A log we own: maku-broker on PostgreSQL | OpenHands shared conversations, ACP, A2A through a gateway, Valkey Streams, NATS JetStream, ax or Substrate as the session layer, kagent sessions | Two different questions. **Protocols** (OpenHands shared conversations, ACP, A2A, ax or Substrate, kagent sessions): none records who said what among several people and agents, or who may approve. **Brokers** (Valkey Streams, NATS JetStream): an event is written to Postgres first, which fixes its place in the log, then announced with `LISTEN/NOTIFY`. At a few events per second a second stateful system adds nothing, and delivering live before the write would let watchers see events the audit log never records |
-| **Factory** | A small custom controller + [Kueue](https://kueue.sigs.k8s.io/docs/overview/) | Argo Workflows, Tekton, Temporal, a Crossplane `Task` composition, gh-aw, OpenAI's Symphony specification ([below](#openai-symphony)) | The factory's state lives in Kubernetes objects and GitHub. Waiting hours on CI or a review is a periodic re-check of that state, so a restart loses nothing. Budgets and the kill switch are domain logic any engine would still need. Argo has no budget concept and a Crossplane composition has no timers. Temporal suits workflows whose state lives in code, and is the one to watch ([below](#temporal)) |
+| **Factory** | A small custom controller + [Kueue](https://kueue.sigs.k8s.io/docs/overview/) | Argo Workflows, Tekton, Temporal, a Crossplane `Task` composition, gh-aw, OpenAI's Symphony specification ([below](#openai-symphony)), DeepSeek's dsh-superagent ([below](#dsh-superagent-prototype)) | The factory's state lives in Kubernetes objects and GitHub. Waiting hours on CI or a review is a periodic re-check of that state, so a restart loses nothing. Budgets and the kill switch are domain logic any engine would still need. Argo has no budget concept and a Crossplane composition has no timers. Temporal suits workflows whose state lives in code, and is the one to watch ([below](#temporal)) |
 | **Merge gate** | [policy-bot](https://github.com/palantir/policy-bot) behind a repository ruleset | Required reviews, rulesets alone, a custom check, Prow/tide, Mergify, Kodiak | The policy lives in the repository and is reviewable, and the right to merge sits with one dedicated App |
 
 The full records are in the programme's design documents, listed under [Sources](#sources).
@@ -86,6 +87,9 @@ The full records are in the programme's design documents, listed under [Sources]
 | agentgateway (agents), Envoy AI Gateway (people) | [otari](#otari) | It ships declarative Kubernetes packaging, OpenTelemetry gen_ai export, per-run identity without a key per run and MCP federation (agents); or generic OIDC sign-in and prompt-based model choice (people) |
 | agent-sandbox, one pod per run | [Agent Substrate](#agent-substrate) | See [Reconsidering Substrate](#reconsidering-substrate-not-now-deliberately-open) |
 | One cold pod per run, held or ended while it waits | agent-sandbox's own `SandboxWarmPool` and `operatingMode: Suspended`, in the pinned v1.0.5; the composition suspends only finished runs | Now: a run starts in about 90 s on a fresh node ([v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)). A claim that sets `env` or volume templates bypasses the warm pool |
+| agentgateway alone, every agent on one cluster | [agentmesh](#agentmesh) behind agentgateway, for calls between agents on different clusters | Runs on one cluster must call agents on another; and agentmesh ships declarative policy, per-tool standing grants and end-to-end revocation of delegations |
+| OpenHands agent-server | [DeepSeek Harness](#dsh-superagent-prototype) | A stable release with a deprecation policy, an HTTP server API, container images, and session-log upload off by default |
+| Open classifiers behind the gateways' guard hooks | [Google Model Armor](#google-model-armor), through agentgateway's `googleModelArmor` guard, on the public listener only | An adopter on GKE needs its compliance record for public data, or no open classifier reaches a usable detection rate in the injection drills |
 
 ## Projects evaluated in detail
 
@@ -255,6 +259,113 @@ every fallback model.
 **Reconsider** under the conditions in [the table above](#what-would-make-us-reconsider), or once it
 reaches 1.0 with a deprecation policy.
 
+### agentmesh
+
+*Checked in November 2026 at [`e4787a0`](https://github.com/google/agentmesh/tree/e4787a050bccf066d481dca40d219888fabb5b84)
+(v0.2.0). Full evaluation, with a code link per claim:
+[research](https://github.com/Smana/ai-native-ref/blob/8f8363d73fdf0120429746e05edc588e9733eb18/docs/superpowers/specs/2026-11-04-agentmesh-evaluation-research.md).*
+
+**What it is.** Google's open-source (Apache-2.0, "not an officially supported Google product")
+private network for agents. A node beside each agent joins a libp2p overlay, enrols with your OIDC
+issuer and receives a Biscuit credential; routers relay encrypted streams; a control plane holds
+the policy. The node brokers MCP, model and A2A calls by service name across clusters, clouds and
+NAT. Helm charts, no CRDs.
+
+**What it does well.** A holder narrows its credential offline with task blocks (services, tools,
+methods, paths, expiry) that only intersect, then seals it. A data-class floor the caller cannot
+relax. A2A agent cards rewritten to mesh paths, with discovery.
+
+**Why not.**
+
+| Our need | agentmesh |
+|---|---|
+| MCP federation, tools listed per role | Six meta-tools; remote tools never in `tools/list`; per-tool grants only in caller-appended blocks |
+| One alias, one backend | `/v1` picks a provider mesh-wide by load, round-robin among equals |
+| Budgets, octo-sts, OpenTelemetry | None, none, Prometheus only |
+| Declarative policy | One document on an API; Helm seeds it once |
+| No credential in the sandbox | Its agent-sandbox blueprint passes the task token in as `OPENAI_API_KEY` |
+| Revocation on every hop | A banned node's downstream delegations stay valid until they expire |
+
+It replaces nothing we run and adds a control plane, routers and a sidecar per run. One code owner
+writes three quarters of it; its alphas fixed three critical or high advisories.
+
+**Worth borrowing:** sealed, task-scoped narrowing of a run's credential; a header that only
+tightens the data class.
+
+**Reconsider** under the conditions in [the table above](#what-would-make-us-reconsider).
+
+### Google Model Armor
+
+*Checked in November 2026 against agentgateway `v1.6.0`, the Model Armor documentation and its
+release notes. Full evaluation, with the open-source options compared:
+[research](https://github.com/Smana/ai-native-ref/blob/8f8363d73fdf0120429746e05edc588e9733eb18/docs/superpowers/specs/2026-11-04-model-armor-oss-equivalents-research.md).*
+
+**What it is.** Google Cloud's hosted screen for model traffic: proprietary classifiers for prompt
+injection and jailbreaks, harmful content, sensitive data and malicious URLs, called per request
+from a regional endpoint, with "floor settings" that set minimum thresholds across an organisation.
+Inline integrations exist for Google's Agent Gateway, Apigee, Gemini Enterprise, Google-managed MCP
+servers and Google load balancers. From anywhere else, agentgateway included, it is a REST call per
+request.
+
+**What it does well.**
+- One API covers prompt, response, documents and images, in nine languages, at a list price of
+  $0.10 per million tokens after a free tier.
+- Its Agent Gateway screens MCP `tools/call` requests **and results**, the vector that matters for
+  agents reading issues and logs.
+
+**Why not.**
+
+| Our need | Model Armor |
+|---|---|
+| No SaaS in the data path | Every screened request leaves the cluster |
+| Internal data reaches Anthropic only | A second reader of every internal prompt |
+| EKS and GKE alike | Inline on Google infrastructure only; REST from EKS, same region as its template |
+| Open source first | Classifiers are proprietary; the integration is what agentgateway already ships |
+
+**What we do instead.** agentgateway's `promptGuard` (regex, webhook) and MCP guardrails with Meta's
+Prompt Guard 2 on CPU, LlamaGuard 3 on the GPU it already holds, the Semantic Router's jailbreak
+classifier for people, and Cilium egress policy where Model Armor offers URL detection. A guard
+runs in audit until an injection drill shows its detection and false-positive rates. Where this
+stands is on the [status page]({{< relref "/docs/status.md#v4-core" >}}).
+
+**Worth borrowing:** floor settings, as a CI rule that refuses a model route without a guard
+policy; and screening tool results, not only prompts.
+
+**Reconsider** under the conditions in [the table above](#what-would-make-us-reconsider).
+
+### dsh-superagent-prototype
+
+*Checked in November 2026 at [`8c32a9d`](https://github.com/deepseek-ai/dsh-superagent-prototype/tree/8c32a9dc5d72c033816c6a8110b37f40cf94fba4),
+the repository's only commit, and DeepSeek Harness at `8bd0733`. Full evaluation, with a code link
+per claim: [research](https://github.com/Smana/ai-native-ref/blob/8f8363d73fdf0120429746e05edc588e9733eb18/docs/superpowers/specs/2026-11-04-dsh-superagent-evaluation-research.md).*
+
+**What it is.** DeepSeek's MIT-licensed research prototype of a "super-agent": a long-lived router
+session reads GitHub and Feishu, admits requests through a deterministic gate and a model
+assessment, and runs one worker session per ticket in a local git worktree. It is a plugin bundle
+for DeepSeek Harness (dsh), DeepSeek's TypeScript harness in developer preview. The README calls it
+"not an official DeepSeek product".
+
+**What it does well.**
+- **Subscriptions**: later comments and CI on a ticket's threads reach its worker without a new
+  mention; a person's comment on a merged pull request resumes it, bots never do.
+- **Observe mode**: a proactive rule records what it would have accepted before you let it act.
+- **Mandates**: an accept records the policy version and requester, revalidated before a resume.
+
+**Why not.**
+
+| Our need | dsh-superagent-prototype |
+|---|---|
+| Sandbox, per-run identity, Kubernetes | None: one process as the operator's OS user, one GitHub account, tmux and SQLite |
+| Harness with an HTTP API and MCP | dsh offers stdio modes and a one-shot headless run; the bundle loads no MCP client |
+| Roles, budgets, merge gate | One worker role; no budget; auto-merge is prompt text through a second account's CLI |
+| No SaaS in the data path | dsh uploads session logs to DeepSeek unless you opt out |
+| Maintained | One commit, issues disabled, no release |
+
+**Worth borrowing:** subscriptions for the pull-request continuation loop, observe mode for any
+proactive intake, a mandate on each task, and task stages that name who the task waits for.
+
+**Reconsider** under the conditions in [the table above](#what-would-make-us-reconsider).
+
 ## Would rebuilding on kagent + Substrate be simpler?
 
 It is the strongest challenge to this design, so it is judged on the work still ahead, not on what
@@ -318,6 +429,9 @@ The design keeps the door open:
 - [Agent Factory v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md):
   build-or-adopt per layer, Symphony, agent-sandbox's suspend and warm pools
 - [otari evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-otari-evaluation-research.md)
+- [agentmesh evaluation](https://github.com/Smana/ai-native-ref/blob/8f8363d73fdf0120429746e05edc588e9733eb18/docs/superpowers/specs/2026-11-04-agentmesh-evaluation-research.md)
+- [Model Armor and its open-source equivalents](https://github.com/Smana/ai-native-ref/blob/8f8363d73fdf0120429746e05edc588e9733eb18/docs/superpowers/specs/2026-11-04-model-armor-oss-equivalents-research.md)
+- [dsh-superagent-prototype evaluation](https://github.com/Smana/ai-native-ref/blob/8f8363d73fdf0120429746e05edc588e9733eb18/docs/superpowers/specs/2026-11-04-dsh-superagent-evaluation-research.md)
 - [kagent evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md)
 - [ax and Substrate re-check](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-ecosystem-recheck-research.md#2026-10-04-re-check-ax-and-substrate-claims-against-code)
 - [Runtime research, with the first ax and Substrate evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-research.md)

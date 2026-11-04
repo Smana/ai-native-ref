@@ -1,6 +1,6 @@
 # Host contract
 
-**Contract version 5**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
+**Contract version 6**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
 at the commit in [`HOST_REF`](HOST_REF).
 
 What `cloud-native-ref` guarantees, and `ai-native-ref` may rely on. Copied from the AI platform
@@ -9,6 +9,7 @@ with a version bump of the pin and a note in both.
 
 | Version | Changes |
 |---|---|
+| 6 | H8: RunLore's ingress admits the agent router, which reads its knowledge base at `/mcp` on 8080; RunLore is a session switch on aws-0 |
 | 5 | H5 ZITADEL names the `runlore` machine user and its two keys; H8 names RunLore's factory paths (feature 14) |
 | 4 | H4 gains the `factory-slack` listener of `platform-public` on gcp-0 (routes from `agent-system` only), for the Slack App's Events API (runbook 18) |
 | 3 | H5 ZITADEL names the `factory-slack-app` machine user (client credentials, no project role) and where its client id, secret and project id are |
@@ -102,7 +103,7 @@ ConfigMap `runlore-factory-values` in `runlore` through `valuesFrom` with `optio
 deploys without the AI platform. RunLore's Service `runlore` in `runlore` serves the
 room broker's webhooks on 8080 at `/factory/webhook`; RunLore's egress reaches the factory
 (`agent-system`, `agent-factory`, 8082) and Alertmanager (`observability`, 9093), and its ingress
-admits `agent-system`'s `room-broker`.
+admits `agent-system`'s `room-broker` and `agent-gateway`'s `agent-router`, which reads the knowledge base at `/mcp` on 8080. The rule is L4: any caller the port admits reaches `/mcp`, which is read-only and serves public text. RunLore itself is a session switch on aws-0.
 
 ### What `ai-native-ref` guarantees back
 

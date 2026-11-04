@@ -108,7 +108,7 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # The four MCP targets (mcp.yaml).
+    # The five MCP targets (mcp.yaml).
     - toEndpoints:
         - matchLabels:
             io.kubernetes.pod.namespace: agent-system
@@ -135,6 +135,15 @@ spec:
       toPorts:
         - ports:
             - port: "8090"
+              protocol: TCP
+    # RunLore's knowledge MCP (runlore-kb, RK12): read-only public text, no token (K10).
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: runlore
+            app.kubernetes.io/name: runlore
+      toPorts:
+        - ports:
+            - port: "8080"
               protocol: TCP
     # Spans (policy-frontend.yaml), to the collector's platform port.
     - toEndpoints:

@@ -51,6 +51,13 @@ spec:
           port: 8081
           path: /mcp
           protocol: StreamableHTTP
+      # RunLore's read-only knowledge (RK12), the host's Service (H8); public text, no token (K10).
+      - name: runlore-kb
+        static:
+          host: runlore.runlore.svc.cluster.local
+          port: 8080
+          path: /mcp
+          protocol: StreamableHTTP
       # The broker reads this key at start and 401s any room call without it.
       - name: room-broker
         static:
@@ -182,4 +189,5 @@ spec:
             - '"agent-router.triager.internal" in jwt.aud && mcp.tool.target == "flux-operator-mcp" && mcp.tool.name in ["search_flux_docs", "get_flux_instance", "get_kubernetes_api_versions", "get_kubernetes_resources", "get_kubernetes_metrics", "get_kubernetes_logs"]'
             - '"agent-router.triager.internal" in jwt.aud && mcp.tool.target == "mcp-victoriametrics" && mcp.tool.name in ["documentation", "query", "query_range", "metrics", "metrics_metadata", "labels", "label_values", "series", "alerts", "rules", "explain_query", "prettify_query", "metric_statistics"]'
             - '"agent-router.triager.internal" in jwt.aud && mcp.tool.target == "mcp-victorialogs" && mcp.tool.name in ["documentation", "query", "hits", "facets", "field_names", "field_values", "stats_query", "stats_query_range", "streams", "stream_ids", "stream_field_names", "stream_field_values"]'
+            - '"agent-router.triager.internal" in jwt.aud && mcp.tool.target == "runlore-kb" && mcp.tool.name in ["kb_search", "kb_get"]'
             - '"agent-router.triager.internal" in jwt.aud && mcp.tool.target == "room-broker" && mcp.tool.name in ["room_read", "room_post", "room_progress", "room_handoff"]'

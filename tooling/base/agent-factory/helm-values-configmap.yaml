@@ -51,7 +51,9 @@ data:
             # Feature 14's seeded fix (runbook 20): an alerting rule RunLore found broken. No switch: a
             # maintainer merges, the monitor watches. RunLore's verdict is a signal for 2h after the merge;
             # a persisting one is a regression, which with the breaker's maxFollowUps: 1 pauses the class.
+            # Shadow since RK15: decisions recorded, a maintainer merges.
             alert-rules:
+              shadow: true
               allowedFiles: ['^observability/.+\.ya?ml$']
               monitor: {verification: {within: 2h}, followUpWindow: 2h}
             # Shadow (merge gate classes MC14, runbook 15 §2): intake and decisions, nothing armed.

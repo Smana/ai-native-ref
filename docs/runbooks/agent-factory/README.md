@@ -6,7 +6,7 @@ every step names its expected output. A **room** is the per-task workspace the r
 
 ## State
 
-The factory is live on aws-0 since 2026-10-30, on Maku v0.32.3 (broker, factory, harness and bridge; the source now pins the broker and factory at v0.33.0, the harness and bridge stay v0.32.3;
+The factory is live on aws-0 since 2026-10-30, on Maku v0.32.3 (broker, factory, harness and bridge; the source now pins the broker and factory at v0.33.1, the harness and bridge stay v0.32.3;
 crossplane-configuration v0.9.31; CRD group `maku.ogenki.io`). gcp-0 was torn down on 2026-10-29; its
 session, [runbook 14](14-gcp-0-session.md), is historical. The merge gate's human path was proven on aws-0
 on 2026-10-30 and 31: [results](results-aws-0-2026-10-30.md). A fresh bootstrap starts with

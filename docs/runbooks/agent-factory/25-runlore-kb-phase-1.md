@@ -292,11 +292,59 @@ spend alert, and the provider's monthly limit at 1.5 × `D` × the session days 
 every repeat investigates (see the top of this page), `D` includes them. Record the results in the status
 record.
 
-## 10. Follow-up: TLS on the broker-to-factory hop
+## 10. TLS on the broker-to-factory hop
 
-The broker's `factoryURL` is `http://` with `factoryInsecure: true` in each cloud's config, which Maku v0.33.0
-requires to be stated because the broker forwards each human's token on that hop. The follow-up is its own pull
-request: set the factory chart's `api.tls.secretName` and an issuer, switch `factoryURL` to `https://`, trust
-the issuing CA through `factoryCAFile` if it is private, and drop `factoryInsecure`. Prove it in an aws-0
-session by creating a room task from the room page (the hand-to-role path) and reading the broker's log for a
-successful call to the factory.
+Maku v0.33.0 refuses an `http://` `factoryURL` unless `factoryInsecure: true` says so, because the broker forwards
+each human's token on that hop. The first change kept plaintext with `factoryInsecure: true`; this one, a draft
+that stays unmerged until the check below passes in an aws-0 session, turns TLS on:
+
+| Piece | Setting |
+|---|---|
+| Factory | The chart's `api.tls.secretName: agent-factory-api-tls` and `issuerRef` `ClusterIssuer/openbao` (the issuer the broker's `room-broker-tls` already uses), in `tooling/base/agent-factory/helm-values-configmap.yaml`. The chart renders the Certificate for `agent-factory.agent-system.svc[.cluster.local]`, and Service port 8082 is then named `https` |
+| Broker | `factoryURL: https://agent-factory.agent-system.svc:8082`, `factoryCAFile: /etc/room-broker/factory-ca/ca.crt`, no `factoryInsecure`, in all three configs; `app.yaml` mounts agent-secrets' `openbao-ca` at `/etc/room-broker/factory-ca` |
+| Network policies | None change: the port is still 8082, and the policies are L4 |
+| Probes, scrape, meter | None change: they use the factory's `ops` port (9090) and VictoriaMetrics, not 8082 |
+
+The host contract names the platform PKI issuers (H2 `security`) and the PKI role for the broker's names (H5), not the
+`openbao` issuer by name nor the factory's names. This relies on the same issuer and the same `agent-system.svc`
+domains the broker's certificate already needs; a host PR should name them in the contract.
+
+Two callers of port 8082 do **not** move in this change, and the session has to settle them before the draft merges:
+
+- **RunLore** posts `POST /v1/tasks` and the verification route over `http://`. A plain request to a TLS factory
+  gets 400, so with the factory on TLS RunLore's factory client fails. Its v0.19.1 client trusts the system roots only,
+  and the CA Secret would have to live in `runlore`, a host namespace. It needs a RunLore change (a CA setting) and a
+  host PR for the Secret first; until then do not run RunLore in the same session as this change.
+- **The tailnet route** `factory.${private_domain_name}` (the CLI's `POST /v1/runs`) reaches 8082 through a Cilium
+  gateway that speaks plain HTTP to its backend: expect a 5xx from it. The factory's certificate does not carry that
+  name either. It stays open.
+
+The two flip in different Flux Kustomizations (`tooling`, `infrastructure`), so for a few minutes either side can
+be first: a run request fails (nothing is created, a retry reuses its key) until both have rolled.
+
+gcp-0 has a ClusterIssuer of the same name (`openbao`) and the same extra PKI domains, and its `openbao-ca` is
+patched in `security/gcp-0/agent-secrets`, so the same files apply there. It is torn down: nothing here is proved
+on it, and its RunLore and Slack App paths have the same gaps.
+
+**The session's proof** (aws-0, after both Kustomizations are Ready):
+
+```bash
+CA=$(mktemp)
+kubectl -n agent-system get certificate agent-factory-api-tls            # READY True
+kubectl -n agent-system get svc agent-factory -o jsonpath='{.spec.ports[?(@.port==8082)].name}'   # https
+kubectl -n agent-system get secret openbao-ca -o jsonpath='{.data.ca\.crt}' | base64 -d > "$CA"
+kubectl -n agent-system port-forward svc/agent-factory 8082:8082 &
+curl -s -o /dev/null -w '%{http_code}\n' --cacert "$CA" \
+  --resolve agent-factory.agent-system.svc:8082:127.0.0.1 -X POST https://agent-factory.agent-system.svc:8082/v1/runs   # 401: TLS verified, token refused
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://localhost:8082/v1/runs                                         # 400: plaintext refused
+```
+
+Then create a room task from the room page (the hand-to-role path) and read the broker's log:
+
+```bash
+kubectl -n agent-system logs deploy/room-broker --since=5m | grep -i -E 'factory|x509|certificate'
+```
+
+Pass: the room shows the run started, and the log has no `x509`, `certificate`, `400` or `refused` error for the
+factory call. If the call fails, the broker's pods have not rolled onto the new config
+(`kubectl -n agent-system rollout restart deployment/room-broker`: it reads its config once).

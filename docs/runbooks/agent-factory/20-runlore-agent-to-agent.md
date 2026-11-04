@@ -24,7 +24,7 @@ switch: on for a live session, off after. See [README.md](README.md) for `CLOUD`
 
 ```bash
 kubectl -n runlore exec runlore-0 -- wget -qO- -T5 --post-data '{}' \
-  http://agent-factory.agent-system.svc.cluster.local:8082/v1/tasks
+  http://agent-factory.agent-system.svc.cluster.local:8082/v1/tasks   # 400 once the listener is TLS: see runbook 25 §10
 kubectl -n runlore exec runlore-0 -- wget -qO- -T5 \
   http://vmalertmanager-victoria-metrics-k8s-stack.observability.svc:9093/api/v2/status
 hubble observe --from-pod runlore/runlore-0 --verdict DROPPED

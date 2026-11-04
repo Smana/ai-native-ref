@@ -24,6 +24,14 @@ data:
     # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
     githubSecret: agent-factory-github
     brokerCASecret: openbao-ca
+    # The run-request API serves TLS 1.3 (Maku v0.33.0, audit S-1): the broker forwards each human's token on
+    # it. The chart renders Certificate agent-factory-api-tls from the platform issuer, the same ClusterIssuer
+    # as the broker's room-broker-tls (infrastructure/base/room-broker/tls.yaml), and the Service port 8082
+    # becomes `https`. The names are agent-factory.agent-system.svc[.cluster.local]: a tailnet name is not on it.
+    api:
+      tls:
+        secretName: agent-factory-api-tls  # pragma: allowlist secret
+        issuerRef: {kind: ClusterIssuer, name: openbao}
     zitadelReaderSecret: agent-factory-zitadel-reader  # externalsecret-zitadel-reader.yaml, at api.access.readerFile
     config:
       # The ownership fence (agent-platform v0.14.0): a repository is acted on only while its
@@ -251,7 +259,7 @@ data:
       # The run-request API (FR-5): tailnet only via the HTTPRoute, tokens checked
       # offline against ZITADEL's JWKS; the client ids ride the chart's oidcSecret mount.
       api:
-        # Plaintext inside the mesh; 8443 is the broker's TLS listener (agent-platform#111).
+        # The listener is TLS when the chart's api.tls is set (above); 8443 is the broker's TLS listener (agent-platform#111).
         listen: ":8082"
         humanIssuer: ${identity_provider_url}
         humanJWKS: ${identity_provider_url}/oauth/v2/keys

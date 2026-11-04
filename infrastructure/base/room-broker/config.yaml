@@ -20,10 +20,11 @@ systemPrincipals:
   system:serviceaccount:agent-system:agent-factory: system:factory
 # SP3 phase 5: runs for hand to role, fork and add agent come from the factory, with the
 # human's own token; the broker no longer renders a claim for the owner (C3).
-factoryURL: http://agent-factory.agent-system.svc.cluster.local:8082
-# The hop stays plain HTTP, as it was. Maku v0.33.0 requires that to be stated (it forwards each human's token
-# here); TLS follows in its own change.
-factoryInsecure: true
+factoryURL: https://agent-factory.agent-system.svc:8082
+# The hop is TLS (Maku v0.33.0, audit S-1): the broker forwards each human's token here. The name is one the
+# factory's certificate carries (api.tls in tooling/base/agent-factory/helm-values-configmap.yaml), and the CA is
+# agent-secrets' openbao-ca, mounted by app.yaml and read on every run request.
+factoryCAFile: /etc/room-broker/factory-ca/ca.crt
 # Humans, through oauth2-proxy (phase 2). Required by the broker. The ids are
 # files, never literals: gcp-0 mints a fresh ZITADEL every build (ruling AS-a).
 human:

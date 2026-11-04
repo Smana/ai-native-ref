@@ -23,6 +23,10 @@ data:
       # RunLore hands each finding to the factory as its internal principal (feature 14): the factory
       # holds every gate (0.75, five a day), RunLore sends them all.
       factory:
+        # Plain HTTP, on purpose for now: the factory's run-request API serves TLS once tooling/base/agent-factory sets
+        # api.tls (Maku v0.33.0, S-1), and a plain request then gets 400. RunLore's v0.19.1 client has no CA setting
+        # (system roots only), and the CA Secret would have to live in `runlore`, a host namespace: this stays open until
+        # RunLore trusts the platform CA (runbook 25 section 10).
         url: http://agent-factory.agent-system.svc.cluster.local:8082
         token_url: ${identity_provider_url}/oauth/v2/token
         client_id_env: FACTORY_CLIENT_ID

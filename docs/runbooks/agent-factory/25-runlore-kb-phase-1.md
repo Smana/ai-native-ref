@@ -87,8 +87,10 @@ The subscriber must not exist while RunLore is off: three failed deliveries disa
 
 1. A pull request here makes `aws-0`'s four edits (K9): uncomment the `runlore` entry in
    `infrastructure/aws-0/room-broker/config.yaml`; list `externalsecret-webhook-runlore.yaml` under `resources`;
-   run `python3 scripts/ci/gen-webhook-egress.py --write`; list `- path: network-policy-webhooks-patch.yaml`
-   under `patches:`. The owner cuts the release.
+   run `python3 scripts/ci/gen-webhook-egress.py --write`; add a `patches:` block listing
+   `- path: network-policy-webhooks-patch.yaml` (the off state has no `patches:` key). Refresh the
+   "none declared (D4)" header comment above the `webhooks` list in the same file: with the entry on, a
+   webhook is declared. The owner cuts the release.
 2. One host pull request carries the three places (the `# - ../base/runlore` line in
    `observability/aws-0/kustomization.yaml`, the Alertmanager route, and the `runlore.yaml` and
    `runlore-spend.yaml` rule files) and the new ai-native-ref tag and digest. No Flux dependency orders the two

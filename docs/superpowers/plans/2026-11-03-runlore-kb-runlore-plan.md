@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Target repository:** `Smana/runlore`, read at `origin/main` `b730f1c`. Every path below is in that repository unless it says otherwise.
-This file lives in ai-native-ref (RK21); Task 14 copies it to `dev/superpowers/plans/` in RunLore.
+This file lives in ai-native-ref (RK21), and only here: a copy goes stale, so RunLore's PR body links it.
 
 **Goal:** an incident the factory takes becomes one complete KB entry, drafted after its fix is
 verified (soak `resolved` and monitor `healthy`) and labelled `ready-to-merge` from that evidence;
@@ -901,7 +901,7 @@ The callers: `Queue.Run` with `Refresh` set rebuilds first, then labels a rebuil
 ### Task 14: Amended policy in the docs, the release
 
 **Files:** Modify `website/content/docs/concepts/{learning-loop.md:17-18,reviewing-knowledge.md}` (a "The knowledge queue" section), `configuration/configuration.md` (`curate.queue_issue`),
-`plugins/kb-steward/skills/kb-steward/references/okf-format.md` (`origin`, `resolution` as extension fields). Create `dev/superpowers/plans/2026-11-03-runlore-kb-runlore-plan.md` (this file).
+`plugins/kb-steward/skills/kb-steward/references/okf-format.md` (`origin`, `resolution` as extension fields).
 
 - [ ] **Step 1:** `learning-loop.md` reads "RunLore drafts. A human owns the merge
   policy; an entry whose fix a machine verified may be merged by the adopter's automation, and the rest wait in the queue." The D1 row and §8 went in with Task 5.
@@ -910,12 +910,12 @@ The callers: `Queue.Run` with `Refresh` set rebuilds first, then labels a rebuil
 - [ ] **Step 3: Commit, push, PR, release**
 
 ```bash
-git add dev website plugins && git commit -m "docs: the knowledge queue, factory.curation and the entry's resolution"
+git add website plugins && git commit -m "docs: the knowledge queue, factory.curation and the entry's resolution"
 git fetch origin && git rebase origin/main && git push -u origin feat/kb-queue
 ```
 
 PR title: `feat(curate): ready-to-merge from verified evidence, rebuilt entry PRs and the Knowledge queue` (KP13, KP14, KP17 to KP20, offline proof 6, Review Focus 7 and 9).
-Once merged, merge release-please's PR: `0.19.0`, image `ghcr.io/smana/runlore:0.19.0`, which cloud-native-ref's PR 3 pins.
+Once merged, release-please's PR stays the owner's decision: `0.19.0`, image `ghcr.io/smana/runlore:0.19.0`, which cloud-native-ref's PR 3 pins.
 
 ## Gate
 

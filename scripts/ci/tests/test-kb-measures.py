@@ -37,6 +37,16 @@ check("kb counts", (m["kb_opened"], m["kb_merged"], m["kb_open_end"]) == (3, 1, 
 check("a follow-up and a foreign stub are not incidents", m["incidents"] == 2)
 check("closed unmerged is its own count", m["kb_closed"] == 0)
 check("the oldest open PR's age is in days", m["oldest_open_days"] is not None and m["oldest_open_days"] >= 0)
+# The queue is read at the end of the window whenever its PRs were opened: a backlog PR from before the window
+# is open at the end, and one merged after the end still is.
+from datetime import datetime, timezone
+utc = lambda d: datetime.strptime(d, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+backlog = [{"number": 9, "created_at": "2026-08-01T00:00:00Z", "closed_at": None, "merged_at": None, "merged_by": None},
+           {"number": 8, "created_at": "2026-08-01T00:00:00Z", "closed_at": "2026-11-20T00:00:00Z", "merged_at": "2026-11-20T00:00:00Z"}]
+w = kb.measures(load("stubs"), load("events"), load("kb-prs") + backlog, since=utc("2026-10-20"), until=utc("2026-11-01"))
+check("the window counts only its own opened PRs", w["kb_opened"] == 3 and w["kb_merged"] == 1)
+check("the queue counts the backlog open at the end, whenever it was opened", w["kb_open_end"] == 4)
+check("the oldest open is the backlog's", w["oldest_open_days"] > 90)
 table = kb.render(m)
 check("one Markdown table", table.count("\n| ") >= 7 and table.startswith("| "))
 check("--fixtures reads a directory", kb.main(["--since", "2026-11-01", "--fixtures", str(FIX)]) == 0)

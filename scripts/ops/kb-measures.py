@@ -47,8 +47,12 @@ def parse(ts):
     return datetime.fromisoformat(ts.replace("Z", "+00:00")) if ts else None
 
 
-def measures(stubs, events, kb_prs, now=None):
+def measures(stubs, events, kb_prs, now=None, since=None, until=None):
+    """With since and until, the KB counts are the window's (opened, merged and closed inside it) and the queue
+    is every PR open at `until` whenever it was opened: a session that leaves the backlog open must read it.
+    Without them every PR given counts."""
     now = now or datetime.now(timezone.utc)
+    inside = (lambda ts: bool(ts) and since <= parse(ts) < until) if since and until else (lambda ts: bool(ts))
     by_incident = {}
     for s in stubs:
         if is_incident(s):
@@ -56,15 +60,18 @@ def measures(stubs, events, kb_prs, now=None):
             by_incident[f"#{n}"] = sum(1 for e in events.get(str(n), [])
                                        if e.get("event") in TOUCH_EVENTS and not is_bot(e.get("actor")))
     counts = sorted(by_incident.values())
-    merged = [p for p in kb_prs if p.get("merged_at")]
-    closed = [p for p in kb_prs if p.get("closed_at") and not p.get("merged_at")]
-    open_ = [p for p in kb_prs if not p.get("closed_at") and not p.get("merged_at")]
-    oldest = max(((now - parse(p["created_at"])).total_seconds() / 86400 for p in open_), default=None)
+    end = until or now
+    opened = [p for p in kb_prs if inside(p.get("created_at"))]
+    merged = [p for p in kb_prs if inside(p.get("merged_at"))]
+    closed = [p for p in kb_prs if inside(p.get("closed_at")) and not p.get("merged_at")]
+    open_ = [p for p in kb_prs if parse(p["created_at"]) < end and not (p.get("closed_at") and parse(p["closed_at"]) < end)
+             and not (p.get("merged_at") and parse(p["merged_at"]) < end)]
+    oldest = max(((end - parse(p["created_at"])).total_seconds() / 86400 for p in open_), default=None)
     return {
         "incidents": len(by_incident),
         "touches_by_incident": by_incident,
         "touches": {"median": statistics.median(counts), "max": counts[-1]} if counts else {"median": None, "max": None},
-        "kb_opened": len(kb_prs), "kb_merged": len(merged), "kb_closed": len(closed), "kb_open_end": len(open_),
+        "kb_opened": len(opened), "kb_merged": len(merged), "kb_closed": len(closed), "kb_open_end": len(open_),
         "oldest_open_days": None if oldest is None else round(oldest, 1),
     }
 
@@ -74,7 +81,7 @@ def render(m):
             ("Human touches per incident, median", m["touches"]["median"]),
             ("Human touches per incident, max", m["touches"]["max"]),
             ("KB PRs opened", m["kb_opened"]), ("KB PRs merged", m["kb_merged"]),
-            ("KB PRs closed unmerged", m["kb_closed"]), ("KB PRs open at the end", m["kb_open_end"]),
+            ("KB PRs closed unmerged", m["kb_closed"]), ("KB PRs open at the end (any age)", m["kb_open_end"]),
             ("Oldest open KB PR (days)", m["oldest_open_days"])]
     out = ["| Measure | Value |", "|---|---|"]
     return "\n".join(out + [f"| {k} | {'-' if v is None else v} |" for k, v in rows])
@@ -121,14 +128,15 @@ def from_github(since, until):
                      for e in gh(f"repos/{HOST_REPO}/issues/{fix}/events?per_page=100") if e["event"] in TOUCH_EVENTS]
             for t in gh(f"repos/{HOST_REPO}/issues/{fix}/timeline?per_page=100"):
                 src = ((t.get("source") or {}).get("issue") or {})
-                if t.get("event") == "cross-referenced" and src.get("pull_request"):
+                if t.get("event") == "cross-referenced" and src.get("pull_request") \
+                        and (src.get("repository") or {}).get("full_name") == HOST_REPO:
                     pr = gh(f"repos/{HOST_REPO}/pulls/{src['number']}")[0]
                     if pr.get("merged_by"):
                         recs.append({"event": "merged", "label": None, "actor": pr["merged_by"]})
         events[str(n)] = recs
     prs = [{"number": p["number"], "created_at": p["created_at"], "closed_at": p["closed_at"], "merged_at": p["merged_at"]}
            for p in gh(f"repos/{KB_REPO}/pulls?state=all&per_page=100")
-           if in_window(p["created_at"], since, until) and any(l["name"] == "runlore" for l in p["labels"])]
+           if any(l["name"] == "runlore" for l in p["labels"])]  # every PR: the queue is read at the end, not by creation
     return stubs, events, prs
 
 
@@ -147,7 +155,7 @@ def main(argv=None):
         stubs, events, prs = (json.loads((d / f"{n}.json").read_text()) for n in ("stubs", "events", "kb-prs"))
     else:
         stubs, events, prs = from_github(since, until)
-    print(render(measures(stubs, events, prs)))
+    print(render(measures(stubs, events, prs, since=since, until=until)))
     return 0
 
 

@@ -1,0 +1,74 @@
+{
+  "1": [
+    {
+      "event": "labeled",
+      "label": "factory/proposed",
+      "actor": {
+        "login": "ogenki-agent-factory[bot]",
+        "type": "Bot"
+      }
+    },
+    {
+      "event": "labeled",
+      "label": "factory/publish",
+      "actor": {
+        "login": "Smana",
+        "type": "User"
+      }
+    },
+    {
+      "event": "merged",
+      "label": null,
+      "actor": {
+        "login": "Smana",
+        "type": "User"
+      }
+    }
+  ],
+  "2": [
+    {
+      "event": "labeled",
+      "label": "factory/proposed",
+      "actor": {
+        "login": "ogenki-agent-factory[bot]",
+        "type": "Bot"
+      }
+    },
+    {
+      "event": "labeled",
+      "label": "factory/publish",
+      "actor": {
+        "login": "Smana",
+        "type": "User"
+      }
+    },
+    {
+      "event": "merged",
+      "label": null,
+      "actor": {
+        "login": "merger-app[bot]",
+        "type": "Bot"
+      }
+    }
+  ],
+  "3": [
+    {
+      "event": "labeled",
+      "label": "factory/publish",
+      "actor": {
+        "login": "Smana",
+        "type": "User"
+      }
+    }
+  ],
+  "4": [
+    {
+      "event": "labeled",
+      "label": "factory/publish",
+      "actor": {
+        "login": "Smana",
+        "type": "User"
+      }
+    }
+  ]
+}

@@ -53,6 +53,23 @@ if "runlore" in fvalues["config"]:
 alert = fvalues["config"]["repositories"][0]["classes"].get("alert-rules") or {}
 if (alert.get("monitor") or {}).get("verification") != {"within": "2h"}:
     problems.append("the seeded fix's class watches RunLore's verdict for 2h")
+classes = next(r for r in fvalues["config"]["repositories"] if r["name"] == "Smana/cloud-native-ref")["classes"]
+
+
+def hours(d):
+    """'7d', '2h' or '30m' in hours."""
+    n, unit = int(d[:-1]), d[-1]
+    return n * {"d": 24, "h": 1, "m": 1 / 60}[unit]
+
+
+cur = (values.get("config", {}).get("factory") or {}).get("curation")
+if cur != {"defer": True, "window": "7d"}:
+    problems.append(f"RK5: factory.curation is {{defer: true, window: 7d}}, got {cur!r}")
+fu = classes["alert-rules"]["monitor"]["followUpWindow"]
+if not hours("7d") > hours(fu):
+    problems.append("the curation window covers alert-rules' follow-up")
+if not (classes["alert-rules"].get("shadow") is True and "live" not in classes["alert-rules"]):
+    problems.append("RK15: alert-rules is shadow, nothing armed")
 cnp = yaml.safe_load((ROOT / "tooling/base/agent-factory/network-policy.yaml").read_text())
 rl = [r for r in cnp["spec"]["ingress"] if any((e.get("matchLabels") or {}).get("io.kubernetes.pod.namespace") == "runlore"
                                                for e in r.get("fromEndpoints", []))]

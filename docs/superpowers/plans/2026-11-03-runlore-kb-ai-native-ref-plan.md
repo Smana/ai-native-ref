@@ -450,8 +450,9 @@ git commit -m "feat(ops): kb-measures, human touches per incident and the knowle
      nothing (live 2). The `runlore` route sets the repeat to 1h, so the second generation starts up to 1h after
      the first one's verdict, and its own verdict waits another soak.
   5. **Live 4, the replay (RK17).** `kubectl -n runlore exec runlore-0 -- lore kb resolve --config /etc/runlore/runlore.yaml …`
-     on #157 to #163 with CNR #2638 and #2659. It exercises the entry path only: it writes no outcome event, so
-     #157 to #163 stay `unverified` under Decide and RK17's test of the outcome join is not exercised (K13). Then
+     on the three entries that have a fix, #159 with CNR #2638 and #162 and #163 with #2659 (the other four, #157, #158,
+     #160 and #161, have no fix pull request and stay queued; runbook 25 has the flags). It exercises the entry path only: it writes no outcome event, so
+     those entries stay `unverified` under Decide and RK17's test of the outcome join is not exercised (K13). Then
      `kubectl -n runlore exec runlore-0 -- lore curate queue-issue --config /etc/runlore/runlore.yaml` writes the first
      queue issue listing the backlog (the schedule is empty, so nothing else does); record live 4. CNR PR 3b (`stale_after: 720h`)
      merges after the session's switch-off, not during it: a restart at `720h` would make its first sweep a full

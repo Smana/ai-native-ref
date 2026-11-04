@@ -5,11 +5,19 @@ kind: Kustomization
 # (GCP parity GP-14). The Flux child for aws-0 points here.
 resources:
   - ../../base/room-broker
+  # RunLore's session switch (RK15), off: list externalsecret-webhook-runlore.yaml here, so nothing syncs a key
+  # nobody seeded (runbook 25).
+  # - externalsecret-webhook-runlore.yaml
 
-# This config.yaml is base's plus human.mcp.sessionStart, a session switch (runbook 19).
+# This config.yaml is base's plus two session switches: human.mcp.sessionStart (runbook 19) and RunLore's webhook subscriber (RK15, commented while off).
 configMapGenerator:
   - name: room-broker-config
     namespace: agent-system
     behavior: replace
     files:
       - config.yaml
+
+# RunLore's session switch (RK15), off: after scripts/ci/gen-webhook-egress.py --write, add
+#   patches:
+#     - path: network-policy-webhooks-patch.yaml
+# (runbook 25). The generator fails on a patch file the config no longer needs, so off has none.

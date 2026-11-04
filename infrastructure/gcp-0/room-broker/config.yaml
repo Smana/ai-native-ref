@@ -25,6 +25,9 @@ systemPrincipals:
 # SP3 phase 5: runs for hand to role, fork and add agent come from the factory, with the
 # human's own token; the broker no longer renders a claim for the owner (C3).
 factoryURL: http://agent-factory.agent-system.svc.cluster.local:8082
+# The hop stays plain HTTP, as it was. Maku v0.33.0 requires that to be stated (it forwards each human's token
+# here); TLS follows in its own change.
+factoryInsecure: true
 # Humans, through oauth2-proxy (phase 2). Required by the broker. The ids are
 # files, never literals: gcp-0 mints a fresh ZITADEL every build (ruling AS-a).
 human:
@@ -92,6 +95,7 @@ webhooks:
     network: cluster
     url: http://runlore.runlore.svc.cluster.local:8080/factory/webhook
     events: [room.task_received, room.task_triaged, room.run_started, room.run_ended, room.waiting_for_human,
-             room.pr_opened, room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended]
+             room.pr_opened, room.verdict_posted, room.merged, room.reverted, room.monitor_verdict,
+             room.budget_reached, room.ended]
     secretFile: /etc/room-broker/webhooks/runlore/signing-key
     repositories: [Smana/cloud-native-ref]

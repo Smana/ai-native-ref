@@ -21,6 +21,9 @@ systemPrincipals:
 # SP3 phase 5: runs for hand to role, fork and add agent come from the factory, with the
 # human's own token; the broker no longer renders a claim for the owner (C3).
 factoryURL: http://agent-factory.agent-system.svc.cluster.local:8082
+# The hop stays plain HTTP, as it was. Maku v0.33.0 requires that to be stated (it forwards each human's token
+# here); TLS follows in its own change.
+factoryInsecure: true
 # Humans, through oauth2-proxy (phase 2). Required by the broker. The ids are
 # files, never literals: gcp-0 mints a fresh ZITADEL every build (ruling AS-a).
 human:

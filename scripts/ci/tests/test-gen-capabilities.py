@@ -166,6 +166,15 @@ with tree() as t:
     code, out = run(t)
     check("targets render in the backend's order, not the profile's", code == 0, out)
 
+print("the knowledge base (RK12)")
+exprs = [e for p_ in (GW / "mcp.yaml").read_text().split("\n---\n") if "AgentgatewayPolicy" in p_
+         for e in yaml.safe_load(p_)["spec"]["backend"]["mcp"]["authorization"]["policy"]["matchExpressions"]]
+kb = [e for e in exprs if '"runlore-kb"' in e]
+check("the internal triager reaches runlore-kb's two tools",
+      any("kb_search" in e and "kb_get" in e and "agent-router.triager.internal" in e for e in kb))
+check("no other audience names runlore-kb", all("agent-router.triager.internal" in e for e in kb))
+check("no public listener names runlore-kb", not any(".public" in e for e in kb))
+
 print("model rules (P2)")
 P = gen.Profile
 pair = [P("x", "reviewer", "internal", ["tier-frontier"], {}), P("x", "implementer", "internal", ["agent-default", "tier-light"], {}),
@@ -270,7 +279,7 @@ with tree() as t:
     check("the result is in sync", run(t)[0] == 0)
     policies = [d for d in yaml.safe_load_all(mcp(t).read_text()) if d and d["kind"] == "AgentgatewayPolicy"]
     exprs = [e for p in policies for e in p["spec"]["backend"]["mcp"]["authorization"]["policy"]["matchExpressions"]]
-    check("the written YAML parses back to the expressions", expr in exprs and len(exprs) == 32, str(len(exprs)))
+    check("the written YAML parses back to the expressions", expr in exprs and len(exprs) == 33, str(len(exprs)))
 
 print("lists the generator does not fully own")
 STRAY = "items the generator does not own (a comment or a multi-line item inside the list?)"

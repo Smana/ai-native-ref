@@ -8,7 +8,9 @@ half-on cluster (a grant with no trigger, or suspendable runs nobody suspends) f
 The grant, patch on agentruns, lives only in room-broker/suspend; the broker's own RBAC
 never patches or updates a run; base's config never enables suspend, and gcp-0's copy of it
 differs in suspend, webhooks, human.mcp and human.slackLink alone, and aws-0's copy, during a
-session, in human.mcp.sessionStart alone; and the Kyverno limit that fences the grant is always there, for
+session, in human.mcp.sessionStart and a webhooks list that is RunLore's alone (RK15; the same rule as
+runlore_only in test-factory-interfaces-off.py, repeated below: that suite is a hyphenated script that
+runs at import, so it cannot be imported); and the Kyverno limit that fences the grant is always there, for
 the broker alone, naming exactly the three suspend annotations."""
 import pathlib
 import subprocess
@@ -105,16 +107,22 @@ checks["gcp-0's broker config is base's but for suspend, webhooks, human.mcp and
 checks["gcp-0's human.mcp stays enabled"] = (gcp["human"]["mcp"].get("enabled") is True)
 
 aws_copy = ROOT / "infrastructure/aws-0/room-broker/config.yaml"
-if aws_copy.is_file():  # a session switch (runbook 19): base's config plus human.mcp.sessionStart
+if aws_copy.is_file():  # session switches (runbooks 19 and 25): base's config plus human.mcp.sessionStart, RunLore's webhooks
     aws = yaml.safe_load(aws_copy.read_text())
 
-    def minus_session_start(cfg):
-        out = {**cfg, "human": {**cfg["human"], "mcp": dict(cfg["human"]["mcp"])}}
+    def runlore_only(cfg):
+        # the same rule as `runlore_only` in test-factory-interfaces-off.py (K1)
+        hooks = cfg.get("webhooks")
+        return isinstance(hooks, list) and bool(hooks) and all(isinstance(h, dict) and h.get("name") == "runlore" for h in hooks)
+
+    def minus_session_switches(cfg):
+        out = {k: v for k, v in cfg.items() if k != "webhooks" or not runlore_only(cfg)}
+        out["human"] = {**cfg["human"], "mcp": dict(cfg["human"]["mcp"])}
         out["human"]["mcp"].pop("sessionStart", None)
         return out
 
-    checks["aws-0's broker config is base's but for human.mcp.sessionStart"] = (
-        minus_session_start(aws) == minus_session_start(config))
+    checks["aws-0's broker config is base's but for human.mcp.sessionStart and RunLore's webhooks"] = (
+        minus_session_switches(aws) == minus_session_switches(config))
 
 limit = [d for d in docs("security/base/agent-policies/validatingpolicies.yaml")
          if d["metadata"]["name"] == "agentrun-broker-patch-limit"]

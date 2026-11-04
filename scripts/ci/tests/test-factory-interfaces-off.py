@@ -10,6 +10,12 @@ cluster may apply the Slack App, and gcp-0's broker config and factory values ma
 (test-factory-slack-switchon.py holds that switch-on to its shape). human.mcp.sessionStart alone may
 also be listed in aws-0's copy, for a live session there (runbook 19); test-room-broker-suspend.py
 holds that copy to base's but for that key.
+
+RunLore's session switch is the second exception on aws-0 (RK15, the knowledge-base plan's K1), the
+precedent being runbook 19's: two keys, never a second switched-on cloud. aws-0's broker config may
+declare webhooks when every entry is named runlore, and aws-0's factory values may declare
+api.internalPrincipals (the runlore principal, inert while RunLore is off) and nothing else under api
+(no api.sponsored). Every other cloud and every other entry stays refused.
 """
 import pathlib
 import sys
@@ -22,10 +28,19 @@ except ImportError:
     sys.exit(77)
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
+if "--root" in sys.argv:  # a scratch tree, for the cases that prove the refusals
+    ROOT = pathlib.Path(sys.argv[sys.argv.index("--root") + 1]).resolve()
 SLACK_DIRS = ("tooling/base/agent-factory/slack-app", "tooling/gcp-0/agent-factory/slack-app")
 SWITCHED_ON = "gcp-0"  # the one cloud whose copies may declare the switches (runbook 18)
 SESSION_START = {"gcp-0", "aws-0"}  # the clouds whose broker copy may list human.mcp.sessionStart (runbook 19)
+RUNLORE_ON = {"gcp-0", "aws-0"}  # the clouds whose copies may declare RunLore's subscriber and principal (RK15)
 problems = []
+
+
+def runlore_only(doc):
+    """True when a broker config's webhooks is a non-empty list whose every entry is named runlore."""
+    hooks = doc.get("webhooks")
+    return isinstance(hooks, list) and bool(hooks) and all(isinstance(h, dict) and h.get("name") == "runlore" for h in hooks)
 
 
 def load(rel):
@@ -59,29 +74,31 @@ for cfg in sorted(ROOT.glob("infrastructure/*/room-broker/config.yaml")):
             problems.append(f"{rel} lists human.mcp.sessionStart (D4: a session's copy only, runbook 19)")
         if rel.parts[1] == SWITCHED_ON:
             continue
-        if "webhooks" in doc:
+        if "webhooks" in doc and not (rel.parts[1] in RUNLORE_ON and runlore_only(doc)):
             problems.append(f"{rel} declares webhooks (D4)")
         if "sponsored" in ((doc.get("human") or {}).get("mcp") or {}):
             problems.append(f"{rel} declares human.mcp.sponsored (D4)")
 
 
-def sponsored_in(node, parent=None):
+def sponsored_in(node, parent=None, internal_ok=False):
     """True when an `api` mapping holds `sponsored` or `internalPrincipals`, or a JSON patch path names either, at any depth,
-    through ConfigMap data and kustomize patch strings (themselves YAML) alike."""
+    through ConfigMap data and kustomize patch strings (themselves YAML) alike. With internal_ok (aws-0's copies,
+    RK15) `internalPrincipals` alone is allowed."""
+    banned = ("sponsored",) if internal_ok else ("sponsored", "internalPrincipals")
     if isinstance(node, str):
-        if "api/sponsored" in node or "api/internalPrincipals" in node:
+        if any(f"api/{k}" in node for k in banned):
             return True
         try:
             inner = yaml.safe_load(node)
         except yaml.YAMLError:
             return False
-        return isinstance(inner, (dict, list)) and sponsored_in(inner, parent)
+        return isinstance(inner, (dict, list)) and sponsored_in(inner, parent, internal_ok)
     if isinstance(node, dict):
-        if parent == "api" and ("sponsored" in node or "internalPrincipals" in node):
+        if parent == "api" and any(k in node for k in banned):
             return True
-        return any(sponsored_in(v, k) for k, v in node.items())
+        return any(sponsored_in(v, k, internal_ok) for k, v in node.items())
     if isinstance(node, list):
-        return any(sponsored_in(v, parent) for v in node)
+        return any(sponsored_in(v, parent, internal_ok) for v in node)
     return False
 
 
@@ -93,7 +110,7 @@ for path in sorted(ROOT.glob("tooling/*/agent-factory/**/*.yaml")):
         continue
     if rel.as_posix() == f"tooling/{SWITCHED_ON}/agent-factory/helm-values-sponsored.yaml":
         continue
-    if sponsored_in(load(str(rel))):
+    if sponsored_in(load(str(rel)), internal_ok=rel.parts[1] == "aws-0"):
         problems.append(f"{rel} declares api.sponsored or api.internalPrincipals (D4)")
 
 # The App appends /mcp itself: a brokerURL with a path would call /mcp/mcp.

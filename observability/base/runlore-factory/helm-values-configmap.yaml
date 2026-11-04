@@ -34,6 +34,8 @@ data:
         # Stage 2 (RA8): after a fix merges RunLore soaks 30m, then asks Alertmanager whether the alert
         # still fires and reports the verdict to the factory.
         soak: 30m
+        # RK5: an accepted incident is drafted once verified; 7d covers a publish, a merge and the follow-up.
+        curation: {defer: true, window: 7d}
         verify:
           alertmanager_url: http://vmalertmanager-victoria-metrics-k8s-stack.observability.svc:9093
           max_steps: 6

@@ -1,7 +1,7 @@
 # RunLore's knowledge base, filled by the agent factory
 
 **Date:** 2026-11-03 · **Status:** design agreed with the owner 2026-11-03, decision by decision
-([below](#owner-decisions-2026-11-03)); not built; not yet on the
+([below](#owner-decisions-2026-11-03)); phase 1 is being built, its live session is [runbook 25](../../runbooks/agent-factory/25-runlore-kb-phase-1.md); not yet on the
 [v4 roadmap](2026-10-31-v4-roadmap-design.md) · **Builds on:** feature 14,
 [RunLore agent to agent](2026-10-27-runlore-agent-to-agent-design.md) (RA1 to RA14). **Touches:**
 v4.0 item 4 (untrusted-input hardening), v4.0 item 5 (outcome analytics), v4.6 (repository memory)
@@ -301,6 +301,18 @@ repository (RK13); `/mcp` behind network policy only; the plans' own rulings kep
 should only be enabled on purposes for our demo platform" (RK15), so the queue is rewritten at each
 session's end (RK4), the gates count sessions and entries, and the spend cap comes from the first
 session (RK20).
+
+### Owner decisions, 2026-11-04
+
+On the plan reviews and the phase 1 build:
+
+- A stub nobody publishes gets no newer stub until the curation window has passed.
+- A drafted entry with an open pull request and no fix files nothing on a repeat; a merged one files again.
+- `Smana/runlore-kb` gets a real `leak-scan` job (K12), named as `leakScanCheck` beside `validate`.
+- A maintainer adds `class:alert-rules` at publish once that class is live; in shadow the factory infers it.
+- The gate's terminal stops are decided at phase 3's gate, with shadow data.
+- RK6's trust factor is kept, and it applies whenever `defer` and recall run.
+- The broker's hop to the factory stays plain HTTP for now, stated as `factoryInsecure: true` (Maku v0.33.0 requires it); TLS is a follow-up pull request, proved in an aws-0 session.
 
 ## Left to the builder
 

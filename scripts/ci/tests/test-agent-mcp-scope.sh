@@ -56,6 +56,9 @@ EXPECTED_BACKEND_TOOLS = {
         "mcp-victoriametrics": {"documentation"},
         "mcp-victorialogs": {"documentation"},
         "room-broker": ROOM_TOOLS,
+        # The target set is one list for both routes and `names` is compared against this entry; the
+        # grants come from EXPECTED_ROLE_TOOLS (only the internal triager's).
+        "runlore-kb": {"kb_search", "kb_get"},
     },
     "agent-mcp-internal": {
         "flux-operator-mcp": {"search_flux_docs", "get_flux_instance", "get_kubernetes_api_versions",
@@ -63,6 +66,7 @@ EXPECTED_BACKEND_TOOLS = {
         "mcp-victoriametrics": VM_TOOLS,
         "mcp-victorialogs": VL_TOOLS,
         "room-broker": ROOM_TOOLS,
+        "runlore-kb": {"kb_search", "kb_get"},
     },
 }
 
@@ -78,6 +82,8 @@ _FULL_READER_INTERNAL = {
     "mcp-victoriametrics": VM_TOOLS,
     "mcp-victorialogs": VL_TOOLS,
 }
+# RunLore's read-only knowledge (RK12): the internal triager alone.
+_TRIAGER_INTERNAL = {**_FULL_READER_INTERNAL, "runlore-kb": {"kb_search", "kb_get"}}
 _DOCS_ONLY_PUBLIC = {
     "flux-operator-mcp": {"search_flux_docs"},
     "mcp-victoriametrics": {"documentation"},
@@ -98,7 +104,7 @@ EXPECTED_ROLE_TOOLS = {
         "agent-router.implementer.internal": with_room(_IMPLEMENTER_INTERNAL, "implementer"),
         "agent-router.reviewer.internal": with_room(_FULL_READER_INTERNAL, "reviewer"),
         "agent-router.tester.internal": with_room(_FULL_READER_INTERNAL, "tester"),
-        "agent-router.triager.internal": with_room(_FULL_READER_INTERNAL, "triager"),
+        "agent-router.triager.internal": with_room(_TRIAGER_INTERNAL, "triager"),
     },
 }
 
@@ -125,6 +131,8 @@ else:
         errors.append("agent-mcp backend: prefixMode must be Always, so tools read <target>_<tool>")
     if mcp.get("sessionRouting") != "Stateless":
         errors.append("agent-mcp backend: sessionRouting must be Stateless (#3834, #3622)")
+    if any(t["name"] == "runlore-kb" for t in mcp["targets"]) and mcp.get("failureMode") != "FailOpen":
+        errors.append("agent-mcp backend: failureMode must stay FailOpen while runlore-kb is a target (a down RunLore drops its own tools only)")
     names = {t["name"] for t in mcp["targets"]}
     want = set(EXPECTED_BACKEND_TOOLS["agent-mcp-public"])
     if names != want:

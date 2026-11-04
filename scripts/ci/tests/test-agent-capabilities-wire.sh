@@ -173,6 +173,13 @@ mcp_docs = docs(f"{gw}/mcp.yaml")
 allow = next(d for d in mcp_docs if d["kind"] == "AgentgatewayPolicy" and d["metadata"]["name"] == "agentgateway-mcp-internal")
 mcp_route = next(d for d in mcp_docs if d["kind"] == "HTTPRoute" and d["metadata"]["name"] == "agentgateway-mcp-internal")
 args = next((d for d in docs(f"{gw}/policy-capabilities.yaml") if d["metadata"]["name"] == "capabilities-mcp-internal"), None)
+# RunLore's knowledge MCP (RK12) is a target of the real backend, and with RunLore off its Service does not
+# exist: the host does not resolve. The target is kept as committed, host and all, and the backend's
+# failureMode is the committed one, so the cases below prove an absent RunLore drops its own tools only.
+backend = next(d for d in mcp_docs if d["kind"] == "AgentgatewayBackend")["spec"]["mcp"]
+kb = next(t for t in backend["targets"] if t["name"] == "runlore-kb")["static"]
+kb_target = {"name": "runlore-kb", "mcp": {"host": f"http://{kb['host']}:{kb['port']}{kb['path']}"}}
+failure_mode = {"FailOpen": "failOpen", "FailClosed": "failClosed"}[backend["failureMode"]]
 mcp_policies = {"mcpAuthorization": {"rules": [
     {"allow": e} for e in allow["spec"]["backend"]["mcp"]["authorization"]["policy"]["matchExpressions"]]}}
 if args:  # absent while no profile constrains a tool: nothing then binds arguments, and the Secret cases fail
@@ -181,8 +188,9 @@ if args:  # absent while no profile constrains a tool: nothing then binds argume
 routes.append({"name": "mcp",
                "matches": [{"path": {"pathPrefix": mcp_route["spec"]["rules"][0]["matches"][0]["path"]["value"]}}],
                "policies": mcp_policies,
-               "backends": [{"mcp": {"prefixMode": "always", "statefulMode": "stateless", "targets": [
-                   {"name": "flux-operator-mcp", "mcp": {"host": f"http://127.0.0.1:{mcp_port}/mcp"}}]}}]})
+               "backends": [{"mcp": {"prefixMode": "always", "statefulMode": "stateless", "failureMode": failure_mode,
+                                     "targets": [
+                   {"name": "flux-operator-mcp", "mcp": {"host": f"http://127.0.0.1:{mcp_port}/mcp"}}, kb_target]}}]})
 jwt = listener["spec"]["traffic"]["jwtAuthentication"]["providers"][0]
 config = {
     "config": {"adminAddr": f"127.0.0.1:{admin}", "readinessAddr": f"127.0.0.1:{ready}", "statsAddr": f"127.0.0.1:{stats}"},
@@ -271,6 +279,12 @@ echo "the argument rule (P3, gate item 2)"
 passes "initialize passes the rule" "$(rpc $R '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "wire", "version": "0"}}}')"
 passes "a notification passes the rule" "$(rpc $R '{"jsonrpc": "2.0", "method": "notifications/initialized"}')"
 expect "tools/list passes the rule" "200 -" "$(rpc $R '{"jsonrpc": "2.0", "id": 2, "method": "tools/list"}')"
+# RunLore is off: the committed runlore-kb target's host does not resolve. FailOpen must drop that target's
+# tools alone, so the other targets still list and answer (every role's tools rest on this).
+grep -q 'flux-operator-mcp_search_flux_docs' "$tmp/rpc.out" \
+  && echo "ok    an unresolvable runlore-kb target leaves the other targets' tools listed (FailOpen)" \
+  || fail "tools/list lost the live target's tools: an unresolvable runlore-kb target did not fail open: $(head -c 200 "$tmp/rpc.out")"
+grep -q 'runlore-kb_' "$tmp/rpc.out" && fail "tools/list names runlore-kb tools for the reviewer, or for an unreachable target"
 grep -q 'flux-operator-mcp_get_kubernetes_resources' "$tmp/rpc.out" \
   && echo "ok    the constrained tool is still listed (gate item 4)" || fail "tools/list lost get_kubernetes_resources"
 expect "kind Secret is refused 403, the server untouched" "403 -" \

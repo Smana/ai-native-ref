@@ -312,6 +312,7 @@ On the plan reviews and the phase 1 build:
 - A maintainer adds `class:alert-rules` at publish once that class is live; in shadow the factory infers it.
 - The gate's terminal stops are decided at phase 3's gate, with shadow data.
 - RK6's trust factor is kept, and it applies whenever `defer` and recall run.
+- The broker's hop to the factory stays plain HTTP for now, stated as `factoryInsecure: true` (Maku v0.33.0 requires it); TLS is a follow-up pull request, proved in an aws-0 session.
 
 ## Left to the builder
 

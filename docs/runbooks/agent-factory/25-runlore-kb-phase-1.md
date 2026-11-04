@@ -279,3 +279,12 @@ record RK20's `D`: the highest daily `runlore:investigation_cost_usd:increase1d`
 spend alert, and the provider's monthly limit at 1.5 × `D` × the session days expected in a month. Because
 every repeat investigates (see the top of this page), `D` includes them. Record the results in the status
 record.
+
+## 10. Follow-up: TLS on the broker-to-factory hop
+
+The broker's `factoryURL` is `http://` with `factoryInsecure: true` in each cloud's config, which Maku v0.33.0
+requires to be stated because the broker forwards each human's token on that hop. The follow-up is its own pull
+request: set the factory chart's `api.tls.secretName` and an issuer, switch `factoryURL` to `https://`, trust
+the issuing CA through `factoryCAFile` if it is private, and drop `factoryInsecure`. Prove it in an aws-0
+session by creating a room task from the room page (the hand-to-role path) and reading the broker's log for a
+successful call to the factory.

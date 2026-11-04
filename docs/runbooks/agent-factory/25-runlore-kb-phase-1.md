@@ -39,28 +39,35 @@ Read the spend after the first session (step 9): the repeats are investigations 
   ```
 
   Expected: `runlore` converged, with `runlore-factory-principal` and `agents-runlore-principal` among the
-  mirrored keys. Two failures are silent, so check both before the first session:
+  mirrored keys. A failure here is silent: the stack still deploys. Check the factory's sponsored Secret now
+  (it reads `runlore-principal` only): `SecretSynced`. Its refresh is 20 m; force it with the annotation.
 
   ```bash
-  # The factory's sponsored Secret: SecretSynced (its refresh is 20 m; force it with the annotation).
   kubectl -n agent-system annotate externalsecret agent-factory-sponsored force-sync="$(date +%s)" --overwrite
   kubectl -n agent-system get externalsecret agent-factory-sponsored
-  # RunLore's client credentials: SecretSynced too.
+  ```
+
+  Unsynced, the factory's principal has no client id.
+- [ ] **[OWNER]** The webhook key seeded in both mounts, as
+  [runbook 14](14-gcp-0-session.md#5-owner-the-agents-keys-once-per-gcp-lineage) does. The broker's
+  ExternalSecret sits in the off state's comment, so nothing syncs until the switch.
+- [ ] RunLore's client credentials synced, checked after the key above: `runlore-factory-principal` also reads
+  `runlore/factory-webhook`, so it cannot read `SecretSynced` before that key is seeded, and its refresh is
+  1 h. Force it:
+
+  ```bash
+  kubectl -n runlore annotate externalsecret runlore-factory-principal force-sync="$(date +%s)" --overwrite
   kubectl -n runlore get externalsecret runlore-factory-principal
   ```
 
-  With either unsynced the stack still deploys and nothing says so: RunLore's client stays off (its env is
-  empty, the Secret being optional) and the factory's principal has no client id. Once RunLore runs (step 1),
-  its log must not contain "the factory client is off":
+  Unsynced, RunLore's client stays off (its env is empty, the Secret being optional) and nothing says so. Once
+  RunLore runs (step 1), its log must not contain "the factory client is off":
 
   ```bash
   kubectl -n runlore logs runlore-0 | grep -c "the factory client is off"
   ```
 
   Expected `0`.
-- [ ] **[OWNER]** The webhook key seeded in both mounts, as
-  [runbook 14](14-gcp-0-session.md#5-owner-the-agents-keys-once-per-gcp-lineage) does. The ExternalSecret sits
-  in the off state's comment, so nothing syncs until the switch.
 - [ ] The knowledge repository's `Knowledge queue` issue is absent or closed.
 - [ ] The three labels exist on `Smana/runlore-kb`: RunLore adds a label without creating it, and GitHub
   creates none on first use.
@@ -133,12 +140,14 @@ class infers `review`, or the fix lands in Git and leaves the hand-applied rule 
 with no `ready-to-merge`. Seed through Git instead, so the fix is a change to a file under `observability/`
 and the alert clears when it merges:
 
-1. A cloud-native-ref pull request, merged before the session, adds a `VMRule` file under
+1. A cloud-native-ref pull request adds a `VMRule` file under
    `observability/aws-0/` (listed in that directory's `kustomization.yaml`) whose rule is the real failure
    shape: `severity: critical`, `for: 5m`, and an expression that always fires because its selector names a
    Deployment that does not exist, for example
    `absent(kube_deployment_status_replicas_available{namespace="apps",deployment="podnfo"} > 0)` with the
-   typo `podnfo`, where `podinfo` (or any Deployment in `apps`) is the real name.
+   typo `podnfo`, where `podinfo` (or any Deployment in `apps`) is the real name. Merge it only after
+   step 1.2's `wait` returns: seed nothing before RunLore is up. The rule pages every hour from its merge
+   until the fix lands, so merge it when the session is ready to run.
 2. The published fix must correct the selector in that file. When it merges, Flux applies it, the expression
    matches a series with replicas, and the alert resolves: that is what makes the verdict `resolved` and
    lets the entry get `ready-to-merge`.
@@ -185,7 +194,7 @@ to name:
 | KB PR | Entry | Fix | Merge commit | Verdict |
 |---|---|---|---|---|
 | #159 | `PodinfoNoAvailableReplica` typo `podnfo` | [#2638](https://github.com/Smana/cloud-native-ref/pull/2638) | `eb562c16241a18b0803c6c8eb7fcec4ce0b85f40` | `resolved` |
-| #162 | `AppWizardNoAvailableReplica` typo `app-wizzard` | [#2659](https://github.com/Smana/cloud-native-ref/pull/2659) | `4230652db3b4fba1339b666261d0233d1076817f` | `resolved` |
+| #162 | `AppWizardNoAvailableReplica` typo `app-wizzard`: the same rule as #163, under its first name | [#2659](https://github.com/Smana/cloud-native-ref/pull/2659) | `4230652db3b4fba1339b666261d0233d1076817f` | `resolved` |
 | #163 | `AppWizardUnavailable` typo `app-wizzard` | [#2659](https://github.com/Smana/cloud-native-ref/pull/2659) | `4230652db3b4fba1339b666261d0233d1076817f` | `resolved` |
 | #157, #158, #160, #161 | spend, a stalled HelmRelease, and a typo in a rule a later change removed | none | none | not replayable |
 
@@ -198,6 +207,9 @@ replay 159 2638 eb562c16241a18b0803c6c8eb7fcec4ce0b85f40
 replay 162 2659 4230652db3b4fba1339b666261d0233d1076817f
 replay 163 2659 4230652db3b4fba1339b666261d0233d1076817f
 ```
+
+#162 and #163 are one rule: cloud-native-ref #2647 added it as `AppWizardNoAvailableReplica` with the
+typo, #2654 renamed it `AppWizardUnavailable`, and #2659 fixed the selector.
 
 It exercises the entry path only: it writes no outcome event, so the entries stay `unverified` under Decide
 and RK17's test of the outcome join is not exercised (K13). The other four stay in the queue for the stale

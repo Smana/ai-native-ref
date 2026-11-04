@@ -132,7 +132,7 @@ RunLore's fixes take (`alert-rules`: 2h).
 
 **RunLore's knowledge over HTTP**: the read-only `kb_search` and `kb_get` of `lore mcp`, served as
 StreamableHTTP at `/mcp` on RunLore's server, the same handlers. The agent router gains the target
-`runlore-kb`; the internal triager's capability profile lists both tools. No token: RunLore's ingress admits only the agent router, and the content is public (RK13).
+`runlore-kb`; the internal triager's capability profile lists both tools. No token: any caller allowed on RunLore's serve port reaches `/mcp` (the agent router, and the Alertmanager and broker that port already admits), and it is read-only and serves public text (RK13).
 
 **The entry**, in the frontmatter: `origin` (`runlore`, or `agent-factory:<task>`), `resolution:
 {fix_pr, merge_sha, verdict, verified_at}` when verified; in the body, `## Resolution` becomes the
@@ -158,7 +158,7 @@ pass once (`lore curate queue-issue`) before RunLore goes off:
 **Publish** (Maku): `api.internalPrincipals[].publishStarts: true` makes `factory/publish`
 on the principal's stub both create the fix issue and start its task, charged to the publisher. The
 fix's class is inferred from the paths a new `## Files` section of the triager's proposal names,
-matched against each class's `allowedFiles`; none or several match: `review`. It is recorded in
+matched against the `allowedFiles` of each class that is neither adopted nor an oracle class (`deps-patch` and `deps-minor` also allow `observability/`); none or several match: `review`. It is recorded in
 `status.published.class` and copied into the fix task's `spec.predictedClass`, not applied as a
 label: triage counts a `class:` label only when a maintainer applied it
 (`MK/internal/factory/triage/classify.go:148-160`).
@@ -197,10 +197,11 @@ at their gate. Phases 1 and 2 are planned now.
 | 3b | cloud-native-ref | `stale_after: 720h`, once the first queue issue has listed the backlog | the host's CI | live 4 |
 | 3c | cloud-native-ref | RunLore's daily spend alert at 80% of 1.5 × the first session's daily spend (RK20) | the host's CI | the first session |
 | 4 | ai-native-ref | Pin Maku and `HOST_REF`; the `runlore` internal principal on aws-0 (`publishStarts`, `verification`) and the broker's subscriber, a session switch off by default; `alert-rules` in shadow with `monitor.verification`; `factory.curation` in RunLore's factory values; the `runlore-kb` target and the internal triager's tools; the measures script; runbook 25 | `task check` | 1, 2, 3 |
-| — | aws-0 | Phase 1 live session, and the replay | Live 1 to 4 | 4 |
+| 4a | ai-native-ref, cloud-native-ref | An ai-native-ref release or pre-release, and the host pinning its tag and digest: a merged PR 4 changes nothing on the cluster until then. The release is the owner's decision | the host's CI | 4 |
+| — | aws-0 | Phase 1 live session, and the replay (it exercises the entry path and writes no outcome event) | Live 1 to 4 | 4a |
 | 5 | Maku | The adopted shape of a RunLore entry PR, with a required label; a release | Offline 7 | 1 |
 | 6 | runlore-kb | Adoption: the fence file, the policy, `validate` a required check | the merge gate reads it | phase 1 gate |
-| 7 | ai-native-ref | Pin; `classes.kb-entries` in shadow | `task check` | 5, 6 |
+| 7 | ai-native-ref | Pin; `classes.kb-entries` in shadow; then an artifact and host pin as in 4a | `task check` | 5, 6 |
 
 ## Gate
 
@@ -246,6 +247,17 @@ at their gate. Phases 1 and 2 are planned now.
 Auto-merge inside RunLore. Cross-incident synthesis into playbooks (D5). A doc-writer role. Lessons
 through an MCP write tool. Verifying fixes RunLore did not originate (feature 14's exclusion
 stands). A revert on `persisting`. Forges other than GitHub.
+
+## Corrections from the plan reviews, 2026-11-04
+
+The four plans were reviewed against the code before any build. What changes the design above:
+
+| Correction | Why |
+|---|---|
+| `ready-to-merge` is set by the verification itself, not only by a sweep, and withdrawn when the evidence flips | The first sweep runs 6h after start and a session is shorter. A revert after labelling would otherwise keep the label and hide the entry from Decide |
+| A held incident keeps the fingerprint and entry path of its first hold | Both come from model-written text, so they drift between generations: a failed fix's trust would land on an entry that never exists, and a second PR could open |
+| `lore curate refresh-entries` rebuilds a conflicting entry PR on the current base, on RunLore's own branches only | Every entry inserts at the same place in `log.md`, so merging one makes the next conflict. A session's queue is therefore cleared while RunLore is on |
+| The `security` category is a human-applied label in phase 1 | Nothing writes it by machine, and no signal is specified |
 
 ## RL D1, amended
 

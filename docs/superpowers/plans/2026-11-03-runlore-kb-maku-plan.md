@@ -3,10 +3,10 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Target repository:** Maku, `Smana/maku` (Go module `github.com/Smana/maku`, chart
-`charts/maku-factory`; local checkout `/Users/s.kahlouch@ext.go-electra.com/Personal/Sources/agent-platform`).
-Every path below is in that repository unless it says otherwise. The checkout's working tree is a
-stale docs branch: work from `origin/main` only. This file lives in ai-native-ref beside the spec
-(RK21); copy it to `docs/superpowers/plans/` in Maku when PR 1's branch is cut.
+`charts/maku-factory`). Every path below is in that repository unless it says otherwise. Work from a
+freshly fetched `origin/main` only. The plan was written at `2816bce`; every `file:line` below was
+re-checked at `6a0d6b79` (2026-11-04), so re-check any line that has moved again. This file lives in
+ai-native-ref beside the spec (RK21); copy it to `docs/superpowers/plans/` in Maku when PR 1's branch is cut.
 
 **Goal:** The factory tells RunLore its post-merge monitor's verdict on a fix (`room.monitor_verdict`),
 and one maintainer label (`factory/publish`) both files RunLore's proposal and starts its fix, in the
@@ -50,34 +50,51 @@ flowchart LR
 queue issue), cloud-native-ref PR 3, ai-native-ref PRs 4 and 7 (the pins, `publishStarts: true`,
 the subscriber's event list, `classes.kb-entries` and its `autoMergesPerDay: 5`), runlore-kb PR 6
 (the fence file, the policy, the workflow that runs `lore validate-kb`), and phases 3 and 4
-(`status: draft`, RK19's breaker, the threat check, the lesson endpoint).
+(`status: draft`, RK19's breaker, the threat check, the lesson endpoint). Two things in the spec's
+rollout that this plan neither builds nor can skip: the ai-native-ref release and the host's pin of
+its tag and digest after PR 4 and again after PR 7 (K15, an owner decision); and RK17's replay,
+which exercises the entry path only and writes no outcome event. Entry pull requests conflict with
+each other once one merges (every one inserts at the same place in `log.md`): RunLore's refresh
+(its plan) rebuilds a bot-owned branch, and a force-push by `runlore[bot]` must still pass this
+plan's `pushedBy` chain, which Task 10's rig asserts.
 
 ### This plan's rulings
 
 | # | Ruling | Why |
 |---|---|---|
-| K1 | **`room.monitor_verdict` rides the task facts.** `TaskFacts.Monitor` (`healthy`, `regression`, `inconclusive`) is set by `factsOf` only for a task with `spec.origin` whose `status.monitor.verdict` is set. The tracker sends `{type, room, repo, pr, origin, verdict}` once per room, only when the room's facts named an origin | The broker reads events from the room log only (`internal/webhook/emitter.go:48-52`), and the factory's one write route into it is the facts (`internal/bridgeapi/system.go:94-110`). A verdict is set once and never changes (`internal/factory/reconciler/monitor.go:192-201`), so a regression decided before the window ends is final at once |
-| K2 | **An origin task's room stays open until its verdict's facts land**: `roomState` is not due while the task has `spec.origin`, `monitorDue` holds and `status.monitor.verdict` is empty; it looks again after `monitorEvery`. A task without an origin closes as today | A human merge's room closes once facts and usage settle (`internal/factory/reconciler/roomclose.go:26-68`; the revert-window wait at `:42-47` is the merger's merges only), hours before `followUpWindow` ends, and a sealed log takes no facts (`facts.go:228`). The wait is bounded by `monitorDue`: `followUpWindow` + 5 min, at most 720 h |
-| K3 | **The class is inferred from a `## Files` section** the triager's proposal now ends with: one `` - `path` `` line per repository path the change touches, at most 10. A path with a `..` segment, a leading `/`, whitespace or more than 200 bytes, a line of any other form, or an 11th line, empties the list | A proposal carries no paths today (`internal/factory/reconciler/text.go:182-193`, `internal/factory/sanitize/draft.go:23`). Paths are matched against the scope classes already declare, `allowedFiles`, which the gate holds the real diff to (row 8): a wrong list predicts a class whose gate the PR must still pass. A class the model names is a claim the alert's text can steer, with no fence behind it |
-| K4 | **`filefence.Infer`**: the candidates declare `allowedFiles` and are not `review`, `revert`, adopted or oracle-backed; one matches when every path is allowed and none is protected. Exactly one match is the class; none, several or no paths is `review` | Adopted classes take another author's pull requests (MC10) and oracle classes a detector's findings (MC6). On the host, `deps-patch` and `deps-minor` allow `observability/…yaml` beside `alert-rules` (ai-native-ref `tooling/base/agent-factory/helm-values-configmap.yaml`): counted, every alert fix would be ambiguous. Ambiguity is no inference |
+| K1 | **`room.monitor_verdict` rides the task facts.** `TaskFacts.Monitor` (`healthy`, `regression`, `inconclusive`) is set by `factsOf` only for a task with `spec.origin` whose `status.monitor.verdict` is set. The tracker sends `{type, room, repo, pr, origin, verdict}` once per room, only when the room's facts named an origin | The broker reads events from the room log only (`internal/webhook/emitter.go:48-52`), and the factory's one write route into it is the facts (`internal/bridgeapi/system.go:94-110`). A verdict is set once and never changes (`internal/factory/reconciler/monitor.go:192-201`), so a regression decided before the window ends is final at once. Delivery is at least once with a stable `webhook-id` (`internal/webhook/webhook.go:49-52`), which the receiver dedups. It is lost if RunLore is down while its subscriber stays on: after four failed tries (about 6 minutes) `deliver` moves the cursor on, and a subscriber disabled after three give-ups still advances it (`internal/webhook/emitter.go:494`, `:642-665`). Switching both sides off together is safe, since the cursor stays and `catchUp` replays the room, closed rooms included. A lost verdict reads as an unverified entry at RK5's window, never as a silent success |
+| K2 | **An origin task's room stays open until its verdict's facts land**: `roomState` is not due while the task has `spec.origin`, `monitorDue` holds and `status.monitor.verdict` is empty; it looks again after `monitorEvery`. A task without an origin closes as today | A human merge's room closes once facts and usage settle (`internal/factory/reconciler/roomclose.go:26-68`; the revert-window wait at `:43-48` is the merger's merges only), hours before `followUpWindow` ends, and a sealed log takes no facts (`facts.go:222-230`). The wait is bounded by `monitorDue`: `followUpWindow` + 5 min, at most 720 h. **Known limit, no cap change (from the 2026-11-04 review):** `roomCloseCap` (24 h, from `PhaseSince`, `roomclose.go:75`) still applies, so a class window over 24 h reaches its verdict already at the cap; if that pass's post returns one of the swallowed errors (`ErrNoRoute`, `ErrNoRoom`, `ErrNotPermitted`, `facts.go:222-230`), `capFactsDue` closes the room with the verdict unposted. `alert-rules` is 2 h, so it is safe; a maintainer's `class:` label naming a longer window is the case, and the docs (Task 7) say so |
+| K3 | **The class is inferred from a `## Files` section** the triager's proposal now ends with: one `` - `path` `` line per repository path the change touches, at most 10. The section ends at the next `## ` heading or at a line equal to `---` (the footer `publishOne` appends, `intake/publish.go:125-126`, which a retry reads back in the filed body). A path with a `..` segment, a leading `/`, whitespace or more than 200 bytes, a line of any other form, or an 11th line, empties the list | A proposal carries no paths today (`internal/factory/reconciler/text.go:182-193`, `internal/factory/sanitize/draft.go:23`). Paths are matched against the scope classes already declare, `allowedFiles`, which the gate holds the real diff to (row 8): a wrong list predicts a class whose gate the PR must still pass. A class the model names is a claim the alert's text can steer, with no fence behind it |
+| K4 | **`filefence.Infer`**: the candidates declare `allowedFiles` and are not `review`, `revert`, adopted or oracle-backed; one matches when every path is allowed and none is protected. Exactly one match is the class; none, several or no paths is `review` | Adopted classes take another author's pull requests (MC10) and oracle classes a detector's findings (MC6). On the host, `deps-patch` and `deps-minor` allow `observability/…yaml` beside `alert-rules` (ai-native-ref `tooling/base/agent-factory/helm-values-configmap.yaml`): counted, every alert fix would be ambiguous. Ambiguity is no inference. The spec's "each class's `allowedFiles`" means these candidates only (the lead amends the spec's wording) |
 | K5 | **The class rides the factory's state, not the label.** `status.published.class` on the origin task; the fix Task's `spec.predictedClass` copies it at creation (publish start or `factory/ready`); triage keeps it for a task with `spec.origin` unless a maintainer's `class:` label names another. The issue also gets `class:<c>`, for its reader | Triage counts a `class:` label only when a maintainer applied it last (`internal/factory/triage/classify.go:148-160`): the factory's label alone reads `review` |
-| K6 | **`publishStarts`** is `api.internalPrincipals[].publishStarts` (off). `factory/publish` on the stub of an `api` task of such a principal files the issue, then creates the fix Task as `factory/ready` would: generation 0 (`taskid.IssueKey(repo, n, 0)`), `requestedBy: github:<publisher>`, so `Task.Payer()` charges the publisher (`api/factory/v1alpha1/person.go:23-37`). The Task is created before the record; `AlreadyExists` is the dedup | RK15. A first maintainer `factory/ready` is generation 1 (`internal/factory/intake/issues.go:283,311`): a shared generation would make a later restart of the fix a silent no-op |
+| K6 | **`publishStarts`** is `api.internalPrincipals[].publishStarts` (off). `factory/publish` on the stub of an `api` task of such a principal files the issue, then creates the fix Task as `factory/ready` would: generation 0 (`taskid.IssueKey(repo, n, 0)`), `requestedBy: github:<publisher>`, so `Task.Payer()` charges the publisher (`api/factory/v1alpha1/person.go:23-37`). The Task is created before the record; `AlreadyExists` is the dedup, and no start happens while another Task is open on the issue (K13) | RK15. A first maintainer `factory/ready` is generation 1 (`internal/factory/intake/issues.go:284,312`): a shared generation would make a later restart of the fix a silent no-op |
 | K7 | **The start snapshots the filed issue as GitHub holds it** (`Forge.Issue`, then `snapshot`). An issue edited since it was filed, or a withheld snapshot, starts nothing and is answered as today: "label it `factory/ready`" | R5: the snapshot is what the maintainer read. On a retry after a crash an edit may sit between the filing and the start |
-| K8 | **The start skips intake's advisory day check** (`personSpent`): the Queued reservation (D3) binds, and a spent day waits as `waiting_daily_budget` | `personSpent` consumes `factory/ready` on the issue it answers (`issues.go:406-436`); here the label is `factory/publish` on another issue |
+| K8 | **The start skips intake's advisory day check** (`personSpent`): the Queued reservation (D3) binds. A spent person's day ends the Task `Escalated` with `budget-person` (`reconciler.go:1008-1011`, `ledger.ErrPersonOverBudget`); only the fleet's `ErrOverBudget` waits as `waiting_daily_budget`. A later `factory/ready` on the issue supersedes it | `personSpent` consumes `factory/ready` on the issue it answers (`issues.go:407-437`); here the label is `factory/publish` on another issue. Refusing at the publish would spend the maintainer's label on a check that is advisory anyway |
 | K9 | **Anything else publishes only**: a stub of a legacy `runlore`-kind task, of a sponsored principal's task, or of an internal principal without `publishStarts`. Offline proof 2's "a sponsored principal's stub" is tested as these three | Stubs are filed for internal principals and the legacy intake only (`internal/factory/api/internal.go`, `internal/factory/intake/runlore.go`); `publishStarts` on `api.sponsored` is an unknown field |
-| K10 | **`diffShape: added-entry`** (package `entrydiff`): exactly one file `added`, matching `allowedFiles`, absent on the base, non-empty valid UTF-8 on the head; every other file `modified`, matching the class's new `companionFiles` (anchored like `allowedFiles`), additions only (0 deleted, 1 to 10 added, the base's lines kept in order); no control character but tab and newline and no Unicode format character in the entry or an added line; nothing else. `filefence.AllowedFiles` admits `companionFiles` too. The shape needs `author.adopt`, `allowedFiles`, `holdoutChecks` (the validator's job) and `requiredLabel`, and refuses `modifyOnly`. | Every real entry pull request (runlore-kb #111, #163, by `runlore[bot]` on `runlore/kb-<slug>-<unix>`) adds `incidents/<slug>-<8 hex>.md` and appends to `index.md` (+1) and `log.md` (+4): a one-file shape refuses them all. The gate runs no command, it reads the diff through GitHub's API (`internal/factory/forge/github.go:1184-1223`), and `lore validate-kb` is a CLI (RunLore `cmd/lore/validate.go:32`); "passes a validator" is the holdout check `validate` (job `validate` of "Validate KB", `.github/workflows/validate-kb.yml`, running `lore validate-kb --format github .`). Adopted classes must be semver with `modifyOnly` today (`internal/factory/config/classes.go:215-227`): both rules widen for this shape only |
-| K11 | **`requiredLabel`** (needs `author.adopt`). The poller adopts only a pull request carrying it, filtered before the judged-head cache; the gate's author-mode evidence (`adoptEvidence`, recorded as `evidence=`) refuses `label_missing` when it is absent and `label_not_adopted` when its newest `labeled` event is not an adopted login's, a truncated event list included. Both are terminal hand-offs | RK3: machine evidence sets `ready-to-merge`; a maintainer who judges an entry merges it. The cache (`internal/factory/intake/adopt.go:232-238`) would otherwise hide a pull request read before its label. No decision-record format change |
-| K12 | **Releases:** each PR is the next minor after the latest tag (`v0.32.3` when written), named `vK1` and `vK2` here | The ai-native-ref plan pins both |
+| K10 | **`diffShape: added-entry`** (package `entrydiff`): exactly one file `added`, matching `allowedFiles`, absent on the base (`d.Base[p] == ""`: `Diff` stores an added file's base as an empty value, not a missing key), non-empty valid UTF-8 on the head; every other file `modified`, matching the class's new `companionFiles` (anchored like `allowedFiles`), additions only (0 deleted, 1 to 10 added, the base's lines kept in order); no control character but tab and newline and no Unicode format character in the entry or an added line; nothing else. `filefence.AllowedFiles` admits `companionFiles` too. The shape needs `author.adopt`, `allowedFiles`, `holdoutChecks` (the validator's job) and `requiredLabel`, and refuses `modifyOnly`. | Every real entry pull request (runlore-kb #111, #163, by `runlore[bot]` on `runlore/kb-<slug>-<unix>`) adds `incidents/<slug>-<8 hex>.md` and appends to `index.md` (+1) and `log.md` (+4): a one-file shape refuses them all. The gate runs no command, it reads the diff through GitHub's API (`internal/factory/forge/github.go:1245`, `Diff`), and `lore validate-kb` is a CLI (RunLore `cmd/lore/validate.go:32`); "passes a validator" is the holdout check `validate` (job `validate` of "Validate KB", `.github/workflows/validate-kb.yml`, running `lore validate-kb --format github .`). Adopted classes must be semver with `modifyOnly` today (`internal/factory/config/classes.go:215-224`): both rules widen for this shape only |
+| K11 | **`requiredLabel`** (needs `author.adopt`). The poller adopts only a pull request carrying it, filtered before the judged-head cache; the gate's author-mode evidence (`adoptEvidence`, recorded as `evidence=`) refuses `label_missing` when it is absent and `label_not_adopted` when its newest `labeled` event (the last element: `LabelEvents` sorts ascending) is not an adopted login's, a truncated event list included. Both are terminal hand-offs. The label is not bound to the head: a label on head A stands on head B. That is settled on RunLore's side (a push to a labelled PR removes `ready-to-merge` first: RunLore's refresh and `Resolve`), and this gate keeps checking who labelled; re-examine at phase 3's gate. Shadow makes it harmless until then | RK3: machine evidence sets `ready-to-merge`; a maintainer who judges an entry merges it. The cache (`internal/factory/intake/adopt.go:232-238`) would otherwise hide a pull request read before its label. No decision-record format change |
+| K12 | **Releases:** each PR is the next minor after the latest tag (`v0.32.3` when written), named `vK1` and `vK2` here. Cutting each is the owner's decision, as every release is | The ai-native-ref plan pins both |
+
+Added from the 2026-11-04 review (numbers continue; none renumbered):
+
+| # | Ruling | Why |
+|---|---|---|
+| K13 | **`startPublished` starts nothing while another Task is open on the issue**: it calls `p.openTasks(ctx, n)` and returns `"", nil` if any is open or if any task with `LabelIssue: n` already exists | After a failed create, a maintainer may label the filed issue `factory/ready` before the retry: the retry would start generation 0 beside the running generation 1, two Tasks and two charges on one issue. `one()` refuses the same way (`issues.go:314-329`) |
+| K14 | **A retry reads the proposal's paths from the filed body, whose footer is not a path line**: `proposalPaths` stops at `---` (K3), and the retry's class, `spec.predictedClass` and labels are asserted | Otherwise the retry infers `review`, `review` has no monitor, and the verdict is refused `not_own_task` (`internal/factory/api/verification.go:145-155`): nothing reports it |
+| K15 | **A KB-class merge needs the host's release and pin before a session**: this plan's `vK1` and `vK2` are consumed by an ai-native-ref release (or pre-release) and the host pinning its tag and digest, between ai-native-ref PR 4 and the first session and again after PR 7. The host PR that carries the session switch also carries the artifact pin | Without the pin the session runs a chart without these changes. The release is the owner's decision |
 
 ## Global Constraints
 
 - **Worktrees:** one per PR beside the repository, from a freshly fetched `origin/main` (`2816bce`
-  when this plan was written), rebased before every push. Branches `feat/monitor-verdict-publish-starts`
+  when this plan was written, `6a0d6b79` when its lines were re-checked), rebased before every push. Branches `feat/monitor-verdict-publish-starts`
   (PR 1), `feat/adopted-added-entry` (PR 5).
 - **`task check` is the evidence** (AGENTS.md): exit 0, Docker running for the store tests. Each
   task's steps run `go test -race -count=1` on the packages they touch.
+- **The repository's test limit:** Go tests run `go test -p 1` under `ulimit -v 16000000` and a
+  `timeout`, packages touched only (the steps' `go test -race -count=1` lines are run that way:
+  `ulimit -v 16000000; timeout 600 go test -p 1 -race -count=1 …`); UI tests run uncapped under Node 24.
 - **Every `.go` file** starts with `// SPDX-License-Identifier: Apache-2.0`. Lint only through
-  `task lint`. No literal zero-width or bidi character in Go source: write `"​"`, `"‮"`.
+  `task lint`. No literal zero-width or bidi character in Go source: write `"\u200b"`, `"\u202e"` as these escapes.
 - **CRD changes** are followed by `task crd:gen`; the generated CRD, deepcopy and chart copy are
   committed with the types (`crd:check`).
 - **Strict ingest:** the broker decodes facts strictly (`internal/bridgeapi/system.go:94-99`): Task 1's
@@ -92,7 +109,8 @@ the subscriber's event list, `classes.kb-entries` and its `autoMergesPerDay: 5`)
   `## Files`, `added-entry`, `companionFiles`, `requiredLabel`, `label_missing`, `label_not_adopted`.
   The KB fixtures are runlore-kb's real values: author `runlore[bot]`, branch `^runlore/kb-`, entries
   `^incidents/[^/]+\.md$`, companions `^index\.md$` and `^log\.md$`, label `ready-to-merge`, check `validate`.
-- **Commits:** conventional, in English, no trailers. One concern per commit.
+- **Commits:** conventional, in English, no trailers and no co-author lines; PR bodies carry no
+  attribution. One concern per commit. Paths in this plan are repository-relative.
 
 ## Review Focus
 
@@ -103,6 +121,9 @@ the subscriber's event list, `classes.kb-entries` and its `autoMergesPerDay: 5`)
 | 3 | A maintainer's later `factory/ready` on the published issue collides with the publish's own Task and starts nothing | `TestFactoryReadyAfterAPublishedStartIsGenerationOne` (Task 5) |
 | 4 | The host's adopted classes overlap `alert-rules`' paths: an alert fix infers `review` | `TestInferOnTheHostsClasses` (Task 4) |
 | 5 | A KB pull request read before RunLore labels it stays cached as "no class" at the same head | `TestALabelAddedLaterAdoptsTheSameHead` (Task 11) |
+| 6 | A retry after a failed start reads the footer as a path line and infers `review`: no monitor, the verdict refused | `TestProposalPaths`' footer row (Task 4), `TestPublishStarts`' retry row (Task 5) |
+| 7 | The verdict goes once across a broker restart and with a stable id after a crash before the cursor moved | `TestEmitterSendsTheVerdictOnceAcrossARestart` (Task 1) |
+| 8 | A stranger removes and re-applies `ready-to-merge` after RunLore: the newest event is not an adopted login's | `TestTheCatalogEntryGate`' event-order rows (Task 10) |
 
 ## File structure
 
@@ -110,19 +131,19 @@ the subscriber's event list, `classes.kb-entries` and its `autoMergesPerDay: 5`)
 |---|---|---|
 | `internal/envelope/payloads.go` (+ test) | `TaskFacts.Monitor`, `MonitorVerdicts`, its validation | 1 |
 | `internal/factory/reconciler/facts.go` (+ test) | `factsOf` sets `Monitor` | 1 |
-| `internal/webhook/webhook.go`, `events.go` (+ test) | `Event.Verdict`, the type, `Clip("verdict")`, the tracker | 1 |
+| `internal/webhook/webhook.go`, `events.go` (+ test), `emitter_test.go` | `Event.Verdict`, the type, `Clip("verdict")`, the tracker, the restart test | 1 |
 | `internal/factory/reconciler/roomclose.go` (+ test) | `verdictHolds` | 2 |
 | `internal/factory/config/config.go`, `internal_test.go` | `PublishStarts` field and method | 3 |
 | `api/factory/v1alpha1/task_types.go`, generated files | `Published.Class` | 3 |
 | `internal/factory/filefence/filefence.go` (+ test) | `Infer` | 4 |
-| `internal/factory/intake/publish.go` (+ test), `issues.go` | `proposalPaths`, the class, the start, `originOf` | 4, 5 |
+| `internal/factory/intake/publish.go` (+ test), `issues.go` | `proposalPaths` (ends at `---`), the class, the start (K13), `originOf` | 4, 5 |
 | `internal/factory/reconciler/text.go` (+ `text_test.go`), `implement.go:572` | `## Files` in the brief; `ProposalReady`'s new argument | 4, 5 |
 | `internal/factory/narrate/narrate.go` (+ test) | `ProposalReady`, `PublishedStarted` | 5 |
 | `internal/factory/triage/classify.go` (+ test) | `inferred` | 6 |
 | `docs/api.md`, `docs/factory.md`, `docs/event-envelope.md`, `docs/operations.md`, `docs/security.md` | the reader's contract | 7, 12 |
-| `internal/factory/config/classes.go` (+ test) | `RequiredLabel`, `CompanionFiles`, `added-entry`, validation | 8 |
+| `internal/factory/config/classes.go` (+ test, `classes_test.go:53` included) | `RequiredLabel`, `CompanionFiles`, `added-entry`, validation | 8 |
 | new `internal/factory/entrydiff/entrydiff.go` (+ test); `internal/factory/filefence/filefence.go` (+ test) | `Added`; companions are allowed files | 9 |
-| `internal/factory/reconciler/gate.go`, `arm.go`, `merge.go`, `adopt_gate_test.go`; `internal/factory/narrate/narrate.go`, `internal/summary/waiting.go` | the shape, the label evidence, two reasons | 10 |
+| `internal/factory/reconciler/gate.go`, `arm.go`, `merge.go`, `adopt_gate_test.go`; `internal/factory/narrate/narrate.go`, `internal/factory/narrate/merge_how_test.go`, `internal/summary/waiting.go`, `internal/roomview/words.go` | the shape, the label evidence, two reasons and their words | 10 |
 | `internal/factory/forge/forge.go`, `github.go` (+ test), `internal/factory/intake/adopt.go` (+ test) | `PRSummary.Labels`, the shape list, the label filter | 11 |
 
 ---
@@ -134,7 +155,7 @@ the subscriber's event list, `classes.kb-entries` and its `autoMergesPerDay: 5`)
 **Files:**
 - Modify: `internal/envelope/payloads.go:134-152` (`TaskFacts`), `:270-288` (`Validate`), `payloads_test.go`
 - Modify: `internal/factory/reconciler/facts.go:25-26` (`factsOf`), `facts_test.go`
-- Modify: `internal/webhook/webhook.go:32-45` (`Event`); `internal/webhook/events.go:14-17` (`types`), `:48-64` (`Clip`), `:69-77` (`Tracker`), `:125-145` (`task`); `events_test.go`
+- Modify: `internal/webhook/webhook.go:32-45` (`Event`); `internal/webhook/events.go:14-17` (`types`, and the "R19's eleven events" comment at `:14`, which becomes twelve), `:50-64` (`Clip`), `:69-77` (`Tracker`), `:125-160` (`task`); `events_test.go`, `emitter_test.go`
 
 **Interfaces:**
 - Produces: `TaskFacts.Monitor string \`json:"monitor,omitempty"\``; `func envelope.MonitorVerdicts() []string`
@@ -179,12 +200,20 @@ func TestMonitorVerdictIsSentOncePerRoom(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** `go test -race -count=1 ./internal/envelope ./internal/factory/reconciler ./internal/webhook -run 'Monitor|Verdict'`
+  `emitter_test.go` (Review Focus 7), `TestEmitterSendsTheVerdictOnceAcrossARestart`, in the style of
+  `TestEmitterDeliversAClosedRoomsEnd` (`:482`): a room log of `Done`, a facts event carrying the
+  verdict, then a rewrite of the facts, with a subscriber listing `room.monitor_verdict`: one
+  delivery. A new `Emitter` over the same state plus one more rewrite: no delivery (the tracker's
+  `monitorSent` is rebuilt by replaying the log up to the cursor, `emitter.go:559-594`). A second run
+  with the cursor reset below the verdict's seq: the same `webhook-id` is delivered again (at least
+  once, with a stable id). The verdict is also delivered from a sealed room, since the room closes
+  straight after it.
+- [ ] **Step 2: Run** `go test -race -count=1 ./internal/envelope ./internal/factory/reconciler ./internal/webhook -run 'Monitor|Verdict|Restart'`
   → FAIL to compile: `unknown field Monitor in struct literal of type envelope.TaskFacts`.
 - [ ] **Step 3: Implement.** `Validate` gains `case f.Monitor != "" && !slices.Contains(MonitorVerdicts(), f.Monitor)`:
   "task facts: the monitor verdict is healthy, regression or inconclusive". `factsOf`:
   `if m := t.Status.Monitor; t.Spec.Origin != "" && m != nil { f.Monitor = m.Verdict }`. `types` gains
-  `"room.monitor_verdict"` after `"room.reverted"`. In `task()`, after the `room.merged` block and
+  `"room.monitor_verdict"` after `"room.reverted"`. In `task()`, after the `room.merged` blocks and
   before the `f.Phase == t.phase` return (the verdict comes on a `Done` to `Done` rewrite):
 
 ```go
@@ -201,7 +230,7 @@ func TestMonitorVerdictIsSentOncePerRoom(t *testing.T) {
 ### Task 2: an origin task's room waits for its verdict
 
 **Files:**
-- Modify: `internal/factory/reconciler/roomclose.go:42-47` (after the revert-window wait), `roomclose_test.go`
+- Modify: `internal/factory/reconciler/roomclose.go:43-48` (after the revert-window wait), `roomclose_test.go`
 
 **Interfaces:**
 - Consumes: Task 1's `Monitor` fact.
@@ -209,29 +238,44 @@ func TestMonitorVerdictIsSentOncePerRoom(t *testing.T) {
   `t.Spec.Origin != "" && r.monitorDue(t) && (t.Status.Monitor == nil || t.Status.Monitor.Verdict == "")`.
 
 - [ ] **Step 1: Write the failing test** (Review Focus 1). `TestAnOriginRoomWaitsForItsVerdict`, for
-  `spec.origin` `orig0001` and `""`: `endedTask(PhaseDone)` with a human merge
+  `spec.origin` `abcd2345` (a valid C2 id: `^[a-z2-7]{8}$`, so the fake log's `Validate` accepts the
+  facts) and `""`: `endedTask(PhaseDone)` with a human merge
   (`PullRequest{Number: 12, MergedAt: now-1h, MergeCommitSHA: "m1"}`, not `AutoMerged`),
   `spec.predictedClass: alert-rules`, `g.r.Cfg.Classes = map[string]config.Class{"alert-rules":
-  {Monitor: &config.Monitor{FollowUpWindow: config.Duration{Duration: 2 * time.Hour}}}}`, `withRoom`, main CI pending:
+  {Monitor: &config.Monitor{FollowUpWindow: config.Duration{Duration: 2 * time.Hour}}}}`, `withRoom`,
+  main CI pending. The monitor pass reads the pull request and the checks, so the rig also sets
+  `g.r.Merger = g.f` (as `adopt_gate_test.go:50` does) and
+  `g.f.SetPR(forge.PR{Number: 12, State: "MERGED", MergedAt: merged.Time, MergeCommitSHA: "m1"})`.
+  A helper `lastFacts(g)` returns the facts the fake log holds at the highest `clientSeq`
+  (`g.r.Rooms.(*fakeLog).facts`):
 
 ```go
 	g.reconcile(t, "3buqdlot", 1)
 	if gone := roomGone(t, g); gone != (origin == "") {
 		t.Fatalf("origin %q: room gone %v before the verdict", origin, gone)
 	}
-	// origin only: past the window the monitor decides, the facts carry it, the room closes
-	g.r.Now = func() time.Time { return merged.Add(2*time.Hour + searchLag + time.Minute) }
-	if got := g.reconcile(t, "3buqdlot", 2); got.Status.Monitor.Verdict != "inconclusive" || !got.Status.Facts.Posted || !roomGone(t, g) {
-		t.Fatalf("%+v", got.Status)
+	if origin != "" { // the comment alone guards nothing: the second block runs only for an origin task
+		// past the window the monitor decides; the facts carry it before the room closes
+		g.r.Now = func() time.Time { return merged.Add(2*time.Hour + searchLag + time.Minute) }
+		got := g.reconcile(t, "3buqdlot", 2)
+		if got.Status.Monitor.Verdict != "inconclusive" || lastFacts(g).Monitor != "inconclusive" || !roomGone(t, g) {
+			t.Fatalf("the verdict must reach the log before the close: %+v, facts %+v", got.Status, lastFacts(g))
+		}
 	}
 ```
 
+  A second case, `TestARegressionReleasesAnOriginRoomAtOnce` (K1: a regression decided before the
+  window ends is final): the same rig with `g.f.SetCommitChecks("m1", forge.Check{…red…})` inside the
+  window gives `Monitor.Verdict == "regression"`, `Monitor.Posted == false`, `lastFacts(g).Monitor ==
+  "regression"` and `roomGone(t, g)` true on that pass.
+
 - [ ] **Step 2: Run** `go test -race -count=1 ./internal/factory/reconciler -run TestAnOriginRoomWaitsForItsVerdict`
-  → FAIL: `origin "orig0001": room gone true before the verdict`.
+  → FAIL: `origin "abcd2345": room gone true before the verdict`.
 - [ ] **Step 3: Implement** `verdictHolds` beside `roomState`; in `roomState`, after the revert-window
   block, `if r.verdictHolds(t) { return false, "", monitorEvery, nil }`, commented "room.monitor_verdict
   rides the facts (K2): a sealed log takes none". `Reconcile`'s terminal branch already requeues at
-  `monitorEvery` while `monitorDue` holds (`reconciler.go:304-306`).
+  `monitorEvery` while `monitorDue` holds (`reconciler.go:320-322`). K2's known limit (the 24 h cap)
+  gets no code, only the sentence in Task 7's docs.
 - [ ] **Step 4: Run** `go test -race -count=1 ./internal/factory/reconciler` → PASS;
   `TestATerminalTaskClosesItsRoom` and `TestTheRoomOutlivesTheRevertWindow` unchanged. **Commit**
   `internal/factory/reconciler/roomclose*.go`: `feat(factory): an origin task's room stays open until its monitor verdict is posted`.
@@ -239,7 +283,7 @@ func TestMonitorVerdictIsSentOncePerRoom(t *testing.T) {
 ### Task 3: `publishStarts` and `status.published.class`
 
 **Files:**
-- Modify: `internal/factory/config/config.go:732-748` (`InternalPrincipal`, beside `InternalBy`), `internal_test.go`
+- Modify: `internal/factory/config/config.go:745-751` (`InternalPrincipal`, beside `InternalBy` at `:754`), `internal_test.go`
 - Modify: `api/factory/v1alpha1/task_types.go:139-157` (`Published`); regenerate with `task crd:gen`
 
 **Interfaces:**
@@ -292,6 +336,7 @@ func TestMonitorVerdictIsSentOncePerRoom(t *testing.T) {
 |---|---|
 | ``"## Acceptance check\nquiet\n## Files\n- `observability/a.yaml`\n- `observability/b.yml`\n"`` | `[observability/a.yaml observability/b.yml]` |
 | ``"## Files\n- `a.yaml`\n## Notes\n- `b.yaml`\n"`` | `[a.yaml]`: the section ends at the next heading |
+| ``"## Files\n- `a.yaml`\n\n---\nPublished by @x from agent factory task `y`."`` | `[a.yaml]`: the section ends at the footer's `---` (K14) |
 | no `## Files`; `` `../etc/passwd` ``; `` `/abs/x` ``; a path outside a code span; `` `a b.yaml` ``; a 201-byte path; 11 lines | `nil` |
 
   `text_test.go`, `TestTheTriagerListsItsFiles`: `TriagerBrief(tk, "n")` names `## Files` after
@@ -310,7 +355,7 @@ func Infer(classes map[string]config.Class, paths []string) string
 
   It builds `[]forge.FileStat{{Path: p, Status: "modified"}}` and calls `AllowedFiles` and
   `ProtectedFiles`, so the fence is the gate's. `proposalPaths` finds the line `## Files` and reads
-  each following line until the next `## ` heading; each non-blank line must match ``^- `([^`\s]+)`$``
+  each following line until the next `## ` heading or a line equal to `---`; each non-blank line must match ``^- `([^`\s]+)`$``
   with no `..` segment, no leading `/` and at most `maxPathBytes`; more than `maxProposalPaths` lines,
   or any line that fails, returns nil. `TriagerBrief`: after "`## Acceptance check`, in that order"
   insert ", then `## Files`: each repository path the change touches, one per line as `` - `path` ``, at most 10".
@@ -322,9 +367,9 @@ func Infer(classes map[string]config.Class, paths []string) string
 ### Task 5: `factory/publish` records the class and, with `publishStarts`, starts the fix
 
 **Files:**
-- Modify: `internal/factory/intake/publish.go:99-142` (`publishOne`), `:204-217` (`recordPublished`), `:230-245` (`originOf`), `publish_test.go`
-- Modify: `internal/factory/intake/issues.go:355-359` (`one()`: origin and class)
-- Modify: `internal/factory/narrate/narrate.go:341-354`, `narrate_test.go`; `internal/factory/reconciler/implement.go:572`
+- Modify: `internal/factory/intake/publish.go:63-145` (`publishOne`), `:206` (`recordPublished`), `:233` (`originOf`, which returns the origin's name today), `publish_test.go`
+- Modify: `internal/factory/intake/issues.go:356-360` (`one()`: origin and class)
+- Modify: `internal/factory/narrate/narrate.go:343-351`, `narrate_test.go`; `internal/factory/reconciler/implement.go:572`
 
 **Interfaces:**
 - Consumes: Task 3's `PublishStarts`, `Published.Class`; Task 4's `Infer`, `proposalPaths`.
@@ -347,8 +392,13 @@ func Infer(classes map[string]config.Class, paths []string) string
 | the same label again | no second issue, no second Task |
 | the proposal with no `## Files` | `class:review`; `spec.predictedClass: review` |
 | `publishStarts: false`; a `runlore`-kind stub task; a sponsored principal's (`system:slack-app`) investigate task | the issue, no Task; the comment says `factory/ready` |
-| the first Task create fails (the fake client refuses once) | the poll errs, the label stays; the retry files no second issue and creates the Task once |
+| the first Task create fails (the fake client refuses once) | the poll errs, the label stays; the retry files no second issue and creates the Task once; the Task's `spec.predictedClass` is `alert-rules`, `status.published.class` is `alert-rules`, and the issue carries `class:alert-rules` and no `class:review` (K14: the retry reads the filed body, footer included) |
+| the first Task create fails, then a maintainer labels the filed issue `factory/ready` before the retry | the retry starts nothing (K13): one open Task (generation 1), no second charge; the comment says `factory/ready` |
 | a retry finds the marker issue edited (`LastEditedAt` set) | no Task; the comment says `factory/ready` |
+
+  A person over budget is not a row here: the start is created and the reconciler ends it
+  `Escalated` with `budget-person` (K8), which `reconciler`'s ledger tests already cover; Task 7's
+  `docs/security.md` sentence says so.
 
   `TestFactoryReadyAfterAPublishedStartIsGenerationOne` (Review Focus 3): after the first case, the
   gen-0 Task set `Done`, `labelled(f, 501, "Smana")` and a poll create
@@ -373,9 +423,10 @@ func Infer(classes map[string]config.Class, paths []string) string
 ```
 
   then `recordPublished(…, class)`, then `PublishedStarted(filed.Number, by, started, class)` when
-  `started != ""`, else `Published`, then the label removed. `startPublished` reads
-  `p.Forge.Issue(ctx, n)`; edited (`LastEditedAt` or `TitleEditedAt` non-zero) or a withheld snapshot
-  returns `"", nil`; otherwise it creates the Task as `one()` does (`issues.go:339-346`), with
+  `started != ""`, else `Published`, then the label removed. `startPublished` first calls `p.openTasks(ctx, n)`
+  and returns `"", nil` if any Task is open on the issue or any task with `LabelIssue: n` already exists
+  (K13), then reads `p.Forge.Issue(ctx, n)`; edited (`LastEditedAt` or `TitleEditedAt` non-zero) or a withheld snapshot
+  returns `"", nil`; otherwise it creates the Task as `one()` does (`issues.go:340-347`), with
   `key := taskid.IssueKey(p.repo().Name, n, 0)`, `RequestedBy: "github:" + by`, `Origin: origin.Name`,
   `PredictedClass: class` and the label `LabelIssue: n`; `AlreadyExists` returns the name. `one()`
   sets `t.Spec.Origin = o.Name` and `t.Spec.PredictedClass = o.Status.Published.Class` from `originOf`.
@@ -420,8 +471,11 @@ func Infer(classes map[string]config.Class, paths []string) string
   effect yet"; `## Files` and the inferred class; the start and its generation 0; the sequence
   diagram), `docs/factory.md` "The post-merge monitor" (an origin task's room waits for the verdict),
   `docs/operations.md` (subscribers add `room.monitor_verdict`; `class:<c>` labels; roll the broker
-  first), `docs/security.md` (`factory/publish` is the one human read; the start is charged to the
-  publisher; R38 holds: the fix reads the public issue)
+  first; switch RunLore and its subscriber off together and never leave RunLore down past about 6
+  minutes with the subscriber on, K1; K2's known limit: a class window over 24 h can lose its verdict
+  at `roomCloseCap`), `docs/security.md` (`factory/publish` is the one human read; the start is charged to the
+  publisher, and a person whose day is spent ends the Task `Escalated` with `budget-person` while a
+  later `factory/ready` supersedes it, K8; R38 holds: the fix reads the public issue)
 
 - [ ] **Step 1: Write the docs**, each sentence matching the code above. `hack/docs.sh` must pass.
 - [ ] **Step 2: The whole check.** Run `task check` → exit 0.
@@ -433,7 +487,8 @@ func Infer(classes map[string]config.Class, paths []string) string
   attribution line.
 - [ ] **Step 4: Release `vK1`** once merged and CI is green on `main`: the next minor after
   `git tag --sort=-v:refname | head -1`, through CONTRIBUTING.md "Releases". Record `vK1` in the
-  ai-native-ref plan for this spec.
+  ai-native-ref plan for this spec. Cutting it is the owner's decision, as every release is; the
+  ai-native-ref release and the host's pin of its tag and digest follow (K15).
 
 ---
 
@@ -442,7 +497,7 @@ func Infer(classes map[string]config.Class, paths []string) string
 ### Task 8: `added-entry`, `companionFiles` and `requiredLabel` in the config
 
 **Files:**
-- Modify: `internal/factory/config/classes.go:19-58` (`Class`), `:124-125` (`DiffShapes`), `:184-200` (pattern checks), `:215-227` (the adopt rules), `classes_test.go:167-189`
+- Modify: `internal/factory/config/classes.go:19-58` (`Class`), `:125` (`DiffShapes`), `:185-200` (pattern checks), `:215-224` (the adopt rules), `classes_test.go:53` (the "an unknown shape" row) and `:167-189`
 
 **Interfaces:**
 - Produces: `Class.RequiredLabel string \`json:"requiredLabel,omitempty"\``;
@@ -468,12 +523,14 @@ func Infer(classes map[string]config.Class, paths []string) string
 | `x: {requiredLabel: l}` | `class x: requiredLabel needs author.adopt` |
 | a 51-character label | `class kb-entries: requiredLabel is 1..50 characters, GitHub's bound` |
 
-  `TestBadAdoptionFails`' "adopt without semver" now expects
+  `TestBadCatalogClassFails` and the existing `classes_test.go:53` row ("an unknown shape") now expect
+  `diffShape "semver-major" is not one of [links-only semver-patch semver-minor added-entry]`
+  (`DiffShapes()` appends `added-entry`). `TestBadAdoptionFails`' "adopt without semver" now expects
   `class x: author.adopt needs diffShape semver-patch, semver-minor or added-entry`.
 - [ ] **Step 2: Run** `go test -race -count=1 ./internal/factory/config -run 'Catalog|Adoption'`
   → FAIL: `unknown field "requiredLabel"`.
 - [ ] **Step 3: Implement** the fields and the shape. `companionFiles` joins `allowedFiles` in the
-  anchor and compile checks (`:184-200`). In the switch at `:215-227`,
+  anchor and compile checks (`:185-200`). In the switch at `:215-224`,
   `entry := cl.DiffShape == "added-entry"` joins `semver` in the two adopt rules and adds the four
   `entry` rules above; then the companion and label rules.
 - [ ] **Step 4: Run** the same → PASS. **Commit** `internal/factory/config`:
@@ -483,7 +540,7 @@ func Infer(classes map[string]config.Class, paths []string) string
 
 **Files:**
 - Create: `internal/factory/entrydiff/entrydiff.go`, `internal/factory/entrydiff/entrydiff_test.go`
-- Modify: `internal/factory/filefence/filefence.go:49-59` (`AllowedFiles`), `filefence_test.go`
+- Modify: `internal/factory/filefence/filefence.go:51-60` (`AllowedFiles`), `filefence_test.go`
 
 **Interfaces:**
 - Produces:
@@ -497,8 +554,9 @@ package entrydiff
 // MaxCompanionLines bounds the lines one companion file gains.
 const MaxCompanionLines = 10
 
-// Added reports whether d adds exactly one file matching cl.AllowedFiles, absent on the base and
-// non-empty valid UTF-8 on the head, and changes every other file only by appending lines: modified,
+// Added reports whether d adds exactly one file matching cl.AllowedFiles, absent on the base
+// (d.Base[p] == "": Diff stores an added file's base as an empty value) and non-empty valid UTF-8
+// on the head, and changes every other file only by appending lines: modified,
 // matching cl.CompanionFiles, 0 deleted, 1..MaxCompanionLines added, the base's lines kept in
 // order. No control character but tab and newline, and no Unicode format character (zero-width,
 // bidi), in the entry or an added line. The reason when it does not.
@@ -519,7 +577,7 @@ func Added(cl config.Class, d forge.Diff) (bool, string)
 | `index.md` also deletes a line; `index.md` rewrites a base line (`+1/-0` claimed, the base's lines out of order); `log.md` gains 11 lines | no |
 | `index.md` added, not modified; `README.md` modified; a second added entry; the entry `modified` or `renamed` | no |
 | the entry under `notes/`; no added entry, companions only; the entry empty | no |
-| the entry holds `"‮"`, `"​"`, `"\x00"` or `"\xff"`; an added `log.md` line holds `"‮"` | no |
+| the entry holds `"\u202e"`, `"\u200b"`, `"\x00"` or `"\xff"`; an added `log.md` line holds `"\u202e"` | no |
 
   `filefence_test.go`, `TestCompanionFilesAreAllowed`: `AllowedFiles` passes the three files above,
   refuses `README.md` with `file_not_allowed`, and a class without `companionFiles` refuses `index.md`.
@@ -534,20 +592,22 @@ func Added(cl config.Class, d forge.Diff) (bool, string)
 ### Task 10: the gate decides the KB shape and its label
 
 **Files:**
-- Modify: `internal/factory/reconciler/gate.go:76-92` (`diffShape`), `:213-221` (`onDiffFor`)
-- Modify: `internal/factory/reconciler/arm.go:62-67` (`Adoption`), `:471-489` (`adoptEvidence`); `merge.go:640-658` (`adoption`)
-- Modify: `internal/factory/narrate/narrate.go:179-277` (reason prose), `internal/summary/waiting.go:110-130`
+- Modify: `internal/factory/reconciler/gate.go:76-92` (`diffShape`), `:216-221` (`onDiffFor`)
+- Modify: `internal/factory/reconciler/arm.go:62-67` (`Adoption`), `:471-489` (`adoptEvidence`); `merge.go:640-658` (`adoption`; `adoptEvidence` runs only on a read adoption, `arm.go:471-473`)
+- Modify: `internal/factory/narrate/narrate.go:177-278` (reason prose), `internal/summary/waiting.go:110-186` (`reasons()`)
+- Modify: `internal/roomview/words.go` (`reasonPhrases`, `:66`): `"label_missing": "the required label is missing"`, `"label_not_adopted": "the wrong login applied the label"`, each 40 runes or fewer; `TestEvery...HasWords` (`words_test.go:33-37`) fails any `summary.Reasons()` entry without words
+- Modify: `internal/factory/narrate/merge_how_test.go:16-24`: both reasons join `waitReasons`, so a missing narrate or summary line is caught
 - Modify: `internal/factory/reconciler/adopt_gate_test.go`
 
 **Interfaces:**
 - Consumes: Task 8's fields, Task 9's `Added` and fence.
-- Produces: `Adoption.LabelledBy string` (the newest `labeled` actor of `cl.RequiredLabel`; "" when
-  unread or truncated); the reasons `label_missing`, `label_not_adopted`.
+- Produces: `Adoption.LabelledBy string` (the newest `labeled` actor of `cl.RequiredLabel`, the last
+  element of `LabelEvents`, which sorts ascending; "" when unread or truncated); the reasons `label_missing`, `label_not_adopted`.
 
 - [ ] **Step 1: Write the failing test** (offline proof 7). `kbRig(t)`, an `adoptRig` variant on
   PR 30: class `kb-entries` as Task 8's fixture; the PR by `runlore[bot]` on
   `runlore/kb-kube-pod-crashlooping-1762160000`, labels `[ready-to-merge]`, label events
-  `[{runlore[bot], ready-to-merge}]`; files and stats as `TestAdded`'s first case; CI, policy-bot and
+  `[{runlore[bot], ready-to-merge}]` (`f.SetEvents(30, …)`); files and stats as `TestAdded`'s first case; CI, policy-bot and
   `validate` (GitHub Actions) green; commits and pushes `runlore[bot]`'s. `TestTheCatalogEntryGate`:
 
 | Case | Reason |
@@ -558,7 +618,8 @@ func Added(cl config.Class, d forge.Diff) (bool, string)
 | `validate` red (an invalid entry) | `holdout_red` |
 | the PR by `someone[bot]` | `not_adopted_author` |
 | no `ready-to-merge` | `label_missing` |
-| the label applied by `Smana`; the label's events truncated | `label_not_adopted` |
+| the label applied by `Smana`; label events `[runlore[bot], Smana]` (a stranger removed and re-applied it: only the newest counts); the label's events truncated (`f.SetEventsTruncated(30)`, `fake.go:193`) | `label_not_adopted` |
+| label events `[Smana, runlore[bot]]` (the adopted login labelled last) | `shadow_would_arm` |
 
 - [ ] **Step 2: Run** `go test -race -count=1 ./internal/factory/reconciler -run TestTheCatalogEntryGate`
   → FAIL: `reason "shadow_would_arm", want "class_mismatch"` (the shape is not read yet).
@@ -580,19 +641,21 @@ func Added(cl config.Class, d forge.Diff) (bool, string)
 ```
 
   Prose for both in `narrate` and `summary`: "it does not carry the label its class requires", "its
-  required label was not applied by a login the class adopts". `reenter` is unchanged: both are terminal.
-- [ ] **Step 4: Run** `go test -race -count=1 ./internal/factory/... ./internal/summary` → PASS;
-  `TestAdoptedGate` unchanged. **Commit** `internal/factory internal/summary`:
+  required label was not applied by a login the class adopts"; in `roomview`, the words from the file list. `reenter` is unchanged: both are terminal.
+- [ ] **Step 4: Run** `go test -race -count=1 ./internal/factory/... ./internal/summary ./internal/roomview ./internal/webhook` → PASS;
+  `TestAdoptedGate` unchanged. The rig also asserts that a force-push by `runlore[bot]` still passes
+  `pushedBy` (the branch's activity rows end in a `runlore[bot]` push), so RunLore's entry refresh
+  (its plan) is not refused here. **Commit** `internal/factory internal/summary`:
   `feat(factory): the gate decides added-entry and an adopted login's required label`.
 
 ### Task 11: the adopt poller takes a labelled KB entry
 
 **Files:**
-- Modify: `internal/factory/forge/forge.go:443-455` (`PRSummary`), `github.go:1164-1177` (`OpenPullRequests`), `github_test.go`
+- Modify: `internal/factory/forge/forge.go:465` (`PRSummary`), `github.go:1224` (`OpenPullRequests`), `github_test.go`
 - Modify: `internal/factory/intake/adopt.go:99-105` (`adoptShapes`), `:197-214` (`candidates`), `:247-258`, `adopt_test.go`
 
 **Interfaces:**
-- Produces: `PRSummary.Labels []string`; `adoptShape.ok func(cl config.Class, d forge.Diff) (bool, string)`,
+- Produces: `PRSummary.Labels []string`; `adoptShape.ok func(cl config.Class, d forge.Diff) (bool, string)` (today `func(base, head map[string]string)`),
   the semver entries wrapping `semverdiff.Patch(d.Base, d.Head)` and `Minor`, a third
   `{"added-entry", entrydiff.Added}`.
 
@@ -626,7 +689,9 @@ func TestALabelAddedLaterAdoptsTheSameHead(t *testing.T) {
   → FAIL to compile: `unknown field Labels in struct literal of type forge.PRSummary`.
 - [ ] **Step 3: Implement.** `OpenPullRequests` fills `Labels` from `p.Labels`' names; `candidates`
   skips a class whose `RequiredLabel` is not in `p.Labels`, so an unlabelled pull request is never
-  diffed nor judged; `classOf` calls `s.ok(rc.Classes[class], d)`.
+  diffed nor judged; `classOf` calls `s.ok(rc.Classes[class], d)`. Known bound, not changed here: `Adopter.Tick` adopts
+  nothing at `openPRPage` (100) or more open pull requests (`adopt.go:167`); runlore-kb's backlog was
+  54 when this plan was reviewed, and the docs (Task 12) say so.
 - [ ] **Step 4: Run** `go test -race -count=1 ./internal/factory/...` → PASS; `TestAdopter` and
   `TestAdopterAppliesTheClassFence` unchanged. **Commit** `internal/factory/forge internal/factory/intake`:
   `feat(factory): the adopt poller takes a labelled added-entry pull request`.
@@ -639,7 +704,7 @@ func TestALabelAddedLaterAdoptsTheSameHead(t *testing.T) {
   `allowedFiles` admits `companionFiles`; the author-mode table gains `label_missing` and
   `label_not_adopted`; the lifecycle's terminal row names them, `holdout_red` included; an example
   `kb-entries` block with runlore-kb's values, its validator the holdout check `validate`),
-  `docs/operations.md` (an adopted KB repository: the fence file, policy-bot, `.github/workflows/validate-kb.yml` as a gate path)
+  `docs/operations.md` (an adopted KB repository: the fence file, policy-bot, `.github/workflows/validate-kb.yml` as a gate path; the 100-open-PR bound of the adopt poller)
 
 - [ ] **Step 1: Write the docs.** `hack/docs.sh` must pass.
 - [ ] **Step 2: The whole check.** Run `task check` → exit 0 (offline proof 8).
@@ -648,13 +713,14 @@ func TestALabelAddedLaterAdoptsTheSameHead(t *testing.T) {
   origin feat/adopted-added-entry`. Title: `feat(factory): an adopted class for one added KB entry,
   validated and labelled`. Body: K10, K11, offline proof 7 case by case with `TestTheCatalogEntryGate`,
   D4. No attribution line.
-- [ ] **Step 4: Release `vK2`**, the next minor, as Task 7's Step 4.
+- [ ] **Step 4: Release `vK2`**, the next minor, as Task 7's Step 4 (the owner's decision; the
+  ai-native-ref release and the host's pin follow, K15).
 
 ## Offline proofs, where they run
 
 | Design proof | Tests |
 |---|---|
-| 1 | `TestTaskFactsMonitor`, `TestFactsCarryAnOriginTasksVerdict`, `TestMonitorVerdictIsSentOncePerRoom`, `TestAnOriginRoomWaitsForItsVerdict` |
+| 1 | `TestTaskFactsMonitor`, `TestFactsCarryAnOriginTasksVerdict`, `TestMonitorVerdictIsSentOncePerRoom`, `TestEmitterSendsTheVerdictOnceAcrossARestart`, `TestAnOriginRoomWaitsForItsVerdict`, `TestARegressionReleasesAnOriginRoomAtOnce` |
 | 2 | `TestPublishStartsConfig`, `TestInferOnTheHostsClasses`, `TestProposalPaths`, the `TestPublishStarts` table, `TestFactoryReadyAfterAPublishedStartIsGenerationOne`, `TestAnOriginTaskKeepsItsInferredClass` |
 | 7 | `TestACatalogClassParses`, `TestBadCatalogClassFails`, `TestAdded`, `TestCompanionFilesAreAllowed`, `TestTheCatalogEntryGate`, `TestALabelAddedLaterAdoptsTheSameHead`, `TestAdopterTakesALabelledCatalogEntry` |
 | 8 | `task check` on each PR's head |

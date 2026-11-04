@@ -98,7 +98,10 @@ else:
                        ("protectedFiles", [r"^website/"])]:
         if not check("self-test", {"dead-links": dict(live, **{key: value})}, probe):
             fails.append(f"self-test: a {key} mismatch went unnoticed")
-    if not check("self-test", {"dead-links": live}, host):
+    # The host now carries its own dead-links rule (R23), so the "no rule" case is the host's policy without it.
+    bare = copy.deepcopy(host)
+    bare["approval_rules"] = [r for r in bare["approval_rules"] if r["name"] != "low-risk: dead-links"]
+    if not check("self-test", {"dead-links": live}, bare):
         fails.append("self-test: a live class without its rule went unnoticed")
 
 # OD-F3-1 (R50): this repository's dead-links lane needs its own rule, or a shadow decision here

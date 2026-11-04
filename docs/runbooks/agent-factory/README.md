@@ -17,7 +17,7 @@ on 2026-10-30 and 31: [results](results-aws-0-2026-10-30.md). A fresh bootstrap 
 | Live auto-merge | cloud-native-ref's `docs-links` (Markdown link fixes) and `revert`, `autoMergesPerDay: 1` ([12](12-live-auto-merge-drill.md)) |
 | Shadow | `dead-links` on both repositories ([15](15-dead-links.md)), `deps-patch` ([16](16-deps-patch.md)); `deps-minor` observed only |
 | Budgets | Gateway budgets refuse (`SHADOW_MODE: "false"`, [04 Part D](04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)); the fleet's and each person's day are counted, never refused (`enforcePrincipal: false`, [04 Part C](04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week)) |
-| Session switches, off after each live session | `testFirst` on `scripts` ([21](21-test-first-tester.md)), RunLore ([20](20-runlore-agent-to-agent.md)), the `docs` row's provider `models`, `human.mcp.sessionStart` ([19](19-factory-from-your-agent.md)) |
+| Session switches, off after each live session | `testFirst` on `scripts` ([21](21-test-first-tester.md)), RunLore ([20](20-runlore-agent-to-agent.md); its two halves are the host's three places and `aws-0`'s `runlore` webhook subscriber, [25](25-runlore-kb-phase-1.md)), the `docs` row's provider `models`, `human.mcp.sessionStart` ([19](19-factory-from-your-agent.md)) |
 
 `maku setup <client>` installs the factory MCP server and the `factory-handoff` skill for a coding
 agent client (`claude`, `opencode`, ...): [runbook 19](19-factory-from-your-agent.md).
@@ -96,6 +96,7 @@ Grouped by purpose; the number is the order they were written in.
 | Runbook | Proves (SC / Q / R) | Needs an owner action? | Est. time |
 |---|---|---|---|
 | [24-screencast.md](24-screencast.md) | — (a recording script: one `docs` task from OpenCode, through the room page and GitHub's approve-to-merge, to the dashboards) | Yes — the session switch (`human.mcp.sessionStart` on aws-0), the owner's approval | ~75 min |
+| [25-runlore-kb-phase-1.md](25-runlore-kb-phase-1.md) | RunLore's knowledge base, phase 1 on aws-0: a restart keeps the soak (live 1), one incident to a verified entry the triager can read (live 2), a second generation (live 3), the replay (live 4), the queue cleared and the phase 1 gate | Yes — the owner's go, the ZITADEL sync, the seeded keys, the three labels, two releases and two host pins per flip | ~5 h a session, three sessions for the gate |
 
 **Out of scope:** SC-15/SC-16 (gVisor overhead ratio and `validate-manifests.sh`/`task check`
 exit codes) are already closed by the phase-0 spike and by CI — no live step adds evidence.

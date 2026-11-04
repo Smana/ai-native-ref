@@ -234,6 +234,42 @@ data:
               class: dead-links
               probe: dead-links
               text: Fix the dead external links listed below.
+        # RK3: RunLore drafts, the merge gate merges verified entries; shadow until 20 decisions (K8).
+        # The third repository. Its .policy.yml has one low-risk rule, `kb-entries`', and its fence file
+        # names aws-0. The repository has no `.policy.yml` in this tree: the parity suite skips it, and
+        # that repository's own file holds the fence.
+        - name: Smana/runlore-kb
+          maintainers: [Smana]
+          triggerLabel: factory/ready
+          classes:
+            docs-links: {shadow: true, holdoutChecks: [validate]}
+            revert: {shadow: true, holdoutChecks: [validate]}
+            kb-entries:
+              shadow: true
+              author: {adopt: {logins: ["runlore[bot]"], branches: ["^runlore/kb-"]}}
+              diffShape: added-entry
+              allowedFiles: ['^incidents/[^/]+\.md$']
+              companionFiles: ['^index\.md$', '^log\.md$']
+              requiredLabel: ready-to-merge
+              holdoutChecks: [validate]
+              maxPerDay: 5
+          merge:
+            requiredChecks: [validate, leak-scan]
+            verifyChecks: [validate, leak-scan]
+            policyBotLogin: ogenki-merge-gate[bot]
+            mergerLogin: ogenki-agent-merger[bot]
+            autoMergesPerDay: 5
+            fixRuns: 1
+            checkReruns: 0
+            verifyFor: 30m
+            revertWindow: 168h
+            # K12: the knowledge base is public text with secret redaction at each tool output (RK13).
+            # `leak-scan` is the job PR 6 adds to the repository, in both lists above; a red `validate`
+            # would otherwise escalate as secret_scan_red and post "found a live credential".
+            leakScanCheck: leak-scan
+            awaitingCIFor: 24h
+            approveToMerge: true
+            breaker: {window: 10, maxReverts: 1, maxFollowUps: 1, recoverAfter: 3}
       control: {repository: Smana/cloud-native-ref, issue: 2188}  # factory/stop here stops every repository
       factoryLogin: ogenki-agent-factory[bot]
       agentsLogin: ogenki-agents[bot]

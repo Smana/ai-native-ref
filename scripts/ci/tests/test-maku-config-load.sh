@@ -114,5 +114,16 @@ grep -v '^factoryInsecure:' "$tmp/cfg/broker-aws-0.yaml" > "$tmp/cfg/broker-bite
 if out="$("$tmp/load" broker "$tmp/cfg/broker-bite.yaml" 2>&1)" || ! grep -q 'factoryURL: http:// sends human tokens in the clear' <<<"$out"; then
   echo "FAIL  without factoryInsecure the broker config was not refused for factoryURL: $out"; fails=$((fails + 1))
 else echo "ok    without factoryInsecure the config is refused: factoryURL"; fi
+# The runlore-kb entry's leak check bites too (K12): `leak-scan` out of verifyChecks and the factory refuses it.
+python3 - "$tmp/cfg/factory-base.yaml" "$tmp/cfg/factory-bite.yaml" <<'PY'
+import sys, yaml
+c = yaml.safe_load(open(sys.argv[1]))
+r = next(r for r in c["repositories"] if r["name"] == "Smana/runlore-kb")
+r["merge"]["verifyChecks"] = [x for x in r["merge"]["verifyChecks"] if x != "leak-scan"]
+yaml.safe_dump(c, open(sys.argv[2], "w"))
+PY
+if out="$("$tmp/load" factory "$tmp/cfg/factory-bite.yaml" 2>&1)" || ! grep -q 'leakScanCheck' <<<"$out"; then
+  echo "FAIL  runlore-kb without leak-scan in verifyChecks was not refused for leakScanCheck: $out"; fails=$((fails + 1))
+else echo "ok    runlore-kb without leak-scan in verifyChecks is refused: leakScanCheck"; fi
 [ "$fails" -eq 0 ] || { echo "$fails failure(s)"; exit 1; }
 echo PASS

@@ -1,0 +1,54 @@
+[
+  {
+    "number": 1,
+    "title": "RunLore: AppDown on apps/x",
+    "body": "RunLore reported **critical** on `apps/x` (alert `AppDown`, verdict `action_suggested`, confidence 0.95).\n\nAgent factory task `abc` investigates it.",
+    "author": {
+      "login": "ogenki-agent-factory[bot]",
+      "type": "Bot"
+    },
+    "labels": [
+      "factory/proposed"
+    ],
+    "created_at": "2026-10-20T08:00:00Z"
+  },
+  {
+    "number": 2,
+    "title": "RunLore: AppDown on apps/y",
+    "body": "RunLore reported **critical** on `apps/x` (alert `AppDown`, verdict `action_suggested`, confidence 0.95).\n\nAgent factory task `abc` investigates it.",
+    "author": {
+      "login": "ogenki-agent-factory[bot]",
+      "type": "Bot"
+    },
+    "labels": [
+      "factory/proposed"
+    ],
+    "created_at": "2026-10-20T08:00:00Z"
+  },
+  {
+    "number": 3,
+    "title": "RunLore: the fix in #11 did not hold (AppDown)",
+    "body": "RunLore reports that the fix in #11 did not hold: alert `AppDown` is still firing after the merge.",
+    "author": {
+      "login": "ogenki-agent-factory[bot]",
+      "type": "Bot"
+    },
+    "labels": [
+      "factory/proposed"
+    ],
+    "created_at": "2026-10-20T08:00:00Z"
+  },
+  {
+    "number": 4,
+    "title": "Someone else's stub",
+    "body": "A finding from another source.",
+    "author": {
+      "login": "ogenki-agent-factory[bot]",
+      "type": "Bot"
+    },
+    "labels": [
+      "factory/proposed"
+    ],
+    "created_at": "2026-10-20T08:00:00Z"
+  }
+]

@@ -302,6 +302,17 @@ should only be enabled on purposes for our demo platform" (RK15), so the queue i
 session's end (RK4), the gates count sessions and entries, and the spend cap comes from the first
 session (RK20).
 
+### Owner decisions, 2026-11-04
+
+On the plan reviews and the phase 1 build:
+
+- A stub nobody publishes gets no newer stub until the curation window has passed.
+- A drafted entry with an open pull request and no fix files nothing on a repeat; a merged one files again.
+- `Smana/runlore-kb` gets a real `leak-scan` job (K12), named as `leakScanCheck` beside `validate`.
+- A maintainer adds `class:alert-rules` at publish once that class is live; in shadow the factory infers it.
+- The gate's terminal stops are decided at phase 3's gate, with shadow data.
+- RK6's trust factor is kept, and it applies whenever `defer` and recall run.
+
 ## Left to the builder
 
 The Go names. `factory.curation.window` against the classes' `followUpWindow`.

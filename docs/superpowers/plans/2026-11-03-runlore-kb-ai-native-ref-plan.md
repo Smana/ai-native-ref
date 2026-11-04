@@ -462,7 +462,7 @@ git commit -m "feat(ops): kb-measures, human touches per incident and the knowle
 - [ ] **Step 2: The README.** A row after row 24: proves live 1–4 and the phase 1 gate; needs the owner's go,
   the ZITADEL sync, the seeded keys, the labels, two releases and two host pins per flip; about 5 h a session,
   three sessions for the gate. In line 20's "Session switches" row, name RunLore's two halves: the host's three
-  places and aws-0's `runlore` subscriber ([25](25-runlore-kb-phase-1.md)).
+  places and aws-0's `runlore` subscriber (runbook 25, linking `25-runlore-kb-phase-1.md`).
 - [ ] **Step 3: `task check`** green, `pre-commit run --all-files`, the PR.
 
 ```bash

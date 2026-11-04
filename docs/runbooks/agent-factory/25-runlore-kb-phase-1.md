@@ -89,9 +89,9 @@ The subscriber must not exist while RunLore is off: three failed deliveries disa
    `infrastructure/aws-0/room-broker/config.yaml`; list `externalsecret-webhook-runlore.yaml` under `resources`;
    run `python3 scripts/ci/gen-webhook-egress.py --write`; list `- path: network-policy-webhooks-patch.yaml`
    under `patches:`. The owner cuts the release.
-2. One host pull request carries the three places (the `# - ../base/runlore` line in
-   `observability/aws-0/kustomization.yaml`, the Alertmanager route, and the `runlore.yaml` and
-   `runlore-spend.yaml` rule files) and the new ai-native-ref tag and digest. No Flux dependency orders the two
+2. One host pull request carries the four places (the `# - ../base/runlore` line in
+   `observability/aws-0/kustomization.yaml` **and the `# - configmap-factory-ca.yaml` line under it**, the Alertmanager
+   route, and the `runlore.yaml` and `runlore-spend.yaml` rule files) and the new ai-native-ref tag and digest. No Flux dependency orders the two
    halves. What holds is that nothing delivers until a room event, so run no factory task, and seed nothing,
    until this returns. RunLore's first start is slow, and `wait` fails at once on a pod that does not exist yet,
    so retry on `NotFound`:
@@ -265,7 +265,8 @@ Any other conflicting pull request waits in Decide as `conflict`. On the first r
 3. The subscriber off: a pull request here reverses the four edits (K9: comment the entry, take the
    ExternalSecret out of `resources`, delete `network-policy-webhooks-patch.yaml` and its `patches:` line), a
    release, and the host pin.
-4. The host pull request with the three places off.
+4. The host pull request with the four places off (the CA ConfigMap line goes with the `../base/runlore` line: RunLore
+   refuses a missing `factory.ca_file` at start, so the ConfigMap is on whenever RunLore is, and off with it).
 
 The volume stays.
 
@@ -292,64 +293,67 @@ spend alert, and the provider's monthly limit at 1.5 × `D` × the session days 
 every repeat investigates (see the top of this page), `D` includes them. Record the results in the status
 record.
 
-## 10. TLS on the broker-to-factory hop
+## 10. TLS on the run-request API (broker, tailnet route and RunLore)
 
 Maku v0.33.0 refuses an `http://` `factoryURL` unless `factoryInsecure: true` says so, because the broker forwards
-each human's token on that hop. The first change kept plaintext with `factoryInsecure: true`; this one, a draft
-that stays unmerged until the check below passes in an aws-0 session, turns TLS on:
+each human's token on that hop. The first change kept plaintext with `factoryInsecure: true`; this one turns TLS on for
+every caller of the factory's port 8082, with our own CA throughout. It is a draft: it merges only after an aws-0
+session proves it (below).
 
 | Piece | Setting |
 |---|---|
 | Factory | The chart's `api.tls.secretName: agent-factory-api-tls` and `issuerRef` `ClusterIssuer/openbao` (the issuer the broker's `room-broker-tls` already uses), in `tooling/base/agent-factory/helm-values-configmap.yaml`. The chart renders the Certificate for `agent-factory.agent-system.svc[.cluster.local]`, and Service port 8082 is then named `https` |
-| Broker | `factoryURL: https://agent-factory.agent-system.svc:8082`, `factoryCAFile: /etc/room-broker/factory-ca/ca.crt`, no `factoryInsecure`, in all three configs; `app.yaml` mounts agent-secrets' `openbao-ca` at `/etc/room-broker/factory-ca` |
-| Network policies | None change: the port is still 8082, and the policies are L4 |
-| Probes, scrape, meter | None change: they use the factory's `ops` port (9090) and VictoriaMetrics, not 8082 |
+| Broker | `factoryURL: https://agent-factory.agent-system.svc:8082`, `factoryCAFile: /etc/room-broker/factory-ca/ca.crt`, no `factoryInsecure`, in all three configs; `app.yaml` mounts agent-secrets' `openbao-ca` (the chain) at `/etc/room-broker/factory-ca`. The sponsored MCP path uses the same URL and CA |
+| Tailnet route | `factory.${private_domain_name}` (the CLI's `POST /v1/runs`): `tooling/base/agent-factory/backendtlspolicy.yaml`, a `BackendTLSPolicy` (`gateway.networking.k8s.io/v1`, served by Gateway API v1.6.3), targets Service port `https`, checks `agent-factory.agent-system.svc` (on the certificate, so no tailnet name is added) and trusts ConfigMap `agent-factory-ca`. `caCertificateRefs` takes a ConfigMap only, so each cloud commits the CA as a plain ConfigMap (`tooling/{aws-0,gcp-0}/agent-factory/configmap-agent-factory-ca.yaml`), beside the policy: no ReferenceGrant and no new External Secrets permission |
+| RunLore | `observability/base/runlore-factory/helm-values-configmap.yaml`: `factory.url: https://agent-factory.agent-system.svc:8082` and `factory.ca_file: /etc/runlore-factory-ca/ca.crt` (RunLore v0.20.0, pinned by the host). The host mounts its static ConfigMap `factory-ca` there, at a sibling path of `/etc/runlore`: a mount inside the chart's read-only config mount cannot be created and the pod would not start |
+| Network policies, probes, scrape, meter | None change: the port is still 8082, the policies are L4, and the rest use the factory's `ops` port (9090) and VictoriaMetrics |
 
-The issuer and the names are the host contract's from version 7 (`HOST-CONTRACT.md`: H5 PKI and ConfigMap targets, H8's
-`factory-ca`), which lands with the host change below and the `HOST_REF` bump.
+The CA is the platform's offline root, the file cloud-native-ref commits as `.github/openbao-root-ca.pem`, in four
+copies (`agent-factory-ca` for aws-0 and gcp-0 here, `factory-ca` for both in cloud-native-ref). **Only the root is
+committed**: the intermediate is not in Git, and the factory presents it with its certificate, so the root verifies it. One
+offline root signs both clouds' intermediates (cloud-native-ref's PKI page), but gcp-0's chain is not re-checked
+continuously. Rotating the CA is a pull request in both repositories; `test-factory-backend-tls.py` holds the copies equal
+wherever the host clone carries its copies.
 
-The CA is ours throughout: the platform's OpenBao chain. Beside the broker, two other callers use port 8082:
+**RunLore needs the ConfigMap whenever it runs.** RunLore refuses a missing `factory.ca_file` at start. The ConfigMap is
+therefore on RunLore's switch (section 1): on aws-0 the `# - configmap-factory-ca.yaml` line beside `../base/runlore`, on
+gcp-0 inside `./runlore`. Off, neither RunLore nor the ConfigMap exists, so nothing is left behind.
 
-- **The tailnet route** `factory.${private_domain_name}` (the CLI's `POST /v1/runs`): `tooling/base/agent-factory/backendtlspolicy.yaml`
-  (a `BackendTLSPolicy`, `gateway.networking.k8s.io/v1`, which Gateway API v1.6.3 serves) targets the Service port
-  `https`, checks the hostname `agent-factory.agent-system.svc` (already on the certificate, so no tailnet name is added) and
-  trusts ConfigMap `agent-factory-ca`. That is a static, public certificate per cluster
-  (`tooling/aws-0/agent-factory/configmap-agent-factory-ca.yaml`; gcp-0 has none): `caCertificateRefs` takes a ConfigMap
-  only, and no External Secrets permission is added to write one. It sits beside the policy: no ReferenceGrant.
-  **It is aws-0's offline root** (the file cloud-native-ref commits as `.github/openbao-root-ca.pem`), which is a subset
-  of the chain `openbao-ca` holds: the intermediate is not in Git. The session's first step proves or replaces it (below).
-- **RunLore** posts `POST /v1/tasks` and the verification route. Its client trusts a private CA through `factory.ca_file`,
-  which RunLore `v0.20.0` carries, with the chart's `extraVolumes`. The host
-  half (`cloud-native-ref` `feat/factory-tls-host`) holds the same certificate as a static ConfigMap `factory-ca` in `runlore` (aws-0
-  only) and mounts it at `/etc/runlore/factory-ca`. Rotating the CA is a PR in both repositories. The values here keep `http://` and no `ca_file`: RunLore v0.19.1 refuses the unknown
-  key and crash-loops.
+**Order.** Three conditions, in this order, before the merge:
 
-**Order.** This change cannot merge before: (1) RunLore `v0.20.0`, released with `factory.ca_file`, is pinned by the host; (2) the host
-merges `feat/factory-tls-host` (`runlore`'s CA ConfigMap and mounts, the contract) and
-pins RunLore `v0.20.0`; (3) `HOST_REF` moves here to a commit with both. The merge commit of this change then also sets RunLore's
-`url: https://agent-factory.agent-system.svc:8082` and `ca_file: /etc/runlore/factory-ca/ca.crt`, together. Until all three, RunLore's factory client
-fails against a TLS factory, so the draft stays unmerged.
+1. The host pins RunLore v0.20.0 (done) and merges `feat/factory-tls-host` (the mount, the ConfigMaps, the contract).
+2. `HOST_REF` here moves to a host commit carrying both.
+3. An aws-0 session proves this draft with the setup below. Neither draft merges before that.
 
-The two flip in different Flux Kustomizations (`tooling`, `infrastructure`), so for a few minutes either side can
-be first: a run request fails (nothing is created, a retry reuses its key) until both have rolled.
+**The session's setup** (H1, feature branches): the host branch `feat/factory-tls-host` pins this pull request's signed
+pre-release artifact (tag and digest, in `flux/sources/ocirepo-ai-native-ref.yaml`) and the cluster tracks that branch with
+`TF_VAR_flux_git_ref`. A tag variable alone changes nothing. The artifact then carries the RunLore values, so the session
+proves the merged tree.
 
-gcp-0 has a ClusterIssuer of the same name (`openbao`) and the same extra PKI domains, and its `openbao-ca` is
-patched in `security/gcp-0/agent-secrets`, so the same files apply there. It is torn down: nothing here is proved
-on it, and its RunLore path waits on the same release. It has no CA ConfigMap (another lineage, torn down): its `BackendTLSPolicy` has no CA and the tailnet route fails until a gcp-0 session adds one beside the policy.
+**Rollout.** `agent-factory` depends on `room-broker`, so the broker moves to `https://` first and the factory follows. In
+between, the broker's handshake to a plaintext factory fails before any header is sent: no token leaks, no run is created, and
+a retry reuses its key. If the factory's Certificate never issues, Helm times out and rolls the release back to plaintext
+while the broker stays on `https://`; it presents as a broker TLS error, so read the Certificate first.
 
-**The session's first step**, before anything else: the committed CA must verify what the factory presents.
+**The session's first step**, before the rollout is judged (after both Kustomizations are Ready): the committed root must
+verify what the factory presents. cert-manager writes `tls.crt` as the leaf, then its intermediate, and `openssl verify` reads
+only the first certificate of a file, so the intermediate goes in through `-untrusted`:
 
 ```bash
-kubectl -n agent-system get secret openbao-ca -o jsonpath='{.data.ca\.crt}' | base64 -d > "$CA_FULL"
-kubectl -n agent-system get configmap agent-factory-ca -o jsonpath='{.data.ca\.crt}' > "$CA_CM"
-kubectl -n agent-system get secret agent-factory-api-tls -o jsonpath='{.data.tls\.crt}' | base64 -d > "$LEAF"
-openssl verify -CAfile "$CA_CM" "$LEAF"   # OK: the committed root verifies the leaf with its presented intermediate
+D=$(mktemp -d)
+kubectl -n agent-system get secret openbao-ca -o jsonpath='{.data.ca\.crt}' | base64 -d > "$D/openbao-ca.pem"
+kubectl -n agent-system get configmap agent-factory-ca -o jsonpath='{.data.ca\.crt}' > "$D/committed-ca.pem"
+kubectl -n agent-system get secret agent-factory-api-tls -o jsonpath='{.data.tls\.crt}' | base64 -d > "$D/tls.crt"
+openssl verify -CAfile "$D/committed-ca.pem" -untrusted "$D/tls.crt" "$D/tls.crt"   # tls.crt: OK
+openssl verify -CAfile "$D/committed-ca.pem" "$D/openbao-ca.pem"                    # openbao-ca.pem: OK (its first certificate, the intermediate)
 ```
 
-If it does not print `OK`, replace both copies (`agent-factory-ca` here, `factory-ca` in cloud-native-ref) with the
-chain from `openbao-ca` before going on.
+Both lines print `OK`: the committed root is the root of the chain in use. If the first line fails with `error 20`, check you
+passed `-untrusted`; if the second fails, the root differs from the lineage in use: replace the four copies with the
+certificates of `openbao-ca` through a pull request in each repository. On gcp-0 do the same hand check against
+`openbao-priv-gcp-ca-chain` before trusting its copy.
 
-**The session's proof** (aws-0, after both Kustomizations are Ready):
+**The session's proof** (aws-0):
 
 ```bash
 CA=$(mktemp)
@@ -362,20 +366,31 @@ curl -s -o /dev/null -w '%{http_code}\n' --cacert "$CA" \
 curl -s -o /dev/null -w '%{http_code}\n' -X POST http://localhost:8082/v1/runs                                         # 400: plaintext refused
 ```
 
-The tailnet route, from a tailnet machine, with a human token (the CLI's path):
+The tailnet route, from a tailnet machine (no token: the factory answers 401 after the gateway verified its certificate):
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' -X POST https://factory.${PRIVATE_DOMAIN}/v1/runs   # 401: the gateway verified the factory's certificate and passed the call; a 5xx or 503 means the BackendTLSPolicy is not accepted
-kubectl -n agent-system get backendtlspolicy agent-factory -o jsonpath='{.status.ancestors[*].conditions[*].type}={.status.ancestors[*].conditions[*].status}'   # Accepted=True
-kubectl -n agent-system get configmap agent-factory-ca -o jsonpath='{.data.ca\.crt}' | head -c 30   # a PEM header
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://factory.${PRIVATE_DOMAIN}/v1/runs   # 401; a 5xx means the BackendTLSPolicy is not accepted
+kubectl -n agent-system get backendtlspolicy agent-factory -o jsonpath='{range .status.ancestors[*].conditions[*]}{.type}={.status}{"\n"}{end}'   # Accepted=True and ResolvedRefs=True
 ```
 
-Then create a room task from the room page (the hand-to-role path) and read the broker's log:
+The broker, by creating a room task from the room page (the hand-to-role path):
 
 ```bash
 kubectl -n agent-system logs deploy/room-broker --since=5m | grep -i -E 'factory|x509|certificate'
 ```
 
-Pass: the room shows the run started, and the log has no `x509`, `certificate`, `400` or `refused` error for the
-factory call. If the call fails, the broker's pods have not rolled onto the new config
-(`kubectl -n agent-system rollout restart deployment/room-broker`: it reads its config once).
+Pass: the room shows the run started, and the log has no `x509`, `certificate`, `400` or `refused` error for the factory
+call. If it fails, read the Certificate and the CA (first step) before anything else: the broker's config is
+hash-suffixed and rolls by itself, so a restart changes nothing.
+
+RunLore, with RunLore on (section 1) and the CA ConfigMap in:
+
+```bash
+kubectl -n runlore get configmap factory-ca -o jsonpath='{.data.ca\.crt}' | head -c 27         # -----BEGIN CERTIFICATE-----
+kubectl -n runlore wait --for=condition=Ready pod/runlore-0 --timeout=15m
+kubectl -n runlore logs runlore-0 | grep -i -E 'ca_file|x509|factory' | head                    # no error line
+```
+
+Then file one real task (section 3's finding): RunLore's `POST /v1/tasks` to the factory must succeed (the factory log has the
+task, and the finding gets its room), with no `x509` or `400` in RunLore's log. The `wget` of runbook 20 live 1 now answers 400
+over plain HTTP: that is the expected outcome there.

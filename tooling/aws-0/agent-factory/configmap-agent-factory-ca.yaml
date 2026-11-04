@@ -1,10 +1,9 @@
 # The platform CA, for the tailnet gateway's BackendTLSPolicy (tooling/base/agent-factory/backendtlspolicy.yaml,
-# whose caCertificateRefs takes a ConfigMap only). A public certificate, not a secret. It is aws-0's offline root,
+# whose caCertificateRefs takes a ConfigMap only). A public certificate, not a secret. It is the platform's offline root,
 # the same file as cloud-native-ref's .github/openbao-root-ca.pem: a subset of the chain in openbao-ca, and the factory
-# presents its intermediate, so the root verifies it. The session's first step compares it with openbao-ca and
-# replaces it if they differ (runbook 25 section 10). Rotating the CA means a PR here and one in cloud-native-ref
-# (observability/aws-0/configmap-factory-ca.yaml, RunLore's copy): test-factory-backend-tls.py holds the two equal.
-# gcp-0 has none: its CA is another lineage and it is torn down, so its route has no CA until a session adds one.
+# presents its intermediate, so the root verifies it. The session's first step verifies the factory's certificate against
+# it (runbook 25 section 10). Rotating the CA means a PR here and one in cloud-native-ref (RunLore's copies,
+# observability/{aws-0,gcp-0}/.../configmap-factory-ca.yaml): test-factory-backend-tls.py holds the copies equal.
 apiVersion: v1
 kind: ConfigMap
 metadata:

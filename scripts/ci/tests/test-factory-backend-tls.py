@@ -45,18 +45,32 @@ if policy["metadata"]["namespace"] != cm["metadata"]["namespace"]:
 pem = cm["data"].get("ca.crt", "")
 if "BEGIN CERTIFICATE" not in pem or "PRIVATE KEY" in pem:
     problems.append("the ConfigMap's ca.crt must be a certificate, never a key")
-aws = (ROOT / "tooling/aws-0/agent-factory/kustomization.yaml").read_text()
-if "configmap-agent-factory-ca.yaml" not in aws:
-    problems.append("aws-0's agent-factory kustomization does not ship the CA ConfigMap")
-# The host's copy for RunLore (cloud-native-ref, observability/aws-0/configmap-factory-ca.yaml) holds the same certificate,
-# where the host clone is visible and carries it (after the HOST_REF bump).
+for cloud in ("aws-0", "gcp-0"):
+    kz = (ROOT / f"tooling/{cloud}/agent-factory/kustomization.yaml").read_text()
+    if "configmap-agent-factory-ca.yaml" not in kz:
+        problems.append(f"{cloud}'s agent-factory kustomization does not ship the CA ConfigMap")
+    other = yaml.safe_load((ROOT / f"tooling/{cloud}/agent-factory/configmap-agent-factory-ca.yaml").read_text())
+    if other["data"]["ca.crt"].split() != pem.split():
+        problems.append(f"{cloud}'s agent-factory-ca differs from aws-0's: one offline root signs both, rotate them together")
+# RunLore's values name the CA file the host mounts, as a sibling of /etc/runlore (a mount inside the chart's read-only
+# config mount cannot be created). The host's mount and ConfigMaps are checked where the host clone carries them.
+rl = yaml.safe_load(next(d for d in yaml.safe_load_all((ROOT / "observability/base/runlore-factory/helm-values-configmap.yaml")
+                                                          .read_text()) if d)["data"]["values.yaml"])["config"]["factory"]
+if rl.get("ca_file", "").startswith("/etc/runlore/"):
+    problems.append(f"factory.ca_file {rl['ca_file']} is inside the chart's read-only /etc/runlore mount")
 for host in (ROOT / ".host", ROOT / ".composite"):
-    other = host / "observability/aws-0/configmap-factory-ca.yaml"
-    if other.exists():
-        theirs = yaml.safe_load(other.read_text())["data"]["ca.crt"].split()
-        if theirs != pem.split():
-            problems.append(f"{other.relative_to(ROOT)} holds another certificate than agent-factory-ca: rotate both repositories together")
-        break
+    mount = host / "observability/base/runlore/helm-values-configmap.yaml"
+    if mount.exists():
+        hv = yaml.safe_load(next(d for d in yaml.safe_load_all(mount.read_text()) if d)["data"]["values.yaml"])
+        paths = [m["mountPath"] for m in hv.get("extraVolumeMounts", []) if m["name"] == "factory-ca"]
+        if paths and not rl.get("ca_file", "").startswith(paths[0] + "/"):
+            problems.append(f"factory.ca_file {rl.get('ca_file')} is not under the host's factory-ca mount {paths[0]}")
+        if paths and (paths[0] == "/etc/runlore" or paths[0].startswith("/etc/runlore/")):
+            problems.append(f"the host mounts factory-ca at {paths[0]}, inside the chart's read-only /etc/runlore")
+    for rel in ("observability/aws-0/configmap-factory-ca.yaml", "observability/gcp-0/runlore/configmap-factory-ca.yaml"):
+        theirs = host / rel
+        if theirs.exists() and yaml.safe_load(theirs.read_text())["data"]["ca.crt"].split() != pem.split():
+            problems.append(f"{theirs.relative_to(ROOT)} holds another certificate than agent-factory-ca: rotate both repositories together")
 if problems:
     print("\n".join(problems))
     sys.exit(1)

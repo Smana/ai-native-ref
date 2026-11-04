@@ -27,8 +27,10 @@ if not principal or principal["secretRef"].get("optional") is not True:
     problems.append("envFrom mounts runlore-factory-principal, optional: a cluster without its key keeps RunLore up")
 if "templated" in (values.get("config", {}).get("notify") or {}):
     problems.append("the templated notifier still calls /intake/runlore (G4)")
-if factory.get("url") != "http://agent-factory.agent-system.svc.cluster.local:8082":
-    problems.append(f"factory.url is the factory's API port 8082, got {factory.get('url')!r}")
+if factory.get("url") != "https://agent-factory.agent-system.svc:8082":
+    problems.append(f"factory.url is the factory's TLS API port 8082 on a name its certificate carries, got {factory.get('url')!r}")
+if factory.get("ca_file") != "/etc/runlore-factory-ca/ca.crt":
+    problems.append(f"factory.ca_file is the host's CA mount, a sibling of /etc/runlore, got {factory.get('ca_file')!r}")
 if factory.get("token_url") != "${identity_provider_url}/oauth/v2/token":
     problems.append("factory.token_url is ZITADEL's token endpoint, substituted per cluster")
 es = yaml.safe_load((DIR / "externalsecret-principal.yaml").read_text())

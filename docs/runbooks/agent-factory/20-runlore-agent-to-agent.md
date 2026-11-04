@@ -24,13 +24,13 @@ switch: on for a live session, off after. See [README.md](README.md) for `CLOUD`
 
 ```bash
 kubectl -n runlore exec runlore-0 -- wget -qO- -T5 --post-data '{}' \
-  http://agent-factory.agent-system.svc.cluster.local:8082/v1/tasks   # 400 once the listener is TLS: see runbook 25 §10
+  http://agent-factory.agent-system.svc.cluster.local:8082/v1/tasks   # 400 once the listener is TLS (runbook 25 section 10): that counts as the path being open
 kubectl -n runlore exec runlore-0 -- wget -qO- -T5 \
   http://vmalertmanager-victoria-metrics-k8s-stack.observability.svc:9093/api/v2/status
 hubble observe --from-pod runlore/runlore-0 --verdict DROPPED
 ```
 
-Pass: both answer (a `401` from the factory is a pass: the path is open); RunLore's log shows a token
+Pass: both answer (a `401`, or a `400` once the listener is TLS, from the factory is a pass: the path is open); RunLore's log shows a token
 obtained at its first finding (a drop on ZITADEL is the cloud-native-ref plan's R4 follow-up); Hubble
 names no policy on these.
 

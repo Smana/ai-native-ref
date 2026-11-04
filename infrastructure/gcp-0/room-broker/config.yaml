@@ -92,6 +92,7 @@ webhooks:
     network: cluster
     url: http://runlore.runlore.svc.cluster.local:8080/factory/webhook
     events: [room.task_received, room.task_triaged, room.run_started, room.run_ended, room.waiting_for_human,
-             room.pr_opened, room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended]
+             room.pr_opened, room.verdict_posted, room.merged, room.reverted, room.monitor_verdict,
+             room.budget_reached, room.ended]
     secretFile: /etc/room-broker/webhooks/runlore/signing-key
     repositories: [Smana/cloud-native-ref]

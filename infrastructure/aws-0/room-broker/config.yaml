@@ -1,7 +1,8 @@
-# aws-0's copy of ../../base/room-broker/config.yaml, plus human.mcp.sessionStart (a session
-# switch, runbook 19): the overlay's generator replaces the base file, since a ConfigMap key is one
-# string no patch can extend. test-room-broker-suspend.py fails when it differs from base in
-# anything but that key. Empty it, or delete this copy, after the session.
+# aws-0's copy of ../../base/room-broker/config.yaml, plus human.mcp.sessionStart (a session switch,
+# runbook 19) and RunLore's webhook subscriber (a session switch, RK15): the overlay's generator
+# replaces the base file, since a ConfigMap key is one string no patch can extend.
+# test-room-broker-suspend.py fails when it differs from base in anything but those two keys. Empty
+# it, or delete this copy, after the session.
 # The broker's one config file (agent-platform internal/config), Flux-substituted.
 # Decoded strictly: an unknown key fails the rollout. tls is left to its default,
 # /etc/room-broker/tls/tls.{crt,key}, where app.yaml mounts room-broker-tls.
@@ -64,16 +65,21 @@ human:
     # sponsored:
     #   - name: slack-app
     #     clientIDFile: /etc/room-broker/sponsored/slack-app-client-id
-# Webhooks (factory interfaces F6), none declared (D4): a gcp-0 session declares the Slack App, in
-# gcp-0's copy (runbook 18). The event names are the full room.* ones (the broker refuses a short one);
-# the key is a file the whole-Secret mount app.yaml adds provides. A change applies at restart, and
-# scripts/ci/gen-webhook-egress.py renders the network rule from the entries (--write).
+# Webhooks (factory interfaces F6), none declared (D4). RunLore's session switch (RK15): for a demo
+# session, uncomment this entry, list `externalsecret-webhook-runlore.yaml` under `resources`, run
+# `scripts/ci/gen-webhook-egress.py --write` and list `- path: network-policy-webhooks-patch.yaml`
+# under `patches` (runbook 25), together with the host's three places. The event names are the full
+# room.* ones (the broker refuses a short one); the key is a file the whole-Secret mount app.yaml adds
+# provides. A change applies at restart.
 #
 # webhooks:
-#   - name: slack-app
+#   # RunLore follows its incidents' tasks (feature 14, RA7): every event of the repository; it drops rooms
+#   # its ledger does not know. Its key is externalsecret-webhook-runlore.yaml, the owner's seed (runbook 14).
+#   - name: runlore
 #     network: cluster
-#     url: http://factory-slack-app.agent-system.svc.cluster.local:8081/webhooks
-#     events: [room.task_triaged, room.run_started, room.waiting_for_human, room.pr_opened,
-#              room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended]
-#     secretFile: /etc/room-broker/webhooks/slack-app/signing-key
+#     url: http://runlore.runlore.svc.cluster.local:8080/factory/webhook
+#     events: [room.task_received, room.task_triaged, room.run_started, room.run_ended, room.waiting_for_human,
+#              room.pr_opened, room.verdict_posted, room.merged, room.reverted, room.monitor_verdict,
+#              room.budget_reached, room.ended]
+#     secretFile: /etc/room-broker/webhooks/runlore/signing-key
 #     repositories: [Smana/cloud-native-ref]

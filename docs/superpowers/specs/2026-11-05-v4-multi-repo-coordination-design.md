@@ -6,6 +6,7 @@ and 4 (untrusted-input hardening) have shipped · **Proof:** public repositories
 no live claim yet · **Builds on:** the [v4 roadmap](2026-10-31-v4-roadmap-design.md),
 [second repository](2026-10-16-v2-second-repository-design.md),
 [scoper](2026-10-22-scoper-design.md), [splitter](2026-10-23-splitter-design.md),
+[conversational DevEx](2026-11-05-v3x-conversational-devex-design.md),
 [factory interfaces](2026-10-21-factory-interfaces-design.md),
 [merge-gate human path](2026-10-29-merge-gate-human-path-design.md) and
 [factory from your agent](2026-10-25-factory-from-your-agent-design.md) designs
@@ -79,12 +80,12 @@ shipped, and it must not unlock coordination execution.
 | MR1 | **One coherent family, at most two children.** Every child is necessary to one integration acceptance. | Fleet campaigns, arbitrary fan-out and arbitrary repository counts: different product, larger blast radius and no bounded first proof |
 | MR2 | **A parent Task in `Coordinating`, with `spec.kind: coordination` and `source.kind: coordination`.** Children use `spec.coordinationParent`; integration attempts use `spec.kind: integration`. No new CRD. | Reusing `Split`, `spec.parent`, `LabelParent`, `TaskFacts.split/parent` or `factory/child-of`: would collide with the single-repository splitter and its intake |
 | MR3 | **A parent issue in the user-confirmed primary repository and one implementation issue in every affected repository.** The primary is one of the child repositories in the initial switch. | A parent-only repository: could consume a third gateway audience and separate the integration check from the change; a parent label trigger: could write code |
-| MR4 | **A shared pre-filing planner returns a typed editable plan and diagnostics.** Natural-language interpretation is the separate shared-intake contract; deterministic validation, repository facts, role resolution, hashes and materiality are coordination-owned. | A second scoper/split answer: happens after filing and is bound to one Task; a free-form plan document or generic playbook engine |
+| MR4 | **A distinct `coordination_plan` broker tool returns the typed editable plan and diagnostics.** It shares `intake_plan`'s governed broker-side NL route and effective requester identity; `plan/v1` stays single-repository and is not reused unchanged. Deterministic validation, repository facts, role resolution, hashes and materiality are coordination-owned. | A second ungoverned planner or a second scoper/split answer after filing; a free-form plan document or generic playbook engine |
 | MR5 | **Separate confirmations.** A primary maintainer confirms the plan; each child has its own linked maintainer authorization. Parent confirmation fills no child authorization. | One global approver, GitHub-read authority, group membership or `agents-admin` bypass: none confers write authority on every repository |
 | MR6 | **All repository checks pass before any child Task starts.** Recheck fence, maintainer list, GitHub write, App installation and resolved class at each child's admission and resume. | Silent partial start or relying on a plan-time check: a child could be admitted after ownership or permission changed |
 | MR7 | **Dependencies name landed artifacts.** `dependsOn` orders admission; `produces`/`consumes` names the exact artifact required from the producer's merge commit. | Room handoffs, PR-head artifacts, timestamps or “A is done” as an implicit interface: none proves what B may consume |
 | MR8 | **Fixed family allocations plus existing person/fleet reservations.** Each child and integration attempt has a confirmed lifetime allocation whose sum is bounded by the family total. | Live family accounting across parallel children: the splitter's rationale does not hold once siblings overlap |
-| MR9 | **Merge order is enforced only by withholding dependent integration release.** Each repository's gate and current-head review remain authoritative. | Parent merge calls, a cross-repository transaction, a merge queue or automatic merge from Slack |
+| MR9 | **Merge order is enforced only by withholding dependent integration release before every arming path.** That includes maintainer-approved and live-class automatic arms. Each repository's gate and current-head review remain authoritative. | Parent merge calls, a cross-repository transaction, a merge queue or automatic merge from Slack |
 | MR10 | **Integration is a separate read-only verification Task in the primary repository.** It consumes exact child head/merge SHAs, before a dependent merge where practical and after the final merge always. | A parent implementer run: would give the parent a branch/token; child checks alone: do not test their composition |
 | MR11 | **Failure pauses dependents and records one deterministic proposed recovery action.** No automatic rollback or recovery playbook. | Automatic distributed revert or an LLM-selected multi-step recovery: merged repository histories cannot be rolled back atomically or safely by the parent |
 | MR12 | **Plans are full, versioned snapshots with canonical hashes and a fixed materiality table.** Preserve only unaffected child authorizations. | LLM materiality, arbitrary text diffing or silently carrying every approval forward |
@@ -104,7 +105,7 @@ flowchart LR
     IN["Unified inbox / resume / notifications"]
   end
   subgraph planning["Coordination planning, no repository run"]
-    PL["Shared pre-filing planner<br/>typed plan · validation · hashes"]
+    PL["coordination_plan broker tool<br/>shared governed route · typed plan · hashes"]
     CF["Parent UI<br/>plan confirmation + live progress"]
   end
   subgraph factory["Maku factory"]
@@ -147,7 +148,7 @@ flowchart TD
   P["Shared planner<br/>editable plan vN"] --> PC["Primary maintainer<br/>confirm plan vN + hash"]
   PC --> AUTH["Maintainer of A authorizes A<br/>Maintainer of B authorizes B"]
   AUTH --> FILE["File parent issue + child issues<br/>recheck every repository"]
-  FILE --> A["Child A ordinary roles<br/>frozen scope · tester? · implementer · reviewer"]
+  FILE --> A["Child A ordinary roles<br/>frozen scope · implementer · reviewer"]
   A --> AG["Repository A gate<br/>checks + current-head approval/class"]
   AG --> LA["A merged<br/>record artifact@A merge SHA + digest"]
   LA --> B["Child B ordinary roles<br/>consume exact landed artifact"]
@@ -190,7 +191,7 @@ children:
     rationale: Publish the schema the consumer will read.
     class: scripts              # resolved from this repository's allowance
     tier: standard
-    roles: [implementer, tester, reviewer]  # derived, not free-form
+    roles: [implementer, reviewer]      # derived from the scripts class, not free-form
     budgetMicroUSD: 5100000      # lifetime across every generation/retry
     scope:                       # the existing bounded TaskScope shape
       state: ready
@@ -241,6 +242,9 @@ budget:
   totalMicroUSD: 12750000         # planning + every child + integration.maxRuns * runMicroUSD
 ```
 
+The example's arithmetic is exact: `510000 + 5100000 + 5100000 + (4 * 510000) =
+12750000` micro-USD. Both `scripts` children resolve to the same `[implementer, reviewer]` role list.
+
 Validation invariants:
 
 1. `primary.repository` is one child repository; every named repository is configured, owned by this
@@ -261,9 +265,11 @@ Validation invariants:
 6. Acceptance is data confirmed by maintainers. It becomes a sandbox command only through the
    hardened output path of v4.0 item 4; it is never executed by the planner, parent UI or parent
    controller.
-7. Shared intake supplies the planning run IDs and their reserved/settled cost. At confirmation,
-   that cost must fit `planningMicroUSD`; the first draft is separately bounded by intake's
-   `max_cost`, which cannot exceed the allocation carried into the confirmed plan.
+7. `planningMicroUSD` is the coordination family's planning allocation. The existing per-requester
+   `human.intake.plan.dailyPlans` counter and one bounded model call per plan attempt still apply;
+   neither is replaced by a family cap. At confirmation, the planning attempt's reserved plus settled
+   cost must fit `planningMicroUSD`, using the shared contract's attempt/reservation/settlement
+   identifiers when it supplies them. A broker-side model call has no AgentRun ID to invent.
 
 ### Parent and child Tasks
 
@@ -371,8 +377,16 @@ acceptance: <the confirmed integration.acceptance list>
 For a dependent merge, `beforeDependents: true` requires a passing manifest containing every landed
 dependency merge SHA and the dependent PR's current head SHA. Only that exact head is released to
 its ordinary repository gate; parent release is not approval. The repository still evaluates its
-class, checks, policy and maintainer current-head review. If the head moves, the release is stale and
-a new integration run is required.
+class, checks, policy and maintainer current-head review.
+
+The dependent integration hold precedes **every arming path**: it is evaluated before `DecideArm`
+can return `arm`, including `maintainer_approved` and a live class's automatic arm, and before any
+merger call. While it holds, a live-class dependent returns `wait` with `integration_pending`, not
+`arm` or a human hand-off that could bypass it. Shadow may record `shadow_would_arm` without merging;
+it never supplies an integration release. Once integration accepts a head, the ordinary repository
+gate alone decides whether and how that head merges. If the head moves, the release is stale, every
+arming path closes again, and a new integration run is required. This is a per-dependent hold, not a
+generic merge queue.
 
 `beforeDependents: false` is exceptional and requires a confirmed rationale, for example a check
 that can run only on default-branch infrastructure. The final check is never optional: it consumes
@@ -516,7 +530,7 @@ or automatically reverting siblings.
 | Untrusted plan or artifact becomes an instruction | Strict schema, bounded bytes, inert rendering, safe-output/threat-check prerequisite, digest verification and repository-local sandboxes. Activation without item 4 is refused |
 | Parent issue is labelled | `coordination_parent`; no code Task, including after parent completion |
 | Stale approval is replayed | Canonical full-plan hash and child fingerprint must equal the current version; `stale_plan` |
-| Integration is bypassed by approval | The dependent integration hold precedes the ordinary approve-to-merge arm and releases only the exact accepted head; it cannot mark the repo gate green |
+| Integration is bypassed by approval or a live class | The dependent integration hold precedes every arm, including `maintainer_approved` and live-class automatic arm, and releases only the exact accepted head; it cannot mark the repo gate green |
 
 ### Read privacy
 
@@ -569,6 +583,28 @@ and never moves, deletes or updates an existing worktree automatically. Failure 
 checkouts, branches and dirty trees untouched and reports any incomplete new root explicitly.
 
 ## Interfaces and what stays elsewhere
+
+### Seam to the shared intake contract
+
+`coordination_plan` is a **distinct broker tool beside `intake_plan`**, not an argument that makes
+`intake_plan` emit a multi-repository `plan/v1`. It returns the typed `CoordinationPlan` above, its
+canonical hash and diagnostics. `plan/v1` remains the conversational spec's single-repository
+contract and is **not reused unchanged**. Consequently, the conversational spec's sentence "The
+sibling design may read `plan/v1` unchanged and add the enforcement" is superseded by this explicit
+`coordination_plan` seam; that sibling sentence will be corrected separately.
+
+| Aspect | Contract |
+|---|---|
+| Model route and identity | Reuse `intake_plan`'s one governed broker-side route: the broker's `planner` client identity to `ai-gateway`, `human.intake.plan.model` (pinned `tier-frontier`), its mounted key and bounded reply. The effective requester is resolved and recorded exactly as `intake_plan` does for a human token or a sponsored principal with `on_behalf_of`. The coding agent's own model is never an alternate planner |
+| Call bound | One bounded model call per `coordination_plan` attempt, with the existing `human.intake.plan.deadline` and no retry loop. Deterministic edits and validation do not make hidden extra calls |
+| Initial data guard | Before any model call, every candidate repository must be public and in the channel/factory allowlist; any private repository returns `private_repository_unsupported` and no request text leaves the broker. The effective requester must have write on the user-selected primary before confirmation; separate child maintainers authorize the other children |
+| Budget | `planningMicroUSD` is this family's planning allocation. The existing per-requester `human.intake.plan.dailyPlans` counter also increments for every attempt, and one call per attempt remains mandatory; the family never creates a second counter or bypasses either bound |
+| Cost reconciliation | Keep the shared attempt ID, effective requester, `x-ai-gateway-client-id: planner`, response `usage` token counts and plan hash. If the shared contract requires reserved/settled reconciliation, also carry its reservation and settlement identifiers and their amounts. At confirmation, reserved plus settled planning cost must fit `planningMicroUSD`; a broker model call has no AgentRun ID |
+| Side effects | None. `coordination_plan` reads repository metadata and returns the typed plan. Filing remains the separately confirmed coordination flow; the in-task scoper remains the only post-filing decomposition engine |
+
+The conversational spec's public-data deadline, gateway attribution, strict response decoding and
+secret refusal apply unchanged. This is one governed planner route with two typed outputs, not a
+second ungoverned planner.
 
 Coordination owns only four interface-neutral results: `CoordinationPlan`,
 `CoordinationConfirmation`, `CoordinationView` and `CheckoutManifest`.
@@ -660,10 +696,10 @@ changing existing single-repository tasks.
 | O6 | Filing/idempotency | Parent and every child issue have the required markers/labels; crash after each write replays without duplicates and remains `filing_incomplete` until complete; parent label never writes code |
 | O7 | Dependency/artifact | Dependent Task is absent before landed merge evidence; PR head is insufficient; wrong digest/type/size refuses; independent children are both admission-eligible and may have concurrent fake runs |
 | O8 | Budget | Concurrent independent admissions cannot exceed family total; person/fleet reservation is still called per run; generation overlap is prevented; increase/decrease/stale-budget rules hold |
-| O9 | Integration | Manifests bind exact heads and merge SHAs; pass releases only the accepted dependent head; head movement stales release; final pass is mandatory; verification has only `triager` runs and no PR/branch/merger call |
+| O9 | Integration | Manifests bind exact heads and merge SHAs; pass releases only the accepted dependent head; final pass is mandatory; verification has only `triager` runs and no PR/branch/merger call. A dependent child in a `live` class stays `wait`/`integration_pending` before acceptance, becomes eligible to arm only for the exact accepted head, and is unarmed again after a stale-head move; the approved-head path is tested too |
 | O10 | Merge/failure | Repo gates remain authoritative; A merged/B failed does not revert A; failure pauses only dependents; every failure row yields exactly one deterministic recovery proposal |
 | O11 | Privacy | Viewer × repository matrix filters all child fields, including admins and lookup failures; unserved Slack channel gets no details; partial channel approval gets coarse state only; raw parent log has no artifact/private child content |
-| O12 | Interfaces | Slack and coding-agent inputs produce the same typed plan/diagnostics; no Slack/MCP merge tool exists; inbox/notification fakes receive only the filtered view and one recovery record |
+| O12 | Interfaces and planner seam | Slack and coding-agent inputs call the distinct `coordination_plan` tool and produce the same typed plan/diagnostics through one fake governed route and effective requester identity, with one bounded call, `dailyPlans` accounting and public-only refusal before the call. `plan/v1` remains unchanged and single-repository; planning reservation/settlement IDs reconcile when supplied. No Slack/MCP merge tool exists; inbox/notification fakes receive only the filtered view and one recovery record |
 | O13 | Checkout | Both worktrees are detached at verified commits; manifest lineage is exact; current checkout and dirty state are unchanged; moving remote, wrong origin, restricted repo, flagged files and stale manifest refuse safely |
 | O14 | Gateway/runtime | No new role, audience or trust policy is rendered; integration uses primary `triager`; cross-repository room/token attempts fail |
 | O15 | Switch and regressions | `off` and `plan` create no issues/runs; prerequisite failure refuses `execute`; the full existing Maku test, race, CRD, chart, UI and name suites pass in the implementation change |

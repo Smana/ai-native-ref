@@ -46,7 +46,7 @@ Each plan is written when its predecessor has merged, against the code as it the
 | 3 | 3 | Dual evaluation on every real decision, divergence evidence | Plan 2 |
 | 4 | 4 | Repository authority and fail-closed pause: the 24 lines reading `Classes` across 11 files outside `config`, schedules naming a class a repository can delete, per-repository loops (`Config.Loops` is global today) | Plan 3, one week without unexplained divergence |
 | 5 | 5 | Grant tables, broker API, `requiresApproval` in the gate, approval-memory UI | Plan 4 |
-| 6 | 6 | Settings UI, editor, promotion workflow, class templates | Plan 4, open question Q1 |
+| 6 | 6 | Settings UI, editor, promotion workflow, class templates | Plan 4, the two checks under Q1 |
 
 ---
 
@@ -2044,13 +2044,13 @@ Add `docs/runbooks/agent-factory/results-merge-policy-stage-1-<date>.md` with th
 
 ---
 
-## Open questions for the owner
+## The owner's answers (2026-11-05)
 
-None of these block this plan. Each shapes a later one, and Q1 changes what the spec promises.
+The spec now carries all three.
 
-- **Q1, who authors a policy pull request (plan 6)?** The spec has Maku open it, but in this repository's `.policy.yml` (cloud-native-ref's is the same design: confirm when planning) the `human-authored` rule names only the maintainers, and `agent change approved by a maintainer` skips any change under `.github/` or to `.policy.yml`. Every rule skipping makes policy-bot post `error`, so a pull request from the agents App can never merge, and the human API holds no user GitHub token. The options: a prefilled GitHub edit link the maintainer submits, which needs no new permission and is the recommendation; or a dedicated policy App with its own policy-bot rule, which is a wider trust change.
-- **Q2, symlinks and mode changes (plan 6)?** The `docs-broad` template excludes them, but `forge.FileStat` holds no mode and GitHub's pull request files list does not return one. It needs a tree read and a leaf outside the spec's closed vocabulary, or the template drops the promise.
-- **Q3, the spec's shadow branch (plan 2)?** R1 keeps AM4. The chart should also be corrected so that a shadow class with an approval subset records `would-require-approval` rather than going to the "Approval required" human exit.
+- **Q1, who authors a policy pull request (plan 6)?** A prefilled GitHub edit link that the maintainer submits as their own pull request. No agents App pull request, dedicated policy App or stored user token. In this repository's `.policy.yml` (cloud-native-ref's is the same design: confirm when planning) `agent change approved by a maintainer` skips any change under `.github/` or to `.policy.yml`, so a pull request from the agents App can never merge. Plan 6 must settle two things first: a link edits one file, while the spec keeps the class policy and the policy-bot rule in one pull request; and GitHub documents no prefill for an existing file, so test `/edit/` with `?value=` on `github.com` before building on it.
+- **Q2, symlinks and mode changes (plan 6)?** The `docs-broad` template drops the promise. It matches on paths and limits only, because `forge.FileStat` holds no mode.
+- **Q3, the spec's shadow branch (plan 2)?** A shadow class with an approval subset and no grant records `would-require-approval` and does not go to a human. R1 still keeps AM4: the chart checks caps before the class mode on the would-arm path, which the spec has yet to absorb.
 
 ## Carried to later plans (from the final review of Tasks 1 to 7)
 

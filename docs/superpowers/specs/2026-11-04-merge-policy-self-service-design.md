@@ -230,11 +230,13 @@ flowchart TD
   deny -->|no match| approval{"requiresApproval subset?"}
   approval -->|no| caps{"Breaker and caps"}
   approval -->|yes| grant{"Matching saved grant?"}
-  grant -->|no| human["Approval required"]
+  grant -->|no| pending{"Class mode"}
+  pending -->|shadow| wouldApprove["Record would-require-approval"]
+  pending -->|live| human["Approval required"]
   grant -->|yes| caps
   caps -->|fail| human["Paused or capped"]
   caps -->|pass| mode{"Class mode"}
-  mode -->|shadow| record["Record would-arm<br/>and would-require-approval"]
+  mode -->|shadow| record["Record would-arm"]
   mode -->|live| merge["Merge exact head"]
 ```
 
@@ -299,12 +301,15 @@ flowchart LR
   validate --> structural["Structural diff<br/>tightening or relaxation"]
   structural --> simulate["Simulate historical PRs<br/>and synthetic fixtures"]
   simulate --> review["Review impact preview"]
-  review --> pr["Open one reviewed Git PR:<br/>.github/agent-factory.yaml + .policy.yml"]
+  review --> pr["Prefilled GitHub edit link:<br/>the maintainer submits the PR"]
 ```
 
-The editor never directly mutates repository policy, never edits `factory:`, and opens one PR
-containing both the class policy and the policy-bot rule when both change. An expert YAML view
-remains available with the same validation.
+The editor never directly mutates repository policy, never edits `factory:`, and never authors the
+PR. It hands the maintainer a prefilled GitHub edit link, and the maintainer submits the change as
+their own PR. An agents App PR touching `.github/` or `.policy.yml` can never pass policy-bot, and
+this needs no new App or stored user token. When the class policy and the policy-bot rule both
+change, they still belong in one PR; plan 6 settles how, because a link edits one file. An expert
+YAML view remains available with the same validation.
 
 ### Simulation
 
@@ -317,8 +322,9 @@ failed rule, every condition result, policy-bot simulation result, and policy re
 
 The evidence page shows clean shadow decisions merged unchanged, bad mature outcomes, the current
 Clopper-Pearson bound, reviewer-model attribution, drill status, and eligibility. “Promote to
-live” verifies the default gate, opens a Git PR changing `mode: shadow` to `mode: live`, and
-records the request, evidence snapshot, and approver. A human merges that PR.
+live” verifies the default gate, gives the maintainer a prefilled edit link changing `mode: shadow`
+to `mode: live`, and records the request, evidence snapshot, and approver. The maintainer submits
+that PR and a human merges it.
 
 Operators may require stronger evidence. An exception below twenty decisions requires operator
 approval, a written justification, and an audit record.
@@ -403,8 +409,8 @@ long-paused class, and grants expiring soon.
 
 `docs-broad` starts in shadow, allows additions, edits, and deletions within declared documentation
 paths, permits Markdown and explicitly enabled static assets (SVG excluded initially), and excludes
-symlinks, executable or mode changes, site/build configuration, policy files, workflows, and code
-paths. Defaults: ten files, 200 modified lines, two merges per day, documentation link holdout,
+site/build configuration, policy files, workflows, and code paths. It matches on paths and limits
+only, so a symlink or file mode change under a documentation path is not told apart. Defaults: ten files, 200 modified lines, two merges per day, documentation link holdout,
 documentation build holdout when present, protected spec/decision/security paths, an approval
 subset for security-sensitive or architectural documentation, and a seven-day follow-up window.
 

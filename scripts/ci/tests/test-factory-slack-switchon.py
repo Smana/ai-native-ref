@@ -8,6 +8,11 @@ client id file, the webhook's URL on the App's Service, the App's config (base's
 channels), the channels' cost ceilings against the principal's, the Flux Kustomization that applies
 the App, the egress patch the overlay lists.
 
+The two Slack decision switches (the broker's `human.slackDecide` and a channel's `approvals`) are
+checked as consistency, never as presence: each is optional, and a channel that draws approval cards
+must be paired with the broker entry that can answer them, so every check here passes before the
+switch-on and fails on a half-on tree.
+
 The Slack ids are not known until the owner has created the App: they are marked OWNER-FILL-* in
 the files below. They pass while FACTORY_SLACK_LIVE is unset, so the tree builds before the owner's
 step; with FACTORY_SLACK_LIVE=1 any marker left fails (set it in the switch-on PR's CI, or run it
@@ -84,6 +89,16 @@ checks["the broker declares the slack-app webhook on the App's Service, in its n
     and all(e.startswith("room.") for e in hook["events"]))
 checks["the webhook key file is the one the broker's whole-Secret mount holds"] = bool(hook) and hook[
     "secretFile"].startswith("/etc/room-broker/webhooks/slack-app/")
+
+# D14's two switches: each is optional, and when one side is on the other must be able to answer.
+decide = broker["human"].get("slackDecide")
+checks["human.slackDecide, when set, names the sponsored principal and the App's team"] = decide is None or (
+    decide["principal"] == principal["name"] and decide["teamID"] == app["teamID"])
+checks["every channel's approvals, when set, is a bool"] = all(
+    isinstance(c.get("approvals", False), bool) for c in app["channels"].values())
+draws_cards = any(c.get("approvals") for c in app["channels"].values())
+checks["a channel drawing cards has room.approval_closed in the broker's webhook list"] = not draws_cards or (
+    hook is not None and "room.approval_closed" in hook["events"])
 
 # the cluster applies the App, from gcp-0's directory, after the siblings it calls
 cluster = ROOT / "clusters/gcp-0-agent-platform"

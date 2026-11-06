@@ -50,7 +50,12 @@ What the manifest gives you, for reference:
 |---|---|
 | Bot events | `app_mention`, `reaction_added`, `message.channels`, `message.groups` |
 | Bot scopes | `app_mentions:read`, `chat:write`, `reactions:read`, `channels:history`, `groups:history` |
-| Not enabled | interactivity, slash commands, socket mode |
+| Not enabled | slash commands, socket mode |
+
+The App serves interactivity on the **same** Request URL as its events,
+`https://factory-slack.<public_domain>/slack/events` (step 4): the buttons of an approval card arrive
+there. A manifest carried from before that change needs the console step in section 4 — and a
+reinstall if Slack asks for one.
 
 An App made from an older manifest lacks `message.channels` and `message.groups`: add them under
 **Event Subscriptions**, then reinstall. Without them, replies that edit a draft are never seen.
@@ -132,6 +137,12 @@ Then, in the Slack console, **Event Subscriptions**, turn it on and set the **Re
 
 Check: Slack shows **Verified**. Save, and reinstall if Slack asks.
 
+Then the card buttons. **Interactivity & Shortcuts**, turn **Interactivity** on and set its
+**Request URL** to the same `https://factory-slack.<public_domain>/slack/events`, then **Save**.
+
+Check: Slack accepts it. The App verifies signatures there already, so the URL verification Slack
+runs on save is the events one that passed above.
+
 ## 5. Declare the channel, in git
 
 One PR on ai-native-ref. A channel's repositories are listed in **three** places, and all three must
@@ -143,28 +154,56 @@ then a check mark on a draft whose repository the channel does not list is ignor
 | 1 | `tooling/gcp-0/agent-factory/slack-app/config.yaml` | `channels.<C…>.repositories` | The repositories a mention may name there |
 | 2 | `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml` | `api.sponsored[slack-app].repositories` | The repositories the factory lets the App file in |
 | 3 | `infrastructure/gcp-0/room-broker/config.yaml` | `webhooks[slack-app].repositories` | The repositories whose room events reach the App |
+| 4 | `infrastructure/gcp-0/room-broker/config.yaml` | `human.slackDecide` | The route a card's buttons call, and the principal they act as |
+
+Row 4 is not a repository list: it is what turns the App's buttons into decisions (the two switches,
+below).
 
 ```yaml
-# 1. slack-app/config.yaml
+# 1. slack-app/config.yaml — a channel that draws approvals as cards
 teamID: T07J97G2K2P
 channels:
-  C0CC4M8SNVD: {repositories: [Smana/cloud-native-ref, Smana/ai-native-ref], maxCostUSD: 0.5}
+  C0CC4M8SNVD: {repositories: [Smana/cloud-native-ref, Smana/ai-native-ref], maxCostUSD: 0.5, approvals: true}
 # 2. helm-values-sponsored.yaml, under api.sponsored (name: slack-app)
 repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
-# 3. room-broker/config.yaml, under webhooks (name: slack-app)
-repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
+# 3. room-broker/config.yaml — the decide route, and the close event. The events list changed, so the
+# subscriber's generation is bumped and the broker restarted: webhooks apply at restart only.
+human:
+  slackDecide: {principal: slack-app, teamID: T07J97G2K2P}
+webhooks:
+  - name: slack-app
+    generation: 2
+    events: [room.task_triaged, room.run_started, room.waiting_for_human, room.pr_opened,
+             room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended,
+             room.approval_closed]
+    repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
 ```
 
+- The two switches fail differently. The broker's `human.slackDecide` is the authority: a card whose
+  broker has no `slackDecide` answers `unavailable` when pressed. The channel's
+  `approvals: true` is who gets the affordance. Turning the channel's off is the fast rollback.
+- `human.slackDecide` needs `human.access`, and its `principal` names one of `human.mcp.sponsored`.
+- The `webhooks` entry changes here, so its `generation` is bumped — the entry carries none today,
+  and an absent generation reads as 1, so the first explicit value is `2`. A `webhooks` change is
+  read at startup: a `configMapGenerator` roll alone is not guaranteed to be the read that counts,
+  and a subscriber the emitter disabled stays disabled until the bump. Restart the broker by hand.
 - `maxCostUSD` per channel is the cap each filed task gets (at least 0.01, at most the principal's
   `maxCostUSD: 2`).
 - A channel with **one** repository lets users leave it out of their mention. With several, a mention
   without one is refused with a `Try:` line.
 - The App refuses to start with an empty `teamID` or no channel.
 - Adding a repository to #1 and #2 is not enough: also add it to #3, or state lines never arrive.
-- The broker reads its config at start only; the `configMapGenerator` rolls the pods on a change.
 
 Merge, then check: `kubectl -n agent-system rollout status deploy/factory-slack-app deploy/room-broker deploy/agent-factory`
 all succeed, and `kubectl -n agent-system logs deploy/factory-slack-app | head` shows no config error.
+
+```bash
+kubectl -n agent-system rollout restart deploy/room-broker
+kubectl -n agent-system rollout status deploy/factory-slack-app deploy/room-broker
+```
+
+Check: both rollouts complete, and `kubectl -n agent-system logs deploy/room-broker | head` shows it
+read its config with the new subscriber list.
 
 ## 6. Who may file
 
@@ -207,6 +246,22 @@ In the served channel, with a linked maintainer:
 | Wait | `Triaged. Room: …`, `A run started.`, `Pull request #… opened.`, then `Ended, state: …` |
 | Same reaction from an unlisted user, in a new thread | `Not filed: not_linked` |
 
+A channel with `approvals: true` whose broker declares `human.slackDecide` draws a `forge.push`
+approval as a card with two buttons. The eight proofs below close that half; the evidence each leaves
+— log lines, metric series, room events — is the design's
+[live proofs](../../superpowers/specs/2026-11-05-v3x-slack-push-approval-design.md#live-proofs) table.
+
+| Do | Expected |
+|---|---|
+| Press **Approve** twice quickly, then replay the same interaction (re-POST the signed body) | One decision, one answer to the clicker; the second press reads `already_decided`; the card is inert once |
+| Let a card's deadline pass in a room whose sweep interval is longer than your wait, then press **Approve** after it | `approval_expired` both times, no decision, the row `expired` |
+| Press from a Slack user with no link, then a linked user who is not an approver, then a linked approver whose GitHub login cannot write the repository | `not_linked`, `not_permitted`, `repository_permission`; no decision |
+| A person who prompted the run presses **Approve**; a second approver presses afterwards | `four_eyes`, then decided; the room log names only the second human |
+| Tamper the signed body (change the branch), POST it unsigned, then post a card of another room's approval into this channel | `ignored`, `401`, `binding_mismatch`; no event in either room |
+| Provoke a `forge.pr` or a `shell.high` approval in the same thread | A text line with the room link and **no** button; the `forge.push` card beside it keeps its buttons |
+| Approve on the card in the same second the room page answers, twice over (the page wins once, the card once) | Exactly one decision each time; the loser reads `already_decided` or `superseded`; the card goes inert |
+| Take the App's `chat:write` away (or stub Slack's 5xx), then decide a card | The decision lands, the failed card update is logged and counted, and the stale card answers `already_decided` |
+
 If a step does not answer, find where it stopped:
 
 | Symptom | Look at |
@@ -215,6 +270,10 @@ If a step does not answer, find where it stopped:
 | Draft posted, check mark does nothing | The check mark is not on the latest draft, or the Slack user is not linked (step 6) |
 | Filed, but no state lines | The repository is missing from the broker's `webhooks` (step 5, #3), or the subscriber is disabled: bump `generation`, restart the broker (Maku `docs/slack.md`, State) |
 | `Not filed: repository_not_allowed` | The repository is missing from #2 |
+| `Not decided: only this room's approvers decide here` (`result=not_permitted`) | The clicker is neither the room's owner nor one of its approvers (the CR's `spec.members[].approver`). A ZITADEL admin outside the CR cannot decide from Slack (D15); they decide on the room page |
+| `Not decided: your GitHub account cannot write to this room's repository` (`result=repository_permission`) | The linked GitHub login has read only on that repository |
+| `Not decided: you prompted this run` (`result=four_eyes`) | The clicker prompted the run, so another approver decides it |
+| `Not decided: the factory could not be reached just now` (`result=unavailable`) | The broker's `human.slackDecide` is off, or the store, the room or the log could not be read. Check `human.slackDecide` first, then the broker's logs |
 
 The series: `factory_slack_requests_total{route,outcome}`, `maku_factory_api_intake_total`,
 `maku_rooms_webhook_deliveries_total`. Turning it off again is [runbook 18, section 8](18-factory-interfaces.md#8-off-again).

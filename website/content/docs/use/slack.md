@@ -1,14 +1,14 @@
 ---
 title: Slack
 weight: 20
-description: "Hand work to the factory from a Slack thread: mention, draft, edit by reply, a maintainer's check mark files the issue and starts the task."
-lastVerified: 2026-10-31
+description: "Hand work to the factory from a Slack thread: mention, draft, edit by reply, a maintainer's check mark files the issue and starts the task, and a push approval is one card you press."
+lastVerified: 2026-11-05
 ---
 
 `maku-slack`, Maku's Slack app, turns a Slack thread into a factory task. Whether it is deployed on your
 platform is on the [status page]({{< relref "/docs/status.md" >}}). A mention drafts the issue, a reply edits it, a
-maintainer's ✅ files it and starts the task, and the thread then follows the room. Approvals and
-steering stay on the room page; the merge is your approval on GitHub.
+maintainer's ✅ files it and starts the task, and the thread then follows the room. Steering stays on the
+room page, and so does every approval except a push; the merge is your approval on GitHub.
 
 | Step | Do this |
 |---|---|
@@ -16,7 +16,7 @@ steering stay on the room page; the merge is your approval on GitHub.
 | Draft | `@factory <owner/repo> <title>`, then optional lines: `Should:` and `Acceptance:` |
 | Edit | Reply in the draft's thread: `Title:`, `Should:`, `Acceptance:` or free text. Each reply posts a newer draft |
 | File | A maintainer reacts ✅ on the latest draft. The issue is filed, the task starts, and the thread shows its triage, runs, pull request and end |
-| Act | Approve, answer or steer on the room page linked in the thread; approve the pull request on GitHub to merge it |
+| Act | Approve a `forge.push` from the card in the thread (two buttons), or open the room page for every other approval, an answer or a steer; approve the pull request on GitHub to merge it |
 
 Setting it up (the Slack App, its keys, the machine user, the channels it serves) is the operator's:
 [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md),
@@ -98,17 +98,36 @@ Then the thread shows, in this order:
 | `Filed #N for @you; the factory starts it. Room: …` | The issue exists, and the room page link is yours to open |
 | `Triaged.` / `A run started.` | The work is under way |
 | `Pull request #… opened.` / `A review verdict is on #…` | A PR is ready for review |
-| `The work waits for a human (…)` | The run needs an answer or an approval: open the room page |
+| `The work waits for a human (…)` | The run needs an answer or an approval: the card in this thread for a push, the room page for everything else |
 | `#… merged.` / `#… reverted.` | The PR landed or was undone |
 | `A budget was reached (…)` | The run hit its cap and stopped |
 | `Ended, state: …` | The room is closed |
+
+## Approve a push from the thread
+
+Some runs stop to ask whether they may push to their branch. That approval — a `forge.push` — arrives
+as a card in the thread with **Approve** and **Deny**: the kind of approval, the branch it pushes to,
+the approval's id, its deadline and the link to the room. The card shows no commit, because the push
+happens after you decide: you meet the commit in the pull request.
+
+Three things must hold for your press to count. You own the room or you are one of its approvers; your
+GitHub account can write the repository; and, when four-eyes is on, you are not the person who prompted
+the run.
+
+A refusal is one line, and only you see it: your Slack user is not linked, you are not an approver, your
+GitHub account cannot write there, four-eyes applies to you, the deadline passed, or someone decided
+first. Each line names the next move.
+
+**Merging is still your review on GitHub.** A push approval releases exactly one push and never a merge.
+Every other approval, and every answer or steer, stays on the room page.
 
 ## What needs you, and where
 
 | Need | Where |
 |---|---|
 | Merge a pull request | GitHub: approve its current head |
-| Approve a step, answer a question, steer or stop | The room page (the link in the thread). Nothing you write in the thread reaches the run |
+| Approve a push to the branch | The card in the thread ([above](#approve-a-push-from-the-thread)), or the room page |
+| Approve any other step, answer a question, steer or stop | The room page (the link in the thread). Nothing you write in the thread reaches the run |
 | Change the draft | The draft's thread, before the ✅ |
 
 ## When it says no

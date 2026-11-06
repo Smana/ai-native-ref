@@ -96,8 +96,9 @@ checks["human.slackDecide, when set, names the sponsored principal and the App's
     decide["principal"] == principal["name"] and decide["teamID"] == app["teamID"])
 checks["every channel's approvals, when set, is a bool"] = all(
     isinstance(c.get("approvals", False), bool) for c in app["channels"].values())
-checks["a channel drawing cards has room.approval_closed in the broker's webhook list"] = not any(
-    c.get("approvals") for c in app["channels"].values()) or "room.approval_closed" in hook["events"]
+draws_cards = any(c.get("approvals") for c in app["channels"].values())
+checks["a channel drawing cards has room.approval_closed in the broker's webhook list"] = not draws_cards or (
+    hook is not None and "room.approval_closed" in hook["events"])
 
 # the cluster applies the App, from gcp-0's directory, after the siblings it calls
 cluster = ROOT / "clusters/gcp-0-agent-platform"

@@ -1772,7 +1772,7 @@ gh pr create --title "docs(slack): a forge.push approval is decidable from its c
 
 Post this, and do nothing else until the answer is a go:
 
-> Ready to switch on `forge.push` Slack decisions on gcp-0, one channel (`C0CC4M8SNVD`), on Maku `v0.<next>.0`. This changes a live cluster in four ways: the broker runs the new migration (`approvals.binding_branch`, additive and defaulted); the broker serves `POST /api/slack/decisions`; the App draws cards with **live Approve/Deny buttons** in that channel and calls `chat.update`; the thread gains `room.approval_closed`. Merging stays a GitHub review of the current head, and no other class is decidable. You also need to set **Interactivity & Shortcuts → Request URL = https://factory-slack.<public_domain>/slack/events** in the Slack console (runbook 22 §4). Go, or hold?
+> Ready to switch on `forge.push` Slack decisions on gcp-0, one channel (`C0CC4M8SNVD`), on Maku `v0.<next>.0`. This changes a live cluster in four ways: the broker runs the new migration (`approvals.binding_branch`, additive and defaulted); the broker serves `POST /api/slack/decisions`; the App draws cards with **live Approve/Deny buttons** in that channel and calls `chat.update`; the thread gains `room.approval_closed`. Merging stays a GitHub review of the current head, and no other class is decidable. You also need to set **Interactivity & Shortcuts → Request URL** to `https://factory-slack.<public_domain>/slack/events` in the Slack console (runbook 22 §4). Go, or hold?
 
 No merge, no Slack console change, no kubectl write happens before an explicit go.
 

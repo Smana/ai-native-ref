@@ -100,8 +100,8 @@ Hardening is tracked on the **v1 hardening** milestones of
 
 <span id="class-modes"></span>**Auto-merge class modes**, from `tooling/base/agent-factory/helm-values-configmap.yaml`
 ([when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}})):
-cloud-native-ref has `docs-links` and `revert` live, and `dead-links`, `deps-patch` and `deps-minor`
-in shadow; every ai-native-ref class is in shadow; `approveToMerge` is on for both.
+cloud-native-ref has `docs-links` and `revert` live, and `alert-rules`, `dead-links`, `deps-patch` and
+`deps-minor` in shadow; every ai-native-ref class is in shadow; `approveToMerge` is on for both.
 
 ## Experimental {#experimental}
 
@@ -132,8 +132,8 @@ its offline proofs, a release, a live proof, then the switch-on. Each track gets
 | **One list of what needs you, and a short brief on return** | The room page, the CLI, your coding agent and a Slack thread show the same list in the same order, each item with one action and one link. Coming back after a day away gives you a short, fixed brief: what was asked, which plan ran, what changed, what blocks it, and the one next step | The shared list is built; the brief, revisions first and settled dollars are not. Not released |
 | **Approve a push from Slack** | The most frequent approval in an attended room, "may this run push to its branch?", arrives as one card with Approve and Deny, bound to that run's branch, under the same four-eyes rule, room standing and repository permission the room page applies. Merging is unchanged: you review the current head on GitHub | Built, not released |
 | **Slack: one proposal message, then a thread that answers** | A mention produces one message, edited in place as you reply. Confirm it and the thread goes on telling you how the work goes; ask it how it is going, what needs you or where the pull request is, and it answers | Designed; it builds on the three features above |
-| **The animated run view** | The room page draws the task as a path: a node per run, named by its role and model, the planned steps lighting up as each run starts, and a replay when the task ends. Still to come: a timeline of every tool call, check, decision and cost, and two runs of the same task compared side by side | The path is built and in the platform, not yet proven end to end |
-| **RunLore's knowledge base, filled by the factory** | What an investigation learns about the running platform becomes a reviewed entry in the knowledge base, and the entries that are safe to merge go through a curated queue rather than waiting on you one by one | The first phase is built and in the platform, off by default, waiting for its live proof |
+| **The animated run view** | The room page draws the task as a path: a node per run, named by its role and model, the planned steps lighting up as each run starts, and a replay when the task ends. Still to come: a timeline of every tool call, check, decision and cost, and two runs of the same task compared side by side | The path is built, on the main branch and not yet in a platform release, and not yet proven end to end |
+| **RunLore's knowledge base, filled by the factory** | What an investigation learns about the running platform becomes a reviewed entry in the knowledge base, and the entries that are safe to merge go through a curated queue rather than waiting on you one by one | The first phase is built, on the main branch and off by default, not yet in a platform release; waiting for its live proof |
 | **Multi-repository coordination** | One change across two repositories, confirmed once: a parent issue that records the change and never writes code, one ordinary task per repository with its own maintainer, branch, gate and pull request, a landed file as the dependency, and a read-only check that the two work together | Designed; being built switched off. It can only be turned on after merge classes in your repository and untrusted-input hardening ship |
 
 **Next:**
@@ -217,9 +217,9 @@ one branch; every other approval, and every merge, stays where it is.
 
 | Limitation | Effect |
 |---|---|
-| The room page's next step under approve-to-merge | It names an admin merge (`gh pr merge --admin`); approve the pull request instead, as the issue comment says |
+| The room page's next step under approve-to-merge | It names an admin merge (`gh pr merge --admin`); approve the pull request instead, as the issue comment says. Fixed in Maku, not yet released |
 | The CI log quote for the judge | Empty unless the harness's egress allows GitHub's Actions log host, a security decision for your platform |
-| Parts of the human path not yet exercised end to end | The policy replay, the release age, the `AwaitingCI` bound ([#182](https://github.com/Smana/ai-native-ref/issues/182)), the next-day return, a retroactive drill label, a lifted Request changes' return on approval |
+| Parts of the human path not yet exercised end to end | The policy replay, the release age, the `AwaitingCI` bound, the next-day return, a retroactive drill label, a lifted Request changes' return on approval |
 | Approval binding residuals | The push record's lag, the run's end time, a reason's name, and the base branch (tracked in [maku#304](https://github.com/Smana/maku/issues/304)) |
 | Costs on a task's status | A task's status cost freezes before its final settle; a budget-exhausted run's ledger misses its last spend (tracked in [maku#279](https://github.com/Smana/maku/issues/279), [maku#280](https://github.com/Smana/maku/issues/280)) |
 | Spend per identity | Not yet matched against the meter's ledger over a full day |

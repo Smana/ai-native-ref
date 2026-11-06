@@ -1,8 +1,11 @@
-# v4.0: multi-repository coordination, one confirmed change with repository-local authority
+# Multi-repository coordination, one confirmed change with repository-local authority
 
 **Date:** 2026-11-05 · **Status:** proposed; the owner validated the target and the decisions in
-this design on 2026-11-05 · **Activation:** blocked until v4.0 items 3 (repository-declared classes)
-and 4 (untrusted-input hardening) have shipped · **Proof:** public repositories only after activation;
+this design on 2026-11-05 · **Activation:** blocked until the
+[repository-declared classes](2026-10-31-v4-roadmap-design.md#t-classes) and
+[untrusted-input hardening](2026-10-31-v4-roadmap-design.md#t-hardening) tracks have shipped. Since
+2026-11-06 this is a v3.x track, not a v4.0 item; old numbers map
+[there](2026-10-31-v4-roadmap-design.md#renumbering) · **Proof:** public repositories only after activation;
 no live claim yet · **Builds on:** the [v4 roadmap](2026-10-31-v4-roadmap-design.md),
 [second repository](2026-10-16-v2-second-repository-design.md),
 [scoper](2026-10-22-scoper-design.md), [splitter](2026-10-23-splitter-design.md),

@@ -187,7 +187,7 @@ spec:
         {"id": 19,
          "type": "bargauge",
          "title": "Planner tokens",
-         "description": "Tokens the planner's one model call spent in the range, by kind (prompt, completion), read from the response's own usage. A refused plan spends none: its refusal comes before the call.",
+         "description": "Tokens the planner's one model call spent in the range, by kind (prompt, completion), read from the response's own usage. A plan refused before the call spends none; a call that times out or finds the route down may spend tokens no response came back to count, so read a low figure beside Plans by outcome rather than alone.",
          "gridPos": {"x": 12, "y": 31, "w": 12, "h": 5},
          "datasource": {"type": "prometheus", "uid": "$${datasource}"},
          "options": {"displayMode": "basic"},

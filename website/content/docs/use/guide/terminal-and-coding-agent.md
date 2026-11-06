@@ -60,10 +60,17 @@ The planner reads public text only. Name a private repository and it stops befor
 then offers you the two ways forward: draft the issue yourself with your own model and file it with
 `issue_draft` and `issue_file`, or wait for the internal route.
 
-You confirm the plan, and only then does an issue exist. A plan is what gets filed, not what gets
-done: the scoper still reads the issue, checks the acceptance check and turns it into runs. A plan
-you edited, or one that went stale while you sat on it, is refused when you confirm it, so read the
-one in front of you.
+You answer the form, and only then does an issue exist. One confirmation files the plan's **first**
+issue: when the plan holds two or three, the others are not filed, and your agent says so rather than
+letting the filed one stand for the rest. A plan is what gets filed, not what gets done: the scoper
+still reads the issue, checks the acceptance check and turns it into runs. A plan you edited, or one
+that went stale while you sat on it, is refused when you confirm it, so read the one in front of you.
+
+Where the planner is off, there is no plan to read — the [status page]({{< relref "/docs/status.md" >}})
+says where it is on. Your agent then writes the issue itself, in the template's three sections
+`## What is wrong`, `## What it should be` and `## Acceptance check`, has `issue_draft` check it, and
+files it once you confirm. A draft you were shown is not a plan the broker composed, and your agent
+says which of the two you are looking at.
 
 Other agents' spellings: [Reference › Commands]({{< relref "/docs/reference/commands.md#clients" >}}).
 What each setting of the planner means is in [Planner settings]({{< relref "/docs/reference/planner.md" >}}),

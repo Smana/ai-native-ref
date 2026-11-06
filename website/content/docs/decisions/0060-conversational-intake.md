@@ -87,9 +87,9 @@ the hash, never the request or the plan text.
 unavailable yields a template draft, and every surface labels it as one. It stays off by default and
 is never described as the natural-language experience.
 
-**In this deployment:** the planner is on in one cluster, for one public repository,
-`Smana/ai-native-ref`, with the `docs-links` class at a $2.00 ceiling. Every other config copy keeps
-it off.
+**In this deployment:** the planner is on in gcp-0, for one public repository,
+`Smana/ai-native-ref`, with the `docs-links` class at a $2.00 ceiling. The base and aws-0 copies
+keep it off.
 
 ---
 

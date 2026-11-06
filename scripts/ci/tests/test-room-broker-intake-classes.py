@@ -160,6 +160,7 @@ else:
         factory = factory_config(cloud)
         repos = factory.get("repositories") or []
         names = [r["name"] for r in repos]
+        by_repo = {r["name"].lower(): served(r) for r in repos}
         classes = {}
         for repo in repos:
             for name, row in served(repo).items():
@@ -201,13 +202,28 @@ else:
         for repo in plan.get("repositories") or []:
             check(re.fullmatch(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+", repo) is not None,
                   f"{cloud}: human.intake.plan.repositories: {repo!r} is not owner/name")
-            check(repo in names or repo.lower() == PUBLIC_REPO.lower(),
-                  f"{cloud}: {repo} is neither a repository the factory serves ({', '.join(names)}) "
-                  f"nor the public repository the proof uses")
+            # Off, a class table may be written ahead for the proof's repository; on, a plan for a
+            # repository the factory does not serve is an issue nothing ever picks up.
+            if on:
+                check(repo.lower() in by_repo,
+                      f"{cloud}: the planner is on for {repo}, which the factory does not serve "
+                      f"({', '.join(names)})")
+            else:
+                check(repo in names or repo.lower() == PUBLIC_REPO.lower(),
+                      f"{cloud}: {repo} is neither a repository the factory serves ({', '.join(names)}) "
+                      f"nor the public repository the proof uses")
+        # Each class is checked against the classes of every planned repository the factory serves,
+        # each on its own: a class another repository declares is still one this one cannot run. Only
+        # when no planned repository is served (a copy still off) does the pooled set stand in.
+        planned = [r.lower() for r in plan.get("repositories") or [] if r.lower() in by_repo]
         for name, row in (plan.get("classes") or {}).items():
             at = f"{cloud}: human.intake.plan.classes[{name!r}]"
-            check(name in classes, f"{at} is not a class of a repository the factory serves "
-                                   f"({', '.join(sorted(classes))})")
+            for repo in planned:
+                check(name in by_repo[repo], f"{at} is not a class of {repo} in the factory's config "
+                                             f"({', '.join(sorted(by_repo[repo]))})")
+            if not planned:
+                check(name in classes, f"{at} is not a class of a repository the factory serves "
+                                       f"({', '.join(sorted(classes))})")
             check(isinstance(row, dict) and set(row) == CLASS_KEYS,
                   f"{at}'s keys are {sorted(CLASS_KEYS)}, found {sorted(row) if isinstance(row, dict) else row}")
             if not isinstance(row, dict):

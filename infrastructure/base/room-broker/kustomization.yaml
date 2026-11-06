@@ -21,6 +21,8 @@ resources:
   - externalsecret-mcp-key.yaml
   - externalsecret-factory-app.yaml
   - externalsecret-zitadel-reader.yaml
+  # The planner's client key (CD18), mounted by the App below.
+  - externalsecret-planner.yaml
 
 # The broker reads its config once at startup, so the ConfigMap is generated: a change
 # moves the content-hash suffix, the App's volume reference follows it through

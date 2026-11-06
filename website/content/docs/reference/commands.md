@@ -62,7 +62,9 @@ folder you trust.
 
 | Tool or prompt | What it does |
 |---|---|
-| `handoff` | Drafts an issue, one defect per issue; a form shows it to you, files it and offers to start it |
+| `handoff` | Asks the planner for a plan, one defect per issue; a form shows it to you, files it and offers to start it |
+| `intake_plan` | Proposes the plan: one repository with its evidence, one to three issues, the roles, the ceiling, and at most one question |
+| `plan_check` | Holds a plan to the allowlist and the class table again and answers whether it still holds; files nothing |
 | `status [room or #issue]` | The room card; without an argument, your most recently updated room |
 | `inbox` | The rooms that need you first, then your other open rooms |
 | `room_wait` | Follows a room and returns when it needs you, opens a pull request or ends |
@@ -74,6 +76,10 @@ Starting a task is a form field, never a tool argument: your agent can file an i
 the form. It is offered only on repositories the platform lists and you can write to. A checkout that
 changes agent or editor config, hooks, symlinks or non-ASCII paths asks first. Everything an agent wrote
 comes back in code spans, as data. The design: [ADR-0059]({{< relref "/docs/decisions/0059-factory-from-your-coding-agent.md" >}}).
+
+Both planner tools are read-only and reach no repository of yours. What they may name is fixed by
+[Planner settings]({{< relref "/docs/reference/planner.md" >}}): the allowlist, the class table, the
+roles and the money come from config, and a reply that names anything outside them is refused whole.
 
 ## What each coding agent supports {#clients}
 

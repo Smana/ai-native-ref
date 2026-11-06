@@ -53,6 +53,23 @@ human:
   access:
     readerFile: /etc/room-broker/zitadel-reader/reader.json
     ttl: 5m
+  # The governed planner (v3.x conversational intake): intake_plan and plan_check on /mcp, off. Its
+  # candidate set is the write check human.access above carries and both tools live on /mcp, so it
+  # needs human.mcp.enabled too. repositories is the allowlist a plan may ever name (CD5) and is
+  # deliberately not human.mcp.sessionStart; classes is the roles and the money every plan gets, never
+  # the model's choice (CD17). The key is the one app.yaml mounts at /etc/room-broker/planner.
+  intake:
+    plan:
+      enabled: false            # turned on for one repository by ai-native-ref PR B
+      url: http://ai-gateway.envoy-gateway-system.svc.cluster.local:8080/v1
+      model: tier-frontier
+      apiKeyFile: /etc/room-broker/planner/api-key
+      deadline: 20s
+      dailyPlans: 50
+      fallback: "off"
+      repositories: [Smana/ai-native-ref]      # the public repositories this boundary may plan for
+      classes:
+        docs-links: {roles: [scoper, implementer, reviewer], ceilingUSD: 2.00, source: "class:docs-links.taskUSD"}
   # The developer's MCP server (base's copy says why). sessionStart is a session switch: a live
   # session lists the one repository runbook 19 (or the showcase, runbook 23) starts from, and empties
   # it after; sponsored declares the Slack App (runbook 18): the same name as the factory's

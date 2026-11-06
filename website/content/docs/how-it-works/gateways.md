@@ -77,6 +77,18 @@ every route inherits it rather than each declaring its own. Keys come from AWS
 Secrets Manager through External Secrets, and the gateway strips the
 `Authorization` header before forwarding — vLLM never sees a credential.
 
+**Who holds a key.** Each key names its holder, and that name is all the gateway knows about a
+caller: it labels the access log and the spend series, and the caller cannot set it. The key decides
+who pays for a call, never which model it may name — every key on this listener reaches every route.
+
+| Client id | Who holds it | What it names |
+|---|---|---|
+| `openwebui` | OpenWebUI, in cluster | Whatever model its user picks, `MoM` included |
+| `promptfoo` | The nightly evaluation, in cluster | The models its suites name |
+| `planner` | The room broker's planner: one call per plan, never a retry | `tier-frontier`, the one alias the broker's own config allows it |
+
+The planner's single alias is a bound its own config holds, not a policy on the gateway.
+
 **Prompt classification (`ext_proc`, filter index 0).** The Semantic Router is
 wired in as an Envoy `ext_proc` gRPC filter, inserted **ahead of** the AI
 Gateway's own extproc by an `EnvoyPatchPolicy` — a raw xDS JSONPatch. The

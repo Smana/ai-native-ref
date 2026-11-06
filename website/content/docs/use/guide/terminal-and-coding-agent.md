@@ -43,10 +43,38 @@ spells it `/mcp__factory__handoff`):
 /factory:handoff fix the dead link in the install guide
 ```
 
-Your agent drafts the issue, with an acceptance check, and shows it to you in a form. You file it and,
-if you like, start it. Only your answer to the form can start a task, never the agent.
+Your agent brings back a **plan**, and shows it to you before anything exists. A plan names:
+
+- the repository it will file into, and the evidence it read to choose it — a path, an issue, a thread;
+- one to three issues, as they will be filed, each with an acceptance check;
+- the roles that will run, in that order;
+- the ceiling, what the work may cost, and where that number came from.
+
+Example (the reference host): one issue in `Smana/ai-native-ref`, roles `scoper`, `implementer` and
+`reviewer`, and a ceiling of $2.00 from the `docs-links` class's own budget.
+
+Most plans carry no question. When the evidence points two ways, the plan asks you exactly one, with
+its recommendation, and settles the rest itself.
+
+The planner reads public text only. Name a private repository and it stops before it calls a model,
+then offers you the two ways forward: draft the issue yourself with your own model and file it with
+`issue_draft` and `issue_file`, or wait for the internal route.
+
+You answer the form, and only then does an issue exist. One confirmation files the plan's **first**
+issue: when the plan holds two or three, the others are not filed, and your agent says so rather than
+letting the filed one stand for the rest. A plan is what gets filed, not what gets done: the scoper
+still reads the issue, checks the acceptance check and turns it into runs. A plan you edited, or one
+that went stale while you sat on it, is refused when you confirm it, so read the one in front of you.
+
+Where the planner is off, there is no plan to read — the [status page]({{< relref "/docs/status.md" >}})
+says where it is on. Your agent then writes the issue itself, in the template's three sections
+`## What is wrong`, `## What it should be` and `## Acceptance check`, has `issue_draft` check it, and
+files it once you confirm. A draft you were shown is not a plan the broker composed, and your agent
+says which of the two you are looking at.
 
 Other agents' spellings: [Reference › Commands]({{< relref "/docs/reference/commands.md#clients" >}}).
+What each setting of the planner means is in [Planner settings]({{< relref "/docs/reference/planner.md" >}}),
+and what is switched on where you are is on the [status page]({{< relref "/docs/status.md" >}}).
 
 ## Follow it {#follow}
 

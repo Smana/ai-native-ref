@@ -10,9 +10,9 @@ metadata:
 spec:
   image:
     repository: ghcr.io/smana/maku-broker
-    # maku v0.33.1, by digest. Move it with the retention CronJob's,
+    # maku v0.35.0, by digest. Move it with the retention CronJob's,
     # crd-rooms.yaml and atlasSchema.ref together.
-    tag: "v0.33.1@sha256:36ce2e06d35ea80e1574b4718918fa9506c10a5d54cd89737d5c83f0583a8c6b"
+    tag: "v0.35.0@sha256:c2e4aa8be2b6503463ceb1e1f6b2a91faa8ee1fc4c61e2e269f0f52d667c9043"
   # Two from phase 2 (§9): the leader lease picks the controller, and every
   # replica serves humans through the LISTEN/NOTIFY hub (ruling AT).
   replicas: 2
@@ -128,6 +128,16 @@ spec:
         secretName: room-broker-webhook-runlore  # pragma: allowlist secret
         optional: true
         defaultMode: 0440
+    # The planner's client key (human.intake.plan.apiKeyFile, CD18), the broker's own copy of the
+    # value the AI Gateway holds as its `planner` client. optional: a broker that starts before
+    # the owner writes `agents/planner` runs with the planner disabled (no key file, no call)
+    # instead of crashlooping. 0440: readable through the pod's fsGroup (1001) alone, like the
+    # factory App key — so the key depends on that fsGroup staying set.
+    - name: planner
+      secret:
+        secretName: room-broker-planner  # pragma: allowlist secret
+        optional: true
+        defaultMode: 0440
   extraVolumeMounts:
     - name: config
       mountPath: /etc/room-broker/config
@@ -155,6 +165,11 @@ spec:
       readOnly: true
     - name: webhook-runlore
       mountPath: /etc/room-broker/webhooks/runlore
+      readOnly: true
+    # human.intake.plan.apiKeyFile points here. Inert until a Maku release reads it: the mount
+    # alone changes nothing a broker without the key would read.
+    - name: planner
+      mountPath: /etc/room-broker/planner
       readOnly: true
   networkPolicies:
     enabled: false

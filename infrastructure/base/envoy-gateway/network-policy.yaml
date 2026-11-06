@@ -151,6 +151,12 @@ spec:
         - matchLabels:
             io.kubernetes.pod.namespace: promptfoo
             app.kubernetes.io/name: promptfoo
+        # The room broker's planner (v3.x conversational intake, CD18). Scoped to the pod, on 8080,
+        # and paired with ai-gateway-planner-key in security-policy.yaml: whitelisted and
+        # authenticated, or refused.
+        - matchLabels:
+            io.kubernetes.pod.namespace: agent-system
+            app.kubernetes.io/name: room-broker
       toPorts:
         - ports:
             - port: "8080"

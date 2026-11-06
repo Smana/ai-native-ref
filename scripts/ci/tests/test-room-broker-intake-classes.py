@@ -49,6 +49,9 @@ PLAN_KEYS = {"enabled", "url", "model", "apiKeyFile", "deadline", "dailyPlans", 
              "repositories", "classes"}
 CLASS_KEYS = {"roles", "ceilingUSD", "source"}
 PLANNER_MOUNT = "/etc/room-broker/planner"
+# The copies whose switch is on (ADR-0060): one cloud, for the one public repository. Every other copy,
+# base's included, keeps it off.
+ENABLED_IN = {"gcp-0"}
 problems = []
 
 
@@ -139,10 +142,13 @@ if not knows_intake:
         check(ok, desc)
 else:
     # --- one block, every copy ----------------------------------------------------------------
-    # A cloud that grew its own reading of the planner's block has a second planner, not a copy.
+    # A cloud that grew its own reading of the planner's block has a second planner, not a copy. The
+    # switch is the one key a copy may set apart.
+    def but_switch(block):
+        return {k: v for k, v in block.items() if k != "enabled"}
     for cloud in clouds:
-        check(blocks[cloud] == blocks.get("base"),
-              f"{cloud}: human.intake is base's copy, verbatim")
+        check(but_switch(blocks[cloud]) == but_switch(blocks.get("base") or {}),
+              f"{cloud}: human.intake is base's copy, verbatim but for enabled")
     # The key A1 mounted, not a path a block invents: a planner reading elsewhere 401s every plan.
     mounts = [m for m in pinned["spec"].get("extraVolumeMounts") or [] if m.get("mountPath") == PLANNER_MOUNT]
 
@@ -169,10 +175,14 @@ else:
         # worse, a value the decoder defaults away and nobody notices).
         check(set(plan) == PLAN_KEYS,
               f"{cloud}: human.intake.plan's keys are {sorted(PLAN_KEYS)}, found {sorted(plan)}")
-        # Until PR B, which turns it on for one repository in one cloud: a switch that reads as on
-        # while the class table is still unreviewed is what the two PRs exist to separate.
-        check(plan.get("enabled") is False,
-              f"{cloud}: human.intake.plan.enabled is false until PR B turns it on")
+        # On in one cloud, for one public repository (ADR-0060); off everywhere else. A second cloud or
+        # a second repository is its own decision, not a copy of this one.
+        on = cloud in ENABLED_IN
+        check(plan.get("enabled") is on,
+              f"{cloud}: human.intake.plan.enabled is {str(on).lower()}: on only in {sorted(ENABLED_IN)}")
+        if on:
+            check(plan.get("repositories") == [PUBLIC_REPO],
+                  f"{cloud}: the planner is on for {PUBLIC_REPO} alone, found {plan.get('repositories')}")
         check(plan.get("model") == "tier-frontier",
               f"{cloud}: human.intake.plan.model is tier-frontier, the one alias the gateway serves the planner")
         url = str(plan.get("url") or "")

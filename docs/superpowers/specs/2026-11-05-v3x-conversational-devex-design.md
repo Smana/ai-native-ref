@@ -2,9 +2,9 @@
 
 **Date:** 2026-11-05 · **Status:** design for owner review. The scope and the sixteen owner
 decisions in [Owner decisions](#owner-decisions) were validated on 2026-11-05. Nothing here is built ·
-**Part of:** v4.0 item 7, "Developer experience"
-([v4 roadmap](2026-10-31-v4-roadmap-design.md#core)), delivered as increments in the v3.x line on the
-v3.0.0 platform · **Follows:** the [factory from your coding agent](2026-10-25-factory-from-your-agent-design.md),
+**Part of:** the developer experience track of the v3.x releases
+([roadmap](2026-10-31-v4-roadmap-design.md#t-devex)); old "v4.x" numbers below map to tracks
+[there](2026-10-31-v4-roadmap-design.md#renumbering) · **Follows:** the [factory from your coding agent](2026-10-25-factory-from-your-agent-design.md),
 [factory interfaces](2026-10-21-factory-interfaces-design.md) F3, F9 and F8, the
 [scoper](2026-10-22-scoper-design.md) SC1 to SC9, the [splitter](2026-10-23-splitter-design.md), and
 [S6](2026-09-23-agent-collaboration-rooms-design.md) (a task is sequential runs in one room) ·

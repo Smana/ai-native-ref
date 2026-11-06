@@ -3,8 +3,9 @@
 **Date:** 2026-11-05 · **Status:** roadmap approved by the owner 2026-11-05
 ([decisions XD1 to XD9](#owner-decisions-2026-11-05)). This is a roadmap: each increment has its design
 named in [the increments](#increments) and its own implementation plan, and none of them is built ·
-**Part of:** v4.0 item 7, "Developer experience" ([v4 roadmap](2026-10-31-v4-roadmap-design.md#core)),
-delivered instead as increments on the released v3.0.0 platform · **Follows:** the
+**Part of:** the developer experience track of the v3.x releases
+([roadmap](2026-10-31-v4-roadmap-design.md#t-devex)); the old "v4.0 item" and "v4.x" numbers below
+map to tracks [there](2026-10-31-v4-roadmap-design.md#renumbering) · **Follows:** the
 [v3 roadmap](2026-10-19-v3-roadmap-design.md), released as v3.0.0 on 2026-10-31 · **Companion:** the
 [architecture review](../reviews/2026-11-05-v4-devex-architecture-review.md) that moved this work onto a
 line of its own
@@ -196,12 +197,13 @@ Six bounded changes, each a PR with its own tests, none of them a platform chang
 - **A standalone room.** No new `room_create`; `POST /api/rooms` keeps its one caller.
 - **A second decomposition engine.** The scoper and its splitter stay the only post-filing
   decomposition; the pre-filing planner proposes and never decides.
-- **Ranking, routing, digests, e-mail** — v4.1 — and **pre-PR verification, the continuation loop** —
-  v4.2.
-- **Fleet campaigns, cross-factory orchestration and any parallel-children live claim.** Fleet stays
-  v4.4; parallel multi-repository children are designed and unproven.
+- **Ranking, routing, digests, e-mail** — the [review capacity](2026-10-31-v4-roadmap-design.md#t-review)
+  track — and **pre-PR verification, the continuation loop** — the
+  [verification](2026-10-31-v4-roadmap-design.md#t-verification) track.
+- **Fleet campaigns, cross-factory orchestration and any parallel-children live claim.** Fleet stays in
+  the [work at scale](2026-10-31-v4-roadmap-design.md#t-scale) track; parallel multi-repository children are designed and unproven.
 - **Repository memory**, or any stored preference that would make the planner improve over time
-  ([v4.6](2026-10-31-v4-roadmap-design.md#increments)).
+  ([its track](2026-10-31-v4-roadmap-design.md#t-memory)).
 
 ## Roadmap and status bookkeeping
 
@@ -214,5 +216,6 @@ describes the line as planned until each increment ships.
   planner's one governed data path.
 - **With increment 1's release:** the Slack pages, ADR-0049 and ADR-0059 FA7, `docs/security.md`
   invariant 8 and runbooks 18 and 22 are amended in the same change that drops the prohibition.
-- **At v4.0:** the [v4 roadmap](2026-10-31-v4-roadmap-design.md#core) item 7 points here for what
-  shipped early, and item 9 carries multi-repository coordination with its activation prerequisite.
+- **In the roadmap:** the [developer experience track](2026-10-31-v4-roadmap-design.md#t-devex)
+  points here, and the [multi-repository track](2026-10-31-v4-roadmap-design.md#t-multi-repo) carries
+  its activation prerequisite.

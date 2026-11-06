@@ -3,7 +3,7 @@ title: Status and roadmap
 linkTitle: Status
 weight: 60
 description: "The one place state lives: what is available, what is experimental, what is planned, and the known limitations."
-lastVerified: 2026-10-31
+lastVerified: 2026-11-06
 ---
 
 The one place the platform's state lives. Every other page describes the design. Each line here
@@ -11,8 +11,8 @@ names the clouds a capability was proven on, and links to the evidence: a runboo
 a design record.
 
 **Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0),
-released on 2026-10-31, on Maku v0.32.3, composed by crossplane-configuration v0.9.31. **Next:** a
-[v3.x developer-experience line](#v3x) on this release, then [v4, anyone can run it](#v4).
+released on 2026-10-31, on Maku v0.32.3, composed by crossplane-configuration v0.9.31. **Next:**
+[v3.x releases](#v3x) of this platform, then [v4, anyone can run it](#v4).
 
 The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts,
 RunLore, Kueue and others). [Maku](https://github.com/Smana/maku) is one of them: the factory
@@ -44,17 +44,13 @@ flowchart LR
     search["Search for agents"]
     classes["More auto-merge classes"]
   end
-  subgraph v3x["Next: v3.x, developer experience"]
-    nl["Say what you want, confirm a plan"]
-    inbox["One list of what needs you,<br/>and a short brief on return"]
-    slackflow["One proposal message in Slack,<br/>then a thread that answers"]
-    push["Approve a push from Slack"]
+  subgraph v3x["Next: v3.x releases, each behind a switch"]
+    building["Being built: classes in your repository,<br/>plan then confirm, what needs you,<br/>push approval from Slack, run view,<br/>RunLore knowledge base, multi-repository"]
+    next["Next: hardening, analytics, Gemini,<br/>review, verification, quality,<br/>scale, provenance, memory"]
   end
-  subgraph v4["Next: v4, anyone can run it"]
+  subgraph v4["Then v4: anyone can run it"]
     laptop["The factory on a laptop"]
     prod["The production path"]
-    multi["Multi-repository coordination,<br/>after classes and hardening"]
-    inc["v4.1 to v4.6: review, verification,<br/>quality, scale, provenance, memory"]
   end
   subgraph later["Planned"]
     bench["Eval bench and bake-off"]
@@ -104,8 +100,8 @@ Hardening is tracked on the **v1 hardening** milestones of
 
 <span id="class-modes"></span>**Auto-merge class modes**, from `tooling/base/agent-factory/helm-values-configmap.yaml`
 ([when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}})):
-cloud-native-ref has `docs-links` and `revert` live, and `dead-links`, `deps-patch` and `deps-minor`
-in shadow; every ai-native-ref class is in shadow; `approveToMerge` is on for both.
+cloud-native-ref has `docs-links` and `revert` live, and `alert-rules`, `dead-links`, `deps-patch` and
+`deps-minor` in shadow; every ai-native-ref class is in shadow; `approveToMerge` is on for both.
 
 ## Experimental {#experimental}
 
@@ -118,20 +114,45 @@ Built, but off by default or on for a few classes only while its value is measur
 | Self-hosted model serving | vLLM on L4 GPUs behind an OpenAI-compatible gateway; off by default on both clouds | [serving]({{< relref "/docs/how-it-works/serving/_index.md" >}}) |
 | Per-person and fleet daily caps | Counted in shadow, not refused, until a longer record says enforcing is safe | [runbook 04, Part C](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week) |
 
-## v3.x: developer experience {#v3x}
+## v3.x: what ships before v4 {#v3x}
 
-The next line of work runs on the current release, v3.0.0, not on v4. You say what you want in the
-place you already work, read one plan before anything is filed, and afterwards the factory tells you
-what needs you and what changed. Nothing here is built yet; each feature gets its own design first, and
-each ships off by default until an owner turns it on for one repository or one channel
-([roadmap](https://github.com/Smana/ai-native-ref/blob/0129fc85ff33eb4a997aba10a04be205aadea9c9/docs/superpowers/specs/2026-11-05-v3x-devex-roadmap-design.md)).
+<span id="v4-core"></span><span id="v4-increments"></span>
+
+Everything that ships before v4 is a v3.x release of the current platform. Each feature is a track,
+off by default until an operator turns it on with one value. A track ships one increment at a time:
+its offline proofs, a release, a live proof, then the switch-on. Each track gets its own design first
+([roadmap](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-31-v4-roadmap-design.md#v3x)).
+
+**Being built:**
+
+| Feature | What it will do for you | State |
+|---|---|---|
+| **Merge classes declared in your repository** | You declare which kinds of change may merge on their own, in your own repository, against a schema; the factory's gate and the policy-bot rule are generated from that one declaration. Presets for common classes, a ceiling the platform sets, and promotion from shadow once a replay of past decisions shows the class is safe | First of six stages built: the factory reads your repository's classes and compares them with its own, deciding nothing. In a Maku release, not yet in the platform. **Needed for v4** |
+| **Say what you want, then read the plan** | In Slack or your coding agent, describe the work in your own words. One governed model call proposes the repository with the evidence for it, the issue as it will be filed, the roles that will run, the checks that will judge it and what it may cost, and asks at most one question. You confirm, and only then does an issue exist. Public repositories only | The planner and its broker routes are built; the coding agent's side is in review. Not released |
+| **One list of what needs you, and a short brief on return** | The room page, the CLI, your coding agent and a Slack thread show the same list in the same order, each item with one action and one link. Coming back after a day away gives you a short, fixed brief: what was asked, which plan ran, what changed, what blocks it, and the one next step | The shared list is built; the brief, revisions first and settled dollars are not. Not released |
+| **Approve a push from Slack** | The most frequent approval in an attended room, "may this run push to its branch?", arrives as one card with Approve and Deny, bound to that run's branch, under the same four-eyes rule, room standing and repository permission the room page applies. Merging is unchanged: you review the current head on GitHub | Built, not released |
+| **Slack: one proposal message, then a thread that answers** | A mention produces one message, edited in place as you reply. Confirm it and the thread goes on telling you how the work goes; ask it how it is going, what needs you or where the pull request is, and it answers | Designed; it builds on the three features above |
+| **The animated run view** | The room page draws the task as a path: a node per run, named by its role and model, the planned steps lighting up as each run starts, and a replay when the task ends. Still to come: a timeline of every tool call, check, decision and cost, and two runs of the same task compared side by side | The path is built, on the main branch and not yet in a platform release, and not yet proven end to end |
+| **RunLore's knowledge base, filled by the factory** | What an investigation learns about the running platform becomes a reviewed entry in the knowledge base, and the entries that are safe to merge go through a curated queue rather than waiting on you one by one | The first phase is built, on the main branch and off by default, not yet in a platform release; waiting for its live proof |
+| **Multi-repository coordination** | One change across two repositories, confirmed once: a parent issue that records the change and never writes code, one ordinary task per repository with its own maintainer, branch, gate and pull request, a landed file as the dependency, and a read-only check that the two work together | Designed; being built switched off. It can only be turned on after merge classes in your repository and untrusted-input hardening ship |
+
+**Next:**
 
 | Feature | What it will do for you |
 |---|---|
-| **Say what you want, then read the plan** | In Slack or your coding agent, describe the work in your own words. One governed model call proposes the repository with the evidence for it, the issue as it will be filed, the roles that will run, the checks that will judge it and what it may cost, and asks at most one question. You confirm, and only then does an issue exist. Public repositories only in this first version |
-| **One list of what needs you, and a short brief on return** | The room page, the CLI, your coding agent and a Slack thread show the same list in the same order, each item with one action and one link. A proposed split and a pull request waiting on a second maintainer both appear. Coming back after a day away gives you a short, fixed brief: what was asked, which plan ran, what changed, what blocks it, and the one next step |
-| **Slack: one proposal message, then a thread that answers** | A mention produces one message, edited in place as you reply, rather than one message per revision. Confirm it and the thread goes on telling you how the work goes; ask it how it is going, what needs you or where the pull request is, and it answers rather than staying silent |
-| **Approve a push from Slack** | The most frequent approval in an attended room — "may this run push to its branch?" — arrives as one card with Approve and Deny, bound to that run's branch, with the same four-eyes rule, room standing and repository permission the room page applies. Merging is unchanged: you review the current head on GitHub |
+| **Untrusted-input hardening** | For repositories where strangers file issues: the agent writes only through validated outputs, text from people outside the maintainers is filtered, outputs pass a threat check before they apply, and CI configuration, agent instructions and manifests stay out of the agent's reach. Scripted injection attacks against every role prove it, on a schedule like the merge-gate drills. **Needed for v4** |
+| **Outcome analytics** | Merge rate, revert rate, time to merge, rework and cost per merged pull request, per class, model, role and repository, on a dashboard and in a weekly report |
+| **Gemini** | Gemini as a model you can select for public work, with its own capability profile and cost check, the way Kimi and Mistral were added |
+| **Review inbox** | One queue of the agents' pull requests waiting on a human, across all your repositories, ranked by risk, class and age, routed to their owners; stale ones are closed |
+| **Plan approval** | Per class, the scoper's plan waits for a maintainer's approval before any code is written, so a wrong plan costs one comment, not a run and a review |
+| **Verification on real services** | Before the pull request opens, the change runs against real dependencies: ephemeral services, scoped test credentials, a preview, and screenshots for interface changes |
+| **The continuation loop** | The factory drives its own pull request to the merge: it fixes red CI, answers review comments, rebases, and resolves merge conflicts |
+| **Judge and reviewer calibration** | How often the completion judge said "done" and the reviewer said "approve" on work that was later reverted or reworked, per model and class, so you know when a cheaper judge is safe. After outcome analytics |
+| **Reviewer severity and resolution** | The reviewer ranks its findings by severity; the factory tracks which ones were fixed and mutes rules that are rarely acted on. After outcome analytics |
+| **Event triggers and schedules** | Tasks start from events, not only issues: main's CI turning red, a security alert, or a schedule for recurring maintenance. After merge classes in your repository and hardening |
+| **Fleet campaigns** | One change applied across many repositories, with a view of its progress to 100% and the long tail handed to owners. After merge classes in your repository and hardening |
+| **Signed provenance** | Every agent commit carries a signed attestation of the run, model, prompt, policy and checks that produced it, which anyone can verify later |
+| **Repository memory, as reviewed code** | Agents propose what they learned (build quirks, conventions, gotchas) as small pull requests to the repository's agent instructions, reviewed like any change: no hidden memory. After hardening and calibration |
 
 The natural-language planner reads public text only, and a private repository is refused before any
 model call. A resume brief, the inbox and a proposal are derived, never stored, so turning a switch off
@@ -139,42 +160,20 @@ returns today's behaviour.
 
 ## v4: anyone can run it {#v4}
 
-v3 made the factory land more accepted pull requests per dollar on the reference host. v4 makes it
-run **for anyone, outside the reference host**: first the whole factory loop on a laptop, then a
-production install on your own cluster. v4.0 holds what an outside adopter needs on day one, and
-multi-repository coordination, which stays switched off until the two items it depends on ship; the
-increments after it each ship behind their own switch. Nothing here is built yet; each feature gets
-its own design first ([roadmap](https://github.com/Smana/ai-native-ref/blob/16ebc770ab95cea72d2135ca076659223b56260b/docs/superpowers/specs/2026-10-31-v4-roadmap-design.md),
-[research](https://github.com/Smana/ai-native-ref/blob/16ebc770ab95cea72d2135ca076659223b56260b/docs/superpowers/specs/2026-10-31-v4-landscape-research.md)).
-
-### v4.0: the core {#v4-core}
+v3 made the factory land more accepted pull requests per dollar on the reference host. v4 makes it run
+**for anyone, outside the reference host**. It is written for a platform engineer who knows
+Kubernetes, Helm, GitOps and GitHub Apps and is new to agents. v4 ships when both stages below pass,
+and when merge classes in your repository and untrusted-input hardening have shipped as v3.x
+releases, because an outside repository's issues come from strangers. Whatever else has shipped by
+then is part of v4 ([roadmap](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-31-v4-roadmap-design.md#v4-0)).
 
 | Feature | What it will do for you |
 |---|---|
-| **The factory on a laptop** | On a Linux machine with Docker, about 30 minutes from the docs alone: label an issue in a sample repository, watch the agents work in a room, get a reviewed pull request, and see the merge gate decide. Today's kind quickstart runs one attended agent; v4 brings the whole loop. A nightly job proves it |
-| **The production path** | Install on your own cluster, not only the reference host: the host contract split into what is required and what you bring (your identity provider through OIDC, your secrets store, your GitOps tool, your gateway), each with a reference implementation and a statement of what you lose if you leave it out. Proven on a cluster that is not the reference host, with a smoke test |
-| **Merge classes declared in your repository** | You declare which kinds of change may merge on their own, in your own repository, against a schema; the factory's gate and the policy-bot rule are generated from that one declaration. Presets for common classes, a ceiling the platform sets, and promotion from shadow once a replay of past decisions shows the class is safe |
-| **Untrusted-input hardening** | For repositories where strangers file issues: the agent writes only through validated outputs, text from people outside the maintainers is filtered, outputs pass a threat check before they apply, and CI configuration, agent instructions and manifests stay out of the agent's reach. Scripted injection attacks against every role prove it, run on a schedule like the merge-gate drills |
-| **Outcome analytics** | See what the factory delivers: merge rate, revert rate, time to merge, rework and cost per merged pull request, per class, model, role and repository, on a dashboard and in a weekly report |
-| **Gemini** | Gemini as a model you can select for public work, with its own capability profile and cost check, the way Kimi and Mistral were added |
-| **Developer experience** | Fewer steps from "hand this off" in your terminal or coding agent to a running task, and a clearer status. Its increments are specified as a [v3.x line](#v3x) and may ship before v4 does |
-| **The animated run view** | A run's page draws its diagram as each role starts, and replays it when the run ends. A timeline lists every tool call, check, decision and cost, and two runs of the same task can be compared side by side |
-| **Multi-repository coordination** | One change across two repositories, confirmed once: a parent issue that records the change and never writes code, one ordinary task per repository with its own maintainer, branch, gate and pull request, a landed file as the dependency, and a read-only check that the two work together. **It is designed; implementation will ship switched off and can only be turned on after repositories declare their own merge classes and untrusted input is hardened** ([design](https://github.com/Smana/ai-native-ref/blob/a84296f93a7eae543dc90b898d78e0735cb3b384/docs/superpowers/specs/2026-11-05-v4-multi-repo-coordination-design.md)) |
+| **The factory on a laptop** | About 15 minutes from the docs alone, on kind or k3d: one command asks for your model endpoint and key, you click twice on GitHub to create the factory's App, and you get a repository made from a template. Label its first issue, watch the agents work in a room, get a reviewed pull request, and see the merge gate post its verdict; one value lets it merge. It is a demo of how production works, on public repositories only: a table on the quickstart page lists what production adds, such as isolation, per-role tokens and budgets. A nightly job proves the loop |
+| **The production path** | Install on your own cluster from one Helm chart that Flux and Argo CD both consume. You bring your identity provider through OIDC, your secrets store and your GitOps tool; agentgateway and gVisor ship as required pieces. Each seam says what you lose if you leave it out. Proven on a plain k3s or kubeadm cluster with a smoke test, on public repositories; private repositories are documented |
+| **Upgrades you can plan for** | From v4, chart values and the install contract follow semantic versioning: a breaking change waits for a major release or comes with a migration note, and a nightly job upgrades the previous release |
 
-### v4.x: the increments {#v4-increments}
-
-| Release | Feature | What it will do for you |
-|---|---|---|
-| v4.1 | **Review inbox** | One queue of the agents' pull requests waiting on a human, across all your repositories, ranked by risk, class and age, routed to their owners; stale ones are closed |
-| v4.1 | **Plan approval** | Per class, the scoper's plan waits for a maintainer's approval before any code is written, so a wrong plan costs one comment, not a run and a review |
-| v4.2 | **Verification on real services** | Before the pull request opens, the change runs against real dependencies: ephemeral services, scoped test credentials, a preview, and screenshots for interface changes |
-| v4.2 | **The continuation loop** | The factory drives its own pull request to the merge: it fixes red CI, answers review comments, rebases, and resolves merge conflicts |
-| v4.3 | **Judge and reviewer calibration** | How often the completion judge said "done" and the reviewer said "approve" on work that was later reverted or reworked, per model and class, so you know when a cheaper judge is safe |
-| v4.3 | **Reviewer severity and resolution** | The reviewer ranks its findings by severity; the factory tracks which ones were fixed and mutes rules that are rarely acted on |
-| v4.4 | **Event triggers and schedules** | Tasks start from events, not only issues: main's CI turning red, a security alert, or a schedule for recurring maintenance |
-| v4.4 | **Fleet campaigns** | One change applied across many repositories, with a view of its progress to 100% and the long tail handed to owners |
-| v4.5 | **Signed provenance** | Every agent commit carries a signed attestation of the run, model, prompt, policy and checks that produced it, which anyone can verify later |
-| v4.6 | **Repository memory, as reviewed code** | Agents propose what they learned (build quirks, conventions, gotchas) as small pull requests to the repository's agent instructions, reviewed like any change: no hidden memory |
+Today's kind quickstart runs one attended agent; v4 brings the whole loop.
 
 ## Planned {#later}
 
@@ -192,9 +191,10 @@ its own design first ([roadmap](https://github.com/Smana/ai-native-ref/blob/16eb
 Not planned: public work on Claude, a doc-writer or standalone architect agent, parallel writers on
 one branch, switching models in the middle of a run
 ([why](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-19-v3-roadmap-design.md#not-in-v3)), and
-steering a run from Slack or MCP, which stays in the rooms web UI. Install on any Kubernetes, the
-continuation loop, untrusted-input hardening and repository memory moved into [v4](#v4). Approving
-from Slack is planned only for the push approval in the [v3.x line](#v3x), which releases one push to
+steering a run from Slack or MCP, which stays in the rooms web UI. Install on any Kubernetes is
+[v4](#v4); the continuation loop, untrusted-input hardening and repository memory are
+[v3.x tracks](#v3x). Approving
+from Slack is planned only for the push approval in the [v3.x releases](#v3x), which releases one push to
 one branch; every other approval, and every merge, stays where it is.
 
 ### Serving {#serving-roadmap}
@@ -217,9 +217,9 @@ one branch; every other approval, and every merge, stays where it is.
 
 | Limitation | Effect |
 |---|---|
-| The room page's next step under approve-to-merge | It names an admin merge (`gh pr merge --admin`); approve the pull request instead, as the issue comment says |
+| The room page's next step under approve-to-merge | It names an admin merge (`gh pr merge --admin`); approve the pull request instead, as the issue comment says. Fixed in Maku, not yet released |
 | The CI log quote for the judge | Empty unless the harness's egress allows GitHub's Actions log host, a security decision for your platform |
-| Parts of the human path not yet exercised end to end | The policy replay, the release age, the `AwaitingCI` bound ([#182](https://github.com/Smana/ai-native-ref/issues/182)), the next-day return, a retroactive drill label, a lifted Request changes' return on approval |
+| Parts of the human path not yet exercised end to end | The policy replay, the release age, the `AwaitingCI` bound, the next-day return, a retroactive drill label, a lifted Request changes' return on approval |
 | Approval binding residuals | The push record's lag, the run's end time, a reason's name, and the base branch (tracked in [maku#304](https://github.com/Smana/maku/issues/304)) |
 | Costs on a task's status | A task's status cost freezes before its final settle; a budget-exhausted run's ledger misses its last spend (tracked in [maku#279](https://github.com/Smana/maku/issues/279), [maku#280](https://github.com/Smana/maku/issues/280)) |
 | Spend per identity | Not yet matched against the meter's ledger over a full day |

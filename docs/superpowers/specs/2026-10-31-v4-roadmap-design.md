@@ -1,12 +1,12 @@
-# v4: anyone can run it
+# v4: anyone can run it, and the v3.x releases before it
 
 **Date:** 2026-10-31 · **Status:** roadmap approved by the owner 2026-10-31 (decisions
-[V1 to V6](#owner-decisions-2026-10-31)); **amended 2026-11-05** (decision
-[V7](#owner-decisions-2026-11-05)): multi-repository coordination moved into v4.0 as an
-activation-gated item and out of v4.4, and Developer Experience is specified as a
-[v3.x line](2026-11-05-v3x-devex-roadmap-design.md) on the released platform. Each sub-project gets its
-own design before it is built · **Follows:** the [v3 roadmap](2026-10-19-v3-roadmap-design.md),
-released as v3.0.0 on 2026-10-31 · **Candidates:** issue
+[V1 to V6](#owner-decisions-2026-10-31)); amended 2026-11-05 ([V7](#owner-decisions-2026-11-05));
+**restructured 2026-11-06** ([V8 to V21](#owner-decisions-2026-11-06)): v4.0 is the laptop loop and
+the production path, and everything that ships before it is a [v3.x track](#v3x) on the released
+platform. Designs written earlier use the old numbers; [the mapping](#renumbering) names each one's
+track. Each track gets its own design before it is built · **Follows:** the
+[v3 roadmap](2026-10-19-v3-roadmap-design.md), released as v3.0.0 on 2026-10-31 · **Candidates:** issue
 [#280](https://github.com/Smana/ai-native-ref/issues/280) and the
 [v4 landscape research](2026-10-31-v4-landscape-research.md)
 
@@ -15,8 +15,8 @@ released as v3.0.0 on 2026-10-31 · **Candidates:** issue
 v3 made the factory land more accepted pull requests per dollar, on the reference host. v4 makes it
 **run for anyone, outside the reference host**:
 
-1. **On a laptop:** a platform engineer runs the whole factory loop on kind in about 30 minutes,
-   from the docs alone. The loop is: label an issue, watch the room, get a reviewed pull request,
+1. **On a laptop:** a platform engineer runs the whole factory loop on kind or k3d in about 15
+   minutes, from the docs alone, as a labelled demo of the production machinery. The loop is: label an issue, watch the room, get a reviewed pull request,
    see the merge gate decide.
 2. **In production:** a platform team installs it on its own cluster and plugs in its own identity
    provider, secrets store, GitOps tool and gateway.
@@ -29,8 +29,8 @@ Today neither holds:
   it up with the shape v3 sketched: a core profile any cluster can run, with cloud-native-ref as the
   reference profile, the one proven live.
 
-The other capabilities the owner selected follow as further core items and v4.x increments, each
-behind its own switch ([V4](#owner-decisions-2026-10-31), amended by [V7](#owner-decisions-2026-11-05)).
+The other capabilities the owner selected ship before it, as [v3.x tracks](#v3x), each behind its own
+switch ([V8](#owner-decisions-2026-11-06)).
 
 ## Owner decisions, 2026-10-31 {#owner-decisions-2026-10-31}
 
@@ -49,6 +49,25 @@ behind its own switch ([V4](#owner-decisions-2026-10-31), amended by [V7](#owner
 |---|---|
 | V7 | **Developer Experience ships as a [v3.x line](2026-11-05-v3x-devex-roadmap-design.md) on the released v3 platform, and multi-repository coordination becomes a v4.0 target.** The conversational intake, the unified attention and resume, the Slack proposals and the Slack `forge.push` approval are increments on v3.0.0, each behind its own switch, with a bounded fast-follow pack. Multi-repository coordination leaves v4.4 and joins the core as item 9: its [design](2026-11-05-v4-multi-repo-coordination-design.md) and its switched-off implementation may proceed, but **activation and live proof wait for items 3 and 4**. Fleet campaigns stay in v4.4. V4 and V6 are unchanged in substance; what changes is where the work lands and when it may be turned on. The [architecture review](../reviews/2026-11-05-v4-devex-architecture-review.md) records why |
 
+## Owner decisions, 2026-11-06 {#owner-decisions-2026-11-06}
+
+| # | Decision |
+|---|---|
+| V8 | **Everything that ships before v4.0 is a v3.x release; v4.0 is the answer to "anyone can run it".** v4.0 holds the laptop loop and the production path. Two v3.x tracks must have shipped before it is cut, because an outside adopter's issues come from strangers: **merge classes declared in the repository** and **untrusted-input hardening**. Outcome analytics no longer gates v4.0. Every other item, including the old v4.1 to v4.6 increments, becomes a v3.x track ([below](#v3x)). Supersedes V3 and the placement in V7; the selection in V4 is unchanged |
+| V9 | **"Anyone" is a platform engineer:** fluent in Kubernetes, Helm, GitOps and GitHub Apps, new to Maku and to agents. The docs assume that fluency |
+| V10 | **Both stages are required for v4.0**, the laptop and the production path, as in V2 |
+| V11 | **The production proof runs on a generic cluster (k3s or kubeadm)**, which has no cloud identity to lean on, so every bring-your-own seam has to be real |
+| V12 | **The laptop's merge gate is a built-in check:** Maku's gate reports its own commit status, in shadow by default. policy-bot stays the production path's reference implementation |
+| V13 | **The laptop authenticates with a GitHub App, created by a setup helper** from a manifest. It keeps the bot identity and short-lived tokens of production |
+| V14 | **The laptop runs on any OpenAI-compatible endpoint**, one base URL and one key, with one worked example. agentgateway is optional on the laptop. Public work stays off Claude |
+| V15 | **Bring-your-own seams in v4.0:** the identity provider (OIDC), the secrets store and the GitOps tool. agentgateway is a required, shipped piece, because budgets, tiers and metering depend on it |
+| V16 | **Public repositories are in the go test; private repositories are documented**, with the adopter's own model choice, and are not part of v4.0's proof |
+| V17 | **From v4.0, chart values and the install contract follow semver.** A breaking change waits for a major release or ships with a migration note. A nightly job upgrades the previous release on kind. No support SLA |
+| V18 | **The production path installs from one umbrella Helm chart**, so Flux and Argo CD both consume it natively. cloud-native-ref becomes one set of values |
+| V19 | **gVisor is required in production.** On the laptop it is used when present; otherwise the run uses runc behind a visible "not isolated" banner |
+| V20 | **v4.0's go test adds one person other than the owner,** who completes the laptop quickstart from the docs and files a friction log |
+| V21 | **The laptop is a demo of the production machinery, not a secure install** ([its design](https://github.com/Smana/maku/blob/a9c5c50d/docs/superpowers/specs/2026-11-06-factory-on-a-laptop-design.md), decisions Q1 to Q27). One command, `task demo`; kind or k3d, or the current kubeconfig, with a minimal stack; one GitHub App from a manifest; the umbrella chart with `profile: demo`; public repositories only; the gate's own commit status; 15 minutes. What production adds (per-role tokens, the gateway's budget, the meter, gVisor, egress control, branch protection, separate identities) is listed, not shipped. Narrows V13 and V19 to production, makes V14's gateway absent from the demo, and replaces V2's 30 minutes |
+
 ## Why these features
 
 **What the field says** ([research](2026-10-31-v4-landscape-research.md)):
@@ -61,79 +80,121 @@ behind its own switch ([V4](#owner-decisions-2026-10-31), amended by [V7](#owner
 | What do competitors ship that we lack? | Scheduled and event-triggered tasks (7 products), per-repo environment snapshots, multi-repo tasks, memory (6 products; GitHub reports 90% vs 83% merge rate with Copilot Memory), PR continuation including merge conflicts |
 | Where is security heading? | Adaptive injection attacks beat 12 published defences more than 90% of the time ("The Attacker Moves Second", Nov 2025). OWASP's GenAI red-teaming manual (2026-10-20) and the CISA/Five Eyes guidance (2026-05-01) call for regular assessment. gh-aw's safe outputs, threat detection and author-trust filtering are the reference |
 
-## v4.0: the core {#core}
+## v4.0: anyone can run it {#v4-0}
 
-| # | Sub-project | Outcome | Built on | Design lives in |
+v4.0 is cut when both stages pass their go test ([below](#how-v4-is-judged)) and the two day-one safety
+tracks have shipped as v3.x releases ([V8](#owner-decisions-2026-11-06)). Whatever else has shipped by
+then is in v4.0 too; whatever has not continues as v4.x.
+
+| Stage | Outcome | Decided ([V8 to V21](#owner-decisions-2026-11-06)) | Built on | Design lives in |
 |---|---|---|---|---|
-| 1 | **The factory on a laptop** | The kind quickstart grows from one attended run to the full loop. A sample repository, a GitHub App (or PAT) setup helper, the factory and reviewer on one model key, and the merge gate in shadow by default. A nightly kind job proves it end to end | Maku quickstart and portable runtime (Maku designs 3a/3b) | Maku |
-| 2 | **The production path** (#280 item 4) | The host contract split into *required* and *bring-your-own* pieces, each with a reference implementation and a stated seam: identity provider via OIDC, secrets, GitOps, gateway. One proven install on a cluster that is not cloud-native-ref, with a smoke test | [`HOST-CONTRACT.md`](../../../HOST-CONTRACT.md), v3's [install sketch](2026-10-19-v3-roadmap-design.md#later) | ai-native-ref, with Maku |
-| 3 | **Merge classes declared in the repository** (#280 item 1) | A class is declared once, in the adopter's repository, against a schema. Maku's gate and the policy-bot rule are generated from it. Presets. Promotion from shadow by replay. The platform sets the ceiling a repository may relax | [merge gate classes](2026-10-22-merge-gate-classes-design.md), the [human path](2026-10-29-merge-gate-human-path-design.md) | Maku |
-| 4 | **Untrusted-input hardening** | The agent writes only through validated outputs. Input is filtered by author trust, outputs pass a threat check before they apply, and protected files (CI config, `AGENTS.md`, manifests) stay out of reach. **Injection red-team drills** against every role prove it, run like the merge-gate drills | gh-aw's safe outputs as the reference | Maku |
-| 5 | **Outcome analytics** | Merge rate, revert rate, time to merge, rework and cost per merged PR, by class, model, role and repository, on a dashboard and in a weekly report | v3's outcome metrics and spend per identity | Maku, dashboards here |
-| 6 | **Gemini** (#280 item 3) | Gemini as a selectable provider, public data only. Added the way Kimi and Mistral were: a gateway backend, a capability profile, a cost check, `loops.<class>.models` | [providers design](2026-10-28-moonshot-mistral-providers-design.md) | ai-native-ref |
-| 7 | **Developer experience** (#280 item 5) | Fewer steps from "hand this off" to a running task (CLI, MCP, `factory-handoff` skill). Slack: richer thread status, and the hand-off's one action as a button ([V6](#owner-decisions-2026-10-31)). Specified as a [v3.x line](2026-11-05-v3x-devex-roadmap-design.md) on the released platform ([V7](#owner-decisions-2026-11-05)) | [factory from your agent](2026-10-25-factory-from-your-agent-design.md), Slack intake | Maku |
-| 8 | **The animated run view** (#280 item 2) | A run's page builds its diagram as each role starts, and replays when finished. It includes a **run timeline** (every tool call, check, decision and cost, from the room log) and a **diff between two runs** of the same task | the room log | Maku |
-| 9 | **Multi-repository coordination** | One confirmed change across two public repositories: a parent issue that records and explains the change and never writes code, one ordinary repository-local task per repository with its own maintainer, branch, gate and pull request, a landed artifact as the dependency, and a read-only integration check. **Design and switched-off build may proceed; activation and live proof wait for 3 and 4** ([V7](#owner-decisions-2026-11-05)) | [multi-repository design](2026-11-05-v4-multi-repo-coordination-design.md), [second repository](2026-10-16-v2-second-repository-design.md), [splitter](2026-10-23-splitter-design.md) | Maku |
+| **1 · The factory on a laptop** | A labelled **demo of the production machinery** (V21): one command, `task demo`, on kind or k3d, takes a template repository's labelled issue through the scoper, implementer, judge and reviewer to a reviewed pull request and the gate's verdict, in about 15 minutes. A nightly kind job proves it end to end | The gate posts its own status, not policy-bot (V12). One GitHub App from a manifest (V13, V21). Any OpenAI-compatible endpoint, called directly (V14, V21). runc with a "not isolated" banner, public repositories only (V19, V21). The umbrella chart with `profile: demo` | Maku quickstart and portable runtime (Maku designs 3a/3b) | Maku, [design](https://github.com/Smana/maku/blob/a9c5c50d/docs/superpowers/specs/2026-11-06-factory-on-a-laptop-design.md) |
+| **2 · The production path** | The host contract split into *required* and *bring-your-own* pieces, each with a reference implementation and a stated seam. One install on a generic cluster from the docs alone, with a smoke test | Proven on k3s or kubeadm (V11). Bring your own identity provider (OIDC), secrets store and GitOps tool; agentgateway ships as a required piece (V15). One umbrella Helm chart (V18). gVisor required (V19). Semver on chart values and the install contract, with an upgrade test (V17). Public repositories in the go test; private ones documented (V16) | [`HOST-CONTRACT.md`](../../../HOST-CONTRACT.md), v3's [install sketch](2026-10-19-v3-roadmap-design.md#later) | ai-native-ref, with Maku |
 
-## v4.x: the increments {#increments}
+1 comes before 2: the laptop is the demo profile of the chart the production path ships, so stage 1 builds that chart and stage 2 adds its production values.
 
-| Release | Theme | Items | Needs first |
-|---|---|---|---|
-| v4.1 | Review capacity | A **review inbox and routing**: one queue of agent PRs waiting on a human, across repositories, ranked by risk, class and age, routed to owners, stale ones closed. A **plan approval gate** per class: the scoper's plan waits for a maintainer's ✅ before any code. Design input: task stages named by who the task waits for ([dsh-superagent evaluation](2026-11-04-dsh-superagent-evaluation-research.md)) | — |
-| v4.2 | Verification | **Pre-PR verification on real services**: ephemeral services, scoped test credentials, a preview, and screenshots for UI changes, before the PR opens. The **PR continuation loop**: the factory drives its own PR to the merge (CI, review comments, rebases, merge conflicts). Design input: thread subscriptions where humans resume and bots only inform, and a mandate revalidated before a resume ([dsh-superagent evaluation](2026-11-04-dsh-superagent-evaluation-research.md)) | — |
-| v4.3 | Quality signals | **Judge and reviewer calibration**: false-`met` and false-`approve` rates against recorded outcomes. **Reviewer severity and resolution**: severity tiers, the share of findings fixed, and rules that are rarely acted on muted | 5 |
-| v4.4 | Work at scale | **Event triggers and schedules**: main's CI red, security alerts, cron. **Fleet campaigns**: one change across N repositories, with a progress view. Design input: an observe mode that records what a proactive rule would have accepted before it may act ([dsh-superagent evaluation](2026-11-04-dsh-superagent-evaluation-research.md)). Multi-repository coordination left this release for [v4.0 item 9](#core) ([V7](#owner-decisions-2026-11-05)) | 3, because a fleet inherits each repository's classes; 4, because events carry strangers' text |
-| v4.5 | Provable trust | **Signed provenance of agent changes**: an attestation per commit naming its run, model, prompt hash, policy and checks | v3's [run provenance](2026-10-22-run-provenance-design.md) |
-| v4.6 | Repository memory as reviewed code | Agents propose what they learned as small PRs to `AGENTS.md` or skills files, reviewed like code. No hidden state ([V5](#owner-decisions-2026-10-31)) | 4 (the write path), v4.3 (the repeat-defect signal) |
+## v3.x: what ships before v4.0 {#v3x}
+
+<span id="core"></span><span id="increments"></span>
+
+Every other item is a **track** that ships as v3.x releases on the released v3 platform, each behind
+its own switch ([V8](#owner-decisions-2026-11-06)). A track ships increment by increment: offline
+proofs, a Maku release, the pin here with the switch off, a live proof, then the switch-on change. A
+v3.x minor release carries whichever increments have passed their live proof.
+
+| Track | Outcome | Needs first | Design | Gates v4.0 |
+|---|---|---|---|---|
+| <span id="t-classes"></span>**Merge classes declared in the repository** (#280 item 1) | A class is declared once, in the adopter's repository, against a schema. Maku's gate and the policy-bot rule are generated from it. Presets. Promotion from shadow by replay. The platform sets the ceiling a repository may relax | — | [merge policy self-service](https://github.com/Smana/ai-native-ref/blob/81384f71807411282615089330d3d7b38bc67e4a/docs/superpowers/specs/2026-11-04-merge-policy-self-service-design.md), [merge gate classes](2026-10-22-merge-gate-classes-design.md), the [human path](2026-10-29-merge-gate-human-path-design.md) | **Yes** |
+| <span id="t-hardening"></span>**Untrusted-input hardening** | The agent writes only through validated outputs. Input is filtered by author trust, outputs pass a threat check before they apply, and protected files (CI config, `AGENTS.md`, manifests) stay out of reach. **Injection red-team drills** against every role prove it, run like the merge-gate drills | — | to write; gh-aw's safe outputs and the [Model Armor research](2026-11-04-model-armor-oss-equivalents-research.md) as inputs | **Yes** |
+| <span id="t-devex"></span>**Developer experience** (#280 item 5) | Say what you want and confirm a plan; one list of what needs you, and a brief on return; one Slack proposal message; approving a push from Slack; a fast-follow pack | — | [v3.x DevEx roadmap](2026-11-05-v3x-devex-roadmap-design.md) | No |
+| <span id="t-run-view"></span>**The animated run view** (#280 item 2) | A run's page builds its diagram as each role starts, and replays when finished. A **run timeline** (every tool call, check, decision and cost, from the room log) and a **diff between two runs** of the same task | — | [Maku's animated run view](https://github.com/Smana/maku/blob/main/docs/superpowers/specs/2026-11-03-animated-run-view-design.md) | No |
+| <span id="t-runlore-kb"></span>**RunLore's knowledge base** | RunLore's knowledge base is filled by the factory, and its entries merge through a curated queue | Its phases 3 and 4 need hardening | [RunLore's knowledge base](2026-11-03-runlore-kb-from-the-factory-design.md) | No |
+| <span id="t-analytics"></span>**Outcome analytics** | Merge rate, revert rate, time to merge, rework and cost per merged PR, by class, model, role and repository, on a dashboard and in a weekly report | — | to write; built on v3's outcome metrics and spend per identity | No |
+| <span id="t-gemini"></span>**Gemini** (#280 item 3) | Gemini as a selectable provider, public data only, added the way Kimi and Mistral were | — | [providers design](2026-10-28-moonshot-mistral-providers-design.md) | No |
+| <span id="t-multi-repo"></span>**Multi-repository coordination** | One confirmed change across two public repositories: a parent issue that records and explains the change and never writes code, one ordinary task per repository, a landed artifact as the dependency, a read-only integration check. **Design and switched-off build may proceed; activation waits for classes and hardening** | Classes, hardening (activation only) | [multi-repository design](2026-11-05-v4-multi-repo-coordination-design.md) | No |
+| <span id="t-review"></span>**Review capacity** | A **review inbox and routing**: one queue of agent PRs waiting on a human, ranked by risk, class and age, routed to owners, stale ones closed. A **plan approval gate** per class | — | to write | No |
+| <span id="t-verification"></span>**Verification** | **Pre-PR verification on real services** (ephemeral services, scoped test credentials, a preview, screenshots). The **PR continuation loop**: the factory drives its own PR to the merge | — | to write | No |
+| <span id="t-quality"></span>**Quality signals** | **Judge and reviewer calibration** against recorded outcomes. **Reviewer severity and resolution**, with rarely-acted-on rules muted | Analytics | to write | No |
+| <span id="t-scale"></span>**Work at scale** | **Event triggers and schedules** (main's CI red, security alerts, cron). **Fleet campaigns**: one change across N repositories, with a progress view | Classes, hardening | to write | No |
+| <span id="t-provenance"></span>**Signed provenance** | An attestation per commit naming its run, model, prompt hash, policy and checks | — | v3's [run provenance](2026-10-22-run-provenance-design.md) | No |
+| <span id="t-memory"></span>**Repository memory as reviewed code** | Agents propose what they learned as small PRs to `AGENTS.md` or skills files, reviewed like code. No hidden state ([V5](#owner-decisions-2026-10-31)) | Hardening (the write path), quality signals (the repeat-defect signal) | to write | No |
+
+Design input carried from the [dsh-superagent evaluation](2026-11-04-dsh-superagent-evaluation-research.md):
+for review capacity, task stages named by who the task waits for. For verification, thread
+subscriptions where humans resume and bots only inform, and a mandate revalidated before a resume.
+For work at scale, an observe mode that records what a proactive rule would have accepted before it
+may act.
+
+### Earlier numbering {#renumbering}
+
+Designs written before [V8](#owner-decisions-2026-11-06) use the old numbers. They map as follows:
+
+| Old name | Now |
+|---|---|
+| v4.0 item 1, item 2 | v4.0 stages 1 and 2 |
+| v4.0 item 3 | [Merge classes declared in the repository](#t-classes) |
+| v4.0 item 4 | [Untrusted-input hardening](#t-hardening) |
+| v4.0 item 5 | [Outcome analytics](#t-analytics) |
+| v4.0 item 6 | [Gemini](#t-gemini) |
+| v4.0 item 7 | [Developer experience](#t-devex) |
+| v4.0 item 8 | [The animated run view](#t-run-view) |
+| v4.0 item 9 | [Multi-repository coordination](#t-multi-repo) |
+| v4.1 | [Review capacity](#t-review) |
+| v4.2 | [Verification](#t-verification) |
+| v4.3 | [Quality signals](#t-quality) |
+| v4.4 | [Work at scale](#t-scale) |
+| v4.5 | [Signed provenance](#t-provenance) |
+| v4.6 | [Repository memory](#t-memory) |
 
 ## Order of work {#order-of-work}
 
 ```mermaid
 flowchart TB
-  subgraph core["v4.0: anyone can run it (offline first, then live)"]
+  subgraph v3x["v3.x releases, each track behind its own switch"]
     direction LR
-    a1["1 · Factory on a laptop"] --> a2["2 · Production path"]
-    a3["3 · Classes in the repository"]
-    a4["4 · Hardening + drills"]
-    a5["5 · Outcome analytics"]
-    a6["6 · Gemini"]
-    a7["7 · DevEx"]
-    a8["8 · Animated run view"]
-    a9["9 · Multi-repo coordination<br/>design + build off"]
-    a3 -. "activation only" .-> a9
-    a4 -. "activation only" .-> a9
+    classes["Classes in the repository"]
+    hard["Hardening + drills"]
+    other["DevEx · run view · RunLore KB ·<br/>analytics · Gemini · review ·<br/>verification · provenance"]
+    multi["Multi-repo coordination"]
+    scale["Work at scale"]
+    quality["Quality signals"]
+    memory["Repository memory"]
+    classes -. "activation" .-> multi
+    hard -. "activation" .-> multi
+    classes --> scale
+    hard --> scale
+    other -- "analytics" --> quality
+    hard --> memory
+    quality --> memory
   end
-  subgraph inc["v4.x increments, each behind a switch"]
+  subgraph v40["v4.0: anyone can run it"]
     direction LR
-    i1["v4.1 Review capacity"] --> i2["v4.2 Verification"] --> i3["v4.3 Quality signals"]
-    i3 --> i4["v4.4 Work at scale"] --> i5["v4.5 Signed provenance"] --> i6["v4.6 Repo memory"]
+    laptop["1 · Factory on a laptop"] --> prod["2 · Production path"]
   end
-  core --> inc
+  classes == "day-one safety" ==> v40
+  hard == "day-one safety" ==> v40
 ```
 
-- **Within v4.0:**
-  - 1 comes before 2: the laptop loop is the core profile that the production path extends.
-  - 3, 4 and 5 run beside 1, because the laptop loop shows all three.
-  - 6, 7 and 8 are independent of each other. 7's increments are specified as a
-    [v3.x line](2026-11-05-v3x-devex-roadmap-design.md) and may ship before v4.0 does.
-  - 9 may be designed and built switched off at any point; it **activates only after 3 and 4 have
-    shipped**, because a coordination child inherits its repository's declared class and consumes
-    strangers' text through every child input ([V7](#owner-decisions-2026-11-05)).
-- **Across releases:** the arrows give the default order. A release may move earlier only when what it needs has shipped (the table's last column).
-- **As in v3:** offline proofs first, then live sessions in batches, then a go/no-go per item on live evidence.
+- **v4.0's critical path** is the laptop, the production path, classes and hardening. They may run
+  side by side: the laptop loop shows the gate and the hardening, and needs neither to start.
+- **Other tracks** run beside it in the order the owner picks. A track moves earlier only when what it
+  needs has shipped (the table's "Needs first" column).
+- **As in v3:** offline proofs first, then live sessions in batches, then a go/no-go per increment on
+  live evidence.
 
-## How v4 is judged
+## How v4 is judged {#how-v4-is-judged}
 
 | Item | Go when |
 |---|---|
-| v4.0 laptop (1) | A nightly kind job takes a labelled issue to a reviewed PR and a gate decision. A fresh agent with no context, given only the quickstart page, reaches the same end. The quickstart takes 30 minutes or less on the reference laptop |
-| v4.0 production (2) | One install on a cluster that is not cloud-native-ref passes the smoke test from the docs alone. Each bring-your-own seam is named, with what is lost when it is not filled |
-| Every other item | Its own design's go/no-go, on offline proofs and then live evidence |
+| v4.0 laptop (1) | A nightly kind job takes a labelled issue to a reviewed PR and a gate decision, and k3d passes the same path on the stub model. A fresh agent with no context, given only the quickstart page, reaches the same end. The quickstart takes 15 minutes or less on the reference laptop. **One person other than the owner** completes it from the docs and files a friction log (V20) |
+| v4.0 production (2) | One install on a k3s or kubeadm cluster passes the smoke test from the docs alone. Each bring-your-own seam is named, with what is lost when it is not filled. A nightly job upgrades the previous release's install on kind (V17) |
+| v4.0 safety | The classes and hardening tracks have shipped, each on its own go/no-go (V8) |
+| Every v3.x track | Its own design's go/no-go, on offline proofs and then live evidence |
 
 The outcome metrics of v3 ([How v3 is judged](2026-10-19-v3-roadmap-design.md#how-v3-is-judged))
-stay. v4.0's analytics (5) report them.
+stay. The outcome analytics track reports them.
 
-## Not in v4 {#not-in-v4}
+## Not on the road to v4 {#not-in-v4}
 
 **Considered in the research and not selected (2026-10-31):**
 - audit export and compliance evidence;
@@ -169,16 +230,23 @@ These are not features. Each one is a small change of its own:
 
 ## Open questions
 
-These are for the sub-project designs, not this roadmap:
+These are for the stage and track designs, not this roadmap:
 
-1. **The laptop gate (1):** does it need policy-bot, or does a built-in check stand in until the production path?
-2. **Laptop credentials (1):** a GitHub App setup helper, or a fine-grained PAT, as the quickstart uses today?
-3. **The production proof (2):** which cluster? A managed cluster from another cloud (AKS), or a generic one (k3s or kubeadm)?
-4. **Environments (v4.2):** does pre-PR verification on real services need the repository-declared environments that were not selected? Decided in v4.2's design.
-5. **Slack approval (7): closed 2026-11-05.** The [Slack push-approval
+1. **Closed 2026-11-06:** the laptop gate (V12), laptop credentials (V13) and the production proof's
+   cluster (V11).
+2. **Environments (verification):** does pre-PR verification on real services need the
+   repository-declared environments that were not selected? Decided in the verification track's design.
+3. **Slack approval (DevEx): closed 2026-11-05.** The [Slack push-approval
    design](2026-11-05-v3x-slack-push-approval-design.md) answers it: Slack decides `forge.push` and
    nothing else; the binding is the run's branch, deliberately not a commit, because no reliable pushed
    commit exists before the push and the owner accepted that; and merging stays a review of the current
    head on GitHub. What that design leaves out — other classes, reason text, merging from Slack — is out
-   of scope, not undecided. The question 7 still owns is which capabilities each coding agent declares.
-6. **Tool results (4):** item 4 filters strangers' text. MCP tool results (logs, metrics, docs the agent reads back) are a second injection vector, and agentgateway can screen them on `tools/call` responses. In scope, and at the gateway? The [Model Armor research](2026-11-04-model-armor-oss-equivalents-research.md) lays out the hooks and the order.
+   of scope, not undecided. The question the DevEx track still owns is which capabilities each coding
+   agent declares.
+4. **Tool results (hardening):** the hardening track filters strangers' text. MCP tool results (logs,
+   metrics, docs the agent reads back) are a second injection vector, and agentgateway can screen them
+   on `tools/call` responses. In scope, and at the gateway? The
+   [Model Armor research](2026-11-04-model-armor-oss-equivalents-research.md) lays out the hooks and the
+   order.
+5. **The laptop without gVisor (stage 1): closed 2026-11-06.** The demo refuses any repository that is
+   not public, before a run starts ([V21](#owner-decisions-2026-11-06), the design's Q15).

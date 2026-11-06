@@ -7,7 +7,8 @@ renders the factory's sandbox.suspend.enabled; any other cluster has none of the
 half-on cluster (a grant with no trigger, or suspendable runs nobody suspends) fails here.
 The grant, patch on agentruns, lives only in room-broker/suspend; the broker's own RBAC
 never patches or updates a run; base's config never enables suspend, and gcp-0's copy of it
-differs in suspend, webhooks, human.mcp, human.slackLink and human.slackDecide alone, and aws-0's copy,
+differs in suspend, webhooks, human.mcp, human.slackLink, human.intake and human.slackDecide alone,
+and aws-0's copy,
 during a session, in human.mcp.sessionStart and a webhooks list that is RunLore's alone (RK15; the same
 rule as runlore_only in test-factory-interfaces-off.py, repeated below: that suite is a hyphenated script
 that runs at import, so it cannot be imported); and the Kyverno limit that fences the grant is always
@@ -97,13 +98,14 @@ gcp = yaml.safe_load((ROOT / "infrastructure/gcp-0/room-broker/config.yaml").rea
 
 def minus_switches(cfg):
     """The config without the keys a gcp-0 session may declare: suspend, webhooks, human.mcp,
-    human.slackLink and human.slackDecide."""
+    human.slackLink, human.intake and human.slackDecide."""
     out = {k: v for k, v in cfg.items() if k not in ("suspend", "webhooks")}
-    out["human"] = {k: v for k, v in out["human"].items() if k not in ("mcp", "slackLink", "slackDecide")}
+    out["human"] = {k: v for k, v in out["human"].items()
+                    if k not in ("mcp", "slackLink", "intake", "slackDecide")}
     return out
 
 
-checks["gcp-0's broker config is base's but for suspend, webhooks, human.mcp, human.slackLink and human.slackDecide"] = (
+checks["gcp-0's broker config is base's but for suspend, webhooks, human.mcp, human.slackLink, human.intake and human.slackDecide"] = (
     minus_switches(gcp) == minus_switches(config))
 checks["gcp-0's human.mcp stays enabled"] = (gcp["human"]["mcp"].get("enabled") is True)
 
@@ -120,9 +122,12 @@ if aws_copy.is_file():  # session switches (runbooks 19 and 25): base's config p
         out = {k: v for k, v in cfg.items() if k != "webhooks" or not runlore_only(cfg)}
         out["human"] = {**cfg["human"], "mcp": dict(cfg["human"]["mcp"])}
         out["human"]["mcp"].pop("sessionStart", None)
+        # A session switch of its own (PR B turns the planner on for one repository): it must not
+        # fail a gate that is about suspend, for a reason the check does not name.
+        out["human"].pop("intake", None)
         return out
 
-    checks["aws-0's broker config is base's but for human.mcp.sessionStart and RunLore's webhooks"] = (
+    checks["aws-0's broker config is base's but for human.mcp.sessionStart, human.intake and RunLore's webhooks"] = (
         minus_session_switches(aws) == minus_session_switches(config))
 
 limit = [d for d in docs("security/base/agent-policies/validatingpolicies.yaml")

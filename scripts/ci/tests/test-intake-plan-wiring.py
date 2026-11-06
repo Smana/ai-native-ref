@@ -107,9 +107,9 @@ for path, name, ns in [(PLANNER_PATHS["broker"], "room-broker-planner", "agent-s
 # The gateway's Secret key IS the client id: `planner`, never `api-key`, or every log line and
 # spend series attributes these tokens to a client nobody can name. The broker's own Secret key is
 # arbitrary (it reads a file), so it keeps `api-key` and must not borrow the client id.
-check(load(PLANNER_PATHS["gateway"])["spec"]["data"][0]["secretKey"] == "planner",
+check(load(PLANNER_PATHS["gateway"])["spec"]["data"][0]["secretKey"] == "planner",  # pragma: allowlist secret
       "the gateway copy's Secret key must be planner")
-check(load(PLANNER_PATHS["broker"])["spec"]["data"][0]["secretKey"] == "api-key",
+check(load(PLANNER_PATHS["broker"])["spec"]["data"][0]["secretKey"] == "api-key",  # pragma: allowlist secret
       "the broker copy's Secret key is its file name: api-key")
 names = credential_names()
 check("ai-gateway-planner-key" in names and names[0] == "ai-gateway-api-keys",
@@ -123,8 +123,8 @@ mounts = [m for m in app["spec"]["extraVolumeMounts"] if m["name"] == "planner"]
 check(mounts and mounts[0]["mountPath"] == "/etc/room-broker/planner" and mounts[0]["readOnly"],
       "the broker's mount")
 volumes = [v for v in app["spec"]["extraVolumes"] if v["name"] == "planner"]
-check(volumes and volumes[0]["secret"] == {"secretName": "room-broker-planner",
-                                           "optional": True, "defaultMode": 0o440},  # YAML 1.1 octal
+want_volume = {"secretName": "room-broker-planner", "optional": True, "defaultMode": 0o440}  # pragma: allowlist secret
+check(volumes and volumes[0]["secret"] == want_volume,
       "the planner volume: its own Secret, optional, 0440")
 
 # Both directions of the wiring are listed, or the object is written and never applied.

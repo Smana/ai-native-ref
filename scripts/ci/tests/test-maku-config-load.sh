@@ -2,8 +2,8 @@
 # requires: go git tar python3
 #
 # The pinned Maku's own config loaders read this repository's configs: every cloud's broker config
-# (internal/config.Load) and the merged factory values (internal/factory/config.Parse), as a pod would
-# at start. A strict key or a new refusal in a chart upgrade then fails here, before a release wedges a
+# (internal/config.Load), the merged factory values (internal/factory/config.Parse) and the Slack App's
+# rendered config (internal/slackapp.LoadConfig), as a pod would at start. A strict key or a new refusal in a chart upgrade then fails here, before a release wedges a
 # rollout (Maku v0.33.0 refused an http:// factoryURL without factoryInsecure: nothing offline saw it).
 #
 # A build error that is not the environment's fails: only no clone, no tag or an offline module or toolchain gap skips.
@@ -38,6 +38,7 @@ import (
 
 	brokercfg "github.com/Smana/maku/internal/config"
 	factorycfg "github.com/Smana/maku/internal/factory/config"
+	"github.com/Smana/maku/internal/slackapp"
 )
 
 func main() {
@@ -47,6 +48,8 @@ func main() {
 		_, err = brokercfg.Load(os.Args[2])
 	case "factory":
 		_, err = factorycfg.Load(os.Args[2])
+	case "slack":
+		_, err = slackapp.LoadConfig(os.Args[2])
 	}
 	if err != nil {
 		fmt.Println(err)
@@ -101,6 +104,13 @@ for name, extra in (("base", None), ("aws-0", "tooling/aws-0/agent-factory/helm-
                     ("gcp-0", "tooling/gcp-0/agent-factory/helm-values-sponsored.yaml")):
     v = merge(base, values(f"{root}/{extra}")) if extra else base
     open(f"{out}/factory-{name}.yaml", "w").write(sub(yaml.safe_dump(v["config"])))
+# The App's config is base's, the declaration's rendering (gcp-0 mounts it unchanged).
+app = sub(open(f"{root}/tooling/base/agent-factory/slack-app/config.yaml").read())
+open(f"{out}/slack-base.yaml", "w").write(app)
+# The bite's copy: its first channel's notify gains an event the App draws no line for.
+bite = yaml.safe_load(app)
+next(iter(bite["channels"].values())).setdefault("notify", []).append("room.run_ended")
+open(f"{out}/bite-slack.yaml", "w").write(yaml.safe_dump(bite, sort_keys=False))
 PY
 fails=0
 for f in "$tmp"/cfg/broker-*.yaml; do
@@ -109,6 +119,13 @@ done
 for f in "$tmp"/cfg/factory-*.yaml; do
   if out="$("$tmp/load" factory "$f" 2>&1)"; then echo "ok    $tag loads $(basename "$f")"; else echo "FAIL  $tag refuses $(basename "$f"): $out"; fails=$((fails + 1)); fi
 done
+for f in "$tmp"/cfg/slack-*.yaml; do
+  if out="$("$tmp/load" slack "$f" 2>&1)"; then echo "ok    $tag loads $(basename "$f")"; else echo "FAIL  $tag refuses $(basename "$f"): $out"; fails=$((fails + 1)); fi
+done
+# It bites: a notify name the App draws no line for is refused, naming it.
+if out="$("$tmp/load" slack "$tmp/cfg/bite-slack.yaml" 2>&1)" || ! grep -q 'notify "room.run_ended" has no line the App posts' <<<"$out"; then
+  echo "FAIL  the App config with room.run_ended in a channel's notify was not refused for it: $out"; fails=$((fails + 1))
+else echo "ok    room.run_ended in a channel's notify is refused: no line the App posts"; fi
 # It bites: without factoryInsecure the same config is refused, naming factoryURL.
 grep -v '^factoryInsecure:' "$tmp/cfg/broker-aws-0.yaml" > "$tmp/cfg/broker-bite.yaml"
 if out="$("$tmp/load" broker "$tmp/cfg/broker-bite.yaml" 2>&1)" || ! grep -q 'factoryURL: http:// sends human tokens in the clear' <<<"$out"; then

@@ -112,13 +112,23 @@ Back after a day away? Start wide, then close in:
 3. In your coding agent, use the `resume` prompt (`/factory:resume` in OpenCode). It reads the same
    list, then the full brief of the first task that needs you, or of the task you name.
 
+An approval still open from before your last call is not new, so `maku needs` leaves it out. To see
+everything that waits on you, ask from a moment before any of it:
+
+```bash
+maku needs --since 2000-01-01T00:00:00Z
+```
+
 The brief holds:
 
 - **Asked**: the issue the work started from.
 - **Plan**: the plan or scope it runs under, and its ceiling.
-- **Changed since**: what moved since your last look; without a cursor, the last 24 hours.
+- **Changed since**: what moved in the last 24 hours.
 - **Blocked on**: the one thing it waits for.
 - **Next**: the one step, with its link.
+
+The full brief also lists the acceptance checks the work runs under and the links to the issue, the
+pull request and the room.
 
 When the task is stuck on something you can fix, the full brief adds a **Fix** line that names what to
 change: a permission the factory App lacks, a check the factory cannot read, or a CI log host outside

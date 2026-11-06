@@ -25,7 +25,7 @@ against `maku.sha256`, or build it with `go build ./cmd/maku`.
 maku configure --url … --issuer … --client-id … --project-id …  # the room list's "CLI setup" prints it
 maku login                                    # device flow: open the URL, enter the code
 maku rooms --mine                             # issues you filed or labelled, PRs you authored or review
-maku rooms --needs-me                         # an approval you could decide; --repo owner/name filters
+maku rooms --needs-me                         # approvals, held tasks, PRs to merge, questions; --repo filters
 maku needs                                    # everything that needs you, across rooms, in one order
 maku needs --since 2026-11-04T18:20:00Z       # only what appeared since then; without --since, your last call
 maku status <room>                            # the brief's head, then the card: run, budget, PR, what needs you
@@ -48,16 +48,8 @@ where else you see it: [one list, wherever you look]({{< relref "/docs/use/guide
 ## `maku setup` {#setup}
 
 `maku setup <client>` registers `maku mcp` as the `factory` MCP server and writes the `factory-handoff`
-skill where that client reads skills:
-
-| `<client>` | Skill directory |
-|---|---|
-| `claude` | `~/.claude/skills` |
-| `opencode` | `~/.agents/skills` |
-| `codex` | `~/.agents/skills` |
-| `gemini` | `~/.gemini/skills` |
-| `copilot` | `~/.copilot/skills` |
-| `cursor` | `~/.cursor/skills` |
+skill where that client reads skills. The clients: `claude`, `opencode`, `codex`, `gemini`, `cursor`,
+`copilot`.
 
 | Option | Effect |
 |---|---|
@@ -97,19 +89,20 @@ roles and the money come from config, and a reply that names anything outside th
 
 ## What each coding agent supports {#clients}
 
-Text views work everywhere. The rest depends on what each client declares. **Measured** is what
-`maku doctor --client <name>` reported for that client, as `<client> <version>, <month year>`: it reads
-what the client declared when it opened `maku mcp`. `unconfirmed` means no source says, or no report
-has been recorded. Which clients are tested end to end: the [status page]({{< relref "/docs/status.md" >}}).
+Text views work everywhere. The rest depends on what each client declares. `unconfirmed` means no
+source says. Which clients are tested end to end: the [status page]({{< relref "/docs/status.md" >}}).
 
-| Client | Forms | Slash commands | Measured |
+| Client | Forms | Slash commands | Skill directory |
 |---|---|---|---|
-| Claude Code | unconfirmed | `/mcp__factory__<prompt>` (unconfirmed) | unconfirmed |
-| OpenCode | yes | `/factory:<prompt>` | unconfirmed |
-| Codex CLI | unconfirmed | unconfirmed | unconfirmed |
-| Gemini CLI | unconfirmed | yes | unconfirmed |
-| Copilot CLI | unconfirmed | unconfirmed | unconfirmed |
-| Cursor | yes | yes | unconfirmed |
+| Claude Code | unconfirmed | `/mcp__factory__<prompt>` (unconfirmed) | `~/.claude/skills` |
+| OpenCode | yes | `/factory:<prompt>` | `~/.agents/skills` |
+| Codex CLI | unconfirmed | unconfirmed | `~/.agents/skills` |
+| Gemini CLI | unconfirmed | yes | `~/.gemini/skills` |
+| Copilot CLI | unconfirmed | unconfirmed | `~/.copilot/skills` |
+| Cursor | yes | yes | `~/.cursor/skills` |
+
+`maku doctor --client <name>` prints what a client declared the last time it opened `maku mcp`: forms,
+URL mode, roots, prompts and the protocol revision it asked for.
 
 Without forms the draft is shown for you to file with `gh`, nothing starts, and a checkout that needs
 to confirm refuses. Codex CLI may cut a call at 60 s; the skill then calls `room_wait` again.

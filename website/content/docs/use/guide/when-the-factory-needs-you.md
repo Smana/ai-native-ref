@@ -12,15 +12,21 @@ You answer with a label, a review, or a comment starting with `/factory`. Other 
 
 ## One list, wherever you look {#one-list}
 
-Whatever you open, you see the same list of what needs you: the same items, in the same order. The
-room page shows it in its **Needs you** panel, `maku needs` prints it in your terminal, your coding
-agent's `inbox` and `resume` read it, and a task's Slack thread answers `what needs me` from it.
+Every place that shows what needs you builds its items the same way and lists them in the same order.
+What differs is how much each one covers:
+
+- `maku needs` in your terminal, and your coding agent's `inbox` and `resume`, cover every room you
+  can read. `maku needs` then shows only what is new since your last call
+  ([chapter 6]({{< relref "terminal-and-coding-agent.md#come-back" >}}) shows how to see it all).
+- The room page's **Needs you** panel covers that room.
+- A task's Slack thread answers `what needs me` for that task.
 
 Each item carries one action and one link. An approval opens its card on the room page; a merge, a
 review or a question opens the pull request or the issue on GitHub. The list decides nothing for you.
 
 Items with a deadline come first, then the rest by kind. A [proposed split](#split) is an item too: a
-*plan confirmation*, whose action is to comment `/factory split` on the issue.
+*plan confirmation*. Its action is a comment on the issue: `/factory split` to accept the parts, or
+`/factory retry` to run the task whole.
 
 ## The hand-off {#hand-off}
 
@@ -42,9 +48,11 @@ carries a reason code. The four you will meet most:
 | `approval_stale` | Your approval was of an older commit, or came while an agent was still pushing | Approve again |
 | `human_commit_in_pr` | A person pushed a commit to the agent's branch | Read that commit, then have an admin merge it, or close the pull request |
 
-When an approval merges the pull request, the item says *approve the current commit*. It says *a
-repository admin merges it* only in the last row's case, and gives the reason: a person pushed a commit
-the factory cannot vouch for.
+When an approval merges the pull request, its item tells you to approve the head you read, and the
+room's next step reads *review, then approve the current commit*. When an approval does not merge it,
+the item names a maintainer with admin rights and the ruleset bypass, because the ruleset blocks a
+plain merge. In the last row's case the room's step says why only an admin can: a person pushed a
+commit the factory cannot vouch for.
 
 Will your change merge on its own, with no approval? Only if its class is *live*: see
 [when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}}) and the

@@ -60,6 +60,24 @@ sequenceDiagram
 | 3 | `opencode`'s config after setup | The server sits under `mcp.servers.factory`, the shape `opencode mcp add` writes, and opencode lists it as connected. **Record the opencode version.** A docs-shaped `mcp.factory` that opencode ignores is a FAIL for `setup`'s snippet |
 | 4 | In each client, list the MCP tools and prompts | `rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`, `issue_file`; prompts `handoff`, `status`, `inbox`. **Record the slash spelling** each client shows (`/factory:handoff` in OpenCode, `/mcp__factory__handoff` in Claude Code) |
 
+### 2.3 The planner key, written before the merge
+
+The planner's model call reaches `ai-gateway` as the client `planner`, on one key. The broker and
+the gateway each hold a copy, read from the same OpenBao entry through the cluster's
+`openbao-apps` store. Write that entry **before** the pull request adding the two
+`ExternalSecret`s merges:
+
+```
+bao kv put apps/planner apiKey="$(openssl rand -hex 24)"
+```
+
+Why the order matters: an `ExternalSecret` whose remote reference is missing reports
+`SecretSyncedError`. On the gateway this key sits on the same policy path as every other client's,
+so a missing entry refuses every client, not just the planner.
+
+The broker's copy lands at `/etc/room-broker/planner/api-key`, and the broker reads it only once a
+release carries `human.intake.plan`: the Secret and the mount are inert until then.
+
 ## 3. Live proofs
 
 Run each in Claude Code, then in OpenCode. Mark PASS or FAIL per client; a FAIL names what was seen.

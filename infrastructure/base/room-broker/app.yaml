@@ -128,6 +128,12 @@ spec:
         secretName: room-broker-webhook-runlore  # pragma: allowlist secret
         optional: true
         defaultMode: 0440
+    # The planner's client key (human.intake.plan.apiKeyFile, CD18), the broker's own copy of the
+    # value the AI Gateway holds as its `planner` client. Not optional: a planner with no key 401s
+    # every plan, and an absent Secret holds the rollout back instead of shipping one.
+    - name: planner
+      secret:
+        secretName: room-broker-planner  # pragma: allowlist secret
   extraVolumeMounts:
     - name: config
       mountPath: /etc/room-broker/config
@@ -155,6 +161,11 @@ spec:
       readOnly: true
     - name: webhook-runlore
       mountPath: /etc/room-broker/webhooks/runlore
+      readOnly: true
+    # human.intake.plan.apiKeyFile points here. Inert until a Maku release reads it: the mount
+    # alone changes nothing a broker without the key would read.
+    - name: planner
+      mountPath: /etc/room-broker/planner
       readOnly: true
   networkPolicies:
     enabled: false

@@ -257,7 +257,7 @@ approval as a card with two buttons. The eight proofs below close that half; the
 | Let a card's deadline pass in a room whose sweep interval is longer than your wait, then press **Approve** after it | `approval_expired` both times, no decision, the row `expired` |
 | Press from a Slack user with no link, then a linked user who is not an approver, then a linked approver whose GitHub login cannot write the repository | `not_linked`, `not_permitted`, `repository_permission`; no decision |
 | A person who prompted the run presses **Approve**; a second approver presses afterwards | `four_eyes`, then decided; the room log names only the second human |
-| Tamper the signed body (change the branch), POST it unsigned, then post a card of another room's approval into this channel | `401`, `ignored`, `binding_mismatch`; no event in either room |
+| Tamper the signed body (change the branch), POST it unsigned, then post a card of another room's approval into this channel | `ignored`, `401`, `binding_mismatch`; no event in either room |
 | Provoke a `forge.pr` or a `shell.high` approval in the same thread | A text line with the room link and **no** button; the `forge.push` card beside it keeps its buttons |
 | Approve on the card in the same second the room page answers, twice over (the page wins once, the card once) | Exactly one decision each time; the loser reads `already_decided` or `superseded`; the card goes inert |
 | Take the App's `chat:write` away (or stub Slack's 5xx), then decide a card | The decision lands, the failed card update is logged and counted, and the stale card answers `already_decided` |

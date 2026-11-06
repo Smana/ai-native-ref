@@ -2,7 +2,7 @@
 title: The factory is started, followed and brought back from the developer's coding agent
 linkTitle: 0059 · The factory from your coding agent
 weight: 590
-description: Accepted. The broker renders the views once, as the MCP tools' text; a confirmation form that only the developer answers can start the work with their own label, per repository and off by default; approvals stay on the room page; a checkout lands in a new worktree; roomctl setup installs it per client. /mcp is on in this deployment with the start held off. The accepted risk is a client that auto-accepts forms.
+description: Accepted. The broker renders the views once, as the MCP tools' text; a confirmation form that only the developer answers can start the work with their own label, per repository and off by default; approvals stay on the room page, except a forge.push approval, which its Slack card may decide; a checkout lands in a new worktree; roomctl setup installs it per client. /mcp is on in this deployment with the start held off. The accepted risk is a client that auto-accepts forms.
 lastVerified: 2026-10-27
 ---
 

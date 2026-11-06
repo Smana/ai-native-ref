@@ -111,7 +111,7 @@ cms = [d for d in docs if d["kind"] == "ConfigMap" and d["metadata"]["name"].sta
 # CD24: the declaration is the one place the channel binding is written, and the render is its
 # picture — the overlay holds no copy to drift.
 checks["the overlay holds no App config of its own"] = not (ROOT / "tooling/gcp-0/agent-factory/slack-app/config.yaml").exists()
-rendered = yaml.safe_load(cms[0]["data"]["config.yaml"])
+rendered = yaml.safe_load(cms[0]["data"]["config.yaml"]) if len(cms) == 1 else {}
 checks["the render is one App config, base's generated, with the declaration's binding"] = (
     len(cms) == 1
     and rendered["teamID"] == app["teamID"]
@@ -119,7 +119,7 @@ checks["the render is one App config, base's generated, with the declaration's b
     and "factory-slack-app-config" not in {d["metadata"]["name"] for d in docs})
 deploy = next(d for d in docs if d["kind"] == "Deployment")
 mounted = [v.get("configMap", {}).get("name") for v in deploy["spec"]["template"]["spec"]["volumes"]]
-checks["the Deployment mounts that ConfigMap"] = cms[0]["metadata"]["name"] in mounted
+checks["the Deployment mounts that ConfigMap"] = len(cms) == 1 and cms[0]["metadata"]["name"] in mounted
 factory = build("tooling/gcp-0/agent-factory")
 release = next(d for d in factory if d["kind"] == "HelmRelease" and d["metadata"]["name"] == "agent-factory")
 refs = [r["name"] for r in release["spec"]["valuesFrom"]]

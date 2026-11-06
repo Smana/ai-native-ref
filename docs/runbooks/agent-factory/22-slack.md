@@ -20,9 +20,9 @@ flowchart LR
 |---|---|
 | The App, its token and signing secret | Slack console, then OpenBao `agents/factory-slack-app` (step 2) |
 | The App's identity to the factory | ZITADEL machine user, OpenBao `agents/factory-slack-principal` (step 3) |
-| Team, channels, repositories per channel | `tooling/gcp-0/agent-factory/slack-app/config.yaml` (step 5) |
-| Who may file, and the repositories the App may file in | `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml` (step 5, 6) |
-| Which repositories get state lines back | `infrastructure/gcp-0/room-broker/config.yaml`, `webhooks` (step 5) |
+| Team, channels, repositories per channel | `tooling/base/agent-factory/slack-bindings.yaml`, generated into three files (step 5) |
+| Who may file, and the repositories the App may file in | `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml` (step 6; its repositories are generated, step 5) |
+| Which repositories get state lines back | `infrastructure/gcp-0/room-broker/config.yaml`, `webhooks` (generated, step 5) |
 
 Set the shell once. The OpenBao root token comes from Secret Manager; it is never printed.
 
@@ -145,65 +145,81 @@ runs on save is the events one that passed above.
 
 ## 5. Declare the channel, in git
 
-One PR on ai-native-ref. A channel's repositories are listed in **three** places, and all three must
-agree. A channel that lists a repository the other two do not is the usual failure: the draft works,
-then a check mark on a draft whose repository the channel does not list is ignored without a word, the factory refuses a repository it does not list (`repository_not_allowed`), or the thread never hears about the run.
-
-| # | File | Key | What it governs |
-|---|---|---|---|
-| 1 | `tooling/gcp-0/agent-factory/slack-app/config.yaml` | `channels.<C…>.repositories` | The repositories a mention may name there |
-| 2 | `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml` | `api.sponsored[slack-app].repositories` | The repositories the factory lets the App file in |
-| 3 | `infrastructure/gcp-0/room-broker/config.yaml` | `webhooks[slack-app].repositories` | The repositories whose room events reach the App |
-| 4 | `infrastructure/gcp-0/room-broker/config.yaml` | `human.slackDecide` | The route a card's buttons call, and the principal they act as |
-
-Row 4 is not a repository list: it is what turns the App's buttons into decisions (the two switches,
-below).
-
-```yaml
-# 1. slack-app/config.yaml — a channel that draws approvals as cards
-teamID: T07J97G2K2P
-channels:
-  C0CC4M8SNVD: {repositories: [Smana/cloud-native-ref, Smana/ai-native-ref], maxCostUSD: 0.5, approvals: true}
-# 2. helm-values-sponsored.yaml, under api.sponsored (name: slack-app)
-repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
-# 3. room-broker/config.yaml — the decide route, and the close event. The events list changed, so the
-# subscriber's generation is bumped and the broker restarted: webhooks apply at restart only.
-human:
-  slackDecide: {principal: slack-app, teamID: T07J97G2K2P}
-webhooks:
-  - name: slack-app
-    generation: 2
-    events: [room.task_triaged, room.run_started, room.waiting_for_human, room.pr_opened,
-             room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended,
-             room.approval_closed]
-    repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
-```
-
-- The two switches fail differently. The broker's `human.slackDecide` is the authority: a card whose
-  broker has no `slackDecide` answers `unavailable` when pressed. The channel's
-  `approvals: true` is who gets the affordance. Turning the channel's off is the fast rollback.
-- `human.slackDecide` needs `human.access`, and its `principal` names one of `human.mcp.sponsored`.
-- The `webhooks` entry changes here, so its `generation` is bumped — the entry carries none today,
-  and an absent generation reads as 1, so the first explicit value is `2`. A `webhooks` change is
-  read at startup: a `configMapGenerator` roll alone is not guaranteed to be the read that counts,
-  and a subscriber the emitter disabled stays disabled until the bump. Restart the broker by hand.
-- `maxCostUSD` per channel is the cap each filed task gets (at least 0.01, at most the principal's
-  `maxCostUSD: 2`).
-- A channel with **one** repository lets users leave it out of their mention. With several, a mention
-  without one is refused with a `Try:` line.
-- The App refuses to start with an empty `teamID` or no channel.
-- Adding a repository to #1 and #2 is not enough: also add it to #3, or state lines never arrive.
-
-Merge, then check: `kubectl -n agent-system rollout status deploy/factory-slack-app deploy/room-broker deploy/agent-factory`
-all succeed, and `kubectl -n agent-system logs deploy/factory-slack-app | head` shows no config error.
+One PR on ai-native-ref. A channel's binding is written in **one** place, the declaration
+`tooling/base/agent-factory/slack-bindings.yaml`, and three consumers are generated from it:
 
 ```bash
-kubectl -n agent-system rollout restart deploy/room-broker
+$EDITOR tooling/base/agent-factory/slack-bindings.yaml
+python3 scripts/ci/gen-slack-bindings.py --write
+git add tooling/base/agent-factory/slack-bindings.yaml tooling/base/agent-factory/slack-app/config.yaml \
+  tooling/gcp-0/agent-factory/helm-values-sponsored.yaml infrastructure/gcp-0/room-broker/config.yaml
+```
+
+Commit the declaration and the generated files together. `task check` runs the generator without
+`--write` and fails on any difference, so a generated region edited by hand fails the PR.
+
+```yaml
+# tooling/base/agent-factory/slack-bindings.yaml — a channel that draws approvals as cards
+teamID: T07J97G2K2P
+channels:
+  C0CC4M8SNVD:
+    repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
+    maxCostUSD: 0.5
+    approvals: true
+    notify: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.verdict_posted,
+             room.merged, room.reverted, room.budget_reached, room.ended, room.approval_closed]
+```
+
+| # | Source | Generated into | Region | What it governs |
+|---|---|---|---|---|
+| 1 | `slack-bindings.yaml`, `teamID` and `channels` | `tooling/base/agent-factory/slack-app/config.yaml` | `teamID`, `channels` (one line per channel, by id) | The repositories a mention may name in each channel, its cap, its cards and the lines it posts |
+| 2 | `slack-bindings.yaml`, every channel's `repositories` | `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml` | `api.sponsored[slack-app].repositories` (the sorted union) | The repositories the factory lets the App file in |
+| 3 | `slack-bindings.yaml`, every channel's `repositories` and `notify` | `infrastructure/gcp-0/room-broker/config.yaml` | `webhooks[slack-app].repositories` (the same union) and `.events` (the `notify` union, in declaration order) | The repositories and the events whose room transitions reach the App |
+| 4 | by hand | `infrastructure/gcp-0/room-broker/config.yaml` | `human.slackDecide` | The route a card's buttons call, and the principal they act as |
+
+Row 4 is not generated: it is what turns the App's buttons into decisions (the two switches, below).
+Everything else in the three generated files stays hand-edited, and the generator never touches it.
+
+The generator refuses the declaration, before anything reaches a cluster, when:
+
+- a channel names a repository the factory's `config.repositories`
+  (`tooling/base/agent-factory/helm-values-configmap.yaml`) does not serve;
+- a channel's `maxCostUSD` is below 0.01 or above the principal's `maxCostUSD` (2, in
+  `helm-values-sponsored.yaml`): it is the cap each filed task gets;
+- a `notify` entry is not one of the ten events the App draws a line for (`room.task_triaged`,
+  `room.run_started`, `room.waiting_for_human`, `room.pr_opened`, `room.verdict_posted`,
+  `room.merged`, `room.reverted`, `room.budget_reached`, `room.ended`, `room.approval_closed`), or
+  no channel's `notify` names any (the broker refuses an empty `events` list);
+- an id is malformed, a channel has no repository, an entry is written twice, a key is unknown, or
+  `approvals` is not a boolean.
+
+Notes:
+
+- The two switches fail differently. The broker's `human.slackDecide` is the authority: a card whose
+  broker has no `slackDecide` answers `unavailable` when pressed. The channel's `approvals: true` in
+  the declaration is who gets the affordance. Setting it to `false` (or removing it) and regenerating
+  is the fast rollback.
+- `human.slackDecide` needs `human.access`, and its `principal` names one of `human.mcp.sponsored`.
+- A channel that draws cards needs `room.approval_closed` in its `notify`, so that the broker's
+  subscription carries it.
+- A channel with **one** repository lets users leave it out of their mention. With several, a mention
+  without one is refused with a `Try:` line.
+- A channel's `notify: []` means it posts no state line; the broker still subscribes to the other
+  channels' events.
+- The broker reads `webhooks` at start, and the App reads its config at start. A changed generated
+  file moves the ConfigMap's content hash and rolls both. The generator never writes `generation`:
+  only a subscriber the emitter disabled (three given-up deliveries) needs its `generation` bumped by
+  hand in the broker's `webhooks` entry, then a broker restart.
+
+Merge, then check:
+
+```bash
 kubectl -n agent-system rollout status deploy/factory-slack-app deploy/room-broker
 ```
 
-Check: both rollouts complete, and `kubectl -n agent-system logs deploy/room-broker | head` shows it
-read its config with the new subscriber list.
+Check: both rollouts complete, `kubectl -n agent-system logs deploy/factory-slack-app | head` shows no
+config error, and `kubectl -n agent-system logs deploy/room-broker | head` shows it read its config
+with the new subscriber list.
 
 ## 6. Who may file
 
@@ -268,8 +284,8 @@ If a step does not answer, find where it stopped:
 |---|---|
 | No reaction to the mention at all | `kubectl -n agent-system logs deploy/factory-slack-app`; `factory_slack_requests_total{outcome="bad_signature"}` (wrong signing secret), `ignored` (wrong team, unserved channel); the bot is invited |
 | Draft posted, check mark does nothing | The check mark is not on the latest draft, or the Slack user is not linked (step 6) |
-| Filed, but no state lines | The repository is missing from the broker's `webhooks` (step 5, #3), or the subscriber is disabled: bump `generation`, restart the broker (Maku `docs/slack.md`, State) |
-| `Not filed: repository_not_allowed` | The repository is missing from #2 |
+| Filed, but no state lines | The event is not in the channel's `notify` (step 5), the broker has not restarted since the generated `webhooks` changed, or the subscriber is disabled: bump `generation`, restart the broker (Maku `docs/slack.md`, State) |
+| `Not filed: repository_not_allowed` | The factory has not rolled since row 2 of step 5 changed: `kubectl -n agent-system rollout status deploy/agent-factory` |
 | `Not decided: only this room's approvers decide here` (`result=not_permitted`) | The clicker is neither the room's owner nor one of its approvers (the CR's `spec.members[].approver`). A ZITADEL admin outside the CR cannot decide from Slack (D15); they decide on the room page |
 | `Not decided: your GitHub account cannot write to this room's repository` (`result=repository_permission`) | The linked GitHub login has read only on that repository |
 | `Not decided: you prompted this run` (`result=four_eyes`) | The clicker prompted the run, so another approver decides it |

@@ -14,8 +14,9 @@ issuerURL: ${identity_provider_url}
 brokerURL: http://room-broker.agent-system.svc.cluster.local:8080
 roomsURL: https://rooms.${private_domain_name}
 namespace: agent-system
-# The App refuses to start until the switch-on fills both (runbook 18): an empty teamID or no channel
-# fails its config load. Fill them as teamID: <T...> and channels as
-# <channel id>: {repositories: [owner/name], maxCostUSD: <at least 0.01>}.
-teamID: ""
-channels: {}
+# Generated: teamID and channels are tooling/base/agent-factory/slack-bindings.yaml's rendering
+# (CD24). Edit the declaration and run python3 scripts/ci/gen-slack-bindings.py --write; the generator
+# owns these two keys and nothing else in this file, and fails on any difference.
+teamID: T07J97G2K2P
+channels:
+  C0CC4M8SNVD: {repositories: [Smana/cloud-native-ref, Smana/ai-native-ref], maxCostUSD: 2, notify: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended, room.approval_closed]}

@@ -102,10 +102,9 @@ webhooks:
   - name: slack-app
     network: cluster
     url: http://factory-slack-app.agent-system.svc.cluster.local:8081/webhooks
-    events: [room.task_triaged, room.run_started, room.waiting_for_human, room.pr_opened,
-             room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended]
+    events: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended, room.approval_closed]
     secretFile: /etc/room-broker/webhooks/slack-app/signing-key
-    repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
+    repositories: [Smana/ai-native-ref, Smana/cloud-native-ref]
   # RunLore follows its incidents' tasks (feature 14, RA7): every event of the repository; it drops rooms
   # its ledger does not know. Its key is externalsecret-webhook-runlore.yaml, the owner's seed (runbook 14).
   - name: runlore

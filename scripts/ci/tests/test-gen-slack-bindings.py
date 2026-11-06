@@ -28,10 +28,6 @@ FIXTURES = {"slack-bindings.yaml": gen.DECLARATION, "slack-app-config.yaml": gen
 CONSUMERS = ["tooling/base/agent-factory/slack-app/config.yaml",
              "tooling/gcp-0/agent-factory/helm-values-sponsored.yaml",
              "infrastructure/gcp-0/room-broker/config.yaml"]
-# Until ai-native-ref PR A's Task A4 renders the three regions, the committed tree is not the
-# declaration's rendering: base's App config still has teamID "", and gcp-0 keeps its overlay copy.
-# A4 renders base and deletes the copy, so a rendered base beside the copy is a failure, not a skip.
-OVERLAY = ROOT / "tooling/gcp-0/agent-factory/slack-app/config.yaml"
 
 failures = []
 
@@ -68,15 +64,9 @@ def check_one_declaration_renders_three_consumers():
     declaration = gen.load_declaration((ROOT / gen.DECLARATION).read_text())
     rendered = gen.render(declaration, served, ceiling, ROOT)
     check("the real tree renders exactly the three consumers", sorted(rendered) == sorted(CONSUMERS))
-    # Removed by Task A4, which renders base's teamID this guard reads.
-    if yaml.safe_load((ROOT / gen.APP).read_text()).get("teamID") == "":
-        print(f"note: {gen.APP}'s teamID is \"\", so the committed tree predates A4's rendering: "
-              "the real tree's byte-for-byte and main() == 0 checks are skipped", file=sys.stderr)
-    else:
-        check(f"a rendered base App config leaves no overlay copy ({OVERLAY.relative_to(ROOT)})", not OVERLAY.exists())
-        for p in CONSUMERS:
-            check(f"{p} is the declaration's rendering", rendered.get(p) == (ROOT / p).read_text())
-        check("main() on the real tree exits 0", gen.main(["gen-slack-bindings.py", str(ROOT)]) == 0)
+    for p in CONSUMERS:
+        check(f"{p} is the declaration's rendering", rendered.get(p) == (ROOT / p).read_text())
+    check("main() on the real tree exits 0", run(ROOT)[0] == 0)
 
     root = mini()
     rc, _ = run(root, "--write")

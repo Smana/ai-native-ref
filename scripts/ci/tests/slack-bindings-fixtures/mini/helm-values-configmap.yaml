@@ -1,0 +1,12 @@
+# The factory's values: config.repositories is what a channel may serve.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-factory-helm-values
+  namespace: agent-system
+data:
+  values.yaml: |
+    config:
+      repositories:
+        - name: acme/shop
+          maintainers: [acme-owner]

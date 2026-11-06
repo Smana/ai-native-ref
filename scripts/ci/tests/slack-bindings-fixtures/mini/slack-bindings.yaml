@@ -1,0 +1,7 @@
+# test-gen-slack-bindings.py's declaration: one channel serving acme/shop.
+teamID: T0ACME
+channels:
+  C0SHOP:
+    repositories: [acme/shop]
+    maxCostUSD: 1.5
+    notify: [room.pr_opened, room.merged, room.ended]

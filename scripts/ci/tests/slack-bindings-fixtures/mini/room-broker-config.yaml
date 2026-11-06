@@ -1,0 +1,16 @@
+# The broker's config: slack-app's repositories and events are the generator's; ci's are not.
+publicURL: https://rooms.example.io
+webhooks:
+  - name: slack-app
+    network: cluster
+    url: http://factory-slack-app.agent-system.svc.cluster.local:8081/webhooks
+    events: [room.task_triaged, room.run_started,
+             room.ended]
+    secretFile: /etc/room-broker/webhooks/slack-app/signing-key
+    repositories: [acme/shop]
+  - name: ci
+    network: internet
+    url: https://hooks.example.io/x
+    events: [room.merged]
+    secretFile: /etc/room-broker/webhooks/ci/signing-key
+    repositories: [acme/shop]

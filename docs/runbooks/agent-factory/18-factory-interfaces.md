@@ -16,10 +16,15 @@ flowchart LR
   S[Slack] -->|"POST /slack/events"| L["host listener factory-slack"]
   L --> A[maku-slack]
   A -->|"/mcp, token of the machine user"| B[maku-broker]
+  A -->|"POST /api/slack/decisions, same listener"| B
   B -->|"task, api intake"| F[maku-factory]
   B -.->|"signed webhook, ids only"| A
   A -->|"state lines"| S
 ```
+
+Besides `/mcp`, the App calls one route: `POST /api/slack/decisions`, the one an approval card's
+buttons reach. It is on the same human listener and under the same Cilium network policy, so H4 and
+the host pin do not move for it.
 
 ## 1. Prerequisites
 
@@ -160,6 +165,13 @@ The webhook key is generated in the cluster by the External Secrets `Password` g
 (`room-broker-webhook-slack-app`): one Secret that both pods mount, regenerated with the cluster. Nothing
 is written to OpenBao for it. Rotating it is a manual edit of that Secret (two base64 lines during the
 overlap); the broker and the App re-read the key at use, so nothing restarts.
+
+An entry's `events` list names full `room.*` types, and thirteen of them exist: `room.task_received`,
+`room.task_triaged`, `room.run_started`, `room.run_ended`, `room.waiting_for_human`, `room.pr_opened`,
+`room.verdict_posted`, `room.merged`, `room.reverted`, `room.monitor_verdict`, `room.budget_reached`,
+`room.ended` and `room.approval_closed`. A subscriber that does not list a type never receives it, so
+a channel that draws approval cards needs the App's entry to list `room.approval_closed`; the App's
+`channels.<id>.approvals` is the other half ([runbook 22 §5](22-slack.md#5-declare-the-channel-in-git)).
 
 The PR carries `OWNER-FILL-*` markers (the Slack team, channel and owner ids in the App's config and the factory's values) until the owner's ids replace them. `task check` passes with them; run it with `FACTORY_SLACK_LIVE=1` (`test-factory-slack-switchon.py`) before merging, and it fails on any left. `task check` green, merge.
 

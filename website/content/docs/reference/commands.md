@@ -25,7 +25,7 @@ against `maku.sha256`, or build it with `go build ./cmd/maku`.
 maku configure --url … --issuer … --client-id … --project-id …  # the room list's "CLI setup" prints it
 maku login                                    # device flow: open the URL, enter the code
 maku rooms --mine                             # issues you filed or labelled, PRs you authored or review
-maku rooms --needs-me                         # approvals, held tasks, PRs to merge, questions; --repo filters
+maku rooms --needs-me                         # approvals, held tasks, PRs to merge, escalated tasks; --repo filters
 maku needs                                    # everything that needs you, across rooms, in one order
 maku needs --since 2026-11-04T18:20:00Z       # only what appeared since then; without --since, your last call
 maku status <room>                            # the brief's head, then the card: run, budget, PR, what needs you

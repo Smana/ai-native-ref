@@ -26,7 +26,10 @@ maku configure --url … --issuer … --client-id … --project-id …  # the ro
 maku login                                    # device flow: open the URL, enter the code
 maku rooms --mine                             # issues you filed or labelled, PRs you authored or review
 maku rooms --needs-me                         # an approval you could decide; --repo owner/name filters
-maku status <room> --json                     # phase, run, budget, PR, what needs you, the agents' notes
+maku needs                                    # everything that needs you, across rooms, in one order
+maku needs --since 2026-11-04T18:20:00Z       # only what appeared since then; without --since, your last call
+maku status <room>                            # the brief's head, then the card: run, budget, PR, what needs you
+maku status <room> --json                     # the room's summary as the broker serves it
 maku changes <room>                           # what changed since your last call (first call: 24 h)
 maku checkout <room>                          # the room's branch in a new worktree beside the repository
 maku setup <client>                           # the MCP server and the skill, for a coding agent
@@ -39,14 +42,22 @@ maku token                                    # your access token, for scripts
 
 `maku` reads, chats, queues and forks. It never drives a run, interrupts it or approves: those stay in
 the browser, because a local agent can type into a terminal
-([ADR-0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}})). A task waiting for
-your merge is not listed under `--needs-me` ([maku#51](https://github.com/Smana/maku/issues/51)).
+([ADR-0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}})). What `maku needs` lists, and
+where else you see it: [one list, wherever you look]({{< relref "/docs/use/guide/when-the-factory-needs-you.md#one-list" >}}).
 
 ## `maku setup` {#setup}
 
 `maku setup <client>` registers `maku mcp` as the `factory` MCP server and writes the `factory-handoff`
-skill where that client reads skills. The clients: `claude`, `opencode`, `codex`, `gemini`, `cursor`,
-`copilot`.
+skill where that client reads skills:
+
+| `<client>` | Skill directory |
+|---|---|
+| `claude` | `~/.claude/skills` |
+| `opencode` | `~/.agents/skills` |
+| `codex` | `~/.agents/skills` |
+| `gemini` | `~/.gemini/skills` |
+| `copilot` | `~/.copilot/skills` |
+| `cursor` | `~/.cursor/skills` |
 
 | Option | Effect |
 |---|---|
@@ -66,7 +77,10 @@ folder you trust.
 | `intake_plan` | Proposes the plan: one repository with its evidence, one to three issues, the roles, the ceiling, and at most one question |
 | `plan_check` | Holds a plan to the allowlist and the class table again and answers whether it still holds; files nothing |
 | `status [room or #issue]` | The room card; without an argument, your most recently updated room |
-| `inbox` | The rooms that need you first, then your other open rooms |
+| `needs_list` | Everything that needs you, each item with its one action and link, and a `since` cursor |
+| `room_brief` | Come back to a room: what it needs, the plan, what changed, the blocker and the next step |
+| `resume [room]` | `needs_list`, then the brief of the first room that needs you, or of the room you name; ends on its next step |
+| `inbox` | One `needs_list` call; when nothing needs you, it says so and points to `rooms_list` |
 | `room_wait` | Follows a room and returns when it needs you, opens a pull request or ends |
 | `room_checkout` | The room's branch in a new git worktree, at the commit it checked |
 
@@ -83,17 +97,19 @@ roles and the money come from config, and a reply that names anything outside th
 
 ## What each coding agent supports {#clients}
 
-Text views work everywhere. The rest depends on what each client declares. `unconfirmed` means no
-source says. Which clients are tested end to end: the [status page]({{< relref "/docs/status.md" >}}).
+Text views work everywhere. The rest depends on what each client declares. **Measured** is what
+`maku doctor --client <name>` reported for that client, as `<client> <version>, <month year>`: it reads
+what the client declared when it opened `maku mcp`. `unconfirmed` means no source says, or no report
+has been recorded. Which clients are tested end to end: the [status page]({{< relref "/docs/status.md" >}}).
 
-| Client | Forms | Slash commands | Skill directory |
+| Client | Forms | Slash commands | Measured |
 |---|---|---|---|
-| Claude Code | unconfirmed | `/mcp__factory__<prompt>` (unconfirmed) | `~/.claude/skills` |
-| OpenCode | yes | `/factory:<prompt>` | `~/.agents/skills` |
-| Codex CLI | unconfirmed | unconfirmed | `~/.agents/skills` |
-| Gemini CLI | unconfirmed | yes | `~/.gemini/skills` |
-| Copilot CLI | unconfirmed | unconfirmed | `~/.copilot/skills` |
-| Cursor | yes | yes | `~/.cursor/skills` |
+| Claude Code | unconfirmed | `/mcp__factory__<prompt>` (unconfirmed) | unconfirmed |
+| OpenCode | yes | `/factory:<prompt>` | unconfirmed |
+| Codex CLI | unconfirmed | unconfirmed | unconfirmed |
+| Gemini CLI | unconfirmed | yes | unconfirmed |
+| Copilot CLI | unconfirmed | unconfirmed | unconfirmed |
+| Cursor | yes | yes | unconfirmed |
 
 Without forms the draft is shown for you to file with `gh`, nothing starts, and a checkout that needs
 to confirm refuses. Codex CLI may cut a call at 60 s; the skill then calls `room_wait` again.

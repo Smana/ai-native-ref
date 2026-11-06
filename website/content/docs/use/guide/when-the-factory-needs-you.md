@@ -10,6 +10,18 @@ By the end of this chapter you will know what to do each time the factory stops 
 When the factory needs you, it says so on the issue, and the room list marks the task **needs you**.
 You answer with a label, a review, or a comment starting with `/factory`. Other comments are not read.
 
+## One list, wherever you look {#one-list}
+
+Whatever you open, you see the same list of what needs you: the same items, in the same order. The
+room page shows it in its **Needs you** panel, `maku needs` prints it in your terminal, your coding
+agent's `inbox` and `resume` read it, and a task's Slack thread answers `what needs me` from it.
+
+Each item carries one action and one link. An approval opens its card on the room page; a merge, a
+review or a question opens the pull request or the issue on GitHub. The list decides nothing for you.
+
+Items with a deadline come first, then the rest by kind. A [proposed split](#split) is an item too: a
+*plan confirmation*, whose action is to comment `/factory split` on the issue.
+
 ## The hand-off {#hand-off}
 
 When the agents have done what they can, the factory *hands off* the task to you. It comments on the
@@ -30,8 +42,9 @@ carries a reason code. The four you will meet most:
 | `approval_stale` | Your approval was of an older commit, or came while an agent was still pushing | Approve again |
 | `human_commit_in_pr` | A person pushed a commit to the agent's branch | Read that commit, then have an admin merge it, or close the pull request |
 
-The last row happens when someone pushes a fix to the agent's branch by hand. The merge bot merges only
-what the agents pushed, so a repository admin merges it instead, with `gh pr merge --admin`.
+When an approval merges the pull request, the item says *approve the current commit*. It says *a
+repository admin merges it* only in the last row's case, and gives the reason: a person pushed a commit
+the factory cannot vouch for.
 
 Will your change merge on its own, with no approval? Only if its class is *live*: see
 [when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}}) and the

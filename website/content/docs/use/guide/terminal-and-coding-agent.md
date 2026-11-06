@@ -95,11 +95,34 @@ Ask your agent for the status, or run `maku status` yourself. Both show the same
 
 Three more things to ask your agent:
 
-- `/factory:inbox`: the tasks that need you first, then your other open tasks.
+- `/factory:inbox`: everything that needs you, in one list. When nothing does, it says so.
 - "wait for it": your agent follows the task and tells you when it needs you, opens its pull request
   or ends.
 - "check it out": you get the task's branch in a new folder beside your repository, ready to read or
   run.
+
+## Come back to a task {#come-back}
+
+Back after a day away? Start wide, then close in:
+
+1. Run `maku needs`. It lists what needs you, across your tasks. After your first call it shows only
+   what is new since the last one; `--since <time>` asks from a moment you choose.
+2. Run `maku status <room>`. It opens with the task's *brief*, a few fixed lines on where it stands,
+   then the card.
+3. In your coding agent, use the `resume` prompt (`/factory:resume` in OpenCode). It reads the same
+   list, then the full brief of the first task that needs you, or of the task you name.
+
+The brief holds:
+
+- **Asked**: the issue the work started from.
+- **Plan**: the plan or scope it runs under, and its ceiling.
+- **Changed since**: what moved since your last look; without a cursor, the last 24 hours.
+- **Blocked on**: the one thing it waits for.
+- **Next**: the one step, with its link.
+
+When the task is stuck on something you can fix, the full brief adds a **Fix** line that names what to
+change: a permission the factory App lacks, a check the factory cannot read, or a CI log host outside
+the egress policy.
 
 Every `maku` command, and what each coding agent supports, is in
 [Reference › Commands]({{< relref "/docs/reference/commands.md" >}}).

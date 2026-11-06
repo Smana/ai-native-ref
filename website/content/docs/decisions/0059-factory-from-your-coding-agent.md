@@ -66,7 +66,7 @@ Decided by the owner on 2026-10-25, with the design's numbering.
 | FA2 | One view package renders. The broker's views come back as the tools' `content` text, with the JSON as `structuredContent`; `roomctl` renders the same views for a terminal |
 | FA4 | The start is a field of `issue_file`'s form, defaults to no, and is **a form field, never a tool argument**. On yes, `roomctl` files the issue and labels it `factory/ready` with the developer's `gh`. Amends [ADR-0056]({{< relref "/docs/decisions/0056-local-first-factory-ux.md" >}}) D1 |
 | FA5 | Per repository, off by default: the broker lists the repositories in `human.mcp.sessionStart`, and `issue_draft` says `canStart` only for a listed one where the caller can write |
-| FA7 | Approvals stay on the room page ([ADR-0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}})); the card links to them |
+| FA7 | Approvals stay on the room page ([ADR-0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}})); the card links to them — except a `forge.push` approval, which the thread's card may decide |
 | FA8 | `room_checkout` and `roomctl checkout` create a new worktree beside the repository, pinned to the checked commit, and ask first when the branch touches agent or editor config, hooks, symlinks or non-ASCII paths |
 | FA9 | `roomctl setup <client>` registers the MCP server and writes the skill where the client reads it |
 

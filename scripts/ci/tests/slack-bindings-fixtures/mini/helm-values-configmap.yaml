@@ -10,3 +10,8 @@ data:
       repositories:
         - name: acme/shop
           maintainers: [acme-owner]
+        # Served but unbound in the declaration: the two-channel case binds them.
+        - name: acme/api
+          maintainers: [acme-owner]
+        - name: acme/web
+          maintainers: [acme-owner]

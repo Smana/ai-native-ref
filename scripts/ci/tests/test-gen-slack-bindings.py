@@ -10,7 +10,7 @@ import sys
 import tempfile
 
 try:
-    import yaml  # noqa: F401
+    import yaml
 except ImportError:
     print("SKIP: PyYAML missing")
     sys.exit(77)  # 77: run-tests.sh shows SKIP
@@ -29,8 +29,9 @@ CONSUMERS = ["tooling/base/agent-factory/slack-app/config.yaml",
              "tooling/gcp-0/agent-factory/helm-values-sponsored.yaml",
              "infrastructure/gcp-0/room-broker/config.yaml"]
 # Until ai-native-ref PR A's Task A4 renders the three regions, the committed tree is not the
-# declaration's rendering; A4 also deletes this overlay copy, so its presence marks that tree.
-UNRENDERED = ROOT / "tooling/gcp-0/agent-factory/slack-app/config.yaml"
+# declaration's rendering: base's App config still has teamID "", and gcp-0 keeps its overlay copy.
+# A4 renders base and deletes the copy, so a rendered base beside the copy is a failure, not a skip.
+OVERLAY = ROOT / "tooling/gcp-0/agent-factory/slack-app/config.yaml"
 
 failures = []
 
@@ -67,11 +68,12 @@ def check_one_declaration_renders_three_consumers():
     declaration = gen.load_declaration((ROOT / gen.DECLARATION).read_text())
     rendered = gen.render(declaration, served, ceiling, ROOT)
     check("the real tree renders exactly the three consumers", sorted(rendered) == sorted(CONSUMERS))
-    if UNRENDERED.exists():
-        # Removed by Task A4, which renders the regions and deletes the overlay copy this guard reads.
-        print(f"note: {UNRENDERED.relative_to(ROOT)} exists, so the committed tree predates A4's "
-              "rendering: the real tree's byte-for-byte and main() == 0 checks are skipped", file=sys.stderr)
+    # Removed by Task A4, which renders base's teamID this guard reads.
+    if yaml.safe_load((ROOT / gen.APP).read_text()).get("teamID") == "":
+        print(f"note: {gen.APP}'s teamID is \"\", so the committed tree predates A4's rendering: "
+              "the real tree's byte-for-byte and main() == 0 checks are skipped", file=sys.stderr)
     else:
+        check(f"a rendered base App config leaves no overlay copy ({OVERLAY.relative_to(ROOT)})", not OVERLAY.exists())
         for p in CONSUMERS:
             check(f"{p} is the declaration's rendering", rendered.get(p) == (ROOT / p).read_text())
         check("main() on the real tree exits 0", gen.main(["gen-slack-bindings.py", str(ROOT)]) == 0)
@@ -132,7 +134,110 @@ def check_an_unserved_repository_fails_at_the_declaration():
     shutil.rmtree(root)
 
 
+TWO = """teamID: T0ACME
+channels:
+  G0WEB:
+    repositories: [acme/web, acme/shop]
+    maxCostUSD: 2
+    approvals: true
+    notify: [room.merged, room.pr_opened]
+  C0SHOP:
+    repositories: [acme/shop, acme/api]
+    maxCostUSD: 0.5
+    approvals: false
+    notify: [room.ended, room.pr_opened, room.approval_closed]
+"""
+
+
+# The rendering itself, pinned: channels by id, each channel's fields, the sorted repository union
+# and the notify union in declaration order (which neither sorting nor idempotence would show).
+def check_two_channels_render_in_their_orders():
+    root = mini()
+    (root / gen.DECLARATION).write_text(TWO)
+    rc, err = run(root, "--write")
+    check(f"two channels render ({err.strip()})", rc == 0)
+    app = (root / gen.APP).read_text()
+    check("the App's channels block, sorted by id, approvals only when true", app.endswith(
+        "channels:\n"
+        "  C0SHOP: {repositories: [acme/shop, acme/api], maxCostUSD: 0.5, "
+        "notify: [room.ended, room.pr_opened, room.approval_closed]}\n"
+        "  G0WEB: {repositories: [acme/web, acme/shop], maxCostUSD: 2, approvals: true, "
+        "notify: [room.merged, room.pr_opened]}\n"))
+    channels = yaml.safe_load(app)["channels"]
+    check("the App's channels decode to the declaration's",
+          list(channels) == ["C0SHOP", "G0WEB"]
+          and channels["C0SHOP"] == {"repositories": ["acme/shop", "acme/api"], "maxCostUSD": 0.5,
+                                     "notify": ["room.ended", "room.pr_opened", "room.approval_closed"]}
+          and channels["G0WEB"] == {"repositories": ["acme/web", "acme/shop"], "maxCostUSD": 2, "approvals": True,
+                                    "notify": ["room.merged", "room.pr_opened"]})
+    union = ["acme/api", "acme/shop", "acme/web"]
+    values = yaml.safe_load(yaml.safe_load((root / gen.SPONSORED).read_text())["data"]["values.yaml"])
+    check("the sponsored repositories are the sorted union",
+          values["config"]["api"]["sponsored"][0]["repositories"] == union)
+    hooks = {w["name"]: w for w in yaml.safe_load((root / gen.BROKER).read_text())["webhooks"]}
+    check("the broker's repositories are the sorted union", hooks["slack-app"]["repositories"] == union)
+    check("the broker's events are the notify union in declaration order", hooks["slack-app"]["events"]
+          == ["room.merged", "room.pr_opened", "room.ended", "room.approval_closed"])
+    check("another subscriber is untouched", hooks["ci"]["repositories"] == ["acme/shop"]
+          and hooks["ci"]["events"] == ["room.merged"])
+    shutil.rmtree(root)
+
+
+ONE = (MINI / "slack-bindings.yaml").read_text()
+# (case, the declaration, (fixture file, old, new) or None, what stderr must name)
+REFUSALS = [
+    ("a channel id outside the pattern", ONE.replace("C0SHOP", "X0SHOP"), None, "X0SHOP"),
+    ("a teamID outside the pattern", ONE.replace("T0ACME", "t0acme"), None, "t0acme"),
+    ("no channel", "teamID: T0ACME\nchannels: {}\n", None, "no channel"),
+    ("an empty repositories", ONE.replace("[acme/shop]", "[]"), None, "repositories is empty"),
+    ("a malformed repository", ONE.replace("[acme/shop]", "[acme/shop, 'a b/c']"), None, "a b/c"),
+    ("an unserved repository", ONE.replace("[acme/shop]", "[acme/shop, acme/x]"), None, "acme/x"),
+    ("maxCostUSD below 0.01", ONE.replace("1.5", "0.001"), None, "0.001"),
+    ("maxCostUSD above the principal's", ONE.replace("1.5", "2.5"), None, "2.5"),
+    ("maxCostUSD a string", ONE.replace("1.5", "'1'"), None, "'1'"),
+    ("maxCostUSD a boolean", ONE.replace("1.5", "true"), None, "True"),
+    ("an unknown notify name", ONE.replace("room.merged", "room.nope"), None, "room.nope"),
+    ("a notify name the App draws no line for", ONE.replace("room.merged", "room.run_ended"), None, "room.run_ended"),
+    ("an empty notify union", ONE.replace("[room.pr_opened, room.merged, room.ended]", "[]"), None, "notify"),
+    ("a duplicate notify entry", ONE.replace("room.merged,", "room.merged, room.merged,"), None, "room.merged"),
+    ("a duplicate repository", ONE.replace("[acme/shop]", "[acme/shop, acme/shop]"), None, "acme/shop"),
+    ("a duplicate YAML key", ONE + "  C0SHOP:\n    repositories: [acme/shop]\n    maxCostUSD: 1\n    notify: []\n",
+     None, "C0SHOP"),
+    ("an unknown channel key", ONE + "    color: red\n", None, "color"),
+    ("an unknown top-level key", ONE + "extra: 1\n", None, "extra"),
+    ("approvals not a boolean", ONE + "    approvals: 'yes'\n", None, "approvals"),
+    ("no slack-app webhook", ONE, ("room-broker-config.yaml", "name: slack-app", "name: slackapp"), gen.BROKER),
+    ("no slack-app sponsored entry", ONE, ("helm-values-sponsored.yaml", "name: slack-app", "name: slackapp"),
+     gen.SPONSORED),
+    ("a comment inside a generated region", ONE, ("room-broker-config.yaml", "run_started,\n", "run_started,\n    # c\n"),
+     gen.BROKER),
+    ("a consumer that does not parse", ONE, ("slack-app-config.yaml", "namespace: agent-system", "namespace: [x"), gen.APP),
+]
+
+
+# Every refusal rule exits 1 and names what it refused; a refusal writes nothing.
+def check_each_refusal_names_its_value():
+    for name, declaration, edit, names in REFUSALS:
+        root = mini()
+        (root / gen.DECLARATION).write_text(declaration)
+        if edit:
+            p = root / FIXTURES[edit[0]]
+            check(f"{name}: the fixture edit applies", edit[1] in p.read_text())
+            p.write_text(p.read_text().replace(edit[1], edit[2]))
+        before = tree(root)
+        try:
+            rc, err = run(root, "--write")
+        except Exception as e:  # an uncaught error is a failure of its own, not the suite's end
+            rc, err = f"raised {type(e).__name__}", ""
+        check(f"{name}: exits 1 (got {rc})", rc == 1)
+        check(f"{name}: stderr names {names!r} ({err.strip()[:160]})", names in err)
+        check(f"{name}: writes nothing", tree(root) == before)
+        shutil.rmtree(root)
+
+
 check_one_declaration_renders_three_consumers()
+check_two_channels_render_in_their_orders()
+check_each_refusal_names_its_value()
 check_hand_editing_a_generated_region_fails()
 check_an_unserved_repository_fails_at_the_declaration()
 

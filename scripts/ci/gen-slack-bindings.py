@@ -2,11 +2,12 @@
 """Render the Slack channel binding's three consumers from its one declaration (CD24, proof 16).
 
 tooling/base/agent-factory/slack-bindings.yaml names the workspace (`teamID`) and each channel the
-factory's App serves, `{repositories, maxCostUSD, notify}`. This script owns one region of each
+factory's App serves, `{repositories, maxCostUSD, notify}` and an optional boolean `approvals`. This script owns one region of each
 consumer and preserves every other byte:
 
   the App's config         `teamID:`, its line replaced whole; `channels:`, replaced whole by one line
-                           per channel, sorted by id: `<id>: {repositories: […], maxCostUSD: …, notify: […]}`
+                           per channel, sorted by id: `<id>: {repositories: […], maxCostUSD: …, notify: […]}`,
+                           with `approvals: true` before notify only when the channel sets it
   the sponsored values     api.sponsored[slack-app].repositories: the sorted union of the channels'
   the broker's config      webhooks[slack-app].repositories: the same union; .events: the union of the
                            channels' `notify`, in declaration order
@@ -18,8 +19,14 @@ The declaration is refused, before any file is written, on: a channel id outside
 a teamID outside ^T[A-Z0-9]{2,20}$; no channel; an empty `repositories`; a repository outside
 ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$, or one the factory's config.repositories does not name (it fails here,
 not in the cluster); a maxCostUSD under 0.01 or above the sponsored principal's maxCostUSD; a `notify`
-entry outside the broker's thirteen event names; a duplicate entry or channel; an unknown key. A
-consumer without its `slack-app` entry fails too.
+entry outside the ten event names the App draws a line for; a notify union that is empty (the broker
+refuses `events: []`; one channel's `notify: []`, told nothing, is fine); a duplicate entry or channel;
+an unknown key; an `approvals` that is not a boolean. A consumer without its `slack-app` entry, or one
+that does not parse, fails too.
+
+`approvals` is not in the plan's declaration (a deliberate deviation): `channels:` is replaced whole, so
+a hand-kept `approvals: true` in the App config would be erased by the next --write. Maku decodes it
+omitempty, so false renders as absent and a declaration without it renders as before.
 
 Usage: gen-slack-bindings.py [--write] [ROOT]    (ROOT defaults to this repository)
 Exit:  0 the committed files are the rendering (or --write wrote it), 1 drift or a bad declaration.
@@ -42,12 +49,14 @@ CHANNEL = re.compile(r"^[CG][A-Z0-9]{2,20}$")
 TEAM = re.compile(r"^T[A-Z0-9]{2,20}$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$")
 MIN_COST = 0.01
-# The broker's event vocabulary, a closed list: Maku internal/webhook/events.go `types`, what
-# webhook.Types() returns. A name the broker does not know fails its strict config load.
-EVENTS = ("room.task_received", "room.task_triaged", "room.run_started", "room.run_ended",
-          "room.waiting_for_human", "room.pr_opened", "room.verdict_posted", "room.merged", "room.reverted",
-          "room.monitor_verdict", "room.budget_reached", "room.ended", "room.approval_closed")
+# What a channel's notify may name, a closed list: Maku internal/webhook/events.go `types` (the
+# thirteen webhook.Types() returns) less the three internal/slackapp/config.go refuses because the App
+# draws no line for them: room.task_received, room.run_ended, room.monitor_verdict.
+EVENTS = ("room.task_triaged", "room.run_started", "room.waiting_for_human", "room.pr_opened",
+          "room.verdict_posted", "room.merged", "room.reverted", "room.budget_reached", "room.ended",
+          "room.approval_closed")
 CHANNEL_KEYS = {"repositories", "maxCostUSD", "notify"}
+OPTIONAL_KEYS = {"approvals"}
 
 
 class ConfigError(Exception):
@@ -92,7 +101,8 @@ def _list(at, v):
 def validate(declaration, served, ceiling):
     """The declaration's channels, or ConfigError."""
     if not isinstance(declaration, dict) or set(declaration) != {"teamID", "channels"}:
-        raise ConfigError("holds exactly teamID and channels")
+        extra = sorted(map(str, set(declaration) - {"teamID", "channels"})) if isinstance(declaration, dict) else []
+        raise ConfigError(f"holds exactly teamID and channels{' (unknown: ' + ', '.join(extra) + ')' if extra else ''}")
     team = declaration["teamID"]
     if not isinstance(team, str) or not TEAM.fullmatch(team):
         raise ConfigError(f"teamID {team!r} is not {TEAM.pattern}")
@@ -102,8 +112,14 @@ def validate(declaration, served, ceiling):
     for cid, ch in channels.items():
         if not isinstance(cid, str) or not CHANNEL.fullmatch(cid):
             raise ConfigError(f"channel {cid!r} is not {CHANNEL.pattern}")
-        if not isinstance(ch, dict) or set(ch) != CHANNEL_KEYS:
-            raise ConfigError(f"channels.{cid} holds exactly {', '.join(sorted(CHANNEL_KEYS))}")
+        if not isinstance(ch, dict):
+            raise ConfigError(f"channels.{cid} is a mapping")
+        if missing := CHANNEL_KEYS - set(ch):
+            raise ConfigError(f"channels.{cid} names no {', '.join(sorted(missing))}")
+        if unknown := set(ch) - CHANNEL_KEYS - OPTIONAL_KEYS:
+            raise ConfigError(f"channels.{cid}: unknown key {', '.join(sorted(map(str, unknown)))}")
+        if not isinstance(ch.get("approvals", False), bool):
+            raise ConfigError(f"channels.{cid}.approvals {ch['approvals']!r} is not a boolean")
         repos = _list(f"channels.{cid}.repositories", ch["repositories"])
         if not repos:
             raise ConfigError(f"channels.{cid}.repositories is empty")
@@ -119,7 +135,9 @@ def validate(declaration, served, ceiling):
                               f"the {PRINCIPAL} principal's maxCostUSD ({SPONSORED})")
         for e in _list(f"channels.{cid}.notify", ch["notify"]):
             if e not in EVENTS:
-                raise ConfigError(f"channels.{cid}.notify: {e!r} is not one of the broker's event names")
+                raise ConfigError(f"channels.{cid}.notify: {e!r} is not an event name the App draws a line for")
+    if not notify_union(channels):
+        raise ConfigError("no channel's notify names an event: the broker refuses an empty events list")
     return channels
 
 
@@ -134,7 +152,8 @@ def _flow(items):
 def channels_block(channels):
     """The App config's `channels:` region, as lines: one per channel, sorted by id."""
     return ["channels:"] + [f"  {cid}: {{repositories: {_flow(ch['repositories'])}, "
-                            f"maxCostUSD: {_scalar(ch['maxCostUSD'])}, notify: {_flow(ch['notify'])}}}"
+                            f"maxCostUSD: {_scalar(ch['maxCostUSD'])}, {'approvals: true, ' if ch.get('approvals') else ''}"
+                            f"notify: {_flow(ch['notify'])}}}"
                             for cid, ch in sorted(channels.items())]
 
 
@@ -146,6 +165,14 @@ def notify_union(channels):
 def repositories_union(channels):
     """Every channel's repositories, once each, sorted."""
     return sorted({r for ch in channels.values() for r in ch["repositories"]})
+
+
+def _parse(path, decode, text):
+    """decode(text), a parse error a ConfigError naming path."""
+    try:
+        return decode(text)
+    except yaml.YAMLError as e:
+        raise ConfigError(f"{path}: does not parse ({str(e).splitlines()[0]})")
 
 
 def _values(text):
@@ -164,9 +191,9 @@ def _entry(items, at):
 def registries(root):
     """(the repositories the factory's config.repositories names, the slack-app principal's maxCostUSD)."""
     root = pathlib.Path(root)
-    factory = _values((root / FACTORY).read_text())
+    factory = _parse(FACTORY, _values, (root / FACTORY).read_text())
     served = {r.get("name") for r in ((factory.get("config") or {}).get("repositories") or []) if isinstance(r, dict)}
-    sponsored = _values((root / SPONSORED).read_text())
+    sponsored = _parse(SPONSORED, _values, (root / SPONSORED).read_text())
     entry = _entry(((sponsored.get("config") or {}).get("api") or {}).get("sponsored"),
                    f"{SPONSORED} config.api.sponsored")
     if not _number(entry.get("maxCostUSD")):
@@ -216,10 +243,13 @@ def splice(text, key, rendered, parent=None):
 
 def _held(path, before, after, decode, values):
     """ConfigError unless `after` decodes to `before` with exactly `values` set ({setter: value})."""
-    want = copy.deepcopy(decode(before))
+    want = copy.deepcopy(_parse(path, decode, before))
     for put, v in values:
         put(want, v)
-    got = decode(after)
+    try:
+        got = decode(after)
+    except yaml.YAMLError:
+        got = None
     if got != want:
         raise ConfigError(f"{path}: the spliced file does not parse back to its rendering (a comment or a "
                           "multi-line value inside the generated region?)")
@@ -229,29 +259,44 @@ def _set(key):
     return lambda doc, v: doc.__setitem__(key, v)
 
 
+def _at(path, splicing):
+    """splicing(), a ConfigError naming path."""
+    try:
+        return splicing()
+    except ConfigError as e:
+        raise ConfigError(f"{path}: {e}") from None
+
+
 def render(declaration, served, ceiling, root=None):
     """{path: text} for the three consumers in root (default: this repository), or ConfigError."""
     root = pathlib.Path(root) if root else pathlib.Path(__file__).resolve().parents[2]
-    channels = validate(declaration, served, ceiling)
+    try:
+        channels = validate(declaration, served, ceiling)
+    except ConfigError as e:
+        raise ConfigError(f"{DECLARATION}: {e}") from None
     repos, events = repositories_union(channels), notify_union(channels)
     out = {}
 
     text = (root / APP).read_text()
-    new = splice(splice(text, "teamID", [f"teamID: {declaration['teamID']}"]), "channels", channels_block(channels))
+    new = _at(APP, lambda: splice(splice(text, "teamID", [f"teamID: {declaration['teamID']}"]),
+                                  "channels", channels_block(channels)))
+    # As the App decodes it: approvals is omitempty, so a false one is absent.
+    decoded = {cid: {k: v for k, v in ch.items() if k != "approvals" or v} for cid, ch in channels.items()}
     _held(APP, text, new, yaml.safe_load,
-          [(_set("teamID"), declaration["teamID"]), (_set("channels"), copy.deepcopy(channels))])
+          [(_set("teamID"), declaration["teamID"]), (_set("channels"), copy.deepcopy(decoded))])
     out[APP] = new
 
     text = (root / SPONSORED).read_text()
-    new = splice(text, "repositories", [f"repositories: {_flow(repos)}"], parent="sponsored")
+    new = _at(SPONSORED, lambda: splice(text, "repositories", [f"repositories: {_flow(repos)}"], parent="sponsored"))
+
     def sponsored_entry(doc, v):
         _entry(doc["config"]["api"]["sponsored"], f"{SPONSORED} config.api.sponsored")["repositories"] = v
     _held(SPONSORED, text, new, _values, [(sponsored_entry, repos)])
     out[SPONSORED] = new
 
     text = (root / BROKER).read_text()
-    new = splice(text, "repositories", [f"repositories: {_flow(repos)}"], parent="webhooks")
-    new = splice(new, "events", [f"events: {_flow(events)}"], parent="webhooks")
+    new = _at(BROKER, lambda: splice(splice(text, "repositories", [f"repositories: {_flow(repos)}"], parent="webhooks"),
+                                     "events", [f"events: {_flow(events)}"], parent="webhooks"))
 
     def webhook(field):
         def put(doc, v):
@@ -268,11 +313,11 @@ def main(argv):
     paths = [a for a in args if a != "--write"]
     root = pathlib.Path(paths[0]) if paths else pathlib.Path(__file__).resolve().parents[2]
     try:
-        declaration = load_declaration((root / DECLARATION).read_text())
+        declaration = _at(DECLARATION, lambda: load_declaration((root / DECLARATION).read_text()))
         served, ceiling = registries(root)
         wanted = render(declaration, served, ceiling, root)
     except ConfigError as e:
-        print(f"FAIL {DECLARATION}: {e}", file=sys.stderr)
+        print(f"FAIL {e}", file=sys.stderr)
         return 1
     drift = False
     for path, text in wanted.items():

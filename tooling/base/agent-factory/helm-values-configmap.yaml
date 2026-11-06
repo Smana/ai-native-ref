@@ -299,7 +299,14 @@ data:
         # TF2, TO1: the tester writes the tests first (testFirst), never a verdict; trio is pair's shape until the bench.
         trio: {roles: [implementer, reviewer], maxReviewRounds: 2}
         investigate: {roles: [triager]}  # R38: proposes a public issue text, never writes
-      caps: {activeTasks: 3, concurrentRuns: 4, tasksPerDay: 20, maxTextBytes: 14336, awaitingHumanWIP: 5}
+      # CD22: a revision of another task runs before new intake. One wait reason, no reservation; the review
+      # WIP cap and the run slot are still checked first. The pinned release's decoder reads the key; an older
+      # one refuses it.
+      caps: {activeTasks: 3, concurrentRuns: 4, tasksPerDay: 20, maxTextBytes: 14336, awaitingHumanWIP: 5, preferRevisions: true}
+      # CD23: one final spend fact after the settle window, so the card's dollars stop moving.
+      facts: {finalSpend: true}
+      # CD12: the reviewer's comments and the failing check's annotations in a revision brief.
+      brief: {ciEvidence: true}
       budgets:
         # OD-10: only the principal cap keeps its shadow week (R3); the task cap is enforced
         # since a shadow one let a task reach 3.35 M of its 3 M. The meter always enforces the run cap.

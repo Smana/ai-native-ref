@@ -66,6 +66,9 @@ human:
       repositories: [Smana/ai-native-ref]      # the public repositories this boundary may plan for
       classes:
         docs-links: {roles: [scoper, implementer, reviewer], ceilingUSD: 2.00, source: "class:docs-links.taskUSD"}
+  # needs/v1 (CD21, CD28): one list, read by /api/needs and by the CLI. Read-only, so it ships on.
+  needs:
+    enabled: true
   # The developer's MCP server (roomctl mcp, ADR-0059): only roomctl's token and sponsored principals
   # are admitted. sessionStart lists the repositories whose issue_file form offers "start the factory
   # now", applied with the developer's own gh (FA5); none here (D4), a session lists one in its cloud's copy (runbook 19).

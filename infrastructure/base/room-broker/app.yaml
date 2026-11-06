@@ -129,11 +129,15 @@ spec:
         optional: true
         defaultMode: 0440
     # The planner's client key (human.intake.plan.apiKeyFile, CD18), the broker's own copy of the
-    # value the AI Gateway holds as its `planner` client. Not optional: a planner with no key 401s
-    # every plan, and an absent Secret holds the rollout back instead of shipping one.
+    # value the AI Gateway holds as its `planner` client. optional: a broker that starts before
+    # the owner writes `agents/planner` runs with the planner disabled (no key file, no call)
+    # instead of crashlooping. 0440: readable through the pod's fsGroup (1001) alone, like the
+    # factory App key — so the key depends on that fsGroup staying set.
     - name: planner
       secret:
         secretName: room-broker-planner  # pragma: allowlist secret
+        optional: true
+        defaultMode: 0440
   extraVolumeMounts:
     - name: config
       mountPath: /etc/room-broker/config

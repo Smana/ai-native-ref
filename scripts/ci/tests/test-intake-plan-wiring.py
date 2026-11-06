@@ -5,18 +5,21 @@
 The broker calls the AI Gateway's data plane once per plan, as the client `planner`. Three
 things have to agree for that call to work, and each is silent when it does not:
 
-- One remote value, read twice. A namespaced `Password` generator cannot mint the same value
-  in two namespaces, and a cross-namespace Secret read is not allowed, so each namespace
-  holds its own `ExternalSecret` over the same OpenBao entry through the cluster-scoped
-  `openbao-apps` store.
+- Two copies of one value, each through its own namespace's store: the broker reads
+  `agents/planner` through the namespaced `agents-secrets` (S9: agent-system reads the `agents`
+  mount, never a ClusterSecretStore), the gateway reads `apps/planner` through the cluster-scoped
+  `openbao-apps`. A namespaced `Password` generator cannot mint the same value twice, and a
+  cross-namespace Secret read is not allowed, so two `ExternalSecret`s it is — and the two remote
+  entries must hold the same key, which is why the runbook writes both.
 - The gateway copy's Secret KEY is the client id. `apiKeyAuth` compares the bearer against
   each Secret *value* and forwards the Secret *key* on `x-ai-gateway-client-id`, so a key
   named `api-key` would attribute every planner token, in the access log and in the spend
   series, to a client nobody can name.
 - Both CNP halves. Cilium `toEndpoints` selects pods, not Services: the broker's egress rule
   names the data-plane pods' own labels, and `envoy-data-plane` admits the broker pod on
-  8080 and nothing else. Either half alone refuses the call, and an ingress half that widens
-  to a namespace would whitelist every pod in it.
+  8080 and nothing else. Either half alone refuses the call, and an ingress half that widened
+  to a namespace would whitelist every pod in it — so every source in that rule is checked, not
+  just the one this feature adds.
 
 This reads the source tree, not the rendered bundle: all three facts are legible before a
 render, and the gate stays runnable without the host profile.
@@ -80,35 +83,49 @@ def listed(path, resource):
     return resource in (load(path) or {}).get("resources", [])
 
 
-# --- A1: one identity, two namespaces, one remote entry ----------------------------------
-# A namespaced Password generator cannot mint the same value twice, so a cluster-scoped store
-# over one remote entry is the only wiring that survives both clouds.
+# --- A1: two namespaces, each through its own store, one value between them ---------------
+# S9: the broker reads its own namespace's store (`agents-secrets`, the `agents` mount) and never
+# the cluster-scoped store the gateway uses. The gateway's copy stays on `openbao-apps`: a
+# namespaced Password generator cannot mint the same value twice, and nothing may read another
+# namespace's Secret, so each side syncs its own copy from the entry its store can reach.
+STORES = {
+    PLANNER_PATHS["broker"]: {"kind": "SecretStore", "name": "agents-secrets"},
+    PLANNER_PATHS["gateway"]: {"kind": "ClusterSecretStore", "name": "openbao-apps"},
+}
 for path, name, ns in [(PLANNER_PATHS["broker"], "room-broker-planner", "agent-system"),
                        (PLANNER_PATHS["gateway"], "ai-gateway-planner-key", "envoy-ai-gateway-system")]:
     es = load(path)
-    check(es["spec"]["secretStoreRef"] == {"kind": "ClusterSecretStore", "name": "openbao-apps"},
-          f"{path}: not the shared store")
+    check(es["spec"]["secretStoreRef"] == STORES[path],
+          f"{path}: must read {STORES[path]['kind']} {STORES[path]['name']}")
     check(es["metadata"]["namespace"] == ns, f"{path}: namespace")
+    # One key, one remote reference: a second entry would be a second value to rotate.
+    check(len(es["spec"]["data"]) == 1, f"{path}: exactly one data entry")
     check(es["spec"]["data"][0]["remoteRef"]["key"] == "planner", f"{path}: remote key")
     check(es["spec"]["data"][0]["remoteRef"]["property"] == "apiKey", f"{path}: property")
     check(es["spec"]["target"]["name"] == name, f"{path}: target name")
 
 # The gateway's Secret key IS the client id: `planner`, never `api-key`, or every log line and
-# spend series attributes these tokens to a client nobody can name.
+# spend series attributes these tokens to a client nobody can name. The broker's own Secret key is
+# arbitrary (it reads a file), so it keeps `api-key` and must not borrow the client id.
 check(load(PLANNER_PATHS["gateway"])["spec"]["data"][0]["secretKey"] == "planner",
       "the gateway copy's Secret key must be planner")
+check(load(PLANNER_PATHS["broker"])["spec"]["data"][0]["secretKey"] == "api-key",
+      "the broker copy's Secret key is its file name: api-key")
 names = credential_names()
 check("ai-gateway-planner-key" in names and names[0] == "ai-gateway-api-keys",
       "the planner key is a credential of the one API-key policy")
 
 # The broker mounts its own copy under its own name, and never reads another namespace's Secret.
+# optional: an absent key runs the broker with the planner disabled instead of crashlooping;
+# 0440 is the octal the API wants, readable through the pod's fsGroup alone.
 app = load("infrastructure/base/room-broker/app.yaml")
 mounts = [m for m in app["spec"]["extraVolumeMounts"] if m["name"] == "planner"]
 check(mounts and mounts[0]["mountPath"] == "/etc/room-broker/planner" and mounts[0]["readOnly"],
       "the broker's mount")
 volumes = [v for v in app["spec"]["extraVolumes"] if v["name"] == "planner"]
-check(volumes and volumes[0]["secret"] == {"secretName": "room-broker-planner"},
-      "the broker's mount needs its own Secret, not a path into another namespace")
+check(volumes and volumes[0]["secret"] == {"secretName": "room-broker-planner",
+                                           "optional": True, "defaultMode": 0o440},  # YAML 1.1 octal
+      "the planner volume: its own Secret, optional, 0440")
 
 # Both directions of the wiring are listed, or the object is written and never applied.
 check(listed("infrastructure/base/room-broker/kustomization.yaml", "externalsecret-planner.yaml"),
@@ -150,13 +167,16 @@ planner = [r for r in dp["spec"]["ingress"] if r.get("fromEndpoints")
            and any(e["matchLabels"].get("app.kubernetes.io/name") == "room-broker"
                    for e in r["fromEndpoints"])]
 check(len(planner) == 1 and ports(planner[0]) == {8080}, "one entry, 8080")
-# The rule is shared with OpenWebUI and promptfoo, so only the broker's own entries are judged.
-broker_entries = [e for e in (planner[0]["fromEndpoints"] if planner else [])
-                  if e["matchLabels"].get("app.kubernetes.io/name") == "room-broker"]
+sources = planner[0]["fromEndpoints"] if planner else []
+# Every source in the rule this PR edits, not only the one it adds: the rule's per-pod promise is
+# what keeps a new consumer from becoming a namespace-wide hole, and a review that only checks the
+# broker's entry would let the next one through.
+for e in sources:
+    check(set(e["matchLabels"]) == {"io.kubernetes.pod.namespace", "app.kubernetes.io/name"},
+          f"a widened ingress source: {e}")
+broker_entries = [e for e in sources if e["matchLabels"].get("app.kubernetes.io/name") == "room-broker"]
 check(len(broker_entries) == 1, "one selector for the broker, not several")
 for e in broker_entries:
-    check(set(e["matchLabels"]) == {"io.kubernetes.pod.namespace", "app.kubernetes.io/name"},
-          f"a widened selector: {e}")
     check(e["matchLabels"] == {"io.kubernetes.pod.namespace": "agent-system",
                                "app.kubernetes.io/name": "room-broker"}, "any other pod")
 

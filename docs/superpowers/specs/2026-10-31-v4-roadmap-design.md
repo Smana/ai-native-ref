@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-31 · **Status:** roadmap approved by the owner 2026-10-31 (decisions
 [V1 to V6](#owner-decisions-2026-10-31)); amended 2026-11-05 ([V7](#owner-decisions-2026-11-05));
-**restructured 2026-11-06** ([V8 to V20](#owner-decisions-2026-11-06)): v4.0 is the laptop loop and
+**restructured 2026-11-06** ([V8 to V21](#owner-decisions-2026-11-06)): v4.0 is the laptop loop and
 the production path, and everything that ships before it is a [v3.x track](#v3x) on the released
 platform. Designs written earlier use the old numbers; [the mapping](#renumbering) names each one's
 track. Each track gets its own design before it is built · **Follows:** the
@@ -15,8 +15,8 @@ track. Each track gets its own design before it is built · **Follows:** the
 v3 made the factory land more accepted pull requests per dollar, on the reference host. v4 makes it
 **run for anyone, outside the reference host**:
 
-1. **On a laptop:** a platform engineer runs the whole factory loop on kind in about 30 minutes,
-   from the docs alone. The loop is: label an issue, watch the room, get a reviewed pull request,
+1. **On a laptop:** a platform engineer runs the whole factory loop on kind or k3d in about 15
+   minutes, from the docs alone, as a labelled demo of the production machinery. The loop is: label an issue, watch the room, get a reviewed pull request,
    see the merge gate decide.
 2. **In production:** a platform team installs it on its own cluster and plugs in its own identity
    provider, secrets store, GitOps tool and gateway.
@@ -66,6 +66,7 @@ switch ([V8](#owner-decisions-2026-11-06)).
 | V18 | **The production path installs from one umbrella Helm chart**, so Flux and Argo CD both consume it natively. cloud-native-ref becomes one set of values |
 | V19 | **gVisor is required in production.** On the laptop it is used when present; otherwise the run uses runc behind a visible "not isolated" banner |
 | V20 | **v4.0's go test adds one person other than the owner,** who completes the laptop quickstart from the docs and files a friction log |
+| V21 | **The laptop is a demo of the production machinery, not a secure install** ([its design](https://github.com/Smana/maku/blob/a9c5c50d/docs/superpowers/specs/2026-11-06-factory-on-a-laptop-design.md), decisions Q1 to Q27). One command, `task demo`; kind or k3d, or the current kubeconfig, with a minimal stack; one GitHub App from a manifest; the umbrella chart with `profile: demo`; public repositories only; the gate's own commit status; 15 minutes. What production adds (per-role tokens, the gateway's budget, the meter, gVisor, egress control, branch protection, separate identities) is listed, not shipped. Narrows V13 and V19 to production, makes V14's gateway absent from the demo, and replaces V2's 30 minutes |
 
 ## Why these features
 
@@ -85,12 +86,12 @@ v4.0 is cut when both stages pass their go test ([below](#how-v4-is-judged)) and
 tracks have shipped as v3.x releases ([V8](#owner-decisions-2026-11-06)). Whatever else has shipped by
 then is in v4.0 too; whatever has not continues as v4.x.
 
-| Stage | Outcome | Decided ([V8 to V20](#owner-decisions-2026-11-06)) | Built on | Design lives in |
+| Stage | Outcome | Decided ([V8 to V21](#owner-decisions-2026-11-06)) | Built on | Design lives in |
 |---|---|---|---|---|
-| **1 · The factory on a laptop** | The kind quickstart grows from one attended run to the full loop: a sample repository, the factory and reviewer on one model key, the merge gate in shadow by default. A nightly kind job proves it end to end | Built-in gate check, not policy-bot (V12). A GitHub App created by a setup helper, not a PAT (V13). Any OpenAI-compatible endpoint (V14). gVisor when present, otherwise runc behind a visible "not isolated" banner (V19) | Maku quickstart and portable runtime (Maku designs 3a/3b) | Maku |
+| **1 · The factory on a laptop** | A labelled **demo of the production machinery** (V21): one command, `task demo`, on kind or k3d, takes a template repository's labelled issue through the scoper, implementer, judge and reviewer to a reviewed pull request and the gate's verdict, in about 15 minutes. A nightly kind job proves it end to end | The gate posts its own status, not policy-bot (V12). One GitHub App from a manifest (V13, V21). Any OpenAI-compatible endpoint, called directly (V14, V21). runc with a "not isolated" banner, public repositories only (V19, V21). The umbrella chart with `profile: demo` | Maku quickstart and portable runtime (Maku designs 3a/3b) | Maku, [design](https://github.com/Smana/maku/blob/a9c5c50d/docs/superpowers/specs/2026-11-06-factory-on-a-laptop-design.md) |
 | **2 · The production path** | The host contract split into *required* and *bring-your-own* pieces, each with a reference implementation and a stated seam. One install on a generic cluster from the docs alone, with a smoke test | Proven on k3s or kubeadm (V11). Bring your own identity provider (OIDC), secrets store and GitOps tool; agentgateway ships as a required piece (V15). One umbrella Helm chart (V18). gVisor required (V19). Semver on chart values and the install contract, with an upgrade test (V17). Public repositories in the go test; private ones documented (V16) | [`HOST-CONTRACT.md`](../../../HOST-CONTRACT.md), v3's [install sketch](2026-10-19-v3-roadmap-design.md#later) | ai-native-ref, with Maku |
 
-1 comes before 2: the laptop loop is the core profile that the production path extends.
+1 comes before 2: the laptop is the demo profile of the chart the production path ships, so stage 1 builds that chart and stage 2 adds its production values.
 
 ## v3.x: what ships before v4.0 {#v3x}
 
@@ -185,7 +186,7 @@ flowchart TB
 
 | Item | Go when |
 |---|---|
-| v4.0 laptop (1) | A nightly kind job takes a labelled issue to a reviewed PR and a gate decision. A fresh agent with no context, given only the quickstart page, reaches the same end. The quickstart takes 30 minutes or less on the reference laptop. **One person other than the owner** completes it from the docs and files a friction log (V20) |
+| v4.0 laptop (1) | A nightly kind job takes a labelled issue to a reviewed PR and a gate decision, and k3d passes the same path on the stub model. A fresh agent with no context, given only the quickstart page, reaches the same end. The quickstart takes 15 minutes or less on the reference laptop. **One person other than the owner** completes it from the docs and files a friction log (V20) |
 | v4.0 production (2) | One install on a k3s or kubeadm cluster passes the smoke test from the docs alone. Each bring-your-own seam is named, with what is lost when it is not filled. A nightly job upgrades the previous release's install on kind (V17) |
 | v4.0 safety | The classes and hardening tracks have shipped, each on its own go/no-go (V8) |
 | Every v3.x track | Its own design's go/no-go, on offline proofs and then live evidence |
@@ -247,6 +248,5 @@ These are for the stage and track designs, not this roadmap:
    on `tools/call` responses. In scope, and at the gateway? The
    [Model Armor research](2026-11-04-model-armor-oss-equivalents-research.md) lays out the hooks and the
    order.
-5. **The laptop without gVisor (stage 1):** what exactly the "not isolated" banner restricts beyond
-   warning: for example, refusing repositories that are not public, or refusing a model key with
-   wide scope. Decided in stage 1's design.
+5. **The laptop without gVisor (stage 1): closed 2026-11-06.** The demo refuses any repository that is
+   not public, before a run starts ([V21](#owner-decisions-2026-11-06), the design's Q15).

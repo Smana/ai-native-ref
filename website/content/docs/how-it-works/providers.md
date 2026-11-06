@@ -26,7 +26,7 @@ list their aliases, and the factory applies a class's choice to public tasks onl
 
 ## Switch a class on
 
-No class names a provider by default. One key on the class's `loops` row, in `tooling/base/agent-factory/helm-values-configmap.yaml`:
+Four classes name one: the reviewer of `docs-links`, `revert`, `dead-links` and `deps-patch`, the classes the merge gate may merge without a person, runs on `kimi-frontier`, so a model from another family reviews them. No other class names a provider. One key on the class's `loops` row, in `tooling/base/agent-factory/helm-values-configmap.yaml`:
 `models.<role>.<tier>` is the alias that role runs on for a public task of that tier.
 
 ```yaml

@@ -224,8 +224,10 @@ factory task, so the change has not been made. Until it is:
 
 - **the tier sets caps, minutes and the team, not the model.** The control group measures budget
   fit, not model fit;
-- **the reviewer runs the implementer's model.** "The other tier" changes its caps only. ADR-0058
-  keeps it that way on `public` work, so no public data goes to Anthropic for review
+- **the reviewer runs the implementer's model**, except on the classes the merge gate may merge
+  without a person, where it runs on Kimi ([providers]({{< relref "/docs/how-it-works/providers.md" >}})).
+  Elsewhere "the other tier" changes its caps only. ADR-0058 keeps public data away from Anthropic
+  for review
   ([ADR-0058]({{< relref "/docs/decisions/0058-reviewer-on-another-model.md" >}})).
 
 ### Complexity routing for tasks: kept out of the request path
@@ -476,7 +478,7 @@ Every knob, what it trades and how to see the effect. Factory values live in
 |---|---|---|---|
 | Cheaper agent runs | `tiers.<tier>.model: tier-standard` or `tier-light` | 0.28× or 0.11× the price; quality unmeasured | `maku_factory_tier_fit_total`, `maku_factory_pr_outcomes_total`, cost per merged task |
 | Better hard-task outcomes | `defaults.dataClass` or the task's class, `internal` → Opus | Data class first, cost second: only internal data may reach Anthropic (ADR-0054) | the cohort's measure: accepted outcomes and USD per accepted |
-| A reviewer independent of the implementer | `templates.pair.reviewerModel` | Another *size* only on `public`: ADR-0058 rejected a Claude reviewer on data class and cost, and no other open-weight family has a route | review verdicts against maintainer rejections |
+| A reviewer independent of the implementer | `loops.<class>.models.reviewer.frontier: kimi-frontier` | Another family on `public` work only, processed in China; ADR-0058 rejected a Claude reviewer on data class and cost. On for the self-merging classes | review verdicts against maintainer rejections |
 | Measure model fit, not only budget fit | `triage.controlPercent` (10) | More control tasks run `frontier` with `trio`, at about 2.7× the run cap | `maku_factory_tier_fit_total{fit}` |
 | Fewer runs revoked mid-work | `tiers.<tier>.runUSD`, `taskUSD` | A run cap above $6.80 also needs B1 and the local limit raised: the CI gateway check enforces it | `maku_factory_run_revocations_total`, `budget-run` reasons |
 | A longer or shorter day | `budgets.factoryDailyUSD`, `humanDailyUSD` | Above $42.50, `factoryDailyUSD` also needs B2 raised: the CI gateway check fails otherwise. Both count in shadow until `enforcePrincipal` | `maku_factory_budget_spent_usd` against `maku_factory_budget_cap_usd` |
@@ -556,7 +558,7 @@ Signal definitions and alerts are on
 | Gap | Effect | Closes with |
 |---|---|---|
 | No triage classifier | Every task is `standard`; the tier never reflects difficulty | The classifier ([routing design §3](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#3-complexity-classifier-c7)) |
-| Every tier is `agent-default` | Tiers change caps, not models; the reviewer shares the implementer's model | A measured tier move |
+| Every tier is `agent-default` | Tiers change caps, not models; outside the self-merging classes, the reviewer shares the implementer's model | A measured tier move |
 | The router fails closed, on one replica | A router outage fails every `ai-gateway` request, `tier-frontier` included | Two replicas, a PDB and fail-open (SR 0.3.0) |
 | PII classifier loaded, read by no decision | No data-class protection on `MoM` today. Harmless while every `MoM` target is local | `NOT pii_any` on the frontier decision (SR 0.3.0) |
 | No Semantic Router series in VictoriaMetrics | The router's decisions cannot be read from metrics | Tracked on the [status page]({{< relref "/docs/status.md#before-v3" >}}) |

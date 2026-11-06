@@ -7,7 +7,7 @@ lastVerified: 2026-11-05
 
 `maku-slack`, Maku's Slack app, turns a Slack thread into a factory task. Whether it is deployed on your
 platform is on the [status page]({{< relref "/docs/status.md" >}}). A mention in your own words is planned
-into one proposal message, a reply changes it, a maintainer's Confirm files it and starts the task, and the
+into one proposal message, and a reply changes it. A maintainer's Confirm files it and starts the task; the
 thread then follows the room and answers five questions about it. Steering stays on the room page, and so
 does every approval except a push; the merge is your approval on GitHub.
 
@@ -64,7 +64,7 @@ thread:
 
 | Section | What it holds |
 |---|---|
-| Header | The proposal's revision, its check hash and who asked. When the planner could not answer and a template wrote the draft instead, the header says so |
+| Header | The revision, its check hash and who asked; it also says when a template, not the planner, wrote the draft |
 | Repository | The repository the issue goes to, with the evidence for it, and any other repository this channel serves that could also fit |
 | Issue | The title, what is wrong, what it should be and the acceptance check, as they will be filed, and the class |
 | Roles | Who works on it, in order |
@@ -85,7 +85,7 @@ who wrote the mention can change it, and only until it is filed.
   ceiling), the header says `requires a new confirmation`: a Confirm pressed earlier does not cover it.
 - Naming another repository in your words moves the plan there, if this channel serves it.
 
-A proposal can be changed up to 40 times. When Slack refuses to edit the message, the App posts the new
+A proposal has at most 40 revisions: the first, and up to 39 changes. When Slack refuses to edit the message, the App posts the new
 revision below and the old message says `This proposal was replaced below.`, with no buttons.
 
 ## Confirm it
@@ -99,7 +99,10 @@ The message then becomes the Filed line, and its buttons are gone:
 Filed #N for @you, sponsored by GitHub @login; the factory starts it. Room: …
 ```
 
-One issue per thread: a second press or ✅ answers `Already filed` with the room link.
+One issue per thread, and once filed the thread files nothing more. A ✅ on the Filed line, or a reply
+that is only ✅, is ignored. A press on an older copy of the proposal answers
+`Not filed: this thread's task is already filed or cancelled; mention me again to plan another.`
+If the factory already holds a task for the thread, the Filed line says `Already filed:` with the room link.
 
 **Cancel** is the author's, and starts nothing. The message becomes
 `Proposal cancelled by @you; mention me again to plan another.` Anyone else who presses it is told that
@@ -179,24 +182,25 @@ Every other approval, and every answer or steer, stays on the room page.
 | `Not proposed: … is not linked to a GitHub account here; …` | Your Slack account is not linked | Mention `@factory link` and confirm the page it answers ([above](#link-your-slack-user-once)) |
 | `Not proposed: you have used today's plans; …` | Your plans for the day are spent | Mention again after 00:00 UTC, or hand it off from your coding agent |
 | `Not proposed: GitHub could not confirm the repository, …` | GitHub did not answer the repository check | Mention again in a minute |
-| `This proposal was planned the most it can be here: …` | The proposal reached 40 revisions | Confirm it, or start a new mention |
+| `This proposal was planned the most it can be here: …` | You replied to a proposal at its 40th revision | Confirm it, or start a new mention |
+| `Not proposed: this thread has all the revisions one proposal may have; …` | You mentioned the App again in a thread whose proposal is at its 40th revision | Confirm it, or start a new mention |
 | `This deployment does not plan from Slack yet; …` | The operator has not turned the planner on | Ask the operator |
 | `Not filed: … is not linked to a GitHub account here; …` | Your Slack account is not linked to a GitHub login | Mention `@factory link` and confirm the page it answers ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#6-who-may-file)) |
 | `Not filed: … is not a maintainer of …; a maintainer must confirm it.` | Your linked login is not a maintainer | A maintainer confirms instead |
 | `Not filed: a newer revision of this proposal is in this thread; …` | You pressed an older message | Press the newest proposal's buttons |
+| `Not filed: the plan changed after this was drawn; mention me again to re-plan it.` | The plan no longer matches what the message showed | Mention again to re-plan it |
 | `Not filed: the Slack App's budget for today is spent; …` | The App's day budget is spent | Try again the next day, or ask the operator |
 | `Not filed: the factory's daily task cap is reached; …` | The factory has started all the tasks it may for the day | Try again after 00:00 UTC |
 | `Not filed: the factory is paused (kill switch); …` | An operator paused the factory | Try again once it is resumed |
 | `Not filed: the factory does not take tasks on … from Slack; …` | The factory does not accept that repository from Slack | Ask the operator ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#5-declare-the-channel-in-git)) |
-| `Not filed: the factory could not be reached, …` | A passing failure | Press Confirm, or react, again |
+| `Not filed: the factory could not be reached; press Confirm again to retry.` (`react again to retry` after a ✅) | A passing failure | Press Confirm, or react, again |
 | Nothing at all | The channel or repository is not served, or the bot is not in the channel | Invite `@factory`, check the channel with the operator |
 
 A `Not filed:` line after Confirm goes to the person who pressed it alone; after a ✅ it is said in the
 thread.
 
 The link needs your GitHub account linked to your ZITADEL user ([who sees a room]({{< relref "/docs/operate/access.md#who-sees-a-room" >}})); it
-grants nothing a maintainer of the repository did not have, and the task is sponsored by your **current**
-GitHub login. Users the factory's config lists by hand keep that entry whatever they link.
+grants nothing a maintainer of the repository did not have.
 
 The task is filed by the factory App, with no label and a footer naming its sponsor; its Task names the
 App and you. Its budget is the proposal's ceiling, at most the channel's `maxCostUSD`.

@@ -150,7 +150,11 @@ planner = [r for r in dp["spec"]["ingress"] if r.get("fromEndpoints")
            and any(e["matchLabels"].get("app.kubernetes.io/name") == "room-broker"
                    for e in r["fromEndpoints"])]
 check(len(planner) == 1 and ports(planner[0]) == {8080}, "one entry, 8080")
-for e in (planner[0]["fromEndpoints"] if planner else []):
+# The rule is shared with OpenWebUI and promptfoo, so only the broker's own entries are judged.
+broker_entries = [e for e in (planner[0]["fromEndpoints"] if planner else [])
+                  if e["matchLabels"].get("app.kubernetes.io/name") == "room-broker"]
+check(len(broker_entries) == 1, "one selector for the broker, not several")
+for e in broker_entries:
     check(set(e["matchLabels"]) == {"io.kubernetes.pod.namespace", "app.kubernetes.io/name"},
           f"a widened selector: {e}")
     check(e["matchLabels"] == {"io.kubernetes.pod.namespace": "agent-system",

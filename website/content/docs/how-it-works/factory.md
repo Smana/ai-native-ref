@@ -34,8 +34,8 @@ every run has a task and a budget. This page describes the design; what runs tod
 The developer's view of the same journey is in the
 [user guide]({{< relref "/docs/use/guide/_index.md" >}}).
 
-Two clients reach the same intake without a label. Slack drafts the issue in a thread and a
-maintainer's check mark files it; RunLore hands the factory an incident and checks, after the fix
+Two clients reach the same intake without a label. Slack plans the issue as one proposal in a
+thread, and a maintainer's Confirm (or check mark) files it; RunLore hands the factory an incident and checks, after the fix
 merges, that the alert is gone.
 
 ![Two clients of the factory. Slack intake (a user links their Slack account once, by mentioning the factory's app with link): a mention of the app in a Slack thread, naming owner/repo and what; maku-slack drafts the issue with a title, what is wrong and acceptance; the author tunes the draft by replying; a maintainer's check mark on the latest draft, anyone else's being refused, has maku-factory file the issue and start the work, and the thread then follows the room: triaged, run started, PR opened, waiting, ended. Agent-to-agent work with RunLore: an alert fires and RunLore investigates in its incident thread; it posts an investigate task through POST /v1/tasks as an internal principal, and a triager proposes a fix; a maintainer's factory/publish on the stub issue files the public fix issue; a maintainer's factory/ready starts the fix task, which runs the team to a merged PR; after a soak RunLore re-checks the alert and posts its verdict to the post-merge monitor, where resolved is healthy and persisting pauses the class and opens a follow-up. Signed webhooks carry the task, room, PR and merge events back to the incident thread. RunLore's own task never opens a PR](/images/diagrams/ai-platform-6.svg)

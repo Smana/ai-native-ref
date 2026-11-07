@@ -290,8 +290,9 @@ curl -sS "$BASE/completions" \
 ```
 
 Hand-offs (the flow is in the [user guide]({{< relref "/docs/use/guide/terminal-and-coding-agent.md" >}})): `maku doctor` must show every check `ok`, then ask the client to list the factory tools
-(`rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`,
-`issue_file`) and prompts (`handoff`, `status`, `inbox`).
+(`rooms_list`, `room_summary`, `needs_list`, `room_brief`, `issue_draft`, `issue_file`, and the rest in
+[Reference › Commands]({{< relref "/docs/reference/commands.md#tools" >}})) and prompts (`handoff`,
+`status`, `inbox`, `resume`).
 
 **Needs a live run** before the labels can change to `run on CLOUD on DATE`: each snippet above
 on both clouds; whether `POST /v1/responses` answers on the `ai-gateway` (decides Codex); the

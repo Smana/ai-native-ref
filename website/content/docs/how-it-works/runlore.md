@@ -24,8 +24,7 @@ sequenceDiagram
   F-->>R: signed webhooks, into the Slack incident thread
   F->>M: stub issue factory/proposed, with the proposal
   M->>F: factory/publish
-  F->>M: the fix issue, unlabelled
-  M->>F: class label, then factory/ready
+  F->>M: the fix issue, with its class label, and the fix started
   F->>M: fix pull request
   M->>M: merge
   R->>A: after the soak, is the alert still firing?
@@ -35,12 +34,13 @@ sequenceDiagram
 
 | You want to… | Do this |
 |---|---|
-| Publish RunLore's proposal | Read the proposal on the stub issue (`factory/proposed`), then label it **`factory/publish`**: the factory files the fix issue, unlabelled, with a footer naming its origin |
-| Start the fix | Label the fix issue with its class (for an alerting rule, `class:alert-rules`), then `factory/ready` |
+| Publish RunLore's proposal | Read the proposal on the stub issue (`factory/proposed`), then label it **`factory/publish`**: the factory files the fix issue with a footer naming its origin, labels it `class:<c>` from the files the proposal names (`class:review` when none fits; never a live class), and starts the fix, charged to you |
+| Start the fix by hand | Only when the operator left `publishStarts` off, or the fix issue was edited after it was filed: correct the `class:` label if needed (for an alerting rule, `class:alert-rules`), then `factory/ready` |
 | Read the verdict | `kubectl get task <fix> -o jsonpath='{.status.monitor}'`: `resolved` is healthy |
 | React to a fix that did not hold | `persisting` labels the pull request `factory/monitor:regression`, opens a follow-up stub, and pauses the class like any other regression; clear the pause as for any class |
 
 The investigation stays internal: it runs on Claude, read-only, and starts no public work until a
-maintainer labels the proposal. RunLore's link to the factory is off by default; an operator turns
-it on in the host's RunLore configuration. Operator steps and keys:
+maintainer labels the proposal. RunLore's link to the factory is off by default. An operator turns
+it on in two halves together: the host's RunLore configuration, and RunLore's webhook subscriber in
+the room broker's `webhooks`, which carries the task's events back to RunLore. Operator steps and keys:
 [runbook 20](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/20-runlore-agent-to-agent.md).

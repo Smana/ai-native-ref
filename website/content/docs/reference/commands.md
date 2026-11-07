@@ -76,7 +76,9 @@ folder you trust.
 | `room_wait` | Follows a room and returns when it needs you, opens a pull request or ends |
 | `room_checkout` | The room's branch in a new git worktree, at the commit it checked |
 
-The other tools are `rooms_list`, `room_summary`, `room_changes`, `issue_draft` and `issue_file`.
+The other tools are `rooms_list`, `room_summary`, `room_changes`, `room_tail`, `room_queue`,
+`room_fork`, `issue_draft` and `issue_file`. Where the operator turns multi-repository coordination on,
+`coordination_plan` proposes one change across two public repositories and files nothing.
 
 Starting a task is a form field, never a tool argument: your agent can file an issue but cannot answer
 the form. It is offered only on repositories the platform lists and you can write to. A checkout that

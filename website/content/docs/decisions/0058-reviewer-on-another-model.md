@@ -6,7 +6,7 @@ description: Accepted. A public task's reviewer keeps the implementer's GLM mode
 lastVerified: 2026-10-16
 ---
 
-**Status**: Accepted
+**Status**: Accepted, amended (see [Amendment](#amendment-a-kimi-reviewer-on-the-self-merging-classes))
 **Date**: 2026-10-16
 **Deciders**: Smana (Platform Owner)
 **Related**: [status, v2 gate "A reviewer on another model"]({{< relref "/docs/status.md#v2-roadmap" >}}), [ADR-0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}), [hard-task cohort results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-v2-hard-task-cohort-design.md#results)
@@ -179,3 +179,15 @@ not, the record moves to Option A and the gate closes.
 
 - agent-platform [#129](https://github.com/Smana/agent-platform/pull/129): `templates.<name>.reviewerModel`
 - [Z.ai pricing](https://docs.z.ai/guides/overview/pricing), [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing)
+
+---
+
+## Amendment: a Kimi reviewer on the self-merging classes
+
+Option C's blocker, no other family on `public`, no longer holds: the gateway serves Moonshot's Kimi
+for public work ([providers]({{< relref "/docs/how-it-works/providers.md" >}})). On the classes the
+merge gate may merge without a person (`docs-links`, `revert`, `dead-links`, `deps-patch`), the
+reviewer's approval is the only review, so they run it on `kimi-frontier`
+(`loops.<class>.models.reviewer.frontier`). Every other class keeps Option A. Option B stays rejected:
+no public data goes to Anthropic for review. Kimi processes in China, which is acceptable for public
+data only.

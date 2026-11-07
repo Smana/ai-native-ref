@@ -4,7 +4,7 @@ aliases:
   - /docs/platform/ai-platform/agents/use/slack/
 weight: 20
 description: "Hand work to the factory from a Slack thread: mention it in your own words, change the proposal by reply, a maintainer confirms it, the thread answers five questions, and a push approval is one card you press."
-lastVerified: 2026-11-05
+lastVerified: 2026-11-07
 ---
 
 `maku-slack`, Maku's Slack app, turns a Slack thread into a factory task. Whether it is deployed on your
@@ -46,11 +46,15 @@ sequenceDiagram
 
 ## Link your Slack user, once
 
-Before your Confirm or ✅ files anything, the factory must know whose GitHub account you are. Mention **`@factory link`** in
+Before the planner answers your mention, and before your Confirm or ✅ files anything, the factory must
+know whose GitHub account you are. Mention **`@factory link`** in
 a served channel: the App answers **only you** with a one-time link (valid 10 minutes, never send it to anyone).
 Open it, sign in to the rooms page, and press **Link** after checking that the Slack user and your GitHub login
 are yours. Your Confirm then files in the name of your **current** GitHub login, and only if it is a maintainer of the
-repository. **`@factory unlink`** removes the link. Someone the operator lists in git keeps that entry.
+repository. **`@factory unlink`** removes the link.
+
+Link even if the operator lists your Slack user in git. That entry lets your Confirm or ✅ file, but the
+planner reads links only: without one, every mention answers `Not proposed: … is not linked`.
 
 ## Write a mention
 

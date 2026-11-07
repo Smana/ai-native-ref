@@ -35,12 +35,23 @@ but **one Slack App has one Request URL**, so only one cloud serves Slack at a t
 | Never run both clouds' Apps against the one Slack App | Both would post state lines and draw cards for their own rooms in the same channels |
 | Moving to the other cloud is step 4 again, with its domain | The keys (steps 2 and 3) are per cloud's OpenBao: seed them there first |
 
-Set the shell once, for the cloud that serves (gcp-0 shown; on aws-0 use its OpenBao values, as in the
-[README](README.md)). The OpenBao root token comes from the cloud's secret store; it is never printed.
+Set the shell once, for the cloud that serves. The OpenBao root token comes from the cloud's secret
+store; it is never printed. Paths are relative to the cloud-native-ref checkout.
+
+On aws-0:
+
+```bash
+export VAULT_ADDR=https://bao.priv.aws.ogenki.io:8200
+export VAULT_CACERT=opentofu/aws/openbao/cluster/.tls/ca.pem
+export VAULT_TOKEN=$(aws secretsmanager get-secret-value --region eu-west-3 \
+  --secret-id openbao/cloud-native-ref/tokens/root --query SecretString --output text | jq -r .token)
+```
+
+On gcp-0:
 
 ```bash
 export VAULT_ADDR=https://bao.<private_domain>:8200
-export VAULT_CACERT=opentofu/gcp/openbao/management/.tls/ca.pem   # from the cloud-native-ref checkout
+export VAULT_CACERT=opentofu/gcp/openbao/management/.tls/ca.pem
 export VAULT_TOKEN=$(gcloud secrets versions access latest --secret openbao-priv-gcp-root-token \
   --project <project_id> | jq -r .token)
 ```
@@ -271,6 +282,11 @@ Key: `<team id>/<Slack member id>`. Value: the GitHub login. Either way the logi
 `maintainers` list (`tooling/base/agent-factory/helm-values-configmap.yaml`), or the refusal is
 `not_a_maintainer`. A Slack user with neither gets `Not filed: not_linked`. A git entry goes in the same kind
 of PR as step 5 (the factory rolls on a change).
+
+**The planner reads links only.** With `proposals` on, the broker resolves a mention's author through the
+self-serve link table, never through the factory's `onBehalfOf.slack`: a user listed in git but not linked
+gets `Not proposed: … is not linked` on every mention. Every user who plans from Slack runs `@factory link`
+once, git entry or not.
 
 Check: a second user mentions `@factory link`, confirms the page, and their check mark files (step 7); before
 that, their check mark answers `not_linked`; after `@factory unlink`, `not_linked` again.

@@ -20,6 +20,7 @@ prices.
 | `model` | `tier-frontier` | The model the plan call names | `tier-frontier`, and nothing else |
 | `apiKeyFile` | `/etc/room-broker/planner/api-key` | The client key, read at each call so a rotation needs no restart | A path the broker already mounts |
 | `deadline` | `20s` | How long the one call may take | Above 0, at most 20 s |
+| `reasoningEffort` | `low` | Sent as the call's `reasoning_effort`; unset sends nothing. Set it for a model that always reasons, or a plan can outlast the deadline | `low`, `medium`, `high`, or unset |
 | `dailyPlans` | `50` | Plans one person may ask for per day | At least 1 |
 | `fallback` | `"off"` | Whether a deterministic draft stands in when no model answers | `off` or `composer` |
 | `repositories` | `[Smana/ai-native-ref]` | The allowlist: the only repositories a plan may name | `owner/name`, each listed once |
@@ -47,6 +48,20 @@ Example (the reference host):
 The ceiling is a cap to charge against, not a reservation: the runs it bounds are the factory's, and
 their spend is counted as every other task's. A ceiling above the tier's own `taskUSD` would promise
 money the factory does not have, which is why the tier is the upper bound.
+
+## Multi-repository coordination {#coordination}
+
+`coordination.mode`, a top-level key of the same config file, serves `coordination_plan`: one change
+across two public repositories, planned through the same route, guard and daily count as above. Both repositories must be in
+`repositories`.
+
+| Value | What it does |
+|---|---|
+| `off` (the default) | Lists no tool |
+| `plan` | Composes and validates a two-repository plan, with its hash; files nothing |
+| `execute` | Plans as `plan` does; filing a coordinated change is not built |
+
+The broker refuses any value but `off` unless `human.intake.plan.enabled` is on.
 
 ## What the planner never decides {#never}
 

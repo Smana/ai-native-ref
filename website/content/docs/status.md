@@ -5,7 +5,7 @@ aliases:
 linkTitle: Status
 weight: 60
 description: "The one place state lives: what is available, what is experimental, what is planned, and the known limitations."
-lastVerified: 2026-11-06
+lastVerified: 2026-11-07
 ---
 
 The one place the platform's state lives. Every other page describes the design. Each line here
@@ -13,7 +13,8 @@ names the clouds a capability was proven on, and links to the evidence: a runboo
 a design record.
 
 **Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0),
-released on 2026-10-31, on Maku v0.32.3, composed by crossplane-configuration v0.9.31. **Next:**
+released on 2026-10-31. **On `main`** (tag `v3.1.3`): Maku v0.38.0 for the broker, the factory and the
+Slack app; the harness and bridge stay on v0.32.3, composed by crossplane-configuration v0.9.32. **Next:**
 [v3.x releases](#v3x) of this platform, then [v4, anyone can run it](#v4).
 
 The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts,
@@ -87,7 +88,7 @@ it on with one value, per class or per platform.
 | Repository checks in the sandbox | The implementer runs the repository's checks before it pushes; the CI stays the judge | GKE | [Layer 3](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md#layer-3-the-sandbox-checks) |
 | Test-first tester (opt-in) | A tester commits a failing test contract; the implementer works to it | GKE | [runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md) |
 | Splitter | A task too big for one pull request is proposed as parts with a merge order | GKE | [runbook 17](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/17-splitter.md) |
-| Slack intake | A mention drafts the issue; a maintainer's ✅ files it and starts the task | GKE | [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md) |
+| Slack intake | A mention drafts the issue; a maintainer's ✅ files it and starts the task. The proposal message that replaces the draft is a [v3.x track](#v3x) | GKE | [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md) |
 | The factory from your coding agent | Claude Code and OpenCode file, follow and check out a task through the `maku` CLI and its MCP server; starting a task from your session is opt-in | GKE | [runbook 19](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/19-factory-from-your-agent.md) |
 | RunLore agent to agent (opt-in) | An alert becomes an investigation, a fix pull request, and a verdict after the merge | GKE | [runbook 20](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/20-runlore-agent-to-agent.md) |
 | Capability profiles | Each role and data class has a model allow-list; every run is pinned to one model | GKE | [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#feature-15-providers-a-smoke-through-the-gateway) |
@@ -103,7 +104,8 @@ Hardening is tracked on the **v1 hardening** milestones of
 <span id="class-modes"></span>**Auto-merge class modes**, from `tooling/base/agent-factory/helm-values-configmap.yaml`
 ([when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}})):
 cloud-native-ref has `docs-links` and `revert` live, and `alert-rules`, `dead-links`, `deps-patch` and
-`deps-minor` in shadow; every ai-native-ref class is in shadow; `approveToMerge` is on for both.
+`deps-minor` in shadow; every ai-native-ref class and every runlore-kb class (`kb-entries`
+among them) is in shadow; `approveToMerge` is on for all three.
 
 ## Experimental {#experimental}
 
@@ -129,14 +131,14 @@ its offline proofs, a release, a live proof, then the switch-on. Each track gets
 
 | Feature | What it will do for you | State |
 |---|---|---|
-| **Merge classes declared in your repository** | You declare which kinds of change may merge on their own, in your own repository, against a schema; the factory's gate and the policy-bot rule are generated from that one declaration. Presets for common classes, a ceiling the platform sets, and promotion from shadow once a replay of past decisions shows the class is safe | First of six stages built: the factory reads your repository's classes and compares them with its own, deciding nothing. In a Maku release, not yet in the platform. **Needed for v4** |
-| **Say what you want, then read the plan** | In Slack or your coding agent, describe the work in your own words. One governed model call proposes the repository with the evidence for it, the issue as it will be filed, the roles that will run, the checks that will judge it and what it may cost, and asks at most one question. You confirm, and only then does an issue exist. Public repositories only | In a Maku release, and on in the platform for one public repository on EKS and GKE, from your coding agent; waiting for its live proof. Slack's side waits for the proposal message below |
-| **One list of what needs you, and a short brief on return** | The room page, the CLI, your coding agent and a Slack thread show the same list in the same order, each item with one action and one link. Coming back after a day away gives you a short, fixed brief: what was asked, which plan ran, what changed, what blocks it, and the one next step | The shared list is built; the brief, revisions first and settled dollars are not. Not released |
-| **Approve a push from Slack** | The most frequent approval in an attended room, "may this run push to its branch?", arrives as one card with Approve and Deny, bound to that run's branch, under the same four-eyes rule, room standing and repository permission the room page applies. Merging is unchanged: you review the current head on GitHub | Built, not released |
-| **Slack: one proposal message, then a thread that answers** | A mention produces one message, edited in place as you reply. Confirm it and the thread goes on telling you how the work goes; ask it how it is going, what needs you or where the pull request is, and it answers | Designed; it builds on the three features above |
-| **The animated run view** | The room page draws the task as a path: a node per run, named by its role and model, the planned steps lighting up as each run starts, and a replay when the task ends. Still to come: a timeline of every tool call, check, decision and cost, and two runs of the same task compared side by side | The path is built, on the main branch and not yet in a platform release, and not yet proven end to end |
-| **RunLore's knowledge base, filled by the factory** | What an investigation learns about the running platform becomes a reviewed entry in the knowledge base, and the entries that are safe to merge go through a curated queue rather than waiting on you one by one | The first phase is built, on the main branch and off by default, not yet in a platform release; waiting for its live proof |
-| **Multi-repository coordination** | One change across two repositories, confirmed once: a parent issue that records the change and never writes code, one ordinary task per repository with its own maintainer, branch, gate and pull request, a landed file as the dependency, and a read-only check that the two work together | Designed; being built switched off. It can only be turned on after merge classes in your repository and untrusted-input hardening ship |
+| **Merge classes declared in your repository** | You declare which kinds of change may merge on their own, in your own repository, against a schema; the factory's gate and the policy-bot rule are generated from that one declaration. Presets for common classes, a ceiling the platform sets, and promotion from shadow once a replay of past decisions shows the class is safe | First of six stages built: the factory reads your repository's classes and compares them with its own, deciding nothing. In the platform, with its observer off. **Needed for v4** |
+| **Say what you want, then read the plan** | In Slack or your coding agent, describe the work in your own words. One governed model call proposes the repository with the evidence for it, the issue as it will be filed, the roles that will run, the checks that will judge it and what it may cost, and asks at most one question. You confirm, and only then does an issue exist. Public repositories only | On in the platform for one public repository, from your coding agent and from Slack; waiting for its live proof. In Slack, only a user who ran `@factory link` gets a plan |
+| **One list of what needs you, and a short brief on return** | The room page, the CLI, your coding agent and a Slack thread show the same list in the same order, each item with one action and one link. Coming back after a day away gives you a short, fixed brief: what was asked, which plan ran, what changed, what blocks it, and the one next step | The list, the brief, revisions first and settled dollars are built and on in the platform; waiting for their live proof |
+| **Approve a push from Slack** | The most frequent approval in an attended room, "may this run push to its branch?", arrives as one card with Approve and Deny, bound to that run's branch, under the same four-eyes rule, room standing and repository permission the room page applies. Merging is unchanged: you review the current head on GitHub | On in the platform for the one served channel; waiting for its live proof |
+| **Slack: one proposal message, then a thread that answers** | A mention produces one message, edited in place as you reply. Confirm it and the thread goes on telling you how the work goes; ask it how it is going, what needs you or where the pull request is, and it answers | On in the platform for the one served channel; waiting for its live proof |
+| **The animated run view** | The room page draws the task as a path: a node per run, named by its role and model, the planned steps lighting up as each run starts, and a replay when the task ends. Still to come: a timeline of every tool call, check, decision and cost, and two runs of the same task compared side by side | The path is built and in the platform, not yet proven end to end |
+| **RunLore's knowledge base, filled by the factory** | What an investigation learns about the running platform becomes a reviewed entry in the knowledge base, and the entries that are safe to merge go through a curated queue rather than waiting on you one by one | The first phase is in the platform, off by default, and its `kb-entries` class decides in shadow; waiting for its live proof |
+| **Multi-repository coordination** | One change across two repositories, confirmed once: a parent issue that records the change and never writes code, one ordinary task per repository with its own maintainer, branch, gate and pull request, a landed file as the dependency, and a read-only check that the two work together | Plan mode is built and switched on on one cloud: it composes a validated two-repository plan and files nothing. It plans nothing yet, because the planner's allow-list names one repository and both must be on it. Executing a plan is not built; it can only be turned on after merge classes in your repository and untrusted-input hardening ship |
 
 **Next:**
 
@@ -196,8 +198,8 @@ one branch, switching models in the middle of a run
 steering a run from Slack or MCP, which stays in the rooms web UI. Install on any Kubernetes is
 [v4](#v4); the continuation loop, untrusted-input hardening and repository memory are
 [v3.x tracks](#v3x). Approving
-from Slack is planned only for the push approval in the [v3.x releases](#v3x), which releases one push to
-one branch; every other approval, and every merge, stays where it is.
+from Slack covers only the push approval (a [v3.x track](#v3x)), which releases one push to one branch;
+every other approval, and every merge, stays where it is.
 
 ### Serving {#serving-roadmap}
 
@@ -219,7 +221,6 @@ one branch; every other approval, and every merge, stays where it is.
 
 | Limitation | Effect |
 |---|---|
-| The room page's next step under approve-to-merge | It names an admin merge (`gh pr merge --admin`); approve the pull request instead, as the issue comment says. Fixed in Maku, not yet released |
 | The CI log quote for the judge | Empty unless the harness's egress allows GitHub's Actions log host, a security decision for your platform |
 | Parts of the human path not yet exercised end to end | The policy replay, the release age, the `AwaitingCI` bound, the next-day return, a retroactive drill label, a lifted Request changes' return on approval |
 | Approval binding residuals | The push record's lag, the run's end time, a reason's name, and the base branch (tracked in [maku#304](https://github.com/Smana/maku/issues/304)) |

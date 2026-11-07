@@ -78,7 +78,7 @@ flowchart TB
 
 A shadow class skips rows 9 and 10: it records `shadow_would_arm` whatever the breaker and the day's count
 say, and its record notes what they read. Row 8 reads GitHub's own file list, and only once every other
-row would merge. Maku's [merge gate](https://github.com/Smana/maku/blob/v0.32.3/docs/factory.md#the-merge-gate)
+row would merge. Maku's [merge gate](https://github.com/Smana/maku/blob/v0.38.0/docs/factory.md#the-merge-gate)
 documents each reason's next step.
 
 ## Settings {#settings}

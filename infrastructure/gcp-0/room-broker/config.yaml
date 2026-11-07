@@ -53,14 +53,15 @@ human:
   access:
     readerFile: /etc/room-broker/zitadel-reader/reader.json
     ttl: 5m
-  # The governed planner (v3.x conversational intake): intake_plan and plan_check on /mcp, off. Its
-  # candidate set is the write check human.access above carries and both tools live on /mcp, so it
-  # needs human.mcp.enabled too. repositories is the allowlist a plan may ever name (CD5) and is
-  # deliberately not human.mcp.sessionStart; classes is the roles and the money every plan gets, never
-  # the model's choice (CD17). The key is the one app.yaml mounts at /etc/room-broker/planner.
+  # The governed planner (v3.x conversational intake, ADR-0060): intake_plan and plan_check on /mcp,
+  # on here and off in base's and aws-0's copies. Its candidate set is the write check human.access
+  # above carries and both tools live on /mcp, so it needs human.mcp.enabled too (on, below).
+  # repositories is the allowlist a plan may ever name (CD5) and is deliberately not
+  # human.mcp.sessionStart; classes is the roles and the money every plan gets, never the model's
+  # choice (CD17). The key is the one app.yaml mounts at /etc/room-broker/planner.
   intake:
     plan:
-      enabled: false            # turned on for one repository by ai-native-ref PR B
+      enabled: true             # on here alone (ADR-0060), for the repository below
       url: http://ai-gateway.envoy-gateway-system.svc.cluster.local:8080/v1
       model: tier-frontier
       apiKeyFile: /etc/room-broker/planner/api-key

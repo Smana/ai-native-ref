@@ -49,6 +49,9 @@ PLAN_KEYS = {"enabled", "url", "model", "apiKeyFile", "deadline", "dailyPlans", 
              "repositories", "classes"}
 CLASS_KEYS = {"roles", "ceilingUSD", "source"}
 PLANNER_MOUNT = "/etc/room-broker/planner"
+# The copies whose switch is on (ADR-0060): one cloud, for the one public repository. Every other copy,
+# base's included, keeps it off.
+ENABLED_IN = {"gcp-0"}
 problems = []
 
 
@@ -139,10 +142,13 @@ if not knows_intake:
         check(ok, desc)
 else:
     # --- one block, every copy ----------------------------------------------------------------
-    # A cloud that grew its own reading of the planner's block has a second planner, not a copy.
+    # A cloud that grew its own reading of the planner's block has a second planner, not a copy. The
+    # switch is the one key a copy may set apart.
+    def but_switch(block):
+        return {k: v for k, v in block.items() if k != "enabled"}
     for cloud in clouds:
-        check(blocks[cloud] == blocks.get("base"),
-              f"{cloud}: human.intake is base's copy, verbatim")
+        check(but_switch(blocks[cloud]) == but_switch(blocks.get("base") or {}),
+              f"{cloud}: human.intake is base's copy, verbatim but for enabled")
     # The key A1 mounted, not a path a block invents: a planner reading elsewhere 401s every plan.
     mounts = [m for m in pinned["spec"].get("extraVolumeMounts") or [] if m.get("mountPath") == PLANNER_MOUNT]
 
@@ -154,6 +160,7 @@ else:
         factory = factory_config(cloud)
         repos = factory.get("repositories") or []
         names = [r["name"] for r in repos]
+        by_repo = {r["name"].lower(): served(r) for r in repos}
         classes = {}
         for repo in repos:
             for name, row in served(repo).items():
@@ -169,10 +176,14 @@ else:
         # worse, a value the decoder defaults away and nobody notices).
         check(set(plan) == PLAN_KEYS,
               f"{cloud}: human.intake.plan's keys are {sorted(PLAN_KEYS)}, found {sorted(plan)}")
-        # Until PR B, which turns it on for one repository in one cloud: a switch that reads as on
-        # while the class table is still unreviewed is what the two PRs exist to separate.
-        check(plan.get("enabled") is False,
-              f"{cloud}: human.intake.plan.enabled is false until PR B turns it on")
+        # On in one cloud, for one public repository (ADR-0060); off everywhere else. A second cloud or
+        # a second repository is its own decision, not a copy of this one.
+        on = cloud in ENABLED_IN
+        check(plan.get("enabled") is on,
+              f"{cloud}: human.intake.plan.enabled is {str(on).lower()}: on only in {sorted(ENABLED_IN)}")
+        if on:
+            check(plan.get("repositories") == [PUBLIC_REPO],
+                  f"{cloud}: the planner is on for {PUBLIC_REPO} alone, found {plan.get('repositories')}")
         check(plan.get("model") == "tier-frontier",
               f"{cloud}: human.intake.plan.model is tier-frontier, the one alias the gateway serves the planner")
         url = str(plan.get("url") or "")
@@ -191,13 +202,28 @@ else:
         for repo in plan.get("repositories") or []:
             check(re.fullmatch(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+", repo) is not None,
                   f"{cloud}: human.intake.plan.repositories: {repo!r} is not owner/name")
-            check(repo in names or repo.lower() == PUBLIC_REPO.lower(),
-                  f"{cloud}: {repo} is neither a repository the factory serves ({', '.join(names)}) "
-                  f"nor the public repository the proof uses")
+            # Off, a class table may be written ahead for the proof's repository; on, a plan for a
+            # repository the factory does not serve is an issue nothing ever picks up.
+            if on:
+                check(repo.lower() in by_repo,
+                      f"{cloud}: the planner is on for {repo}, which the factory does not serve "
+                      f"({', '.join(names)})")
+            else:
+                check(repo in names or repo.lower() == PUBLIC_REPO.lower(),
+                      f"{cloud}: {repo} is neither a repository the factory serves ({', '.join(names)}) "
+                      f"nor the public repository the proof uses")
+        # Each class is checked against the classes of every planned repository the factory serves,
+        # each on its own: a class another repository declares is still one this one cannot run. Only
+        # when no planned repository is served (a copy still off) does the pooled set stand in.
+        planned = [r.lower() for r in plan.get("repositories") or [] if r.lower() in by_repo]
         for name, row in (plan.get("classes") or {}).items():
             at = f"{cloud}: human.intake.plan.classes[{name!r}]"
-            check(name in classes, f"{at} is not a class of a repository the factory serves "
-                                   f"({', '.join(sorted(classes))})")
+            for repo in planned:
+                check(name in by_repo[repo], f"{at} is not a class of {repo} in the factory's config "
+                                             f"({', '.join(sorted(by_repo[repo]))})")
+            if not planned:
+                check(name in classes, f"{at} is not a class of a repository the factory serves "
+                                       f"({', '.join(sorted(classes))})")
             check(isinstance(row, dict) and set(row) == CLASS_KEYS,
                   f"{at}'s keys are {sorted(CLASS_KEYS)}, found {sorted(row) if isinstance(row, dict) else row}")
             if not isinstance(row, dict):

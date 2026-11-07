@@ -56,7 +56,7 @@ human:
   # the model's choice (CD17). The key is the one app.yaml mounts at /etc/room-broker/planner.
   intake:
     plan:
-      enabled: false            # turned on for one repository by ai-native-ref PR B
+      enabled: false            # on in gcp-0's copy only, for one repository (ADR-0060)
       url: http://ai-gateway.envoy-gateway-system.svc.cluster.local:8080/v1
       model: tier-frontier
       apiKeyFile: /etc/room-broker/planner/api-key

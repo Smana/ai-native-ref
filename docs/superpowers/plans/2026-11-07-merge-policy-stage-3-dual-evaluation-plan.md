@@ -97,7 +97,7 @@ Expected: FAIL to build: unknown fields `Policy`, `Dual`.
 +	// one. Dual is "" with dual evaluation off, and then neither prints.
 +	Policy, Dual string
  }
- 
+
  // Marker is the hidden one-line record appended to the decision's comment. It is a line of its
  // own beside the comment's event marker (ruling R-m11), and class= lets the tally filter by
  // class (R-I9). An unread field prints "-" (R-m7): an empty string, and the counts of a diff not
@@ -114,7 +114,7 @@ Expected: FAIL to build: unknown fields `Policy`, `Dual`.
 -		dash(r.Shape), dash(r.Holdout), dash(r.Oracle), dash(r.Age), dash(r.Evidence), flag(r.Paused, r.Gated), flag(r.Capped, r.Gated), dash(r.Reviewer))
 +		dash(r.Shape), dash(r.Holdout), dash(r.Oracle), dash(r.Age), dash(r.Evidence), flag(r.Paused, r.Gated), flag(r.Capped, r.Gated), dual, dash(r.Reviewer))
  }
- 
+
  // dash is s, or "-" for an unread value.
 ```
 
@@ -177,7 +177,7 @@ Expected: FAIL to build: `s.PolicyDualDecision undefined`.
 @@ -566,6 +570,21 @@ func (s *Set) PolicyDivergence(ctx context.Context, repository string, n int) {
  	s.policyDivergence.Record(ctx, int64(n), metric.WithAttributes(attribute.String("repository", s.repository(repository))))
  }
- 
+
 +// PolicyAgreements are dual evaluation's agreement values (merge policy stage 3, MP18).
 +func PolicyAgreements() []string {
 +	return []string{"agree", "explained", "unread", "unexplained", "no_policy"}

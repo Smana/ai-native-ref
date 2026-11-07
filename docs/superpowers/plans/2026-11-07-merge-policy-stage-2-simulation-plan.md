@@ -174,7 +174,7 @@ Expected: FAIL to build: `Conditions has no field or method Any`, `undefined: Ma
 @@ -23,13 +23,16 @@ import (
  	"github.com/Smana/maku/internal/factory/fence"
  )
- 
+
 -// The file's bounds. The patterns compile to RE2, linear in their input, so only their size is
 -// bounded here: GitHub's contents API and the validator do the rest.
 +// The file's bounds. The patterns compile to RE2, linear in the paths they match, but compiling
@@ -188,12 +188,12 @@ Expected: FAIL to build: `Conditions has no field or method Any`, `undefined: Ma
  	MaxPatternBytes = 512
 +	MaxBranches     = 8
  )
- 
+
  // Mode is a class's state: live merges, shadow records, off does neither.
 @@ -80,9 +83,12 @@ type ClassPolicy struct {
  	Monitor          *config.Monitor `json:"monitor,omitempty"`
  }
- 
+
 -// Conditions are a class's predicates. Any leaf absent from All is not checked.
 +// Conditions are a class's predicates. Any leaf absent from All and Any is not checked. Any is
 +// one level of branches, each a conjunction of leaves: the class holds when All holds and one
@@ -203,7 +203,7 @@ Expected: FAIL to build: `Conditions has no field or method Any`, `undefined: Ma
 +	Any  [][]Leaf   `json:"any,omitempty"`
  	Deny []DenyLeaf `json:"deny,omitempty"`
  }
- 
+
 @@ -167,7 +173,11 @@ func Parse(raw []byte) (*File, error) {
  		return nil, fmt.Errorf("mergepolicy: at most %d classes", MaxClasses)
  	}
@@ -297,7 +297,7 @@ Expected: FAIL to build: `Conditions has no field or method Any`, `undefined: Ma
 @@ -231,6 +259,60 @@ func (p ClassPolicy) shape() error {
  	return errors.Join(errs...)
  }
- 
+
 +// patterns are the class's path lists, each compiled when the class is validated.
 +func (p ClassPolicy) patterns() [][]string {
 +	var out [][]string
@@ -503,7 +503,7 @@ Expected: `r.Variants undefined`.
 
 ```diff
 @@ -17,14 +17,26 @@ var ErrGuardrail = errors.New("guardrail")
- 
+
  // Resolved is a class as the gate would read it, with what the gate does not read yet.
  type Resolved struct {
 -	Class    config.Class
@@ -515,7 +515,7 @@ Expected: `r.Variants undefined`.
 +	Approval []string // requiresApproval's paths
  	Profile  config.HarnessProfile
  }
- 
+
 +// Variants are the classes the evaluator decides on, one at a time: the class holds when one
 +// variant does.
 +func (r Resolved) Variants() []config.Class {
@@ -663,7 +663,7 @@ Expected: `r.Variants undefined`.
 -	return Resolved{Class: cl, Approval: approval, Profile: profile}, nil
 +	return false
  }
- 
+
  // Validate is the whole file against the central config: a file with no classes has no policy and
  // passes; one with classes declares docs-links and revert, never review, and each class passes
 -// Resolve and the gate's own class check.
@@ -689,7 +689,7 @@ Expected: `r.Variants undefined`.
 @@ -86,10 +86,14 @@ func exportClass(cl config.Class, c *config.Config) (ClassPolicy, error) {
  	return p, nil
  }
- 
+
 -// profileFor is the first profile by name that runs the class as it runs today.
 +// profileFor is the first profile by name that runs the class as it runs today: one pinning a
 +// template, a tier or a loop would change how it runs, so it is never picked.
@@ -816,13 +816,13 @@ Expected: `w.evaluations undefined`.
  	"strings"
  	"sync"
 +	"time"
- 
+
  	"github.com/Smana/maku/internal/factory/config"
  )
 @@ -28,64 +27,104 @@ type Recorder interface {
  	PolicyDivergence(ctx context.Context, repository string, n int)
  }
- 
+
 -// Snapshot is the last file read for a repository, and what it came to.
 +// Snapshot is the last file read for a repository, and what it came to: what a decision binds to
 +// (MP12). Classes holds the resolved classes of a valid file, nil otherwise.
@@ -834,7 +834,7 @@ Expected: `w.evaluations undefined`.
 +	Classes     map[string]Resolved
 +	Read        time.Time
  }
- 
+
 -// Watch observes each owned repository's file as the fence reads it. It decides nothing: stage 1
 -// compares, and the gate keeps reading the central config.
 +// Watch observes each owned repository's file as the fence reads it. It decides nothing: the gate
@@ -844,14 +844,14 @@ Expected: `w.evaluations undefined`.
  	Metrics Recorder
  	Log     *slog.Logger
 +	Now     func() time.Time
- 
+
 -	mu    sync.RWMutex
 -	state map[string]Snapshot
 +	mu          sync.RWMutex
 +	state       map[string]Snapshot
 +	evaluations int // files parsed and validated, for the cache's test
  }
- 
+
  // Observe reads one file. A file with no classes has no policy and records no divergence, and a
  // failed read records none either: the gauge keeps the last comparison's value, and a repository
  // never compared has no series, so 0 is never "nothing to compare". It logs only when the file or
@@ -941,7 +941,7 @@ Expected: `w.evaluations undefined`.
  	}
 +	return w.Now()
  }
- 
+
  // Snapshot is the last read of repository.
 ```
 
@@ -996,7 +996,7 @@ Expected: FAIL to build: unknown fields `Simulation`, `DualEvaluation`.
 +	// central decision is the one acted on. Needs Read.
 +	DualEvaluation bool `json:"dualEvaluation,omitempty"`
  }
- 
+
  var profileRE = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]{0,38}[a-z0-9])?$`)
 @@ -85,6 +92,9 @@ func (c *Config) validateMergePolicy(bad func(string, ...any)) {
  			bad("harnessProfiles.%s: template none runs nothing, so it takes no other key", name)
@@ -1344,7 +1344,7 @@ The spec asks for fixtures "including the final push-provenance check". That che
 @@ -610,6 +611,16 @@ func (r *Reconciler) factoryCommits(ctx context.Context, t *v1alpha1.Task, head
  // GitHub's activity to record the run's push; past it, an unrecorded head hands off.
  const pushRecordGrace = 2 * time.Minute
- 
+
 +// provenance is the gate's last row on an agents pull request, after the evaluator: every move of
 +// its branch the factory App's (#82). An unrecorded push has waited out its deadline before this.
 +// Simulation applies it as the gate does, so a fixture's decision includes it (MP16).
@@ -1357,7 +1357,7 @@ The spec asks for fixtures "including the final push-provenance check". That che
 +
  // pushCheck is factoryPushed's answer.
  type pushCheck int
- 
+
 ```
 
 Only the `provenance` hunk and the `if` that replaced the one-case `switch` belong to this task; the `evaluated` lines are the stage 3 plan's.
@@ -2085,7 +2085,7 @@ Expected: FAIL: `policy: unknown verb "simulate"`.
 ```diff
 @@ -3,22 +3,26 @@
  package app
- 
+
  import (
 +	"cmp"
  	"errors"
@@ -2095,12 +2095,12 @@ Expected: FAIL: `policy: unknown verb "simulate"`.
  	"path/filepath"
  	"strings"
 +	"text/tabwriter"
- 
+
  	"github.com/Smana/maku/internal/factory/config"
  	"github.com/Smana/maku/internal/factory/mergepolicy"
 +	"github.com/Smana/maku/internal/factory/reconciler"
  )
- 
+
 -// policy is `maku policy`: offline, against a factory config file, for the migration's export
 -// and for a repository's own CI.
 +// policy is `maku policy`: offline, against a factory config file, for the migration's export,

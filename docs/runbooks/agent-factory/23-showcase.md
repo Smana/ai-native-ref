@@ -20,7 +20,7 @@ The **Agent Factory** is a bundle of open-source tools. Name the one behind each
 
 Every command, label and output below comes from runbooks [17](17-splitter.md) to [22](22-slack.md),
 [12](12-live-auto-merge-drill.md), [14](14-gcp-0-session.md), the
-[runbooks README](README.md) and the site's [user guide](../../../website/content/docs/platform/ai-platform/agents/user-guide.md). Durations and costs are the documented ones.
+[runbooks README](README.md) and the site's [user guide](../../../website/content/docs/use/guide/_index.md). Durations and costs are the documented ones.
 
 ```mermaid
 flowchart LR
@@ -73,7 +73,7 @@ flowchart LR
 ### Session switches
 
 The owner turns these on in one session commit and off in the session's last one. Each is a
-**session switch** ([status page](../../../website/content/docs/platform/ai-platform/status.md#roadmap)): off outside a live session.
+**session switch** ([runbooks README](README.md#state)): off outside a live session.
 
 | Switch | On, for the demo | Off again | Needed by |
 |---|---|---|---|
@@ -150,7 +150,7 @@ tests, the implementer opened PR #2670. The completion judge is not on `scripts`
 room, on `docs`.
 
 **Duration and cost:** a tester task is about $2 to $4 expected, $5.10 at the `standard` task cap
-([README, layer 6](README.md#layer-6-the-test-first-tester-proven-2026-10-29)). The room card appears
+([README, layer 6](README.md#layer-6-the-test-first-tester)). The room card appears
 within 60 s of the start ([runbook 19](19-factory-from-your-agent.md#3-live-proofs)).
 
 **Reset:** close the issue and PR if not merged, delete `agent/<task>`,
@@ -293,14 +293,14 @@ Grafana's `agent-identity` dashboard.
 
 | Show | How | Point at |
 |---|---|---|
-| Public and internal data | The [providers page](../../../website/content/docs/platform/ai-platform/agents/providers.md) | Public work on GLM (Z.ai), internal on Claude. Kimi (processed in China) and Mistral (EU) are public data only, held three times: the gateway's `public` listener, the public profiles, the factory |
+| Public and internal data | The [providers page](../../../website/content/docs/how-it-works/providers.md) | Public work on GLM (Z.ai), internal on Claude. Kimi (processed in China) and Mistral (EU) are public data only, held three times: the gateway's `public` listener, the public profiles, the factory |
 | A provider alias refused on an internal run | Operator only, [runbook 14 §5](14-gcp-0-session.md#feature-15-providers-a-smoke-through-the-gateway)'s `curl` with `x-ar-model: kimi-frontier` on an internal run's token | `403`. The factory also refuses such a run at admission |
 | A reviewer on another model | With the Kimi switch on, a `docs` task's room | Its reviewer on `k3.1-pro`: on 2026-10-29 it cost $0.089596 by the ledger against $0.0895964 by the gateway, 82% of input read from cache (ANR #217) |
 | Spend per identity | Grafana, dashboard `agent-identity` (*Spend per identity*), one principal | Today against the principal's and the fleet's daily caps, tokens with the cache-read share, cost per accepted PR, refusals. It never ranks people |
 | Run, task and day caps | The started comment on any issue | Budget and deadline per tier (`light` 20 min, `standard` 45 min, `frontier` 90 min); the task cap is twice the run budget; the run meter revokes a run at its cap |
 | The daily task cap | Do not trigger; show the doc | Past 20 tasks a day, `POST /v1/tasks` answers `429 daily_task_cap`, and a labelled issue is refused with a comment |
 | Gateway budgets | Do not trigger; show [runbook 04, Part D](04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets) | A call over a run, fleet or Anthropic budget gets `429 agent_budget_exhausted`; the harness never retries a 429 |
-| What it never does | The [user guide](../../../website/content/docs/platform/ai-platform/agents/user-guide.md#what-the-factory-never-does) | Merge anything but a `docs-links` change or its revert; touch a gate path; take a principal from a request body; start public work from an internal finding |
+| What it never does | The [user guide](../../../website/content/docs/use/guide/meet-the-factory.md#never) | Merge anything but a `docs-links` change or its revert; touch a gate path; take a principal from a request body; start public work from an internal finding |
 
 Optional, link fixes merging on their own: show past ones rather than a live drill, which pauses the
 class afterwards ([runbook 12](12-live-auto-merge-drill.md#know-before-the-go)):

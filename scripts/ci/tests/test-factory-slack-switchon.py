@@ -4,8 +4,8 @@
 
 The Slack App, the broker's sponsored client and webhook, and the factory's sponsored principal are
 declared in gcp-0's copies, and each side must name what the other reads: the principal's name and
-client id file, the webhook's URL on the App's Service, the App's config (base's but teamID and
-channels), the channels' cost ceilings against the principal's, the Flux Kustomization that applies
+client id file, the webhook's URL on the App's Service, the App's channel binding (the declaration,
+tooling/base/agent-factory/slack-bindings.yaml, rendered into base's config), the channels' cost ceilings against the principal's, the Flux Kustomization that applies
 the App, the egress patch the overlay lists.
 
 The two Slack decision switches (the broker's `human.slackDecide` and a channel's `approvals`) are
@@ -30,7 +30,7 @@ except ImportError:
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 MARKER = "OWNER-FILL"
-FILES = ["tooling/gcp-0/agent-factory/slack-app/config.yaml",
+FILES = ["tooling/base/agent-factory/slack-bindings.yaml",
          "tooling/gcp-0/agent-factory/helm-values-sponsored.yaml"]
 checks = {}
 
@@ -45,8 +45,7 @@ def build(rel):
 
 
 broker = load("infrastructure/gcp-0/room-broker/config.yaml")[0]
-base_app = load("tooling/base/agent-factory/slack-app/config.yaml")[0]
-app = load("tooling/gcp-0/agent-factory/slack-app/config.yaml")[0]
+app = load("tooling/base/agent-factory/slack-bindings.yaml")[0]
 values = yaml.safe_load(load("tooling/gcp-0/agent-factory/helm-values-sponsored.yaml")[0]["data"]["values.yaml"])
 api = values["config"]["api"]
 principal = api["sponsored"][0]
@@ -69,10 +68,6 @@ checks["every channel's maxCostUSD is at least 0.01 and at most the principal's"
 allowed = set(principal["repositories"])
 checks["every channel's repositories are the principal's"] = all(
     set(c["repositories"]) <= allowed for c in app["channels"].values())
-
-# the App's config is base's, teamID and channels apart; the broker URL has no path
-strip = lambda c: {k: v for k, v in c.items() if k not in ("teamID", "channels")}
-checks["the App's gcp-0 config is base's but for teamID and channels"] = strip(app) == strip(base_app)
 
 # the owner's Slack identity: team id then user id, on the App's own team
 (team_user,) = principal["onBehalfOf"]["slack"]
@@ -113,12 +108,18 @@ checks["it waits for the secrets, the broker and the factory"] = (
 # the render: gcp-0's ConfigMap is the one the Deployment mounts, the factory has both values entries
 docs = build("tooling/gcp-0/agent-factory/slack-app")
 cms = [d for d in docs if d["kind"] == "ConfigMap" and d["metadata"]["name"].startswith("factory-slack-app-config")]
-checks["the render holds one App config ConfigMap, gcp-0's"] = (
-    len(cms) == 1 and yaml.safe_load(cms[0]["data"]["config.yaml"])["teamID"] == app["teamID"]
+# CD24: the declaration is the one place the channel binding is written, and the render is its
+# picture — the overlay holds no copy to drift.
+checks["the overlay holds no App config of its own"] = not (ROOT / "tooling/gcp-0/agent-factory/slack-app/config.yaml").exists()
+rendered = yaml.safe_load(cms[0]["data"]["config.yaml"]) if len(cms) == 1 else {}
+checks["the render is one App config, base's generated, with the declaration's binding"] = (
+    len(cms) == 1
+    and rendered["teamID"] == app["teamID"]
+    and rendered["channels"] == app["channels"]
     and "factory-slack-app-config" not in {d["metadata"]["name"] for d in docs})
 deploy = next(d for d in docs if d["kind"] == "Deployment")
 mounted = [v.get("configMap", {}).get("name") for v in deploy["spec"]["template"]["spec"]["volumes"]]
-checks["the Deployment mounts that ConfigMap"] = cms[0]["metadata"]["name"] in mounted
+checks["the Deployment mounts that ConfigMap"] = len(cms) == 1 and cms[0]["metadata"]["name"] in mounted
 factory = build("tooling/gcp-0/agent-factory")
 release = next(d for d in factory if d["kind"] == "HelmRelease" and d["metadata"]["name"] == "agent-factory")
 refs = [r["name"] for r in release["spec"]["valuesFrom"]]

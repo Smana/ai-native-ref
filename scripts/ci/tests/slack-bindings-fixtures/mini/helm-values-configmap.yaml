@@ -1,0 +1,17 @@
+# The factory's values: config.repositories is what a channel may serve.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-factory-helm-values
+  namespace: agent-system
+data:
+  values.yaml: |
+    config:
+      repositories:
+        - name: acme/shop
+          maintainers: [acme-owner]
+        # Served but unbound in the declaration: the two-channel case binds them.
+        - name: acme/api
+          maintainers: [acme-owner]
+        - name: acme/web
+          maintainers: [acme-owner]

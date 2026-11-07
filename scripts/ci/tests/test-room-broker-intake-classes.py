@@ -39,6 +39,8 @@ INTAKE_RELEASE = "v0.35.0"
 # The one public repository the proof plans for (CD5): a class table may be written for it even on a
 # cloud whose factory does not serve it yet.
 PUBLIC_REPO = "Smana/ai-native-ref"
+# Coordination plans span the platform and its knowledge base (ADR-0060 amendment, Maku #369-#371).
+PLANNED_REPOS = [PUBLIC_REPO, "Smana/runlore-kb"]
 # The tier every task takes when triage names none (the factory's own comment on `triage`): a ceiling
 # above its taskUSD is money the factory does not have.
 DEFAULT_TIER = "standard"
@@ -181,14 +183,14 @@ else:
               f"{cloud}: human.intake.plan's keys are {sorted(PLAN_KEYS)}, found {sorted(plan)}")
         check(plan.get("reasoningEffort") == REASONING_EFFORT,
               f"{cloud}: human.intake.plan.reasoningEffort is {REASONING_EFFORT!r}, found {plan.get('reasoningEffort')!r}")
-        # On in ENABLED_IN, for one public repository (ADR-0060); off everywhere else. Another cloud or
-        # a second repository is its own decision, not a copy of this one.
+        # On in ENABLED_IN, for exactly PLANNED_REPOS (ADR-0060); off everywhere else. Another cloud or
+        # a third repository is its own decision, not a copy of this one.
         on = cloud in ENABLED_IN
         check(plan.get("enabled") is on,
               f"{cloud}: human.intake.plan.enabled is {str(on).lower()}: on only in {sorted(ENABLED_IN)}")
         if on:
-            check(plan.get("repositories") == [PUBLIC_REPO],
-                  f"{cloud}: the planner is on for {PUBLIC_REPO} alone, found {plan.get('repositories')}")
+            check(plan.get("repositories") == PLANNED_REPOS,
+                  f"{cloud}: the planner is on for {PLANNED_REPOS} exactly, found {plan.get('repositories')}")
         check(plan.get("model") == "tier-frontier",
               f"{cloud}: human.intake.plan.model is tier-frontier, the one alias the gateway serves the planner")
         url = str(plan.get("url") or "")
@@ -214,7 +216,7 @@ else:
                       f"{cloud}: the planner is on for {repo}, which the factory does not serve "
                       f"({', '.join(names)})")
             else:
-                check(repo in names or repo.lower() == PUBLIC_REPO.lower(),
+                check(repo in names or repo.lower() in {r.lower() for r in PLANNED_REPOS},
                       f"{cloud}: {repo} is neither a repository the factory serves ({', '.join(names)}) "
                       f"nor the public repository the proof uses")
         # Each class is checked against the classes of every planned repository the factory serves,

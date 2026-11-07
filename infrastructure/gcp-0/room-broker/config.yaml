@@ -69,7 +69,7 @@ human:
       reasoningEffort: low       # glm-5.3 always reasons: at its default a plan needs over 20 s (Maku #372)
       dailyPlans: 50
       fallback: "off"
-      repositories: [Smana/ai-native-ref]      # the public repositories this boundary may plan for
+      repositories: [Smana/ai-native-ref, Smana/runlore-kb]      # the public repositories this boundary may plan for
       classes:
         docs-links: {roles: [scoper, implementer, reviewer], ceilingUSD: 2.00, source: "class:docs-links.taskUSD"}
   # needs/v1 (CD21, CD28): one list, read by /api/needs and by the CLI. Read-only, so it ships on.

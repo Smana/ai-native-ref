@@ -67,6 +67,7 @@ human:
       model: tier-frontier
       apiKeyFile: /etc/room-broker/planner/api-key
       deadline: 20s
+      reasoningEffort: low       # glm-5.3 always reasons: at its default a plan needs over 20 s (Maku #372)
       dailyPlans: 50
       fallback: "off"
       repositories: [Smana/ai-native-ref]      # the public repositories this boundary may plan for
@@ -119,3 +120,10 @@ webhooks:
   #            room.budget_reached, room.ended]
   #   secretFile: /etc/room-broker/webhooks/runlore/signing-key
   #   repositories: [Smana/cloud-native-ref]
+
+# Multi-repository coordination (v4, Maku #369-#371): plan mode only. coordination_plan composes a
+# validated, hashed two-repository plan through the planner above and files nothing; execute stays
+# gated on repository class authority, which no repository has yet. The broker refuses any mode but
+# off unless human.intake.plan is on, so base and gcp-0 keep it off.
+coordination:
+  mode: plan

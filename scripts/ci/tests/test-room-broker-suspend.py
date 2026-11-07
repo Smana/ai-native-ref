@@ -110,7 +110,12 @@ checks["gcp-0's human.mcp stays enabled"] = (gcp["human"]["mcp"].get("enabled") 
 aws_copy = ROOT / "infrastructure/aws-0/room-broker/config.yaml"
 if aws_copy.is_file():  # the Slack App (runbook 22), the planner and the session switches (runbooks 19, 25)
     aws = yaml.safe_load(aws_copy.read_text())
-    checks["aws-0's broker config is base's but for webhooks, human.mcp, human.slackLink, human.intake and human.slackDecide"] = (
+    # Coordination (Maku #369-#371) is aws-0's alone and plan mode only: execute stays gated on repository
+    # class authority, and the broker refuses any mode but off without the planner, which base keeps off.
+    aws_coordination = aws.pop("coordination", None)
+    checks["aws-0's coordination is plan mode, nothing more"] = aws_coordination == {"mode": "plan"}
+    checks["base and gcp-0 declare no coordination"] = "coordination" not in config and "coordination" not in gcp
+    checks["aws-0's broker config is base's but for webhooks, human.mcp, human.slackLink, human.intake, human.slackDecide and coordination"] = (
         "suspend" not in aws and minus_switches(aws) == minus_switches(config))
     checks["aws-0's human.mcp stays enabled"] = (aws["human"]["mcp"].get("enabled") is True)
 

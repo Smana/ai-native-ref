@@ -1,11 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# The factory's Slack App (factory interfaces part 2), NOT WIRED (D4, R30, L3'): no kustomization
-# lists this directory and no clusters/* file names it. A gcp-0 session points a cluster Kustomization
-# at tooling/gcp-0/agent-factory/slack-app (runbook 18), after the Slack App exists, its Secrets are
-# in the store, the broker declares its webhook and the factory its sponsored principal. Every file
-# here is a gate path (.policy.yml): agents never change it.
+# The factory's Slack App (factory interfaces part 2). Not wired here (D4, R30, L3'): no kustomization
+# but a cloud's own lists this directory. Each cloud applies tooling/<cloud>/agent-factory/slack-app
+# (runbooks 18 and 22), whose broker declares its webhook and whose factory its sponsored principal.
+# Every file here is a gate path (.policy.yml): agents never change it.
 resources:
   - serviceaccount.yaml
   - rbac.yaml

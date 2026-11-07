@@ -1,6 +1,6 @@
 ---
-# The agent factory's Slack App (factory interfaces part 2, runbook 18). Applied on gcp-0 only: the
-# base and aws-0 stay unwired (D4, R30).
+# The agent factory's Slack App (factory interfaces part 2, runbook 18), as aws-0's. One Slack App has
+# one Request URL: only the cloud it points at receives Slack's events (runbook 22).
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

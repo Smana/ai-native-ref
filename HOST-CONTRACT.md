@@ -1,6 +1,6 @@
 # Host contract
 
-**Contract version 6**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
+**Contract version 8**, tested against [cloud-native-ref](https://github.com/Smana/cloud-native-ref)
 at the commit in [`HOST_REF`](HOST_REF).
 
 What `cloud-native-ref` guarantees, and `ai-native-ref` may rely on. Copied from the AI platform
@@ -9,6 +9,7 @@ with a version bump of the pin and a note in both.
 
 | Version | Changes |
 |---|---|
+| 8 | **Contract version 8** (the Slack App on aws-0, 2026-11-07). H4 Gateways: the `factory-slack` listener for `agent-system` is on both clouds' `platform-public`, no longer gcp-0's alone. |
 | 6 | H8: RunLore's ingress admits the agent router, which reads its knowledge base at `/mcp` on 8080; RunLore is a session switch on aws-0 |
 | 5 | H5 ZITADEL names the `runlore` machine user and its two keys; H8 names RunLore's factory paths (feature 14) |
 | 4 | H4 gains the `factory-slack` listener of `platform-public` on gcp-0 (routes from `agent-system` only), for the Slack App's Events API (runbook 18) |
@@ -66,7 +67,7 @@ Grafana dashboard variables (`${datasource}`, `${model}`) are not Flux substitut
 
 | Item | Contract |
 |---|---|
-| Gateways | `platform-tailscale-general` (tailnet) and `platform-public` (internet, with a `policy-bot` listener for `merge-gate` on both clouds, and on gcp-0 a `factory-slack` listener for `agent-system`), Gateway API, in the namespaces their routes reference today |
+| Gateways | `platform-tailscale-general` (tailnet) and `platform-public` (internet, with a `policy-bot` listener for `merge-gate` and a `factory-slack` listener for `agent-system`, both on both clouds), Gateway API, in the namespaces their routes reference today |
 | Cilium | Default-deny CNP is the constitution's rule; `socketLB.hostNamespaceOnly: true` on both clouds (gVisor needs it) and the startup taint on every node pool (F2) |
 | DNS | Hostnames under `private_domain_name` resolve on the tailnet |
 

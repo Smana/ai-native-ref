@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The directory clusters/aws-0-agent-platform/tooling-factory-slack-app.yaml applies (runbook 22). No CNP
+# patch, unlike gcp-0's: ZITADEL is reached through aws-0's load balancer, so base's toFQDNs rule holds.
+resources:
+  - ../../../base/agent-factory/slack-app
+
+patches:
+  # aws-0's factory Kustomization owns agent-factory-sponsored, with the same keys
+  # (../externalsecret-sponsored.yaml): two owners of one object would fight over it.
+  - target:
+      group: external-secrets.io
+      kind: ExternalSecret
+      name: agent-factory-sponsored
+    patch: |-
+      $patch: delete
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      metadata:
+        name: agent-factory-sponsored
+        namespace: agent-system

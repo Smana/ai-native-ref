@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # requires: python3
-"""gen-slack-bindings: one declaration, three consumers, and drift is a gate failure (CD24, proof 16)."""
+"""gen-slack-bindings: one declaration, a consumer set per cloud, and drift is a gate failure (CD24, proof 16)."""
 import contextlib
 import importlib.util
 import io
@@ -21,13 +21,18 @@ gen = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gen)
 
 MINI = pathlib.Path(__file__).resolve().parent / "slack-bindings-fixtures/mini"
-# Each fixture file and the path it stands for in a tree the generator reads.
-FIXTURES = {"slack-bindings.yaml": gen.DECLARATION, "slack-app-config.yaml": gen.APP,
+# Each fixture file and the paths it stands for in a tree the generator reads: the per-cloud ones once
+# per cloud.
+FIXTURES = {"slack-bindings.yaml": (gen.DECLARATION,), "slack-app-config.yaml": (gen.APP,),
             "helm-values-sponsored.yaml": gen.SPONSORED, "room-broker-config.yaml": gen.BROKER,
-            "helm-values-configmap.yaml": gen.FACTORY}
+            "helm-values-configmap.yaml": (gen.FACTORY,)}
+# Both clouds can serve the App (one at a time): each renders its own sponsored values and broker config.
 CONSUMERS = ["tooling/base/agent-factory/slack-app/config.yaml",
+             "tooling/aws-0/agent-factory/helm-values-sponsored.yaml",
              "tooling/gcp-0/agent-factory/helm-values-sponsored.yaml",
+             "infrastructure/aws-0/room-broker/config.yaml",
              "infrastructure/gcp-0/room-broker/config.yaml"]
+AWS_SPONSORED, AWS_BROKER = gen.SPONSORED[0], gen.BROKER[0]
 
 failures = []
 
@@ -38,11 +43,12 @@ def check(name, cond):
 
 
 def mini():
-    """A copy of the five fixture files, each at the path it stands for."""
+    """A copy of the five fixture files, each at every path it stands for."""
     root = pathlib.Path(tempfile.mkdtemp())
-    for name, rel in FIXTURES.items():
-        (root / rel).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(MINI / name, root / rel)
+    for name, rels in FIXTURES.items():
+        for rel in rels:
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(MINI / name, root / rel)
     return root
 
 
@@ -63,7 +69,7 @@ def check_one_declaration_renders_three_consumers():
     served, ceiling = gen.registries(ROOT)
     declaration = gen.load_declaration((ROOT / gen.DECLARATION).read_text())
     rendered = gen.render(declaration, served, ceiling, ROOT)
-    check("the real tree renders exactly the three consumers", sorted(rendered) == sorted(CONSUMERS))
+    check("the real tree renders exactly the five consumers", sorted(rendered) == sorted(CONSUMERS))
     for p in CONSUMERS:
         check(f"{p} is the declaration's rendering", rendered.get(p) == (ROOT / p).read_text())
     check("main() on the real tree exits 0", run(ROOT)[0] == 0)
@@ -72,7 +78,7 @@ def check_one_declaration_renders_three_consumers():
     rc, _ = run(root, "--write")
     first = tree(root)
     check("--write on the unspliced fixture tree exits 0", rc == 0)
-    check("--write moves the fixture tree's three consumers", first != tree_of_fixtures())
+    check("--write moves the fixture tree's consumers", first != tree_of_fixtures())
     rc, _ = run(root, "--write")
     check("a second --write exits 0", rc == 0)
     check("a second --write leaves every file byte-identical", tree(root) == first)
@@ -161,20 +167,22 @@ def check_two_channels_render_in_their_orders():
           and channels["G0WEB"] == {"repositories": ["acme/web", "acme/shop"], "maxCostUSD": 2, "approvals": True,
                                     "notify": ["room.merged", "room.pr_opened"]})
     union = ["acme/api", "acme/shop", "acme/web"]
-    values = yaml.safe_load(yaml.safe_load((root / gen.SPONSORED).read_text())["data"]["values.yaml"])
-    check("the sponsored repositories are the sorted union",
-          values["config"]["api"]["sponsored"][0]["repositories"] == union)
-    hooks = {w["name"]: w for w in yaml.safe_load((root / gen.BROKER).read_text())["webhooks"]}
-    check("the broker's repositories are the sorted union", hooks["slack-app"]["repositories"] == union)
-    check("the broker's events are the notify union in declaration order", hooks["slack-app"]["events"]
-          == ["room.merged", "room.pr_opened", "room.ended", "room.approval_closed"])
-    check("another subscriber is untouched", hooks["ci"]["repositories"] == ["acme/shop"]
-          and hooks["ci"]["events"] == ["room.merged"])
+    for sponsored, broker in zip(gen.SPONSORED, gen.BROKER):
+        values = yaml.safe_load(yaml.safe_load((root / sponsored).read_text())["data"]["values.yaml"])
+        check(f"{sponsored}: the sponsored repositories are the sorted union",
+              values["config"]["api"]["sponsored"][0]["repositories"] == union)
+        hooks = {w["name"]: w for w in yaml.safe_load((root / broker).read_text())["webhooks"]}
+        check(f"{broker}: the repositories are the sorted union", hooks["slack-app"]["repositories"] == union)
+        check(f"{broker}: the events are the notify union in declaration order", hooks["slack-app"]["events"]
+              == ["room.merged", "room.pr_opened", "room.ended", "room.approval_closed"])
+        check(f"{broker}: another subscriber is untouched", hooks["ci"]["repositories"] == ["acme/shop"]
+              and hooks["ci"]["events"] == ["room.merged"])
     shutil.rmtree(root)
 
 
 ONE = (MINI / "slack-bindings.yaml").read_text()
-# (case, the declaration, (fixture file, old, new) or None, what stderr must name)
+# (case, the declaration, (path, old, new) or None, what stderr must name). A per-cloud edit lands on
+# aws-0's copy alone: each cloud's consumer is checked on its own.
 REFUSALS = [
     ("a channel id outside the pattern", ONE.replace("C0SHOP", "X0SHOP"), None, "X0SHOP"),
     ("a teamID outside the pattern", ONE.replace("T0ACME", "t0acme"), None, "t0acme"),
@@ -196,12 +204,13 @@ REFUSALS = [
     ("an unknown channel key", ONE + "    color: red\n", None, "color"),
     ("an unknown top-level key", ONE + "extra: 1\n", None, "extra"),
     ("approvals not a boolean", ONE + "    approvals: 'yes'\n", None, "approvals"),
-    ("no slack-app webhook", ONE, ("room-broker-config.yaml", "name: slack-app", "name: slackapp"), gen.BROKER),
-    ("no slack-app sponsored entry", ONE, ("helm-values-sponsored.yaml", "name: slack-app", "name: slackapp"),
-     gen.SPONSORED),
-    ("a comment inside a generated region", ONE, ("room-broker-config.yaml", "run_started,\n", "run_started,\n    # c\n"),
-     gen.BROKER),
-    ("a consumer that does not parse", ONE, ("slack-app-config.yaml", "namespace: agent-system", "namespace: [x"), gen.APP),
+    ("no slack-app webhook", ONE, (AWS_BROKER, "name: slack-app", "name: slackapp"), AWS_BROKER),
+    ("no slack-app sponsored entry", ONE, (AWS_SPONSORED, "name: slack-app", "name: slackapp"), AWS_SPONSORED),
+    ("a comment inside a generated region", ONE, (AWS_BROKER, "run_started,\n", "run_started,\n    # c\n"),
+     AWS_BROKER),
+    ("a consumer that does not parse", ONE, (gen.APP, "namespace: agent-system", "namespace: [x"), gen.APP),
+    # The ceiling is the lower cloud's: 1.5 fits gcp-0's principal (2) but not aws-0's lowered one.
+    ("maxCostUSD above one cloud's principal", ONE, (AWS_SPONSORED, "maxCostUSD: 2", "maxCostUSD: 1"), "1.5"),
 ]
 
 
@@ -211,7 +220,7 @@ def check_each_refusal_names_its_value():
         root = mini()
         (root / gen.DECLARATION).write_text(declaration)
         if edit:
-            p = root / FIXTURES[edit[0]]
+            p = root / edit[0]
             check(f"{name}: the fixture edit applies", edit[1] in p.read_text())
             p.write_text(p.read_text().replace(edit[1], edit[2]))
         before = tree(root)

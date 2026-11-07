@@ -20,11 +20,23 @@ flowchart LR
 |---|---|
 | The App, its token and signing secret | Slack console, then OpenBao `agents/factory-slack-app` (step 2) |
 | The App's identity to the factory | ZITADEL machine user, OpenBao `agents/factory-slack-principal` (step 3) |
-| Team, channels, repositories per channel | `tooling/base/agent-factory/slack-bindings.yaml`, generated into three files (step 5) |
-| Who may file, and the repositories the App may file in | `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml` (step 6; its repositories are generated, step 5) |
-| Which repositories get state lines back | `infrastructure/gcp-0/room-broker/config.yaml`, `webhooks` (generated, step 5) |
+| Team, channels, repositories per channel | `tooling/base/agent-factory/slack-bindings.yaml`, generated into five files (step 5) |
+| Who may file, and the repositories the App may file in | `tooling/<cloud>/agent-factory/helm-values-sponsored.yaml` (step 6; its repositories are generated, step 5) |
+| Which repositories get state lines back | `infrastructure/<cloud>/room-broker/config.yaml`, `webhooks` (generated, step 5) |
 
-Set the shell once. The OpenBao root token comes from Secret Manager; it is never printed.
+## Which cloud serves Slack
+
+aws-0 and gcp-0 both apply the App (`clusters/<cloud>-agent-platform/tooling-factory-slack-app.yaml`),
+but **one Slack App has one Request URL**, so only one cloud serves Slack at a time.
+
+| Rule | Why |
+|---|---|
+| The App's **Event Subscriptions** and **Interactivity** Request URLs are both `https://factory-slack.<public_domain>/slack/events`, with the public domain of the cloud that serves (step 4) | Slack posts to one URL; the other cloud's App receives nothing |
+| Never run both clouds' Apps against the one Slack App | Both would post state lines and draw cards for their own rooms in the same channels |
+| Moving to the other cloud is step 4 again, with its domain | The keys (steps 2 and 3) are per cloud's OpenBao: seed them there first |
+
+Set the shell once, for the cloud that serves (gcp-0 shown; on aws-0 use its OpenBao values, as in the
+[README](README.md)). The OpenBao root token comes from the cloud's secret store; it is never printed.
 
 ```bash
 export VAULT_ADDR=https://bao.<private_domain>:8200
@@ -97,7 +109,7 @@ is the one value the App reads only at start.
 
 The App calls the broker with the token of a ZITADEL machine user. The host's sync creates it
 (`factory-slack-app`) and writes `agents/factory-slack-principal` (client id, secret, project id).
-gcp-0's deploy usually ran it already. Check first:
+The cloud's deploy usually ran it already. Check first:
 
 ```bash
 bao kv get -mount=agents -format=json factory-slack-principal | jq '.data.data | keys'
@@ -105,7 +117,16 @@ bao kv get -mount=agents -format=json factory-slack-principal | jq '.data.data |
 ```
 
 If the key is missing, run the sync from the cloud-native-ref checkout. **Every flag is needed**; a
-partial line fails with `--cluster is required` or an `IDP_URL` error:
+partial line fails with `--cluster is required` or an `IDP_URL` error. On aws-0:
+
+```bash
+IDP_URL=https://auth.<public_domain> PRIVATE_DOMAIN=<private_domain> \
+  scripts/provision/zitadel-oidc-clients.sh sync --cluster aws-0 --cloud aws --region eu-west-3 \
+  --openbao-url https://bao.<private_domain>:8200 --openbao-root-token-secret <root_token_secret_name> \
+  --openbao-ca-file <ca.pem> --mirror-openbao --apply
+```
+
+On gcp-0:
 
 ```bash
 IDP_URL=https://auth.<public_domain> PRIVATE_DOMAIN=<private_domain> \
@@ -115,6 +136,9 @@ IDP_URL=https://auth.<public_domain> PRIVATE_DOMAIN=<private_domain> \
   --openbao-root-token-secret openbao-priv-gcp-root-token \
   --openbao-ca-file opentofu/gcp/gke/configure/.tls/ca.pem --mirror-openbao --apply
 ```
+
+On aws-0 the factory's sponsored Secret reads this key **and** `runlore-principal`: until both are
+mirrored it does not sync, and RunLore's principal waits with it. The sync mirrors both.
 
 Check: the `bao kv get` above lists the three keys. Then
 `kubectl -n agent-system get externalsecret` shows the Slack App's and the factory's as `SecretSynced`.
@@ -146,13 +170,14 @@ runs on save is the events one that passed above.
 ## 5. Declare the channel, in git
 
 One PR on ai-native-ref. A channel's binding is written in **one** place, the declaration
-`tooling/base/agent-factory/slack-bindings.yaml`, and three consumers are generated from it:
+`tooling/base/agent-factory/slack-bindings.yaml`, and five consumers are generated from it (the App's
+config, and each cloud's sponsored values and broker config):
 
 ```bash
 $EDITOR tooling/base/agent-factory/slack-bindings.yaml
 python3 scripts/ci/gen-slack-bindings.py --write
 git add tooling/base/agent-factory/slack-bindings.yaml tooling/base/agent-factory/slack-app/config.yaml \
-  tooling/gcp-0/agent-factory/helm-values-sponsored.yaml infrastructure/gcp-0/room-broker/config.yaml
+  tooling/{aws-0,gcp-0}/agent-factory/helm-values-sponsored.yaml infrastructure/{aws-0,gcp-0}/room-broker/config.yaml
 ```
 
 Commit the declaration and the generated files together. `task check` runs the generator without
@@ -173,19 +198,19 @@ channels:
 | # | Source | Generated into | Region | What it governs |
 |---|---|---|---|---|
 | 1 | `slack-bindings.yaml`, `teamID` and `channels` | `tooling/base/agent-factory/slack-app/config.yaml` | `teamID`, `channels` (one line per channel, by id) | The repositories a mention may name in each channel, its cap, its cards and the lines it posts |
-| 2 | `slack-bindings.yaml`, every channel's `repositories` | `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml` | `api.sponsored[slack-app].repositories` (the sorted union) | The repositories the factory lets the App file in |
-| 3 | `slack-bindings.yaml`, every channel's `repositories` and `notify` | `infrastructure/gcp-0/room-broker/config.yaml` | `webhooks[slack-app].repositories` (the same union) and `.events` (the `notify` union, in declaration order) | The repositories and the events whose room transitions reach the App |
-| 4 | by hand | `infrastructure/gcp-0/room-broker/config.yaml` | `human.slackDecide` | The route a card's buttons call, and the principal they act as |
+| 2 | `slack-bindings.yaml`, every channel's `repositories` | `tooling/<cloud>/agent-factory/helm-values-sponsored.yaml`, each cloud | `api.sponsored[slack-app].repositories` (the sorted union) | The repositories the factory lets the App file in |
+| 3 | `slack-bindings.yaml`, every channel's `repositories` and `notify` | `infrastructure/<cloud>/room-broker/config.yaml`, each cloud | `webhooks[slack-app].repositories` (the same union) and `.events` (the `notify` union, in declaration order) | The repositories and the events whose room transitions reach the App |
+| 4 | by hand | `infrastructure/<cloud>/room-broker/config.yaml`, each cloud | `human.slackDecide` | The route a card's buttons call, and the principal they act as |
 
 Row 4 is not generated: it is what turns the App's buttons into decisions (the two switches, below).
-Everything else in the three generated files stays hand-edited, and the generator never touches it.
+Everything else in the generated files stays hand-edited, and the generator never touches it.
 
 The generator refuses the declaration, before anything reaches a cluster, when:
 
 - a channel names a repository the factory's `config.repositories`
   (`tooling/base/agent-factory/helm-values-configmap.yaml`) does not serve;
-- a channel's `maxCostUSD` is below 0.01 or above the principal's `maxCostUSD` (2, in
-  `helm-values-sponsored.yaml`): it is the cap each filed task gets;
+- a channel's `maxCostUSD` is below 0.01 or above the lower of the clouds' principal `maxCostUSD` (2, in
+  each `helm-values-sponsored.yaml`): it is the cap each filed task gets;
 - a `notify` entry is not one of the ten events the App draws a line for (`room.task_triaged`,
   `room.run_started`, `room.waiting_for_human`, `room.pr_opened`, `room.verdict_posted`,
   `room.merged`, `room.reverted`, `room.budget_reached`, `room.ended`, `room.approval_closed`), or
@@ -225,7 +250,7 @@ with the new subscriber list.
 
 A Slack user may file only when the factory knows whose GitHub account they are, in one of two ways.
 
-**Self-serve link** (Maku v0.29.9; gcp-0 has it on). It needs both sides: the broker's
+**Self-serve link** (Maku v0.29.9; both clouds have it on). It needs both sides: the broker's
 `human.slackLink: {principal: slack-app, teamID: <T…>, repository: <owner/name>}` in
 `infrastructure/<cloud>/room-broker/config.yaml` (it needs `human.access`), and `slackLinks: true` under the
 principal's `onBehalfOf` in `helm-values-sponsored.yaml`. The user mentions `@factory link`, opens the

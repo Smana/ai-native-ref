@@ -1,6 +1,6 @@
 # The Slack workspace and the channels the factory's App serves (CD24): the one place a channel's
-# binding is written. scripts/ci/gen-slack-bindings.py renders three consumers from it and fails on
-# any difference — the App's `channels`, the factory's api.sponsored[slack-app].repositories, and
+# binding is written. scripts/ci/gen-slack-bindings.py renders its consumers from it and fails on
+# any difference — the App's `channels` and, per cloud, the factory's api.sponsored[slack-app].repositories and
 # the broker's webhooks[slack-app].repositories and .events. Edit here, run the generator with
 # --write, commit both.
 #
@@ -12,7 +12,7 @@ channels:
     repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
     maxCostUSD: 2
     # A forge.push wait is drawn as a card with Approve and Deny (Maku docs/slack.md); the broker's
-    # human.slackDecide (gcp-0's copy) is the authority that answers a press.
+    # human.slackDecide (each cloud's copy) is the authority that answers a press.
     approvals: true
     # CD11: a run starting is not news. The App's default is webhook.Notify(), the nine a person is
     # told about, and this list is what the broker subscribes to (the union across channels).

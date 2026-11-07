@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-07 · **Status:** proposed. Written while the owner was away, at their request.
 Every choice below is the recommended option, with the rejected alternatives recorded, and
-[five decisions](#open-owner-decisions) are left to the owner · **Track:**
+the owner decided the [five open decisions](#owner-decisions) on 2026-11-08 · **Track:**
 [`t-hardening`](2026-10-31-v4-roadmap-design.md#t-hardening), old v4.0 item 4, which gates v4.0
 ([V8](2026-10-31-v4-roadmap-design.md#owner-decisions-2026-11-06)) and the activation of
 [multi-repository coordination](2026-11-05-v4-multi-repo-coordination-design.md) ·
@@ -57,7 +57,7 @@ rate reducer, never as the boundary ([research verdict](2026-11-07-untrusted-inp
 | UH4 | **Outputs are requested through new tools on the existing `platform` MCP server**, recorded in the room log as `output.requested`, applied by the factory and answered with `output.applied` or `output.refused` | A file the harness writes at the end of a run (gh-aw's CLI form); a new service | The room tools already authenticate each run and cap payloads. A mid-run push needs an answer mid-run. The room log gives replay, idempotency and the audit trail for free |
 | UH5 | **The factory, not the broker, applies outputs**, under a new `publisher` identity: an octo-sts policy for the factory's service account, which runs outside the `agents` namespace | The broker applies them; each role gets a separate publisher | The factory already writes every other GitHub artifact and knows the task, its class and its branch. One publisher keeps one audit identity |
 | UH6 | **Author trust uses gh-aw's levels**: `merged` > `approved` > `unapproved` > `none` > `blocked`, from GitHub's `author_association`. **Default `minAuthorTrust: approved`.** A maintainer's trigger label vouches for the issue it labels. Text below the threshold is withheld before any model reads it, and a placeholder counts what was withheld | Detect injection in strangers' text instead of withholding it; trust everyone on a public repository | gh-aw defaults to `approved` on public repositories, and v4.0's adopters are public repositories with strangers filing issues. The label as a vouch is what the factory's intake already means |
-| UH7 | **Every input carries provenance, and the run records its lowest trust.** Machine sources get fixed levels: default-branch files and steering `merged`; the run's own CI evidence `approved`; another run's room text inherits that run's lowest; RunLore findings and tool results `none`. The task records `status.inputTrust` | Taint tracking per value (CaMeL); provenance only in the prompt | Per-value tracking needs a planner that writes a program, and a coding task has no trusted query apart from the issue. A per-task minimum is enough for the readers that need it: the RunLore knowledge base (its RK11) and the open merge question ([O2](#open-owner-decisions)) |
+| UH7 | **Every input carries provenance, and the run records its lowest trust.** Machine sources get fixed levels: default-branch files and steering `merged`; the run's own CI evidence `approved`; another run's room text inherits that run's lowest; RunLore findings and tool results `none`. The task records `status.inputTrust` | Taint tracking per value (CaMeL); provenance only in the prompt | Per-value tracking needs a planner that writes a program, and a coding task has no trusted query apart from the issue. A per-task minimum is enough for the readers that need it: the RunLore knowledge base (its RK11) and the merge question ([O2](#owner-decisions)) |
 | UH8 | **The threat check is layered, deterministic first**: T1 schema and caps, T2 text sanitisation, T3 secrets and a per-run canary, T4 protected paths, T5 an injection classifier. T1 to T4 can refuse. T5 starts in `audit` and is promoted per output type on drill evidence | An LLM threat reviewer on every output (gh-aw's default); classifiers only | The deterministic layers catch the attacks that matter (writing outside the vocabulary, leaking, touching CI) with no false positives by construction. An LLM reviewer duplicates the reviewer role. It is reopened only if drills show a malicious patch that T1 to T5 and the reviewer all miss |
 | UH9 | **A protected-path push waits for a maintainer's approval of that bundle's digest**, in the room or through the [Slack push approval](2026-11-05-v3x-slack-push-approval-design.md). A path can be set to `blocked` instead | Refuse every protected-path change; request changes on the PR after the push | Some tasks legitimately touch a manifest. An approval of the exact digest keeps them possible without letting CI run first |
 | UH10 | **Protected paths are a platform floor a repository may only extend.** The defaults are listed [below](#protected-paths). A repository adds paths in `.github/agent-factory.yaml` and cannot remove one | A list per repository with no floor; central config only | The same ceiling rule as [merge policy self-service](2026-11-04-merge-policy-self-service-design.md): the platform sets the floor, the repository knows what its CI runs |
@@ -178,7 +178,7 @@ refusing. Layers run in order, and the first refusal stops the request.
 T5 is the `agent-guard` service that the
 [Model Armor research](2026-11-04-model-armor-oss-equivalents-research.md#recommended-shape-for-this-platform)
 shapes, called by the applier over the same webhook contract the gateway uses. Its model is
-[O4](#open-owner-decisions). An unreachable classifier fails open in `audit` and refuses in
+[O4](#owner-decisions). An unreachable classifier fails open in `audit` and refuses in
 `enforce`, so a promotion is only made where the service has met its availability target.
 
 The same check is exposed as a port, so other writers can reuse it. RunLore's knowledge base needs
@@ -386,14 +386,16 @@ These stay open after the track ships:
 - **Web fetch tools.** None exist, and egress denies the web. A future fetch tool is a new input
   source and needs its own level in UH7.
 - **Image and document inputs.**
-- **Changing the merge gate by input trust.** It is [O2](#open-owner-decisions), not decided here.
+- **Changing the merge gate by input trust.** It is [O2](#owner-decisions), shipped as its own change.
 
-## Open owner decisions {#open-owner-decisions}
+## Owner decisions {#owner-decisions}
 
-| # | Question | Recommended |
+Decided 2026-11-08 by the owner; each took the recommended option.
+
+| # | Question | Decided 2026-11-08 by the owner |
 |---|---|---|
-| O1 | Protected-path pushes: wait for approval of the digest, or refuse outright by default? | **Wait for approval** (UH9), with `blocked` per path |
-| O2 | Should a task whose `inputTrust.min` is below `approved` lose live auto-merge and go to the human path? This is the Rule of Two at merge time | **Yes, in shadow first**, as its own merge-gate change after H5 |
-| O3 | The drill repository and the cadence | **A dedicated public repository, weekly** and on every hardening configuration change |
-| O4 | T5's model: Prompt Guard 2 86M (Llama 4 Community licence, measured on AgentDojo) or the Semantic Router's Apache-2.0 classifier (no published evaluation) | **Prompt Guard 2 behind `agent-guard`**, swappable. Choosing it needs its own ADR before the classifier is built |
-| O5 | Does an adopter's repository need the `publisher` policy file, or does the factory's App installation carry it? | **A policy file**, like the role policies: it is reviewed in the adopter's repository, and R3 can read it |
+| O1 | Protected-path pushes: wait for approval of the digest, or refuse outright by default? | **Wait for approval**: a protected-path push waits for a maintainer's approval of the bundle digest (UH9), with `blocked` per path |
+| O2 | Should a task whose `inputTrust.min` is below `approved` lose live auto-merge and go to the human path? This is the Rule of Two at merge time | **Yes, in shadow first**: input below `approved` loses live auto-merge, shipped as its own merge-gate change after H5 |
+| O3 | The drill repository and the cadence | **A new dedicated public drill repository, weekly**, and on every hardening configuration change |
+| O4 | T5's model: Prompt Guard 2 86M (Llama 4 Community licence, measured on AgentDojo) or the Semantic Router's Apache-2.0 classifier (no published evaluation) | **Prompt Guard 2 behind `agent-guard`**, kept swappable. Its own ADR is written when T5 is built |
+| O5 | Does an adopter's repository need the `publisher` policy file, or does the factory's App installation carry it? | **Yes, a policy file**: an adopting repository adds a `publisher` policy file, like the role policies. It is reviewed in the adopter's repository, and R3 can read it |

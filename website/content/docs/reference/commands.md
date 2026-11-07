@@ -25,8 +25,11 @@ against `maku.sha256`, or build it with `go build ./cmd/maku`.
 maku configure --url … --issuer … --client-id … --project-id …  # the room list's "CLI setup" prints it
 maku login                                    # device flow: open the URL, enter the code
 maku rooms --mine                             # issues you filed or labelled, PRs you authored or review
-maku rooms --needs-me                         # an approval you could decide; --repo owner/name filters
-maku status <room> --json                     # phase, run, budget, PR, what needs you, the agents' notes
+maku rooms --needs-me                         # approvals, held tasks, PRs to merge, escalated tasks; --repo filters
+maku needs                                    # everything that needs you, across rooms, in one order
+maku needs --since 2026-11-04T18:20:00Z       # only what appeared since then; without --since, your last call
+maku status <room>                            # the brief's head, then the card: run, budget, PR, what needs you
+maku status <room> --json                     # the room's summary as the broker serves it
 maku changes <room>                           # what changed since your last call (first call: 24 h)
 maku checkout <room>                          # the room's branch in a new worktree beside the repository
 maku setup <client>                           # the MCP server and the skill, for a coding agent
@@ -39,8 +42,8 @@ maku token                                    # your access token, for scripts
 
 `maku` reads, chats, queues and forks. It never drives a run, interrupts it or approves: those stay in
 the browser, because a local agent can type into a terminal
-([ADR-0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}})). A task waiting for
-your merge is not listed under `--needs-me` ([maku#51](https://github.com/Smana/maku/issues/51)).
+([ADR-0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}})). What `maku needs` lists, and
+where else you see it: [one list, wherever you look]({{< relref "/docs/use/guide/when-the-factory-needs-you.md#one-list" >}}).
 
 ## `maku setup` {#setup}
 
@@ -66,7 +69,10 @@ folder you trust.
 | `intake_plan` | Proposes the plan: one repository with its evidence, one to three issues, the roles, the ceiling, and at most one question |
 | `plan_check` | Holds a plan to the allowlist and the class table again and answers whether it still holds; files nothing |
 | `status [room or #issue]` | The room card; without an argument, your most recently updated room |
-| `inbox` | The rooms that need you first, then your other open rooms |
+| `needs_list` | Everything that needs you, each item with its one action and link, and a `since` cursor |
+| `room_brief` | Come back to a room: what it needs, the plan, what changed, the blocker and the next step |
+| `resume [room]` | `needs_list`, then the brief of the first room that needs you, or of the room you name; ends on its next step |
+| `inbox` | One `needs_list` call; when nothing needs you, it says so and points to `rooms_list` |
 | `room_wait` | Follows a room and returns when it needs you, opens a pull request or ends |
 | `room_checkout` | The room's branch in a new git worktree, at the commit it checked |
 
@@ -94,6 +100,9 @@ source says. Which clients are tested end to end: the [status page]({{< relref "
 | Gemini CLI | unconfirmed | yes | `~/.gemini/skills` |
 | Copilot CLI | unconfirmed | unconfirmed | `~/.copilot/skills` |
 | Cursor | yes | yes | `~/.cursor/skills` |
+
+`maku doctor --client <name>` prints what a client declared the last time it opened `maku mcp`: forms,
+URL mode, roots, prompts and the protocol revision it asked for.
 
 Without forms the draft is shown for you to file with `gh`, nothing starts, and a checkout that needs
 to confirm refuses. Codex CLI may cut a call at 60 s; the skill then calls `room_wait` again.

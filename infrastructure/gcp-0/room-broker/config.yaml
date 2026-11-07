@@ -1,5 +1,5 @@
 # gcp-0's copy of ../../base/room-broker/config.yaml, plus suspend, human.mcp.sponsored,
-# human.slackLink and sessionStart (runbooks 18, 19) and webhooks (runbook 18): the overlay's generator replaces the base
+# human.slackLink, human.slackDecide and sessionStart (runbooks 18, 19) and webhooks (runbook 18): the overlay's generator replaces the base
 # file, since a ConfigMap key is one string no patch can extend.
 # test-room-broker-suspend.py fails when it differs from base in anything but those.
 # The broker's one config file (agent-platform internal/config), Flux-substituted.
@@ -92,6 +92,13 @@ human:
     principal: slack-app
     teamID: T07J97G2K2P
     repository: Smana/ai-native-ref
+  # The App's one deciding route (v3.x Slack push approval D14, Maku v0.36.0): a forge.push approval
+  # is decidable from its card, resolved to the linked human's room standing and repository write. The
+  # principal is human.mcp.sponsored's slack-app, the team the App's own. Needs human.access. Off: the
+  # path is a 404 and a card's press answers unavailable.
+  slackDecide:
+    principal: slack-app
+    teamID: T07J97G2K2P
 # v2 suspend (warm-sandboxes S3): a suspendable run in an attended room whose approval has
 # waited this long in an idle room is suspended, and resumed once nothing waits. It patches
 # through the room-broker-suspend grant, fenced by Kyverno's agentrun-broker-patch-limit.
@@ -109,6 +116,9 @@ webhooks:
     events: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended, room.approval_closed]
     secretFile: /etc/room-broker/webhooks/slack-app/signing-key
     repositories: [Smana/ai-native-ref, Smana/cloud-native-ref]
+    # One more than before room.approval_closed: a subscriber the emitter disabled stays disabled until
+    # this changes (Maku docs/operations.md, "Disabled subscribers"). Hand-kept; the generator leaves it.
+    generation: 1
   # RunLore follows its incidents' tasks (feature 14, RA7): every event of the repository; it drops rooms
   # its ledger does not know. Its key is externalsecret-webhook-runlore.yaml, the owner's seed (runbook 14).
   - name: runlore

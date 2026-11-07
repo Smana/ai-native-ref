@@ -94,6 +94,9 @@ checks["every channel's approvals, when set, is a bool"] = all(
 draws_cards = any(c.get("approvals") for c in app["channels"].values())
 checks["a channel drawing cards has room.approval_closed in the broker's webhook list"] = not draws_cards or (
     hook is not None and "room.approval_closed" in hook["events"])
+# The broker's switch is the authority and must be on before any card offers a button (Maku
+# docs/slack.md): without it the decide route is a 404 and every press says the factory is unreachable.
+checks["a channel drawing cards has human.slackDecide on the broker"] = not draws_cards or decide is not None
 
 # the cluster applies the App, from gcp-0's directory, after the siblings it calls
 cluster = ROOT / "clusters/gcp-0-agent-platform"

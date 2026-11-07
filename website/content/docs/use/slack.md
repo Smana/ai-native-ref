@@ -1,21 +1,23 @@
 ---
 title: Slack
 weight: 20
-description: "Hand work to the factory from a Slack thread: mention, draft, edit by reply, a maintainer's check mark files the issue and starts the task, and a push approval is one card you press."
+description: "Hand work to the factory from a Slack thread: mention it in your own words, change the proposal by reply, a maintainer confirms it, the thread answers five questions, and a push approval is one card you press."
 lastVerified: 2026-11-05
 ---
 
 `maku-slack`, Maku's Slack app, turns a Slack thread into a factory task. Whether it is deployed on your
-platform is on the [status page]({{< relref "/docs/status.md" >}}). A mention drafts the issue, a reply edits it, a
-maintainer's ✅ files it and starts the task, and the thread then follows the room. Steering stays on the
-room page, and so does every approval except a push; the merge is your approval on GitHub.
+platform is on the [status page]({{< relref "/docs/status.md" >}}). A mention in your own words is planned
+into one proposal message, and a reply changes it. A maintainer's Confirm files it and starts the task; the
+thread then follows the room and answers five questions about it. Steering stays on the room page, and so
+does every approval except a push; the merge is your approval on GitHub.
 
 | Step | Do this |
 |---|---|
 | Once | Mention `@factory link` in a served channel and confirm the one-time page it answers you with. `@factory unlink` undoes it |
-| Draft | `@factory <owner/repo> <title>`, then optional lines: `Should:` and `Acceptance:` |
-| Edit | Reply in the draft's thread: `Title:`, `Should:`, `Acceptance:` or free text. Each reply posts a newer draft |
-| File | A maintainer reacts ✅ on the latest draft. The issue is filed, the task starts, and the thread shows its triage, runs, pull request and end |
+| Ask | `@factory` and what you want, in your own words |
+| Change | Reply in the proposal's thread. The same message updates in place |
+| Confirm | A maintainer presses **Confirm** (or reacts ✅). The issue is filed, the task starts, and the thread shows its triage, pull request and end |
+| Ask the thread | Reply `status`, `needs me`, `what changed`, `the pull request` or `stop` |
 | Act | Approve a `forge.push` from the card in the thread (two buttons), or open the room page for every other approval, an answer or a steer; approve the pull request on GitHub to merge it |
 
 Setting it up (the Slack App, its keys, the machine user, the channels it serves) is the operator's:
@@ -28,80 +30,114 @@ sequenceDiagram
   participant U as You
   participant S as Slack thread
   participant F as The factory
-  U->>S: @factory owner/repo what
-  S-->>U: Draft (title, what is wrong, acceptance)
-  U->>S: Reply: Title / Should / Acceptance / text
-  S-->>U: A newer draft
-  U->>S: A maintainer reacts ✅ on the latest draft
+  U->>S: @factory what you want, in your words
+  S-->>U: One proposal: repository, issue, roles, ceiling
+  U->>S: Reply: what should change
+  S-->>U: The same message, updated, changes marked
+  U->>S: A maintainer presses Confirm (or reacts ✅)
   S->>F: File the issue
-  S-->>U: Filed #N, room link
-  F-->>S: Triaged, run started, PR opened, waiting, ended
+  S-->>U: The message becomes: Filed #N, room link
+  F-->>S: Triaged, PR opened, waiting, ended
+  U->>S: status / needs me / what changed / the pull request
+  S-->>U: The answer, read from the room
 ```
 
 ## Link your Slack user, once
 
-Before your ✅ files anything, the factory must know whose GitHub account you are. Mention **`@factory link`** in
+Before your Confirm or ✅ files anything, the factory must know whose GitHub account you are. Mention **`@factory link`** in
 a served channel: the App answers **only you** with a one-time link (valid 10 minutes, never send it to anyone).
 Open it, sign in to the rooms page, and press **Link** after checking that the Slack user and your GitHub login
-are yours. Your ✅ then files in the name of your **current** GitHub login, and only if it is a maintainer of the
+are yours. Your Confirm then files in the name of your **current** GitHub login, and only if it is a maintainer of the
 repository. **`@factory unlink`** removes the link. Someone the operator lists in git keeps that entry.
 
 ## Write a mention
 
-One line is enough:
+A mention is your own words, in a channel the App serves. There is no template and no keyword to learn:
+say what is wrong and what you want instead.
 
 ```text
-@factory acme/shop docs: the README's install link is dead
+@factory the install link in the README is dead, it should point at the current install page
 ```
 
-Add lines when you have more to say:
+The App passes your words to the factory's planner, which answers with **one proposal message** in your
+thread:
+
+| Section | What it holds |
+|---|---|
+| Header | The revision, its check hash and who asked; it also says when a template, not the planner, wrote the draft |
+| Repository | The repository the issue goes to, with the evidence for it, and any other repository this channel serves that could also fit |
+| Issue | The title, what is wrong, what it should be and the acceptance check, as they will be filed, and the class |
+| Roles | Who works on it, in order |
+| Ceiling | The most the task may spend, and where that figure comes from |
+| One question | Only when the planner needs to know something first, such as which repository you mean: the question and its recommended answer |
+| Editing | How to change it, confirm it or cancel it |
+
+The planner reads public repositories only, and it plans one issue per thread.
+
+## Change the proposal
+
+Reply **in the proposal's thread**: write what should change, or answer its one question. Only the person
+who wrote the mention can change it, and only until it is filed.
+
+- The **same message** updates in place; nothing new is posted below it.
+- The sections that changed are marked `‹changed›`.
+- When the change touches what gets filed (the repository, the issue, its class, the roles or the
+  ceiling), the header says `requires a new confirmation`: a Confirm pressed earlier does not cover it.
+- Naming another repository in your words moves the plan there, if this channel serves it.
+
+A proposal has at most 40 revisions: the first, and up to 39 changes. When Slack refuses to edit the message, the App posts the new
+revision below and the old message says `This proposal was replaced below.`, with no buttons.
+
+## Confirm it
+
+A **maintainer presses Confirm** under the proposal. A ✅ does the same thing, as a reaction on the
+proposal or as a reply that is only ✅: the same checks, the same filing.
+
+The message then becomes the Filed line, and its buttons are gone:
 
 ```text
-@factory acme/shop docs: the README's install link is dead
-The install section links to a page that was moved.
-Should: point the link at the current install page.
-Acceptance: README.md's install link returns 200.
+Filed #N for @you, sponsored by GitHub @login; the factory starts it. Room: …
 ```
 
-| Part | Rule |
-|---|---|
-| Line 1 | `<owner/repo> <title>`. In a channel that serves one repository you may leave the repository out |
-| Title | `docs: …`, `fix(agents): …`. Without an area, the App adds `docs: ` (when you mention a doc, runbook or README) or `chore: ` |
-| Other lines | They become "What is wrong". With none, the title does |
-| `Should:` (or `Expected:`, `Want:`) | What it should be |
-| `Acceptance:` (or `Done when:`, `Check:`) | How we know it is done, up to the end of the message. Write one: an issue filed from Slack carries no `class:` label, so its task runs in the `review` class, which has no scoper to ask. Without it, the implementer and the reviewer work from the description alone |
+One issue per thread, and once filed the thread files nothing more. A ✅ on the Filed line, or a reply
+that is only ✅, is ignored. A press on an older copy of the proposal answers
+`Not filed: this thread's task is already filed or cancelled; mention me again to plan another.`
+If the factory already holds a task for the thread, the Filed line says `Already filed:` with the room link.
 
-Enter or Shift+Enter in Slack does not matter any more: type it as it comes.
-
-## Edit the draft
-
-Reply **in the draft's thread**. Only the person who wrote the mention can edit, and only until the issue
-is filed. Each reply makes a new draft below the old one.
-
-| Reply | Effect |
-|---|---|
-| `Title: docs: new title` | Replaces the title |
-| `Should: …` | Replaces "What it should be" |
-| `Acceptance: …` (or `Done when:`) | Replaces the acceptance check, several lines allowed |
-| Any other text | Added to "What is wrong" |
-
-## File it
-
-A **maintainer reacts ✅** on the **latest** draft: hover the message, **Add reaction**, pick
-`white_check_mark`. Typing ✅ as a message does not file anything yet (a fix is coming in a release);
-react for now. One issue per thread: a second ✅ answers `Already filed` with the room link.
+**Cancel** is the author's, and starts nothing. The message becomes
+`Proposal cancelled by @you; mention me again to plan another.` Anyone else who presses it is told that
+only the author cancels, and that a maintainer confirms.
 
 Then the thread shows, in this order:
 
 | Line | Means |
 |---|---|
-| `Filed #N for @you; the factory starts it. Room: …` | The issue exists, and the room page link is yours to open |
-| `Triaged.` / `A run started.` | The work is under way |
+| `Triaged.` | The work is under way |
 | `Pull request #… opened.` / `A review verdict is on #…` | A PR is ready for review |
 | `The work waits for a human (…)` | The run needs an answer or an approval: the card in this thread for a push, the room page for everything else |
 | `#… merged.` / `#… reverted.` | The PR landed or was undone |
 | `A budget was reached (…)` | The run hit its cap and stopped |
 | `Ended, state: …` | The room is closed |
+
+A run starting posts no line: it is not news. Which of these lines a channel posts is the operator's
+choice.
+
+## Ask the thread
+
+Once the task is filed, reply in its thread with one of five questions. The App reads the answer from the
+room the Filed line names, never from the thread:
+
+| Ask | You get | The link goes to |
+|---|---|---|
+| `status`, `how is it going`, `where is it` | The task's phase and its issue | The room page |
+| `needs me`, `what needs me` | One line per thing waiting on a person, with what to do, or `Nothing waits on this task right now.` | Where each one is done |
+| `what changed`, `what has changed` | The ten newest milestones, then `More: the room page` when there are more | Each milestone's page |
+| `the pull request`, `pr`, `the pr` | The pull request's number, or `No pull request yet in this room.` | The pull request |
+| `stop`, `stop it`, `how do i stop it` | Where stopping happens: the `factory/stop` label on the issue is yours to apply, or use Stop on the room page | The room page |
+
+Case and a closing `?`, `.` or `!` do not matter. Anything else is answered with where progress, approvals
+and steering are, and the questions you can ask. **Nothing you type in the thread reaches the run**: the
+thread answers, it never steers, approves or stops anything.
 
 ## Approve a push from the thread
 
@@ -128,27 +164,46 @@ Every other approval, and every answer or steer, stays on the room page.
 | Merge a pull request | GitHub: approve its current head |
 | Approve a push to the branch | The card in the thread ([above](#approve-a-push-from-the-thread)), or the room page |
 | Approve any other step, answer a question, steer or stop | The room page (the link in the thread). Nothing you write in the thread reaches the run |
-| Change the draft | The draft's thread, before the ✅ |
+| Change the proposal | The proposal's thread, before it is confirmed |
+| See where the task is | Ask the thread ([above](#ask-the-thread)) |
 
 ## When it says no
 
 | You see | Why | Fix |
 |---|---|---|
-| `Draft refused: line 1 must be the repository, a space, then the title. Try: …` | The channel serves several repositories (or the line is malformed) and line 1 has none | Copy the `Try:` line, with the repository you mean (the list is in the message) |
-| `Draft refused: …` (other text) | The issue template's rule, quoted from the factory (empty title, no area, a heading missing) | Fix what it names and mention again |
-| `Draft not posted: it is too long to file from Slack` | The draft is over what Slack can carry | Shorten it, or file from the web UI |
-| `Change refused: …` | A reply broke the same rules | Reply again with the fix |
-| `This draft was replaced by a newer one: react on the latest draft.` | You reacted to an older draft | React on the last draft of the thread |
-| `Not filed: not_linked` | Your Slack account is not linked to a GitHub login | Mention `@factory link` and confirm the page it answers ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#6-who-may-file)) |
-| `Not filed: not_a_maintainer` | Your linked login is not a maintainer | A maintainer reacts instead |
-| `Not filed: max_cost_over_principal` / `principal_budget_exhausted` | The channel's cap or the App's day budget is over | Wait for the next day, or ask the operator |
-| `Not filed: repository_not_allowed` | The factory does not accept that repository from Slack | Ask the operator ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#5-declare-the-channel-in-git)) |
-| `Not filed: the factory could not be reached, react again to retry` | A passing failure | React again |
+| `Not proposed: the planner reads public repositories only; …` | The work is in a private repository | Use your coding agent (`issue_draft` then `issue_file`) |
+| `Not proposed: the plan service is unavailable; mention me again in a minute.` (or `did not answer in time`) | A passing failure of the planner | Mention again in a minute |
+| `Not proposed: the plan service answered something that is not a plan; …` | The planner's answer failed its check | Mention again, or hand it off from your coding agent |
+| `Proposal not posted: this plan covers N issues and Slack files one: …` | Your request needs more than one issue | Split it into one mention per issue, or use your coding agent or the web UI |
+| `Proposal not posted: the plan is too long for Slack; …` | The plan does not fit in a Slack message | Shorten the request, or use your coding agent or the web UI |
+| `Not proposed: that request is longer than 16 KB; …` | Your mention and replies are over the limit | Hand it off from your coding agent or the web UI |
+| `Not proposed: this channel serves … and you may file in none of them; …` | The factory accepts none of the channel's repositories from you | Ask the operator for one you may write in |
+| `Not proposed: … cannot write to …` | Your GitHub account cannot write to the channel's repositories | Ask the operator for one you may write in |
+| `Not proposed: … is not linked to a GitHub account here; …` | Your Slack account is not linked | Mention `@factory link` and confirm the page it answers ([above](#link-your-slack-user-once)) |
+| `Not proposed: you have used today's plans; …` | Your plans for the day are spent | Mention again after 00:00 UTC, or hand it off from your coding agent |
+| `Not proposed: GitHub could not confirm the repository, …` | GitHub did not answer the repository check | Mention again in a minute |
+| `This proposal was planned the most it can be here: …` | You replied to a proposal at its 40th revision | Confirm it, or start a new mention |
+| `Not proposed: this thread has all the revisions one proposal may have; …` | You mentioned the App again in a thread whose proposal is at its 40th revision | Confirm it, or start a new mention |
+| `This deployment does not plan from Slack yet; …` | The operator has not turned the planner on | Ask the operator |
+| `Not filed: … is not linked to a GitHub account here; …` | Your Slack account is not linked to a GitHub login | Mention `@factory link` and confirm the page it answers ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#6-who-may-file)) |
+| `Not filed: … is not a maintainer of …; a maintainer must confirm it.` | Your linked login is not a maintainer | A maintainer confirms instead |
+| `Not filed: a newer revision of this proposal is in this thread; …` | You pressed an older message | Press the newest proposal's buttons |
+| `Not filed: the plan changed after this was drawn; mention me again to re-plan it.` | The plan no longer matches what the message showed | Mention again to re-plan it |
+| `Not filed: the Slack App's budget for today is spent; …` | The App's day budget is spent | Try again the next day, or ask the operator |
+| `Not filed: the factory's daily task cap is reached; …` | The factory has started all the tasks it may for the day | Try again after 00:00 UTC |
+| `Not filed: the factory is paused (kill switch); …` | An operator paused the factory | Try again once it is resumed |
+| `Not filed: the factory does not take tasks on … from Slack; …` | The factory does not accept that repository from Slack | Ask the operator ([runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#5-declare-the-channel-in-git)) |
+| `Not filed: the factory could not be reached; press Confirm again to retry.` (`react again to retry` after a ✅) | A passing failure | Press Confirm, or react, again |
 | Nothing at all | The channel or repository is not served, or the bot is not in the channel | Invite `@factory`, check the channel with the operator |
 
+A `Not filed:` line after Confirm goes to the person who pressed it alone; after a ✅ it is said in the
+thread.
+
 The link needs your GitHub account linked to your ZITADEL user ([who sees a room]({{< relref "/docs/operate/access.md#who-sees-a-room" >}})); it
-grants nothing a maintainer of the repository did not have, and the task is sponsored by your **current**
-GitHub login. Users the factory's config lists by hand keep that entry whatever they link.
+grants nothing a maintainer of the repository did not have.
 
 The task is filed by the factory App, with no label and a footer naming its sponsor; its Task names the
-App and you. Its budget is the channel's `maxCostUSD`.
+App and you. Its budget is the proposal's ceiling, at most the channel's `maxCostUSD`.
+
+Example (the reference host): the App serves one channel, for `Smana/cloud-native-ref` and
+`Smana/ai-native-ref`, with a `maxCostUSD` of 2.

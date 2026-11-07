@@ -14,6 +14,9 @@ issuerURL: ${identity_provider_url}
 brokerURL: http://room-broker.agent-system.svc.cluster.local:8080
 roomsURL: https://rooms.${private_domain_name}
 namespace: agent-system
+# CD7: one proposal message per thread, its controls, and the thread's five questions. Off, a
+# mention drafts exactly as before (the fallback ✅ included).
+proposals: {enabled: true}
 # Generated: teamID and channels are tooling/base/agent-factory/slack-bindings.yaml's rendering
 # (CD24). Edit the declaration and run python3 scripts/ci/gen-slack-bindings.py --write; the generator
 # owns these two keys and nothing else in this file, and fails on any difference.

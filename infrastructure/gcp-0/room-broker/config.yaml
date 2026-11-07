@@ -66,6 +66,7 @@ human:
       model: tier-frontier
       apiKeyFile: /etc/room-broker/planner/api-key
       deadline: 20s
+      reasoningEffort: low       # glm-5.3 always reasons: at its default a plan needs over 20 s (Maku #372)
       dailyPlans: 50
       fallback: "off"
       repositories: [Smana/ai-native-ref]      # the public repositories this boundary may plan for

@@ -46,7 +46,10 @@ DEFAULT_TIER = "standard"
 # a tester where it sets testFirst. Both are runs the factory makes, so a plan may name them.
 EXTRA_ROLES = {"scoper", "tester"}
 PLAN_KEYS = {"enabled", "url", "model", "apiKeyFile", "deadline", "dailyPlans", "fallback",
-             "repositories", "classes"}
+             "repositories", "classes", "reasoningEffort"}
+# tier-frontier is glm-5.3, which always reasons: at its default a plan needs over the 20 s cap, at low
+# it answers in about 4 s (measured on aws-0, 2026-11-07; Maku #372). Every copy carries it.
+REASONING_EFFORT = "low"
 CLASS_KEYS = {"roles", "ceilingUSD", "source"}
 PLANNER_MOUNT = "/etc/room-broker/planner"
 # The copies whose switch is on (ADR-0060, amended 2026-11-07): both clouds, for the one public
@@ -176,6 +179,8 @@ else:
         # worse, a value the decoder defaults away and nobody notices).
         check(set(plan) == PLAN_KEYS,
               f"{cloud}: human.intake.plan's keys are {sorted(PLAN_KEYS)}, found {sorted(plan)}")
+        check(plan.get("reasoningEffort") == REASONING_EFFORT,
+              f"{cloud}: human.intake.plan.reasoningEffort is {REASONING_EFFORT!r}, found {plan.get('reasoningEffort')!r}")
         # On in ENABLED_IN, for one public repository (ADR-0060); off everywhere else. Another cloud or
         # a second repository is its own decision, not a copy of this one.
         on = cloud in ENABLED_IN

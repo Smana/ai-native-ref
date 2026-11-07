@@ -91,6 +91,12 @@ is never described as the natural-language experience.
 `Smana/ai-native-ref`, with the `docs-links` class at a $2.00 ceiling. The base and aws-0 copies
 keep it off.
 
+**Amendment, 2026-11-07:** the planner is on in aws-0 too, with the same scope: one public
+repository, `Smana/ai-native-ref`, the same class and ceiling. The owner's live session runs on aws-0
+alone, with gcp-0 torn down, and the planner had no cluster to run on otherwise. Base keeps it off.
+The planner's key, mounts and network rules were already in base on both clouds; only the switch
+differs. This is the "another cluster" change the Neutral consequence below names, reviewed on its own.
+
 ---
 
 ## Consequences

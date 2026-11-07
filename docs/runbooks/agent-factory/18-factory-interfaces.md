@@ -1,14 +1,17 @@
 # 18 — Factory interfaces: the switch-on
 
-Switches on the factory's second interface set on gcp-0: a sponsored principal (a ZITADEL machine user
+Switches on the factory's second interface set on a cloud: a sponsored principal (a ZITADEL machine user
 that files tasks through intake `api`), the broker's signed webhooks, and the Slack App
 (`factory-slack-app`). The webhooks are a shared switch: a second subscriber, RunLore, is switched on by
 [runbook 20](20-runlore-agent-to-agent.md). Design:
 [factory interfaces](../../superpowers/specs/2026-10-21-factory-interfaces-design.md).
-The switch-on is merged: gcp-0's own copies declare the principal, the webhooks and the App
-(`clusters/gcp-0-agent-platform/tooling-factory-slack-app.yaml`), and the host carries the
-`factory-slack` listener (HOST-CONTRACT H4), so a fresh gcp-0 bootstrap brings them up. Sections 3
-and 4 record what the switch-on changed; section 8 turns it off (D4). See [README.md](README.md)
+The switch-on is merged on both clouds: each cloud's own copies declare the principal, the webhooks
+and the App (`clusters/<cloud>-agent-platform/tooling-factory-slack-app.yaml`), and the host carries
+the `factory-slack` listener on both clouds' `platform-public` (HOST-CONTRACT H4, version 8), so a
+fresh bootstrap of either brings them up. Only one cloud serves Slack at a time: the one the App's
+Request URL names ([runbook 22](22-slack.md#which-cloud-serves-slack)). Sections 3 and 4 record what
+gcp-0's switch-on changed; aws-0's mirrors it, without gcp-0's ZITADEL CNP patches. Section 8 turns
+it off (D4). See [README.md](README.md)
 for `CLOUD`.
 
 ```mermaid
@@ -85,8 +88,8 @@ Three ZITADEL checks belong here:
 
 The public listener is not merged: a merged listener orders a Let's Encrypt certificate (DNS-01,
 Route53) on any running host, so it lands in the session (ruling L3'). Add this block to
-`infrastructure/gcp-0/gapi-public/platform-public-gateway.yaml` after `policy-bot` (and to
-`infrastructure/aws-0/gapi/platform-public-gateway.yaml` only if aws-0 ever runs the App), extend the
+`infrastructure/gcp-0/gapi-public/platform-public-gateway.yaml` after `policy-bot` (aws-0's,
+`infrastructure/aws-0/gapi/platform-public-gateway.yaml`, carries it too since contract version 8), extend the
 inventory comment at the top, and add "a `factory-slack` listener for `agent-system`" to H4 in the host
 design §2. Merge it in the session.
 

@@ -81,7 +81,7 @@ build "$tmp/mut" "$tmp/mut-load"; rc=$?
 echo "ok    a syntax error and a renamed Load fail the suite rather than skip it"
 
 # The rendered inputs: Flux's ${var} substituted with values the loaders accept; the factory's merged values
-# (the base ConfigMap, then aws-0's internal principal; Helm merges maps and replaces lists).
+# (the base ConfigMap, then the cloud's principals; Helm merges maps and replaces lists).
 ROOT="$ROOT" TMP="$tmp/cfg" python3 - <<'PY'
 import os, re, yaml
 root, out = os.environ["ROOT"], os.environ["TMP"]
@@ -100,11 +100,11 @@ def merge(a, b):
         return {**a, **{k: merge(a.get(k), v) if k in a else v for k, v in b.items()}}
     return b
 base = values(f"{root}/tooling/base/agent-factory/helm-values-configmap.yaml")
-for name, extra in (("base", None), ("aws-0", "tooling/aws-0/agent-factory/helm-values-internal.yaml"),
+for name, extra in (("base", None), ("aws-0", "tooling/aws-0/agent-factory/helm-values-sponsored.yaml"),
                     ("gcp-0", "tooling/gcp-0/agent-factory/helm-values-sponsored.yaml")):
     v = merge(base, values(f"{root}/{extra}")) if extra else base
     open(f"{out}/factory-{name}.yaml", "w").write(sub(yaml.safe_dump(v["config"])))
-# The App's config is base's, the declaration's rendering (gcp-0 mounts it unchanged).
+# The App's config is base's, the declaration's rendering (each cloud mounts it unchanged).
 app = sub(open(f"{root}/tooling/base/agent-factory/slack-app/config.yaml").read())
 open(f"{out}/slack-base.yaml", "w").write(app)
 # The bite's copy: its first channel's notify gains an event the App draws no line for.

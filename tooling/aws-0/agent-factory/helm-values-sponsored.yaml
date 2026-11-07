@@ -1,10 +1,9 @@
-# RunLore, the factory's one internal principal on aws-0 (feature 14, RA2; the knowledge-base plan's K2): internal
-# data, the investigate template, today's gates. Declared on aws-0, inert while RunLore is off (K9): a
-# principal nobody calls costs nothing. Merged last over agent-factory-helm-values: Helm deep-merges, so
-# config.api.projectIDFile and config.api.internalPrincipals land beside base's api. gcp-0's own copy is
-# helm-values-sponsored.yaml; this file holds the internal principal alone, since aws-0 applies no Slack App
-# (test-factory-interfaces-off.py allows api.internalPrincipals here, RK15). The Secret behind both files is
-# externalsecret-sponsored.yaml in this directory.
+# The API's principals on aws-0, as gcp-0's copy of this file: sponsored (the Slack App, runbook 22) and
+# internal (RunLore, feature 14; inert while RunLore is off, K9: a principal nobody calls costs nothing).
+# Merged last over agent-factory-helm-values: Helm deep-merges, so config.api.sponsored and
+# config.api.internalPrincipals land beside base's api. The name and the client id file are the broker's
+# human.mcp.sponsored entry's (infrastructure/aws-0/room-broker/config.yaml); the Secret behind every
+# file is externalsecret-sponsored.yaml in this directory.
 #
 # The dollar values: an investigate task (one triager run at tier standard, $2.55 a run) fits maxCostUSD 2
 # only below the run cap; confirm against the session's spend before raising them. verification: true: the
@@ -16,13 +15,25 @@ metadata:
   # As agent-factory-helm-values: a change upgrades the release at once.
   labels:
     reconcile.fluxcd.io/watch: Enabled
-  name: agent-factory-helm-values-internal
+  name: agent-factory-helm-values-sponsored
   namespace: agent-system
 data:
   values.yaml: |  # pragma: allowlist secret -- Secret key file paths, no credential value
     config:
       api:
         projectIDFile: /etc/agent-factory-sponsored/project-id
+        sponsored:
+          - name: slack-app
+            clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
+            sponsor: Smana
+            repositories: [Smana/ai-native-ref, Smana/cloud-native-ref]
+            dailyUSD: 5
+            maxCostUSD: 2
+            # "<Slack team id>/<owner's Slack user id>": the owner's GitHub login; slackLinks reads the
+            # broker's link records (human.slackLink) for the users this map omits.
+            onBehalfOf:
+              slack: {"T07J97G2K2P/U07JY4EQNDN": Smana}
+              slackLinks: true
         internalPrincipals:
           - name: runlore
             clientIDFile: /etc/agent-factory-sponsored/runlore-client-id

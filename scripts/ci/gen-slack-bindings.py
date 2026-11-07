@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the Slack channel binding's three consumers from its one declaration (CD24, proof 16).
+"""Render the Slack channel binding's consumers from its one declaration (CD24, proof 16).
 
 tooling/base/agent-factory/slack-bindings.yaml names the workspace (`teamID`) and each channel the
 factory's App serves, `{repositories, maxCostUSD, notify}` and an optional boolean `approvals`. This script owns one region of each
@@ -11,6 +11,9 @@ consumer and preserves every other byte:
   the sponsored values     api.sponsored[slack-app].repositories: the sorted union of the channels'
   the broker's config      webhooks[slack-app].repositories: the same union; .events: the union of the
                            channels' `notify`, in declaration order
+
+The sponsored values and the broker's config are per cloud: either cloud in CLOUDS may serve the App,
+so each gets the same rendering, and a channel's maxCostUSD is held to the lower principal's.
 
 Each splice is verified by re-parsing the file: the decoded value must be the rendering, and the
 decoded document must be the committed one with only that value changed.
@@ -41,8 +44,10 @@ import yaml
 
 DECLARATION = "tooling/base/agent-factory/slack-bindings.yaml"
 APP = "tooling/base/agent-factory/slack-app/config.yaml"
-SPONSORED = "tooling/gcp-0/agent-factory/helm-values-sponsored.yaml"
-BROKER = "infrastructure/gcp-0/room-broker/config.yaml"
+# One Slack App serves one cloud at a time (its one Request URL), but either may be the one.
+CLOUDS = ("aws-0", "gcp-0")
+SPONSORED = tuple(f"tooling/{c}/agent-factory/helm-values-sponsored.yaml" for c in CLOUDS)
+BROKER = tuple(f"infrastructure/{c}/room-broker/config.yaml" for c in CLOUDS)
 FACTORY = "tooling/base/agent-factory/helm-values-configmap.yaml"
 PRINCIPAL = "slack-app"
 CHANNEL = re.compile(r"^[CG][A-Z0-9]{2,20}$")
@@ -132,7 +137,7 @@ def validate(declaration, served, ceiling):
         cost = ch["maxCostUSD"]
         if not _number(cost) or cost < MIN_COST or cost > ceiling:
             raise ConfigError(f"channels.{cid}.maxCostUSD {cost!r} is not in [{MIN_COST}, {ceiling}], "
-                              f"the {PRINCIPAL} principal's maxCostUSD ({SPONSORED})")
+                              f"the lowest {PRINCIPAL} principal's maxCostUSD ({', '.join(SPONSORED)})")
         for e in _list(f"channels.{cid}.notify", ch["notify"]):
             if e not in EVENTS:
                 raise ConfigError(f"channels.{cid}.notify: {e!r} is not an event name the App draws a line for")
@@ -189,16 +194,19 @@ def _entry(items, at):
 
 
 def registries(root):
-    """(the repositories the factory's config.repositories names, the slack-app principal's maxCostUSD)."""
+    """(the repositories the factory's config.repositories names, the lowest slack-app principal's maxCostUSD)."""
     root = pathlib.Path(root)
     factory = _parse(FACTORY, _values, (root / FACTORY).read_text())
     served = {r.get("name") for r in ((factory.get("config") or {}).get("repositories") or []) if isinstance(r, dict)}
-    sponsored = _parse(SPONSORED, _values, (root / SPONSORED).read_text())
-    entry = _entry(((sponsored.get("config") or {}).get("api") or {}).get("sponsored"),
-                   f"{SPONSORED} config.api.sponsored")
-    if not _number(entry.get("maxCostUSD")):
-        raise ConfigError(f"{SPONSORED}: the {PRINCIPAL} principal names no maxCostUSD")
-    return served, entry["maxCostUSD"]
+    ceilings = []
+    for path in SPONSORED:
+        sponsored = _parse(path, _values, (root / path).read_text())
+        entry = _entry(((sponsored.get("config") or {}).get("api") or {}).get("sponsored"),
+                       f"{path} config.api.sponsored")
+        if not _number(entry.get("maxCostUSD")):
+            raise ConfigError(f"{path}: the {PRINCIPAL} principal names no maxCostUSD")
+        ceilings.append(entry["maxCostUSD"])
+    return served, min(ceilings)
 
 
 def _indent(line):
@@ -268,7 +276,7 @@ def _at(path, splicing):
 
 
 def render(declaration, served, ceiling, root=None):
-    """{path: text} for the three consumers in root (default: this repository), or ConfigError."""
+    """{path: text} for every consumer in root (default: this repository), or ConfigError."""
     root = pathlib.Path(root) if root else pathlib.Path(__file__).resolve().parents[2]
     try:
         channels = validate(declaration, served, ceiling)
@@ -286,25 +294,34 @@ def render(declaration, served, ceiling, root=None):
           [(_set("teamID"), declaration["teamID"]), (_set("channels"), copy.deepcopy(decoded))])
     out[APP] = new
 
-    text = (root / SPONSORED).read_text()
-    new = _at(SPONSORED, lambda: splice(text, "repositories", [f"repositories: {_flow(repos)}"], parent="sponsored"))
+    for path in SPONSORED:
+        out[path] = _sponsored(root, path, repos)
+    for path in BROKER:
+        out[path] = _broker(root, path, repos, events)
+    return out
+
+
+def _sponsored(root, path, repos):
+    text = (root / path).read_text()
+    new = _at(path, lambda: splice(text, "repositories", [f"repositories: {_flow(repos)}"], parent="sponsored"))
 
     def sponsored_entry(doc, v):
-        _entry(doc["config"]["api"]["sponsored"], f"{SPONSORED} config.api.sponsored")["repositories"] = v
-    _held(SPONSORED, text, new, _values, [(sponsored_entry, repos)])
-    out[SPONSORED] = new
+        _entry(doc["config"]["api"]["sponsored"], f"{path} config.api.sponsored")["repositories"] = v
+    _held(path, text, new, _values, [(sponsored_entry, repos)])
+    return new
 
-    text = (root / BROKER).read_text()
-    new = _at(BROKER, lambda: splice(splice(text, "repositories", [f"repositories: {_flow(repos)}"], parent="webhooks"),
-                                     "events", [f"events: {_flow(events)}"], parent="webhooks"))
+
+def _broker(root, path, repos, events):
+    text = (root / path).read_text()
+    new = _at(path, lambda: splice(splice(text, "repositories", [f"repositories: {_flow(repos)}"], parent="webhooks"),
+                                   "events", [f"events: {_flow(events)}"], parent="webhooks"))
 
     def webhook(field):
         def put(doc, v):
-            _entry(doc.get("webhooks"), f"{BROKER} webhooks")[field] = v
+            _entry(doc.get("webhooks"), f"{path} webhooks")[field] = v
         return put
-    _held(BROKER, text, new, yaml.safe_load, [(webhook("repositories"), repos), (webhook("events"), events)])
-    out[BROKER] = new
-    return out
+    _held(path, text, new, yaml.safe_load, [(webhook("repositories"), repos), (webhook("events"), events)])
+    return new
 
 
 def main(argv):

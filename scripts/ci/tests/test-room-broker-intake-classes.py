@@ -49,9 +49,9 @@ PLAN_KEYS = {"enabled", "url", "model", "apiKeyFile", "deadline", "dailyPlans", 
              "repositories", "classes"}
 CLASS_KEYS = {"roles", "ceilingUSD", "source"}
 PLANNER_MOUNT = "/etc/room-broker/planner"
-# The copies whose switch is on (ADR-0060): one cloud, for the one public repository. Every other copy,
-# base's included, keeps it off.
-ENABLED_IN = {"gcp-0"}
+# The copies whose switch is on (ADR-0060, amended 2026-11-07): both clouds, for the one public
+# repository. Base's copy keeps it off.
+ENABLED_IN = {"aws-0", "gcp-0"}
 problems = []
 
 
@@ -176,7 +176,7 @@ else:
         # worse, a value the decoder defaults away and nobody notices).
         check(set(plan) == PLAN_KEYS,
               f"{cloud}: human.intake.plan's keys are {sorted(PLAN_KEYS)}, found {sorted(plan)}")
-        # On in one cloud, for one public repository (ADR-0060); off everywhere else. A second cloud or
+        # On in ENABLED_IN, for one public repository (ADR-0060); off everywhere else. Another cloud or
         # a second repository is its own decision, not a copy of this one.
         on = cloud in ENABLED_IN
         check(plan.get("enabled") is on,

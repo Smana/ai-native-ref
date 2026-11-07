@@ -9,7 +9,7 @@ resources:
   # nobody seeded (runbook 25).
   # - externalsecret-webhook-runlore.yaml
 
-# This config.yaml is base's plus two session switches: human.mcp.sessionStart (runbook 19) and RunLore's webhook subscriber (RK15, commented while off).
+# This config.yaml is base's plus the Slack App's keys, the planner on and two session switches (its header says which).
 configMapGenerator:
   - name: room-broker-config
     namespace: agent-system
@@ -17,7 +17,6 @@ configMapGenerator:
     files:
       - config.yaml
 
-# RunLore's session switch (RK15), off: after scripts/ci/gen-webhook-egress.py --write, add
-#   patches:
-#     - path: network-policy-webhooks-patch.yaml
-# (runbook 25). The generator fails on a patch file the config no longer needs, so off has none.
+patches:
+  # The webhook egress, generated from config.yaml's webhooks: scripts/ci/gen-webhook-egress.py --write.
+  - path: network-policy-webhooks-patch.yaml

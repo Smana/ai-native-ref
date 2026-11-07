@@ -8,11 +8,9 @@ half-on cluster (a grant with no trigger, or suspendable runs nobody suspends) f
 The grant, patch on agentruns, lives only in room-broker/suspend; the broker's own RBAC
 never patches or updates a run; base's config never enables suspend, and gcp-0's copy of it
 differs in suspend, webhooks, human.mcp, human.slackLink, human.intake and human.slackDecide alone,
-and aws-0's copy,
-during a session, in human.mcp.sessionStart and a webhooks list that is RunLore's alone (RK15; the same
-rule as runlore_only in test-factory-interfaces-off.py, repeated below: that suite is a hyphenated script
-that runs at import, so it cannot be imported); and the Kyverno limit that fences the grant is always
-there, for the broker alone, naming exactly the three suspend annotations."""
+and aws-0's copy in the same keys less suspend (the Slack App, the planner and the session switches);
+and the Kyverno limit that fences the grant is always there, for the broker alone, naming exactly the
+three suspend annotations."""
 import pathlib
 import subprocess
 import sys
@@ -110,25 +108,11 @@ checks["gcp-0's broker config is base's but for suspend, webhooks, human.mcp, hu
 checks["gcp-0's human.mcp stays enabled"] = (gcp["human"]["mcp"].get("enabled") is True)
 
 aws_copy = ROOT / "infrastructure/aws-0/room-broker/config.yaml"
-if aws_copy.is_file():  # session switches (runbooks 19 and 25): base's config plus human.mcp.sessionStart, RunLore's webhooks
+if aws_copy.is_file():  # the Slack App (runbook 22), the planner and the session switches (runbooks 19, 25)
     aws = yaml.safe_load(aws_copy.read_text())
-
-    def runlore_only(cfg):
-        # the same rule as `runlore_only` in test-factory-interfaces-off.py (K1)
-        hooks = cfg.get("webhooks")
-        return isinstance(hooks, list) and bool(hooks) and all(isinstance(h, dict) and h.get("name") == "runlore" for h in hooks)
-
-    def minus_session_switches(cfg):
-        out = {k: v for k, v in cfg.items() if k != "webhooks" or not runlore_only(cfg)}
-        out["human"] = {**cfg["human"], "mcp": dict(cfg["human"]["mcp"])}
-        out["human"]["mcp"].pop("sessionStart", None)
-        # A session switch of its own (PR B turns the planner on for one repository): it must not
-        # fail a gate that is about suspend, for a reason the check does not name.
-        out["human"].pop("intake", None)
-        return out
-
-    checks["aws-0's broker config is base's but for human.mcp.sessionStart, human.intake and RunLore's webhooks"] = (
-        minus_session_switches(aws) == minus_session_switches(config))
+    checks["aws-0's broker config is base's but for webhooks, human.mcp, human.slackLink, human.intake and human.slackDecide"] = (
+        "suspend" not in aws and minus_switches(aws) == minus_switches(config))
+    checks["aws-0's human.mcp stays enabled"] = (aws["human"]["mcp"].get("enabled") is True)
 
 limit = [d for d in docs("security/base/agent-policies/validatingpolicies.yaml")
          if d["metadata"]["name"] == "agentrun-broker-patch-limit"]

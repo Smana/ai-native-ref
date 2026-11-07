@@ -5,12 +5,12 @@ kind: Kustomization
 # (GCP parity GP-14). The Flux child for aws-0 points here.
 resources:
   - ../../base/agent-factory
-  - helm-values-internal.yaml
+  - helm-values-sponsored.yaml
   - externalsecret-sponsored.yaml
 
 patches:
-  # Helm deep-merges valuesFrom in order: this entry adds RunLore's internal principal (RK15), merged last,
-  # as gcp-0's does for agent-factory-helm-values-sponsored.
+  # Helm deep-merges valuesFrom in order: this entry adds api.sponsored (the Slack App) and
+  # api.internalPrincipals (RunLore), merged last, as gcp-0's does.
   - target:
       group: helm.toolkit.fluxcd.io
       kind: HelmRelease
@@ -20,4 +20,4 @@ patches:
         path: /spec/valuesFrom/-
         value:
           kind: ConfigMap
-          name: agent-factory-helm-values-internal
+          name: agent-factory-helm-values-sponsored

@@ -61,7 +61,7 @@ that is off for a class is skipped.
 | **Implementer** | Writes the change on the task's branch, runs the repository's own checks and opens the pull request. It runs again for a review's changes or a red CI | Code |
 | **Search** | A read-only helper the implementer can ask a question about the repository | No |
 | <span id="judge"></span>**Completion judge** | A single model call with a fresh context: is the change done against its acceptance checks? `not_yet` sends the implementer back; `impossible` escalates to you | No |
-| <span id="reviewer"></span>**Reviewer** | Reviews the pull request with a different model from the implementer's, and posts a verdict. On a class that may merge by itself, the gate needs its approval; otherwise its verdict is advice for you | No |
+| <span id="reviewer"></span>**Reviewer** | Reviews the pull request without the implementer's transcript, and posts a verdict. It runs the implementer's model unless the class names another for it ([providers]({{< relref "/docs/how-it-works/providers.md" >}})). On a class that may merge by itself, the gate needs its approval; otherwise its verdict is advice for you | No |
 | **Triager** | Investigates an alert handed over by [RunLore]({{< relref "/docs/how-it-works/runlore.md" >}}), the platform's incident agent, and proposes a public issue, which a maintainer publishes. The scoper is a triager run too | No |
 | **policy-bot** (an App) | Posts the `policy-bot: main` status on every push; dismisses an approval when the head moves | No |
 | **Merger App** (an App) | Merges the commit the gate decided, or the one a maintainer approved; opens the revert of a factory merge | Merges only |

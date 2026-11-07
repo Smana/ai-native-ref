@@ -1,14 +1,17 @@
 # 18 — Factory interfaces: the switch-on
 
-Switches on the factory's second interface set on gcp-0: a sponsored principal (a ZITADEL machine user
+Switches on the factory's second interface set on a cloud: a sponsored principal (a ZITADEL machine user
 that files tasks through intake `api`), the broker's signed webhooks, and the Slack App
 (`factory-slack-app`). The webhooks are a shared switch: a second subscriber, RunLore, is switched on by
 [runbook 20](20-runlore-agent-to-agent.md). Design:
 [factory interfaces](../../superpowers/specs/2026-10-21-factory-interfaces-design.md).
-The switch-on is merged: gcp-0's own copies declare the principal, the webhooks and the App
-(`clusters/gcp-0-agent-platform/tooling-factory-slack-app.yaml`), and the host carries the
-`factory-slack` listener (HOST-CONTRACT H4), so a fresh gcp-0 bootstrap brings them up. Sections 3
-and 4 record what the switch-on changed; section 8 turns it off (D4). See [README.md](README.md)
+The switch-on is merged on both clouds: each cloud's own copies declare the principal, the webhooks
+and the App (`clusters/<cloud>-agent-platform/tooling-factory-slack-app.yaml`), and the host carries
+the `factory-slack` listener on both clouds' `platform-public` (HOST-CONTRACT H4, version 8), so a
+fresh bootstrap of either brings them up. Only one cloud serves Slack at a time: the one the App's
+Request URL names ([runbook 22](22-slack.md#which-cloud-serves-slack)). Sections 3 and 4 record what
+gcp-0's switch-on changed; aws-0's mirrors it, without gcp-0's ZITADEL CNP patches. Section 8 turns
+it off (D4). See [README.md](README.md)
 for `CLOUD`.
 
 ```mermaid
@@ -16,10 +19,15 @@ flowchart LR
   S[Slack] -->|"POST /slack/events"| L["host listener factory-slack"]
   L --> A[maku-slack]
   A -->|"/mcp, token of the machine user"| B[maku-broker]
+  A -->|"POST /api/slack/decisions, same listener"| B
   B -->|"task, api intake"| F[maku-factory]
   B -.->|"signed webhook, ids only"| A
   A -->|"state lines"| S
 ```
+
+Besides `/mcp`, the App calls one route: `POST /api/slack/decisions`, the one an approval card's
+buttons reach. It is on the same human listener and under the same Cilium network policy, so H4 and
+the host pin do not move for it.
 
 ## 1. Prerequisites
 
@@ -80,8 +88,8 @@ Three ZITADEL checks belong here:
 
 The public listener is not merged: a merged listener orders a Let's Encrypt certificate (DNS-01,
 Route53) on any running host, so it lands in the session (ruling L3'). Add this block to
-`infrastructure/gcp-0/gapi-public/platform-public-gateway.yaml` after `policy-bot` (and to
-`infrastructure/aws-0/gapi/platform-public-gateway.yaml` only if aws-0 ever runs the App), extend the
+`infrastructure/gcp-0/gapi-public/platform-public-gateway.yaml` after `policy-bot` (aws-0's,
+`infrastructure/aws-0/gapi/platform-public-gateway.yaml`, carries it too since contract version 8), extend the
 inventory comment at the top, and add "a `factory-slack` listener for `agent-system`" to H4 in the host
 design §2. Merge it in the session.
 
@@ -118,7 +126,7 @@ version 4 (H4 gains the listener). Then:
 | gcp-0's broker config copy, `infrastructure/gcp-0/room-broker/config.yaml` | `human.mcp.enabled` is already on, since v0.23.1 (it is required by `human.mcp.sponsored`, and it opens human `/mcp` on the tailnet, to maku's token only). Add `human.mcp.sponsored: [{name: slack-app, clientIDFile: /etc/room-broker/sponsored/slack-app-client-id}]`, and the `webhooks` entry of the commented example in `infrastructure/base/room-broker/config.yaml` (full `room.*` event names, `secretFile`) — the same entry that [runbook 20](20-runlore-agent-to-agent.md) adds for its subscriber |
 | `scripts/ci/tests/test-room-broker-suspend.py` | Widen the parity: gcp-0's copy may differ from base in `suspend`, `webhooks` and `human.mcp` alone |
 | The factory's gcp-0 values | A new ConfigMap, `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml`, appended to the HelmRelease's `valuesFrom` as `helm-values-suspend.yaml` is (Helm deep-merges, so `config.api.sponsored` lands); the off-test's glob then needs that file exempted. It holds `projectIDFile: /etc/agent-factory-sponsored/project-id` and `api.sponsored` with the owner as `sponsor`, the owner's Slack id linked (`onBehalfOf.slack: {"T…/U…": <login>}`), `dailyUSD: 5`, `maxCostUSD: 2`. It needs `meter.prices`. The commented example is in `tooling/base/agent-factory/helm-values-configmap.yaml`. The factory mounts `/etc/agent-factory-sponsored/` with the keys `<name>-client-id` and `project-id`; the broker mounts its own at `/etc/room-broker/sponsored` |
-| The App's config | A `configMapGenerator` with `behavior: replace` in `tooling/gcp-0/agent-factory/slack-app/`. It replaces the whole `config.yaml`, so the gcp-0 file is a full copy of base's with `teamID` and `channels` filled (each channel's `maxCostUSD` at most the principal's `maxCostUSD: 2`, for example `0.5`). The App refuses to start until both are filled. `brokerURL` stays `http://room-broker.agent-system.svc.cluster.local:8080`, with no path: the App appends `/mcp` |
+| The App's channel binding | One declaration, `tooling/base/agent-factory/slack-bindings.yaml` (`teamID`, and each channel's `repositories`, `maxCostUSD` at most the principal's `maxCostUSD: 2`, `notify` and optional `approvals`). `python3 scripts/ci/gen-slack-bindings.py --write` renders it into base's `tooling/base/agent-factory/slack-app/config.yaml`, the factory's `api.sponsored[slack-app].repositories` and the broker's `webhooks[slack-app]` `repositories` and `events` ([runbook 22 §5](22-slack.md#5-declare-the-channel-in-git)); the overlay keeps no copy of the App's config. The Maku pin that lands with the declaration (v0.36.0, for the App, the factory and the broker) is the one that decodes a channel's `proposals` and `notify`. `brokerURL` stays `http://room-broker.agent-system.svc.cluster.local:8080`, with no path: the App appends `/mcp` |
 | The webhook egress | `python3 -I scripts/ci/gen-webhook-egress.py --write .` writes `infrastructure/gcp-0/room-broker/network-policy-webhooks-patch.yaml`; list it under the gcp-0 overlay's `patches` |
 | `clusters/gcp-0-agent-platform/tooling-factory-slack-app.yaml` | A Flux Kustomization, listed by that cluster's `kustomization.yaml` (block below) |
 | Self-serve link (Maku v0.29.9) | Broker `human.slackLink` and factory `onBehalfOf.slackLinks: true`: see [runbook 22](22-slack.md#6-who-may-file) |
@@ -161,7 +169,14 @@ The webhook key is generated in the cluster by the External Secrets `Password` g
 is written to OpenBao for it. Rotating it is a manual edit of that Secret (two base64 lines during the
 overlap); the broker and the App re-read the key at use, so nothing restarts.
 
-The PR carries `OWNER-FILL-*` markers (the Slack team, channel and owner ids in the App's config and the factory's values) until the owner's ids replace them. `task check` passes with them; run it with `FACTORY_SLACK_LIVE=1` (`test-factory-slack-switchon.py`) before merging, and it fails on any left. `task check` green, merge.
+An entry's `events` list names full `room.*` types, and thirteen of them exist: `room.task_received`,
+`room.task_triaged`, `room.run_started`, `room.run_ended`, `room.waiting_for_human`, `room.pr_opened`,
+`room.verdict_posted`, `room.merged`, `room.reverted`, `room.monitor_verdict`, `room.budget_reached`,
+`room.ended` and `room.approval_closed`. A subscriber that does not list a type never receives it, so
+a channel that draws approval cards needs `room.approval_closed` in its `notify`, which the generator
+puts in the App's entry; the declaration's `channels.<id>.approvals` is the other half ([runbook 22 §5](22-slack.md#5-declare-the-channel-in-git)).
+
+The PR carries `OWNER-FILL-*` markers (the Slack team, channel and owner ids in the declaration and the factory's values) until the owner's ids replace them. `task check` passes with them; run it with `FACTORY_SLACK_LIVE=1` (`test-factory-slack-switchon.py`) before merging, and it fails on any left. `task check` green, merge.
 
 ## 5. Checks
 

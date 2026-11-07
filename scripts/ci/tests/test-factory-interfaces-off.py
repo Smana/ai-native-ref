@@ -5,17 +5,12 @@
 On the real tree: no cluster applies the Slack App's manifests; no broker config declares a webhook
 or a sponsored human MCP client, no repository may start from a session (human.mcp.sessionStart), and no factory values declare a sponsored API client; the factory's
 public route is still the one POST /v1/runs, and the Slack App's is the one POST /slack/events.
-A switch-on lands in gcp-0's own copies (runbook 18), never in base or aws-0: gcp-0's agent-platform
-cluster may apply the Slack App, and gcp-0's broker config and factory values may declare its switches
-(test-factory-slack-switchon.py holds that switch-on to its shape). human.mcp.sessionStart alone may
-also be listed in aws-0's copy, for a live session there (runbook 19); test-room-broker-suspend.py
-holds that copy to base's but for that key.
-
-RunLore's session switch is the second exception on aws-0 (RK15, the knowledge-base plan's K1), the
-precedent being runbook 19's: two keys, never a second switched-on cloud. aws-0's broker config may
-declare webhooks when every entry is named runlore, and aws-0's factory values may declare
-api.internalPrincipals (the runlore principal, inert while RunLore is off) and nothing else under api
-(no api.sponsored). Every other cloud and every other entry stays refused.
+A switch-on lands in a cloud's own copies (runbooks 18 and 22), never in base: each SWITCHED_ON
+cloud's agent-platform cluster may apply its own cloud's Slack App directory, and its broker config and
+factory values (helm-values-sponsored.yaml) may declare the App's switches and RunLore's
+(test-factory-slack-switchon.py holds a switch-on to its shape). One Slack App has one Request URL, so
+only one cloud serves it at a time; that is the owner's URL, not a manifest. human.mcp.sessionStart may
+be listed in a cloud's copy, for a live session there (runbook 19).
 """
 import pathlib
 import sys
@@ -30,30 +25,26 @@ except ImportError:
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 if "--root" in sys.argv:  # a scratch tree, for the cases that prove the refusals
     ROOT = pathlib.Path(sys.argv[sys.argv.index("--root") + 1]).resolve()
-SLACK_DIRS = ("tooling/base/agent-factory/slack-app", "tooling/gcp-0/agent-factory/slack-app")
-SWITCHED_ON = "gcp-0"  # the one cloud whose copies may declare the switches (runbook 18)
+SWITCHED_ON = ("aws-0", "gcp-0")  # the clouds whose copies may declare the switches (runbooks 18, 22)
+SLACK_DIRS = ("tooling/base/agent-factory/slack-app",) + tuple(
+    f"tooling/{c}/agent-factory/slack-app" for c in SWITCHED_ON)
 SESSION_START = {"gcp-0", "aws-0"}  # the clouds whose broker copy may list human.mcp.sessionStart (runbook 19)
-RUNLORE_ON = {"gcp-0", "aws-0"}  # the clouds whose copies may declare RunLore's subscriber and principal (RK15)
 problems = []
-
-
-def runlore_only(doc):
-    """True when a broker config's webhooks is a non-empty list whose every entry is named runlore."""
-    hooks = doc.get("webhooks")
-    return isinstance(hooks, list) and bool(hooks) and all(isinstance(h, dict) and h.get("name") == "runlore" for h in hooks)
 
 
 def load(rel):
     return [d for d in yaml.safe_load_all((ROOT / rel).read_text()) if d]
 
 
-# 1. Nothing but gcp-0's cluster applies the Slack App (R30, L3').
+# 1. Only a switched-on cloud's cluster applies the Slack App, and only its own cloud's directory (R30, L3').
 for path in sorted((ROOT / "clusters").rglob("*")):
-    if path.is_file() and f"clusters/{SWITCHED_ON}-agent-platform/" not in path.as_posix():
-        text = path.read_text(errors="replace")
-        for d in SLACK_DIRS:
-            if d in text:
-                problems.append(f"{path.relative_to(ROOT)} names {d}: the Slack App is applied by gcp-0 only")
+    if not path.is_file():
+        continue
+    own = next((c for c in SWITCHED_ON if f"clusters/{c}-agent-platform/" in path.as_posix()), None)
+    text = path.read_text(errors="replace")
+    for d in SLACK_DIRS:
+        if d in text and d != f"tooling/{own}/agent-factory/slack-app":
+            problems.append(f"{path.relative_to(ROOT)} names {d}: a cloud's cluster applies its own Slack App directory only")
 for path in sorted(ROOT.rglob("kustomization.yaml")):
     rel = path.relative_to(ROOT)
     if rel.parts[0] in (".host", ".composite", "node_modules"):
@@ -66,25 +57,24 @@ for path in sorted(ROOT.rglob("kustomization.yaml")):
             if "slack-app" in pathlib.PurePosixPath(str(res)).parts:
                 problems.append(f"{rel} lists {res}: the Slack App is not wired")
 
-# 2. Outside gcp-0's copies, the broker declares no webhook and no sponsored human MCP client; the factory no sponsored API client.
+# 2. Outside the clouds' copies, the broker declares no webhook and no sponsored human MCP client; the factory no sponsored API client.
 for cfg in sorted(ROOT.glob("infrastructure/*/room-broker/config.yaml")):
     rel = cfg.relative_to(ROOT)
     for doc in load(str(rel)):
         if ((doc.get("human") or {}).get("mcp") or {}).get("sessionStart") and rel.parts[1] not in SESSION_START:
             problems.append(f"{rel} lists human.mcp.sessionStart (D4: a session's copy only, runbook 19)")
-        if rel.parts[1] == SWITCHED_ON:
+        if rel.parts[1] in SWITCHED_ON:
             continue
-        if "webhooks" in doc and not (rel.parts[1] in RUNLORE_ON and runlore_only(doc)):
+        if "webhooks" in doc:
             problems.append(f"{rel} declares webhooks (D4)")
         if "sponsored" in ((doc.get("human") or {}).get("mcp") or {}):
             problems.append(f"{rel} declares human.mcp.sponsored (D4)")
 
 
-def sponsored_in(node, parent=None, internal_ok=False):
+def sponsored_in(node, parent=None):
     """True when an `api` mapping holds `sponsored` or `internalPrincipals`, or a JSON patch path names either, at any depth,
-    through ConfigMap data and kustomize patch strings (themselves YAML) alike. With internal_ok (aws-0's copies,
-    RK15) `internalPrincipals` alone is allowed."""
-    banned = ("sponsored",) if internal_ok else ("sponsored", "internalPrincipals")
+    through ConfigMap data and kustomize patch strings (themselves YAML) alike."""
+    banned = ("sponsored", "internalPrincipals")
     if isinstance(node, str):
         if any(f"api/{k}" in node for k in banned):
             return True
@@ -92,13 +82,13 @@ def sponsored_in(node, parent=None, internal_ok=False):
             inner = yaml.safe_load(node)
         except yaml.YAMLError:
             return False
-        return isinstance(inner, (dict, list)) and sponsored_in(inner, parent, internal_ok)
+        return isinstance(inner, (dict, list)) and sponsored_in(inner, parent)
     if isinstance(node, dict):
         if parent == "api" and any(k in node for k in banned):
             return True
-        return any(sponsored_in(v, k, internal_ok) for k, v in node.items())
+        return any(sponsored_in(v, k) for k, v in node.items())
     if isinstance(node, list):
-        return any(sponsored_in(v, parent, internal_ok) for v in node)
+        return any(sponsored_in(v, parent) for v in node)
     return False
 
 
@@ -108,9 +98,9 @@ for path in sorted(ROOT.glob("tooling/*/agent-factory/**/*.yaml")):
     rel = path.relative_to(ROOT)
     if any(str(rel).startswith(d) for d in SLACK_DIRS):
         continue
-    if rel.as_posix() == f"tooling/{SWITCHED_ON}/agent-factory/helm-values-sponsored.yaml":
+    if rel.as_posix() in {f"tooling/{c}/agent-factory/helm-values-sponsored.yaml" for c in SWITCHED_ON}:
         continue
-    if sponsored_in(load(str(rel)), internal_ok=rel.parts[1] == "aws-0"):
+    if sponsored_in(load(str(rel))):
         problems.append(f"{rel} declares api.sponsored or api.internalPrincipals (D4)")
 
 # The App appends /mcp itself: a brokerURL with a path would call /mcp/mcp.

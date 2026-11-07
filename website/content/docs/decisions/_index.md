@@ -7,7 +7,7 @@ lastVerified: 2026-10-29
 
 The records behind the AI platform: serving, the Agent Factory and the split from its host. They
 moved here from [cloud-native-ref](https://cnref.ogenki.io/docs/decisions/) with their numbers
-(split design §8); the next record here is **0060**. Host decisions (Flux, Cilium, OpenBao, EKS Pod
+(split design §8); the next record here is **0061**. Host decisions (Flux, Cilium, OpenBao, EKS Pod
 Identity, …) stay on the host site and are linked, not copied.
 
 A technology choice with a rejected alternative needs a record before merge. Version bumps,
@@ -38,3 +38,4 @@ chart-value changes and single-file fixes never do. Start from the host's
 | [0057]({{< relref "/docs/decisions/0057-ai-platform-own-repository.md" >}}) | The AI platform moves to its own repository, consumed by cloud-native-ref as a pinned artifact | Accepted | 2026-10-12 |
 | [0058]({{< relref "/docs/decisions/0058-reviewer-on-another-model.md" >}}) | The factory's reviewer on public tasks keeps the implementer's GLM model | Accepted | 2026-10-16 |
 | [0059]({{< relref "/docs/decisions/0059-factory-from-your-coding-agent.md" >}}) | The factory is started, followed and brought back from the developer's coding agent | Accepted | 2026-10-25 |
+| [0060]({{< relref "/docs/decisions/0060-conversational-intake.md" >}}) | A request in plain words becomes a governed plan before any issue is filed, through one planner for every channel | Accepted | 2026-11-05 |

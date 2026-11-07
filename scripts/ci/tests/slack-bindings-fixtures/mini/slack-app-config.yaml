@@ -1,0 +1,5 @@
+# The App's config, the base's shape before the switch-on: no team, no channel.
+namespace: agent-system
+# The generator owns the two lines below.
+teamID: ""
+channels: {}

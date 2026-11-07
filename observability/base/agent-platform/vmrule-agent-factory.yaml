@@ -58,7 +58,7 @@ spec:
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md#know-before-the-go"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryDailyBudgetHigh
-          # Truthful costs TC8: the day in USD (the USD gauges since agent-platform v0.16.0, pinned here at v0.33.0). spent is unclamped, so a day
+          # Truthful costs TC8: the day in USD (the USD gauges since agent-platform v0.16.0, pinned here at v0.33.1). spent is unclamped, so a day
           # past its cap keeps firing; the meter records yesterday's principals at 0 on a day's first tick.
           expr: maku_factory_budget_spent_usd / maku_factory_budget_cap_usd > 0.8
           for: 5m
@@ -182,6 +182,31 @@ spec:
             summary: "A gateway counted {{ $labels.model }}'s input without its cache tokens"
             description: "The meter priced those runs right, as fresh input. Every cost read through llm_gateway:charge_usd_per_mtoken under-counts them, down to a negative figure: the agent-run Cost panel and AnthropicFleetNearCap. A gateway path or the provider changed its usage shape: run test-agent-gateway-cache-wire against the deployed agentgateway digest. The leader's log names each run: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep 'without its cache tokens'"
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        # D8/D10/D14: the Slack decision path and its cards. Both expressions are aggregates on
+        # purpose: maku_rooms_slack_decisions_total carries {result, decision} and
+        # factory_slack_requests_total {route, outcome}, so no per-person, per-room-policy or
+        # per-approval clause is computable from them. No user, principal, room or approval label is
+        # added: they are unbounded, and a per-person label on a broker metric is a cardinality and a
+        # privacy problem. Each description says what the logs answer instead.
+        - alert: SlackDecisionsSpike
+          expr: sum(increase(maku_rooms_slack_decisions_total{result="approved"}[10m])) > 5
+          labels:
+            severity: warning
+          annotations:
+            summary: "More than five forge.push approvals were decided from Slack in ten minutes"
+            description: "The design's per-(team,user) clause is not computable from this metric's labels — maku_rooms_slack_decisions_total carries only {result, decision}, no user, team, room or approval — and this aggregate is its computable stand-in: six approvals in ten minutes from anywhere is already worth reading. Take the broker's 'slack decision' lines for those decisions — team, approval, user, result, decision — and the room log for the approvals those decisions closed. An unexpected burst is the shape of a compromised App pod casting decisions as linked humans (the design's accepted residual, alerted here). Whoever reads it also checks the rooms' policies: no forge.push approval should ever be decided from Slack in an unattended room, and that half is a log read too."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#7-verify-end-to-end"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: SlackCardUpdatesFailing
+          expr: sum(rate(factory_slack_requests_total{route=~"interactions|webhooks", outcome="error"}[10m])) > 0
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "The Slack App has failed an approval-card update for an hour"
+            description: "The cards are then lying about being live, which is worse than not having them (D10). This is an aggregate over both routes: factory_slack_requests_total carries {route, outcome} and no approval id, so a single flapping card and a hundred failures read the same here — take the App's 'card update failed' lines (approval, channel, err) to tell them apart. Causes: a revoked chat:write, a removed message, Slack refusing metadata. The decisions themselves still land — the store, not the card, is the fence."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#7-verify-end-to-end"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
     # B-2, the cost cross-check (docs/superpowers/specs/2026-10-27-cost-crosscheck-design.md):
     # the ledger's total for a run (maku_factory_run_settled_usd, read from the ledger, kept 1 h

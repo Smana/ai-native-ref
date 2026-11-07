@@ -3,7 +3,7 @@ title: Humans reach rooms through a web UI the broker serves, behind oauth2-prox
 linkTitle: 0049 · Room client and human auth
 weight: 490
 description: The room web UI is served by the broker itself and reached on the tailnet through oauth2-proxy, which holds the ZITADEL session in an HttpOnly, SameSite=Strict cookie and forwards the ID and JWT access tokens; the broker re-validates both. roomctl, a CLI with its own native ZITADEL client (not yet built), will read, chat, queue and fork but never steer or approve. A Headlamp plugin, a CLI only, an AHP facade and a browser PKCE app were rejected.
-lastVerified: 2026-09-30
+lastVerified: 2026-11-05
 ---
 
 **Status**: Accepted
@@ -71,6 +71,16 @@ binding; its auth model is Kubernetes RBAC, not room roles.
 - The broker re-validates both tokens, so a bypass of oauth2-proxy still authenticates nobody.
 
 ### Negative
+
+- **No phone approvals, with one exception.** `forge.push`, and it alone, may be decided from its
+  Slack card, under the same fence and the same four-eyes; every other class and every reason stays
+  browser-only.
+
+  Amended 2026-11-05. The decision above is untouched: a broker-served UI, a session the broker
+  re-validates, and nothing approving from a place a local agent drives. Slack is not such a place —
+  the click is Slack-signed, and the human is resolved from a link only that human could have
+  confirmed. The card adds no reason, no answer and no steering, and the store still refuses a stale,
+  expired or already-decided click.
 
 - `rooms-proxy` is the platform's first ZITADEL client issuing JWT access tokens. `agent-system`
   reads only OpenBao's `agents` mount, which `external-secrets` cannot read. The OIDC sync writes

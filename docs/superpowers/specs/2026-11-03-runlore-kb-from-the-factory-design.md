@@ -1,8 +1,9 @@
 # RunLore's knowledge base, filled by the agent factory
 
 **Date:** 2026-11-03 · **Status:** design agreed with the owner 2026-11-03, decision by decision
-([below](#owner-decisions-2026-11-03)); phase 1 is being built, its live session is [runbook 25](../../runbooks/agent-factory/25-runlore-kb-phase-1.md); not yet on the
-[v4 roadmap](2026-10-31-v4-roadmap-design.md) · **Builds on:** feature 14,
+([below](#owner-decisions-2026-11-03)); phase 1 is being built, its live session is [runbook 25](../../runbooks/agent-factory/25-runlore-kb-phase-1.md); a v3.x track of the
+[roadmap](2026-10-31-v4-roadmap-design.md#t-runlore-kb) since 2026-11-06, where its old "v4.0 item" and
+"v4.x" numbers [map to tracks](2026-10-31-v4-roadmap-design.md#renumbering) · **Builds on:** feature 14,
 [RunLore agent to agent](2026-10-27-runlore-agent-to-agent-design.md) (RA1 to RA14). **Touches:**
 v4.0 item 4 (untrusted-input hardening), v4.0 item 5 (outcome analytics), v4.6 (repository memory)
 

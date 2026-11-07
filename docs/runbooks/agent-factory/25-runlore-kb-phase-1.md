@@ -237,7 +237,7 @@ each merge:
 kubectl -n runlore exec runlore-0 -- lore curate refresh-entries --pr <n> --config /etc/runlore/runlore.yaml
 ```
 
-Any other conflicting pull request waits in Decide as `conflict`. On the first rebuild, record four checks:
+Any other conflicting pull request waits in Decide as `conflict`. On the first rebuild, record six checks:
 
 1. **Shape and signature after the force-update.** Every commit must read `runlore[bot]`, `web-flow`, `true`,
    and a second conflict then rebuilds again. RunLore refuses any other shape (KP19), so a rebuild that lands
@@ -258,6 +258,21 @@ Any other conflicting pull request waits in Decide as `conflict`. On the first r
    whether a recompute alone bumps the pull request's `updated_at`, which RK17's stale sweep reads.
 4. **A `pull_request` run on the rebuilt pull request.** `validate` and `leak-scan` both report on the new
    head, since a push made with an App token must start the workflows the merge checks need.
+5. **A branch read against GitHub.** RunLore escapes the branch name when it reads a file at a ref, so a
+   branch such as `runlore/kb-a` is read as `runlore%2Fkb-a`. The rebuild above reads the entry at the
+   branch's head, so it passing is the proof; `lore kb resolve` on a labelled pull request is the other. A
+   rebuild that fails with a 404 or "could not be read" on a slashed branch name means the escape does not
+   reach GitHub.
+6. **The threat check ran on a real entry.** It runs only while `factory.curation.defer` is on. Read the
+   queue issue's rows and RunLore's log for the same pull request:
+
+   ```bash
+   kubectl -n runlore logs runlore-0 | grep 'threat check:'
+   ```
+
+   A clean entry leaves no `threat` risk on its row and no `threat check:` line, and that absence is the pass.
+   A hit logs "the entry is withheld" with the rules and shows `threat: <rules>` on the row. "The entry could
+   not be read" is a failure of check 5, not a verdict on the entry.
 
 ## 7. Switch off, in this order (the reverse)
 

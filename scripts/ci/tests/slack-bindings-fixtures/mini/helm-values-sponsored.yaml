@@ -1,0 +1,16 @@
+# The factory's sponsored principals: slack-app's repositories are the generator's.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-factory-helm-values-sponsored
+  namespace: agent-system
+data:
+  values.yaml: |
+    config:
+      api:
+        sponsored:
+          - name: slack-app
+            sponsor: acme-owner
+            repositories: [acme/shop]
+            dailyUSD: 5
+            maxCostUSD: 2

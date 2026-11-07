@@ -20,11 +20,23 @@ flowchart LR
 |---|---|
 | The App, its token and signing secret | Slack console, then OpenBao `agents/factory-slack-app` (step 2) |
 | The App's identity to the factory | ZITADEL machine user, OpenBao `agents/factory-slack-principal` (step 3) |
-| Team, channels, repositories per channel | `tooling/gcp-0/agent-factory/slack-app/config.yaml` (step 5) |
-| Who may file, and the repositories the App may file in | `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml` (step 5, 6) |
-| Which repositories get state lines back | `infrastructure/gcp-0/room-broker/config.yaml`, `webhooks` (step 5) |
+| Team, channels, repositories per channel | `tooling/base/agent-factory/slack-bindings.yaml`, generated into five files (step 5) |
+| Who may file, and the repositories the App may file in | `tooling/<cloud>/agent-factory/helm-values-sponsored.yaml` (step 6; its repositories are generated, step 5) |
+| Which repositories get state lines back | `infrastructure/<cloud>/room-broker/config.yaml`, `webhooks` (generated, step 5) |
 
-Set the shell once. The OpenBao root token comes from Secret Manager; it is never printed.
+## Which cloud serves Slack
+
+aws-0 and gcp-0 both apply the App (`clusters/<cloud>-agent-platform/tooling-factory-slack-app.yaml`),
+but **one Slack App has one Request URL**, so only one cloud serves Slack at a time.
+
+| Rule | Why |
+|---|---|
+| The App's **Event Subscriptions** and **Interactivity** Request URLs are both `https://factory-slack.<public_domain>/slack/events`, with the public domain of the cloud that serves (step 4) | Slack posts to one URL; the other cloud's App receives nothing |
+| Never run both clouds' Apps against the one Slack App | Both would post state lines and draw cards for their own rooms in the same channels |
+| Moving to the other cloud is step 4 again, with its domain | The keys (steps 2 and 3) are per cloud's OpenBao: seed them there first |
+
+Set the shell once, for the cloud that serves (gcp-0 shown; on aws-0 use its OpenBao values, as in the
+[README](README.md)). The OpenBao root token comes from the cloud's secret store; it is never printed.
 
 ```bash
 export VAULT_ADDR=https://bao.<private_domain>:8200
@@ -50,7 +62,12 @@ What the manifest gives you, for reference:
 |---|---|
 | Bot events | `app_mention`, `reaction_added`, `message.channels`, `message.groups` |
 | Bot scopes | `app_mentions:read`, `chat:write`, `reactions:read`, `channels:history`, `groups:history` |
-| Not enabled | interactivity, slash commands, socket mode |
+| Not enabled | slash commands, socket mode |
+
+The App serves interactivity on the **same** Request URL as its events,
+`https://factory-slack.<public_domain>/slack/events` (step 4): the buttons of an approval card arrive
+there. A manifest carried from before that change needs the console step in section 4 — and a
+reinstall if Slack asks for one.
 
 An App made from an older manifest lacks `message.channels` and `message.groups`: add them under
 **Event Subscriptions**, then reinstall. Without them, replies that edit a draft are never seen.
@@ -92,7 +109,7 @@ is the one value the App reads only at start.
 
 The App calls the broker with the token of a ZITADEL machine user. The host's sync creates it
 (`factory-slack-app`) and writes `agents/factory-slack-principal` (client id, secret, project id).
-gcp-0's deploy usually ran it already. Check first:
+The cloud's deploy usually ran it already. Check first:
 
 ```bash
 bao kv get -mount=agents -format=json factory-slack-principal | jq '.data.data | keys'
@@ -100,7 +117,16 @@ bao kv get -mount=agents -format=json factory-slack-principal | jq '.data.data |
 ```
 
 If the key is missing, run the sync from the cloud-native-ref checkout. **Every flag is needed**; a
-partial line fails with `--cluster is required` or an `IDP_URL` error:
+partial line fails with `--cluster is required` or an `IDP_URL` error. On aws-0:
+
+```bash
+IDP_URL=https://auth.<public_domain> PRIVATE_DOMAIN=<private_domain> \
+  scripts/provision/zitadel-oidc-clients.sh sync --cluster aws-0 --cloud aws --region eu-west-3 \
+  --openbao-url https://bao.<private_domain>:8200 --openbao-root-token-secret <root_token_secret_name> \
+  --openbao-ca-file <ca.pem> --mirror-openbao --apply
+```
+
+On gcp-0:
 
 ```bash
 IDP_URL=https://auth.<public_domain> PRIVATE_DOMAIN=<private_domain> \
@@ -110,6 +136,9 @@ IDP_URL=https://auth.<public_domain> PRIVATE_DOMAIN=<private_domain> \
   --openbao-root-token-secret openbao-priv-gcp-root-token \
   --openbao-ca-file opentofu/gcp/gke/configure/.tls/ca.pem --mirror-openbao --apply
 ```
+
+On aws-0 the factory's sponsored Secret reads this key **and** `runlore-principal`: until both are
+mirrored it does not sync, and RunLore's principal waits with it. The sync mirrors both.
 
 Check: the `bao kv get` above lists the three keys. Then
 `kubectl -n agent-system get externalsecret` shows the Slack App's and the factory's as `SecretSynced`.
@@ -132,45 +161,96 @@ Then, in the Slack console, **Event Subscriptions**, turn it on and set the **Re
 
 Check: Slack shows **Verified**. Save, and reinstall if Slack asks.
 
+Then the card buttons. **Interactivity & Shortcuts**, turn **Interactivity** on and set its
+**Request URL** to the same `https://factory-slack.<public_domain>/slack/events`, then **Save**.
+
+Check: Slack accepts it. The App verifies signatures there already, so the URL verification Slack
+runs on save is the events one that passed above.
+
 ## 5. Declare the channel, in git
 
-One PR on ai-native-ref. A channel's repositories are listed in **three** places, and all three must
-agree. A channel that lists a repository the other two do not is the usual failure: the draft works,
-then a check mark on a draft whose repository the channel does not list is ignored without a word, the factory refuses a repository it does not list (`repository_not_allowed`), or the thread never hears about the run.
+One PR on ai-native-ref. A channel's binding is written in **one** place, the declaration
+`tooling/base/agent-factory/slack-bindings.yaml`, and five consumers are generated from it (the App's
+config, and each cloud's sponsored values and broker config):
 
-| # | File | Key | What it governs |
-|---|---|---|---|
-| 1 | `tooling/gcp-0/agent-factory/slack-app/config.yaml` | `channels.<C…>.repositories` | The repositories a mention may name there |
-| 2 | `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml` | `api.sponsored[slack-app].repositories` | The repositories the factory lets the App file in |
-| 3 | `infrastructure/gcp-0/room-broker/config.yaml` | `webhooks[slack-app].repositories` | The repositories whose room events reach the App |
-
-```yaml
-# 1. slack-app/config.yaml
-teamID: T07J97G2K2P
-channels:
-  C0CC4M8SNVD: {repositories: [Smana/cloud-native-ref, Smana/ai-native-ref], maxCostUSD: 0.5}
-# 2. helm-values-sponsored.yaml, under api.sponsored (name: slack-app)
-repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
-# 3. room-broker/config.yaml, under webhooks (name: slack-app)
-repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
+```bash
+$EDITOR tooling/base/agent-factory/slack-bindings.yaml
+python3 scripts/ci/gen-slack-bindings.py --write
+git add tooling/base/agent-factory/slack-bindings.yaml tooling/base/agent-factory/slack-app/config.yaml \
+  tooling/{aws-0,gcp-0}/agent-factory/helm-values-sponsored.yaml infrastructure/{aws-0,gcp-0}/room-broker/config.yaml
 ```
 
-- `maxCostUSD` per channel is the cap each filed task gets (at least 0.01, at most the principal's
-  `maxCostUSD: 2`).
+Commit the declaration and the generated files together. `task check` runs the generator without
+`--write` and fails on any difference, so a generated region edited by hand fails the PR.
+
+```yaml
+# tooling/base/agent-factory/slack-bindings.yaml — a channel that draws approvals as cards
+teamID: T07J97G2K2P
+channels:
+  C0CC4M8SNVD:
+    repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
+    maxCostUSD: 0.5
+    approvals: true
+    notify: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.verdict_posted,
+             room.merged, room.reverted, room.budget_reached, room.ended, room.approval_closed]
+```
+
+| # | Source | Generated into | Region | What it governs |
+|---|---|---|---|---|
+| 1 | `slack-bindings.yaml`, `teamID` and `channels` | `tooling/base/agent-factory/slack-app/config.yaml` | `teamID`, `channels` (one line per channel, by id) | The repositories a mention may name in each channel, its cap, its cards and the lines it posts |
+| 2 | `slack-bindings.yaml`, every channel's `repositories` | `tooling/<cloud>/agent-factory/helm-values-sponsored.yaml`, each cloud | `api.sponsored[slack-app].repositories` (the sorted union) | The repositories the factory lets the App file in |
+| 3 | `slack-bindings.yaml`, every channel's `repositories` and `notify` | `infrastructure/<cloud>/room-broker/config.yaml`, each cloud | `webhooks[slack-app].repositories` (the same union) and `.events` (the `notify` union, in declaration order) | The repositories and the events whose room transitions reach the App |
+| 4 | by hand | `infrastructure/<cloud>/room-broker/config.yaml`, each cloud | `human.slackDecide` | The route a card's buttons call, and the principal they act as |
+
+Row 4 is not generated: it is what turns the App's buttons into decisions (the two switches, below).
+Everything else in the generated files stays hand-edited, and the generator never touches it.
+
+The generator refuses the declaration, before anything reaches a cluster, when:
+
+- a channel names a repository the factory's `config.repositories`
+  (`tooling/base/agent-factory/helm-values-configmap.yaml`) does not serve;
+- a channel's `maxCostUSD` is below 0.01 or above the lower of the clouds' principal `maxCostUSD` (2, in
+  each `helm-values-sponsored.yaml`): it is the cap each filed task gets;
+- a `notify` entry is not one of the ten events the App draws a line for (`room.task_triaged`,
+  `room.run_started`, `room.waiting_for_human`, `room.pr_opened`, `room.verdict_posted`,
+  `room.merged`, `room.reverted`, `room.budget_reached`, `room.ended`, `room.approval_closed`), or
+  no channel's `notify` names any (the broker refuses an empty `events` list);
+- an id is malformed, a channel has no repository, an entry is written twice, a key is unknown, or
+  `approvals` is not a boolean.
+
+Notes:
+
+- The two switches fail differently. The broker's `human.slackDecide` is the authority: a card whose
+  broker has no `slackDecide` answers `unavailable` when pressed. The channel's `approvals: true` in
+  the declaration is who gets the affordance. Setting it to `false` (or removing it) and regenerating
+  is the fast rollback.
+- `human.slackDecide` needs `human.access`, and its `principal` names one of `human.mcp.sponsored`.
+- A channel that draws cards needs `room.approval_closed` in its `notify`, so that the broker's
+  subscription carries it.
 - A channel with **one** repository lets users leave it out of their mention. With several, a mention
   without one is refused with a `Try:` line.
-- The App refuses to start with an empty `teamID` or no channel.
-- Adding a repository to #1 and #2 is not enough: also add it to #3, or state lines never arrive.
-- The broker reads its config at start only; the `configMapGenerator` rolls the pods on a change.
+- A channel's `notify: []` means it posts no state line; the broker still subscribes to the other
+  channels' events.
+- The broker reads `webhooks` at start, and the App reads its config at start. A changed generated
+  file moves the ConfigMap's content hash and rolls both. The generator never writes `generation`:
+  only a subscriber the emitter disabled (three given-up deliveries) needs its `generation` bumped by
+  hand in the broker's `webhooks` entry, then a broker restart.
 
-Merge, then check: `kubectl -n agent-system rollout status deploy/factory-slack-app deploy/room-broker deploy/agent-factory`
-all succeed, and `kubectl -n agent-system logs deploy/factory-slack-app | head` shows no config error.
+Merge, then check:
+
+```bash
+kubectl -n agent-system rollout status deploy/factory-slack-app deploy/room-broker
+```
+
+Check: both rollouts complete, `kubectl -n agent-system logs deploy/factory-slack-app | head` shows no
+config error, and `kubectl -n agent-system logs deploy/room-broker | head` shows it read its config
+with the new subscriber list.
 
 ## 6. Who may file
 
 A Slack user may file only when the factory knows whose GitHub account they are, in one of two ways.
 
-**Self-serve link** (Maku v0.29.9; gcp-0 has it on). It needs both sides: the broker's
+**Self-serve link** (Maku v0.29.9; both clouds have it on). It needs both sides: the broker's
 `human.slackLink: {principal: slack-app, teamID: <T…>, repository: <owner/name>}` in
 `infrastructure/<cloud>/room-broker/config.yaml` (it needs `human.access`), and `slackLinks: true` under the
 principal's `onBehalfOf` in `helm-values-sponsored.yaml`. The user mentions `@factory link`, opens the
@@ -207,14 +287,34 @@ In the served channel, with a linked maintainer:
 | Wait | `Triaged. Room: …`, `A run started.`, `Pull request #… opened.`, then `Ended, state: …` |
 | Same reaction from an unlisted user, in a new thread | `Not filed: not_linked` |
 
+A channel with `approvals: true` whose broker declares `human.slackDecide` draws a `forge.push`
+approval as a card with two buttons. The eight proofs below close that half; the evidence each leaves
+— log lines, metric series, room events — is the design's
+[live proofs](../../superpowers/specs/2026-11-05-v3x-slack-push-approval-design.md#live-proofs) table.
+
+| Do | Expected |
+|---|---|
+| Press **Approve** twice quickly, then replay the same interaction (re-POST the signed body) | One decision, one answer to the clicker; the second press reads `already_decided`; the card is inert once |
+| Let a card's deadline pass in a room whose sweep interval is longer than your wait, then press **Approve** after it | `approval_expired` both times, no decision, the row `expired` |
+| Press from a Slack user with no link, then a linked user who is not an approver, then a linked approver whose GitHub login cannot write the repository | `not_linked`, `not_permitted`, `repository_permission`; no decision |
+| A person who prompted the run presses **Approve**; a second approver presses afterwards | `four_eyes`, then decided; the room log names only the second human |
+| Tamper the signed body (change the branch), POST it unsigned, then post a card of another room's approval into this channel | `ignored`, `401`, `binding_mismatch`; no event in either room |
+| Provoke a `forge.pr` or a `shell.high` approval in the same thread | A text line with the room link and **no** button; the `forge.push` card beside it keeps its buttons |
+| Approve on the card in the same second the room page answers, twice over (the page wins once, the card once) | Exactly one decision each time; the loser reads `already_decided` or `superseded`; the card goes inert |
+| Take the App's `chat:write` away (or stub Slack's 5xx), then decide a card | The decision lands, the failed card update is logged and counted, and the stale card answers `already_decided` |
+
 If a step does not answer, find where it stopped:
 
 | Symptom | Look at |
 |---|---|
 | No reaction to the mention at all | `kubectl -n agent-system logs deploy/factory-slack-app`; `factory_slack_requests_total{outcome="bad_signature"}` (wrong signing secret), `ignored` (wrong team, unserved channel); the bot is invited |
 | Draft posted, check mark does nothing | The check mark is not on the latest draft, or the Slack user is not linked (step 6) |
-| Filed, but no state lines | The repository is missing from the broker's `webhooks` (step 5, #3), or the subscriber is disabled: bump `generation`, restart the broker (Maku `docs/slack.md`, State) |
-| `Not filed: repository_not_allowed` | The repository is missing from #2 |
+| Filed, but no state lines | The event is not in the channel's `notify` (step 5), the broker has not restarted since the generated `webhooks` changed, or the subscriber is disabled: bump `generation`, restart the broker (Maku `docs/slack.md`, State) |
+| `Not filed: repository_not_allowed` | The factory has not rolled since row 2 of step 5 changed: `kubectl -n agent-system rollout status deploy/agent-factory` |
+| `Not decided: only this room's approvers decide here` (`result=not_permitted`) | The clicker is neither the room's owner nor one of its approvers (the CR's `spec.members[].approver`). A ZITADEL admin outside the CR cannot decide from Slack (D15); they decide on the room page |
+| `Not decided: your GitHub account cannot write to this room's repository` (`result=repository_permission`) | The linked GitHub login has read only on that repository |
+| `Not decided: you prompted this run` (`result=four_eyes`) | The clicker prompted the run, so another approver decides it |
+| `Not decided: the factory could not be reached just now` (`result=unavailable`) | The broker's `human.slackDecide` is off, or the store, the room or the log could not be read. Check `human.slackDecide` first, then the broker's logs |
 
 The series: `factory_slack_requests_total{route,outcome}`, `maku_factory_api_intake_total`,
 `maku_rooms_webhook_deliveries_total`. Turning it off again is [runbook 18, section 8](18-factory-interfaces.md#8-off-again).

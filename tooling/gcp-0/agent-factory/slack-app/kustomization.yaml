@@ -6,15 +6,6 @@ kind: Kustomization
 resources:
   - ../../../base/agent-factory/slack-app
 
-# The App's config is gcp-0's own full copy (teamID and channels filled): behavior replace swaps
-# the base's generated ConfigMap, keeping the content-hash suffix that rolls the pod.
-configMapGenerator:
-  - name: factory-slack-app-config
-    namespace: agent-system
-    behavior: replace
-    files:
-      - config.yaml
-
 patches:
   # ZITADEL on gcp-0 is this cluster's own Gateway VIP: Envoy enforces policy on its runtime listener
   # port, so any toPorts fails (ruling AU, as ../kustomization.yaml's patch of the agent-factory CNP).

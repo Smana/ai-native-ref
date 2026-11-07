@@ -263,7 +263,7 @@ grep 'http.status=403' <<<"$gwlog" | grep -q 'jwt.sub=system:serviceaccount:agen
 rpc() {
   : > "$tmp/mcp.jsonl"
   local code
-  code="$(curl -s -o "$tmp/rpc.out" -w '%{http_code}' --max-time 10 "http://127.0.0.1:$gw_port/mcp" \
+  code="$(curl -s -o "$tmp/rpc.out" -w '%{http_code}' --max-time 30 "http://127.0.0.1:$gw_port/mcp" \
     -H "authorization: Bearer $(cat "$tmp/$1.jwt")" -H 'content-type: application/json' \
     -H 'accept: application/json, text/event-stream' -H 'mcp-protocol-version: 2025-06-18' -d "$2")"
   echo "$code $(python3 -c 'import json,sys; l=open(sys.argv[1]).read().splitlines(); print(json.dumps(json.loads(l[-1])["arguments"], sort_keys=True, separators=(",", ":")) if l else "-")' "$tmp/mcp.jsonl")"

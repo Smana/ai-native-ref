@@ -5,9 +5,8 @@ kind: Kustomization
 # (GCP parity GP-14). The Flux child for aws-0 points here.
 resources:
   - ../../base/room-broker
-  # RunLore's session switch (RK15), off: list externalsecret-webhook-runlore.yaml here, so nothing syncs a key
-  # nobody seeded (runbook 25).
-  # - externalsecret-webhook-runlore.yaml
+  # RunLore's session switch (RK15), on for a session (runbook 25).
+  - externalsecret-webhook-runlore.yaml
 
 # This config.yaml is base's plus the Slack App's keys, the planner on and two session switches (its header says which).
 configMapGenerator:

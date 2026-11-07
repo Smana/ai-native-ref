@@ -70,6 +70,9 @@ human:
       repositories: [Smana/ai-native-ref]      # the public repositories this boundary may plan for
       classes:
         docs-links: {roles: [scoper, implementer, reviewer], ceilingUSD: 2.00, source: "class:docs-links.taskUSD"}
+  # needs/v1 (CD21, CD28): one list, read by /api/needs and by the CLI. Read-only, so it ships on.
+  needs:
+    enabled: true
   # The developer's MCP server (base's copy says why). sessionStart is a session switch: a live
   # session lists the one repository runbook 19 (or the showcase, runbook 23) starts from, and empties
   # it after; sponsored declares the Slack App (runbook 18): the same name as the factory's

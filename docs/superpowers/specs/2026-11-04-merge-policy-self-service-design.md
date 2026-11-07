@@ -461,6 +461,7 @@ central-only configuration remains supported for one deprecation cycle, and a co
 mixing legacy and repository-authoritative shapes for the same repository fails validation.
 
 Feature flags, all default off: `policyManagement.read`, `policyManagement.simulation`,
+`policyManagement.dualEvaluation` (stage 3, added by [its plan](../plans/2026-11-07-merge-policy-stage-3-dual-evaluation-plan.md)),
 `policyManagement.repositoryAuthority`, `policyManagement.approvalMemory`, and
 `policyManagement.promotion`.
 

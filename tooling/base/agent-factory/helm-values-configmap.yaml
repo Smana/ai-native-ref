@@ -29,8 +29,10 @@ data:
       # The ownership fence (agent-platform v0.14.0): a repository is acted on only while its
       # .github/agent-factory.yaml names this factory, so aws-0 and gcp-0 never take the same issue.
       factory: ${cluster_name}
-      # Merge policy stage 1: what a repository's class may reference (MP2). Read only by the
-      # observer, which is off: template, tier and loop stay what the factory selects today.
+      # Merge policy stage 1: what a repository's class may reference (MP2), read by the observer.
+      # It compares each owned repository's .github/agent-factory.yaml classes with this config and
+      # decides nothing: template, tier and loop stay what the factory selects today.
+      policyManagement: {read: true}
       harnessProfiles:
         plain: {}
         checked: {checks: true}

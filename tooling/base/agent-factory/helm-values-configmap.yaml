@@ -346,6 +346,17 @@ data:
         # continuations 2 by default), so split parts and test-first tasks are judged; the judge reads
         # the head's GitHub check runs, so checks: false on the class is fine.
         scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}, judge: tier-light}
+        # A second-family reviewer on the classes the merge gate may merge without a person: the
+        # live ones and the two shadowed toward going live. A reviewer on the implementer's model
+        # shares its blind spots, and here its approval is the only review. The reviewer runs on
+        # the other tier, frontier for every task today (no classifier), so kimi-frontier applies.
+        # Public tasks only (maku pins no provider alias on an internal task); Kimi processes in
+        # China. A row with only models keeps the loop and the scoper off. ADR-0058 kept the GLM
+        # reviewer because no other family had a public route; Kimi has had one since v3.
+        docs-links: {models: {reviewer: {frontier: kimi-frontier}}}
+        revert: {models: {reviewer: {frontier: kimi-frontier}}}
+        dead-links: {models: {reviewer: {frontier: kimi-frontier}}}
+        deps-patch: {models: {reviewer: {frontier: kimi-frontier}}}
       # search: true on the docs row (above) offers that class's implementer runs the search tool
       # (agent-platform v3 feature 5): a read-only child on the run's token, 40 iterations, 300k
       # tokens, 300 s, six a run. No other class has it (D4): the gcp-0 session of 2026-10-27 flips

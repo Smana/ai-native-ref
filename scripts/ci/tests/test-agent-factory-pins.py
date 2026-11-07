@@ -56,6 +56,11 @@ for repo in yaml.safe_load(cm["data"]["values.yaml"])["config"]["repositories"]:
         problems.append(f"repository {repo['name']}: merge.approveToMerge is not true")
     if merge.get("breaker", {}).get("recoverAfter") != 3:
         problems.append(f"repository {repo['name']}: merge.breaker.recoverAfter is not 3")
+    # Maku's validation refuses a leakScanCheck that is not in both lists (K12): `validate` standing in
+    # for it would escalate an invalid entry as a live credential.
+    leak = merge.get("leakScanCheck")
+    if leak and not (leak in merge.get("requiredChecks", []) and leak in merge.get("verifyChecks", [])):
+        problems.append(f"repository {repo['name']}: leakScanCheck {leak!r} is not in both requiredChecks and verifyChecks")
 
 for p in problems:
     print(f"FAIL: {p}")

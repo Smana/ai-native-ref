@@ -78,7 +78,11 @@ cm = yaml.safe_load((HOST / "tooling/base/agent-factory/helm-values-configmap.ya
 config = yaml.safe_load(cm["data"]["values.yaml"])["config"]
 fails = []
 for r in config["repositories"]:
-    fails += check(r["name"], r.get("classes") or {}, yaml.safe_load(POLICY[r["name"]].read_text()))
+    # A repository whose policy file is not in this tree has its fence checked by that repository's
+    # own `.policy.yml` (Task 10 of the RunLore knowledge base plan: Smana/runlore-kb).
+    if (path := POLICY.get(r["name"])) is None:
+        continue
+    fails += check(r["name"], r.get("classes") or {}, yaml.safe_load(path.read_text()))
 
 # Offline proof 11, on the host's real rule: dead-links' fence as the factory declares it on the
 # host agrees with docs-links' rule renamed, and a deliberate mismatch is caught.

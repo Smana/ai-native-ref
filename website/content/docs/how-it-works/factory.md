@@ -1,5 +1,7 @@
 ---
 title: Factory
+aliases:
+  - /docs/platform/ai-platform/agents/how-it-works/factory/
 weight: 20
 description: "From a labelled issue to a merged PR: intake, triage, teams, revise, the merge gate and the kill switch."
 lastVerified: 2026-10-31

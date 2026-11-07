@@ -1,5 +1,7 @@
 ---
 title: Status and roadmap
+aliases:
+  - /docs/platform/ai-platform/status/
 linkTitle: Status
 weight: 60
 description: "The one place state lives: what is available, what is experimental, what is planned, and the known limitations."

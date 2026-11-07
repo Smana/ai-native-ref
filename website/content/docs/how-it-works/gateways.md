@@ -1,5 +1,7 @@
 ---
 title: Gateways
+aliases:
+  - /docs/platform/ai-platform/gateways/
 weight: 70
 description: "Two gateways, one per kind of caller: ai-gateway for humans and coding clients, the agent gateway for agent runs — identity, routing, and what they share."
 lastVerified: 2026-10-29

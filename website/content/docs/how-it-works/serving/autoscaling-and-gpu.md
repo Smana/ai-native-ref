@@ -1,5 +1,7 @@
 ---
 title: Autoscaling & GPUs
+aliases:
+  - /docs/platform/ai-platform/serving/autoscaling-and-gpu/
 weight: 10
 description: Three KEDA triggers on leading vLLM signals, why minReplicas is never zero, and the GPU and storage foundation underneath.
 lastVerified: 2026-10-20

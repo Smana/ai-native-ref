@@ -1,5 +1,7 @@
 ---
 title: Slack
+aliases:
+  - /docs/platform/ai-platform/agents/use/slack/
 weight: 20
 description: "Hand work to the factory from a Slack thread: mention it in your own words, change the proposal by reply, a maintainer confirms it, the thread answers five questions, and a push approval is one card you press."
 lastVerified: 2026-11-05

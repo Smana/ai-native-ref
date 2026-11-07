@@ -1,5 +1,8 @@
 ---
 title: AI Platform
+aliases:
+  - /docs/platform/
+  - /docs/platform/ai-platform/
 linkTitle: Get started
 weight: 10
 description: "Self-hosted model serving and the Agent Factory, which puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."

@@ -1,5 +1,7 @@
 ---
 title: Harness tuning
+aliases:
+  - /docs/platform/ai-platform/agents/tune/harness/
 linkTitle: Tune a run
 weight: 10
 description: "How to tune an agent run: which lever moves cost, time and quality, how to measure a change, what goes wrong and how to fix it."

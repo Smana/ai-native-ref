@@ -1,5 +1,7 @@
 ---
 title: Providers
+aliases:
+  - /docs/platform/ai-platform/agents/how-it-works/providers/
 weight: 50
 description: "Moonshot (Kimi K3.1 Pro) and Mistral (Medium, Small) as selectable providers for public work: what they are, where data is processed, and how a class switches them on."
 lastVerified: 2026-10-29

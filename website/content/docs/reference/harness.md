@@ -1,5 +1,7 @@
 ---
 title: Harness reference
+aliases:
+  - /docs/platform/ai-platform/agents/tune/harness-reference/
 weight: 10
 description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its example value, what it does, its bounds, and whether it is on by default."
 lastVerified: 2026-10-31

@@ -1,5 +1,7 @@
 ---
 title: Rooms
+aliases:
+  - /docs/platform/ai-platform/agents/how-it-works/rooms/
 weight: 30
 description: "The shared, append-only log of a task: the broker, the bridge, the web view, steering, room tools, approvals, and maku."
 lastVerified: 2026-10-31

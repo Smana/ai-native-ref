@@ -1,5 +1,7 @@
 ---
 title: Use the factory
+aliases:
+  - /docs/platform/ai-platform/agents/use/
 linkTitle: Use
 weight: 20
 description: "File a task, follow it in its room, steer it and stop it, from the browser, Slack or your coding agent."

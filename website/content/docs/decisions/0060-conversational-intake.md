@@ -97,6 +97,12 @@ alone, with gcp-0 torn down, and the planner had no cluster to run on otherwise.
 The planner's key, mounts and network rules were already in base on both clouds; only the switch
 differs. This is the "another cluster" change the Neutral consequence below names, reviewed on its own.
 
+**Amendment, 2026-11-07 (second repository):** the planner's allowlist adds `Smana/runlore-kb`, on
+every copy, so that a coordination plan (`coordination: plan`, aws-0 only) can name the platform and
+its knowledge base together. Nothing else widens: runlore-kb is public, the factory already serves
+it (fenced to aws-0), and the class each plan names is still checked against that repository's own
+class table. This is the "second repository" change the Neutral consequence below names.
+
 ---
 
 ## Consequences

@@ -47,7 +47,7 @@ cat > "$tmp/tests.yaml" <<EOT
 rule_files: [rules.yaml]
 evaluation_interval: 1m
 tests:
-  # Five approvals inside ten minutes read exactly 5 through increase() and stay silent: `> 5` is
+  # Five approvals inside ten minutes read exactly 5 through increase() and stay silent: \`> 5\` is
   # the boundary, and it holds at the burst and ten minutes later.
   - interval: 1m
     input_series:

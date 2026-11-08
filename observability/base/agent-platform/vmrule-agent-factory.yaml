@@ -158,6 +158,51 @@ spec:
             description: "Its .github/agent-factory.yaml on the default branch is absent, unparsable, or names another factory (a read failing for 15 minutes counts too): no intake, schedules, API runs or merges there. Check the file, then: kubectl logs -n agent-system -l app.kubernetes.io/name=agent-factory --prefix | grep -i fence"
             runbook_url: "https://github.com/Smana/agent-platform/blob/main/docs/operations.md#factory-alerts"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        # v4 coordination (design "Metrics, traces and alerts"). The counters are born at their first
+        # increment, which promtool's increase() reads as 0, so each compares with the window's start,
+        # absence read as 0 (as AgentMeterInputExcludesCache). The switch off records no series.
+        # AgentFactoryCoordinationRecoveryRequired is not here: Maku exports a recovery only when it
+        # ends (wait_seconds{reason="recovery"}), so no series says one is standing.
+        - alert: AgentFactoryCoordinationIntegrationFailed
+          expr: sum by (repository, purpose, result) (clamp_min(maku_factory_coordination_integration_runs_total{result=~"checks_failed|infrastructure_failed"} - (maku_factory_coordination_integration_runs_total offset 15m or maku_factory_coordination_integration_runs_total * 0), 0)) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "A {{ $labels.purpose }} integration run on {{ $labels.repository }} ended {{ $labels.result }}"
+            description: "The dependent merge stays held (beforeDependentMerge) or the parent stays incomplete (final); the parent proposes one recovery. checks_failed: the exact heads do not work together. infrastructure_failed: the integration Task escalated, resume it within the plan's maxRuns. kubectl get task -n agent-system -o wide | grep Coordinating"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-05-v4-multi-repo-coordination-design.md#metrics-traces-and-alerts"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryCoordinationAuthorizationLost
+          # MR6/"Fence, class or write permission lost": the checks re-run at each child's admission
+          # and resume. The counter also counts a filing refused for the same reasons, which never
+          # had the authority: the description says how to tell them apart.
+          expr: sum by (repository, reason) (clamp_min(maku_factory_coordination_admission_refusals_total{reason=~"repository_permission|repository_not_owned|app_unavailable|class_not_allowed|policy_changed"} - (maku_factory_coordination_admission_refusals_total offset 15m or maku_factory_coordination_admission_refusals_total * 0), 0)) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "Coordination on {{ $labels.repository }} was refused: {{ $labels.reason }}"
+            description: "New admission there and in its dependents stops; existing per-repository gates still decide current work. Restore the fence, the App installation, the maintainer's write or the class, then a maintainer of {{ $labels.repository }} authorizes the child again (authorize_child), or revise the plan. A refusal at filing (no child Task yet) is a plan that never had the authority. kubectl get task -n agent-system -o wide | grep Coordinating"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-05-v4-multi-repo-coordination-design.md#metrics-traces-and-alerts"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryCoordinationStalled
+          # Per primary, not per family: no family label exists (security 6), so one moving family
+          # hides a stalled sibling on the same primary. Counted: the primary-labelled series.
+          expr: |
+            (sum by (repository) (maku_factory_tasks{phase="Coordinating"}) > 0)
+            unless on (repository) (
+                 sum by (repository) (clamp_min(maku_factory_coordination_families_total - (maku_factory_coordination_families_total offset 24h or maku_factory_coordination_families_total * 0), 0)) > 0
+              or sum by (repository) (clamp_min(maku_factory_coordination_plan_versions_total - (maku_factory_coordination_plan_versions_total offset 24h or maku_factory_coordination_plan_versions_total * 0), 0)) > 0
+              or sum by (repository) (clamp_min(maku_factory_coordination_integration_runs_total - (maku_factory_coordination_integration_runs_total offset 24h or maku_factory_coordination_integration_runs_total * 0), 0)) > 0
+              or sum by (repository) (clamp_min(maku_factory_coordination_wait_seconds_count - (maku_factory_coordination_wait_seconds_count offset 24h or maku_factory_coordination_wait_seconds_count * 0), 0)) > 0
+            )
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "No coordination family on {{ $labels.repository }} has changed state for 24 hours"
+            description: "A parent is Coordinating with no family filed or done, plan version, integration run or ended wait on that primary in 24 hours. It usually waits on a person: a confirmation, a child authorization or the one recovery the parent page shows. kubectl get task -n agent-system -o wide | grep Coordinating, then the parent's room page."
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-05-v4-multi-repo-coordination-design.md#metrics-traces-and-alerts"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentModelUnpriced
           # J-AC4: a model served a run with no meter.prices row. The run is held to its token
           # caps, never metered at $0, but a USD cap cannot bite on it.

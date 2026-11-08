@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/maku-factory
-      # maku v0.39.0, the chart's appVersion.
+      # maku v0.40.0, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
-      tag: "v0.39.0@sha256:80f1fb1460622adfeda41e4baffa424b99bcf201c3a7d5df58195a4654796f0e"
+      tag: "v0.40.0@sha256:2e1b97cad1287e66f7e2b5a00d055c6521e26ea3df5b61b64f56722f816d2bdf"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.

@@ -223,6 +223,8 @@ reconciles labels, refreshes entry pull requests and rewrites the issue, force-p
 kubectl -n runlore exec runlore-0 -- lore curate queue-issue --config /etc/runlore/runlore.yaml
 ```
 
+First run: [2026-11-08](results-runlore-kb-live-4-2026-11-08.md).
+
 The `stale_after: 720h` change in the host merges after the session's switch-off, not during it: a restart at
 `720h` would make the first sweep a full interval later, and the session would not see it.
 

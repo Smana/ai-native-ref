@@ -161,8 +161,17 @@ spec:
         # v4 coordination (design "Metrics, traces and alerts"). The counters are born at their first
         # increment, which promtool's increase() reads as 0, so each compares with the window's start,
         # absence read as 0 (as AgentMeterInputExcludesCache). The switch off records no series.
-        # AgentFactoryCoordinationRecoveryRequired is not here: Maku exports a recovery only when it
-        # ends (wait_seconds{reason="recovery"}), so no series says one is standing.
+        - alert: AgentFactoryCoordinationRecoveryRequired
+          # The gauge ships after Maku v0.39.0 (the pin): until a release carrying it is pinned, this
+          # matches nothing. Leader only, hence max().
+          expr: max by (repository) (maku_factory_coordination_recovery_age_seconds) > 900
+          labels:
+            severity: warning
+          annotations:
+            summary: "A coordination family on {{ $labels.repository }} has waited on its recovery for over 15 minutes"
+            description: "The parent proposes exactly one next action (retry_child, resume_child, revise_plan, increase_budget, retry_producer, retry_dependent, retry_integration, rerun_integration or authorize_child) and never takes it itself. Open the parent's room page and act on it, or revise the plan. kubectl get task -n agent-system -o wide | grep Coordinating"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-05-v4-multi-repo-coordination-design.md#metrics-traces-and-alerts"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryCoordinationIntegrationFailed
           expr: sum by (repository, purpose, result) (clamp_min(maku_factory_coordination_integration_runs_total{result=~"checks_failed|infrastructure_failed"} - (maku_factory_coordination_integration_runs_total offset 15m or maku_factory_coordination_integration_runs_total * 0), 0)) > 0
           labels:

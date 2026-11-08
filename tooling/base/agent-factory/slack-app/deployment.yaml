@@ -30,7 +30,7 @@ spec:
       containers:
         - name: factory-slack-app
           # maku v0.40.1, by digest, with the factory's and the broker's pins.
-          image: ghcr.io/smana/maku-slack:v0.40.1@sha256:a5414bbdcd1025aaa75cc694e2d96a9005e7168c1b3825b5262800d8687cbccf
+          image: ghcr.io/smana/maku-slack:v0.40.2-pr418.ab0ed2a1@sha256:82f0a1b5fbc6f1c8c1e2ab5488ee81d3da163f230ac47dca332017f1d454bf6a
           args: ["--config", "/etc/factory-slack-app/config/config.yaml"]
           ports:
             - {name: events, containerPort: 8080}

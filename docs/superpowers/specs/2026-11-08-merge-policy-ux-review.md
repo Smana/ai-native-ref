@@ -200,7 +200,8 @@ and no hand-written YAML, which meets the spec's "under ten minutes without hand
 | # | Item | Pri | Effort | Risk | Status |
 |---|---|---|---|---|---|
 | 1 | Validation: located unknown keys with the key meant (aliases from policy-bot, Mergify, Renovate), a "how" for the required classes, no unbounded live/shadow agents class | **P0** | S | Low: repository files only, real files still pass | [Maku #409](https://github.com/Smana/maku/pull/409) |
-| 2 | Editor: templates get a profile their author may take; a first class brings `docs-links` and `revert` as `off` | **P0** | S | Low: UI and one additive API field | [Maku #412](https://github.com/Smana/maku/pull/412) |
+| 2 | Editor: templates get a profile their author may take; a first class brings `docs-links` and `revert` as `off`; `deps-patch` gains the `modifyOnly: true` every semver shape needs, and a shadow-only `deps-minor` joins it | **P0** | S | Low: UI and one additive API field | [Maku #412](https://github.com/Smana/maku/pull/412) |
+| 2b | Guide wording: "Merge and create rule" saves the grant and leaves this PR to a human merge; simulation is a fixture replay; `maku policy check` means equivalent to central, not valid | **P0** | XS | None | Maku #408 (the guide) |
 | 3 | Central `mergeGuardrails` as above, landed with the cloud-native-ref cutover | P1 | S | Medium: changes dual-evaluation agreement if landed alone | — |
 | 4 | Generate the policy-bot `low-risk:` rule from a class (`maku policy bot-rule <class>`), shown beside the file in the editor | P1 | M | Low: output checked by the existing parity test | — |
 | 5 | `maku policy init` writing the starter file, with the guide's defaults | P1 | S | Low | — |
@@ -211,6 +212,28 @@ and no hand-written YAML, which meets the spec's "under ten minutes without hand
 | 10 | One `policyManagement.stage` switch in place of six booleans | P2 | S | Low | — |
 | 11 | CODEOWNERS-backed `requiresApproval` | P2 | M | Low | — |
 | 12 | A per-class reason histogram on the settings page | P2 | S | Low | — |
+
+### Spec-to-code gaps found while writing the guide
+
+Found by the guide's author (Maku #408) and folded in here. Items 1 to 3 are verified in the code.
+
+| # | Gap | Pri | Note |
+|---|---|---|---|
+| G1 | The `deps-patch` template lacked `modifyOnly`, so it failed its first Check; there was no `deps-minor` template | **P0** | Fixed in #412. Protected paths and the Flux monitor stay per repository |
+| G2 | "Merge and create rule" merges nothing: `approval_required` is not in `reenter`'s transient list (`reconciler/merge.go`), no prefilled link reaches it, and the server does not check that the PR is in a live approval subset | P1 | Behind `approvalMemory`, which is off everywhere. Re-enter only when a grant now covers the decision |
+| G3 | Simulation replays only the conformance fixtures, so under a real config every row reads "the fixture recorded another central decision" | P1 | Same as item 8 |
+| G4 | A relaxation's demotion to shadow is held in memory only | P1 | A restart forgets it |
+| G5 | `maku policy check` tests equivalence with the central config, so a new class fails it | P1 | Add `maku policy validate` (Parse + Validate) |
+| G6 | Generated policy-bot rules are missing, and the parity tests skip cut-over repositories | P1 | Same as item 4 |
+| G7 | No tool rolls a repository back from repository to central authority | P1 | `maku policy export` covers half of it |
+| G8 | The gate checks deny after `allowedFiles` (MP6 says deny first) | P1 | Same verdict, different reason in the record |
+| G9 | Harness `tier` and `loop` are applied nowhere; a harness change neither resets evidence nor suspends grants | P2 | — |
+| G10 | No breaker-floor guardrails | P2 | — |
+| G11 | Grant matching lacks ecosystem, update-type and evidence attributes; no expiry warnings | P2 | — |
+| G12 | Spec metrics and alerts are missing (`shadow_evidence`, `simulation_runs`, a grant label, policy-invalid alerts) | P2 | The policy-invalid alert is the one to do first |
+| G13 | The `merge_policy_snapshots`, `merge_decisions` and `merge_outcomes` tables are missing | P2 | PR markers remain the record |
+| G14 | Decision records carry no base-branch or guardrail hash; the timeline maps `policy_unavailable`/`policy_invalid` to no stage | P2 | — |
+| G15 | No settings link from the room list | P2 | — |
 
 ## What the guide and the YAML mode should change
 

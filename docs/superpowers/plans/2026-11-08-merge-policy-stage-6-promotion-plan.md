@@ -139,7 +139,7 @@ func TestPolicyManagementConfig(t *testing.T) {
  	"slices"
 +	"strings"
  )
- 
+
  // TemplateNone is the harness of an adopted class: another author's pull requests, no run.
 @@ -52,6 +53,18 @@ type MergeGuardrails struct {
  	MaxPatchFiles    int      `json:"maxPatchFiles,omitempty"`
@@ -158,7 +158,7 @@ func TestPolicyManagementConfig(t *testing.T) {
 +func (g MergeGuardrails) MinPromotion() int {
 +	return max(g.MinPromotionEvidence, DefaultMinPromotionEvidence)
  }
- 
+
  // PolicyManagement holds the rollout's switches, all off by default (merge policy stages).
 @@ -66,6 +79,31 @@ type PolicyManagement struct {
  	// Read last observed it, and records whether the two agree (stage 3). It decides nothing: the
@@ -190,7 +190,7 @@ func TestPolicyManagementConfig(t *testing.T) {
 +		}
 +	}
  }
- 
+
  var profileRE = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]{0,38}[a-z0-9])?$`)
 @@ -92,10 +130,11 @@ func (c *Config) validateMergePolicy(bad func(string, ...any)) {
  			bad("harnessProfiles.%s: template none runs nothing, so it takes no other key", name)
@@ -219,7 +219,7 @@ func TestPolicyManagementConfig(t *testing.T) {
 +	// operators approve exceptions. The broker reads nothing else of it.
 +	PolicyManagement fconfig.PolicyManagement `json:"policyManagement,omitzero"`
  }
- 
+
  // WebhookConfig is one subscriber (factory interfaces F6, O7): declared here because subscribers
 @@ -725,6 +729,10 @@ func (c *Config) Validate() error {
  		// tool that would refuse every request.
@@ -231,7 +231,7 @@ func TestPolicyManagementConfig(t *testing.T) {
 +	}
  	return errors.Join(errs...)
  }
- 
+
 ```
 
 - [ ] **Step 4: Run the same command again**: PASS.
@@ -2007,7 +2007,7 @@ func (s *Server) policyDecisions(w http.ResponseWriter, r *http.Request) {
 @@ -53,6 +53,25 @@ func (a GitHubAccess) Person(ctx context.Context, p authn.Principal, repository
  	return factoryv1.Person(login), nil
  }
- 
+
 +// CanRead implements ReadChecker: read or higher, through the same link CanWrite resolves. A Perms
 +// without CanRead reads nothing.
 +func (a GitHubAccess) CanRead(ctx context.Context, p authn.Principal, repository string) (bool, error) {
@@ -2040,7 +2040,7 @@ func (s *Server) policyDecisions(w http.ResponseWriter, r *http.Request) {
 +	// Editor is the settings editor's check and the decision timeline, served beside Evidence.
 +	Editor PolicyEditor
  }
- 
+
  // SlackLinkReader is the broker's self-serve link records: the ZITADEL sub a Slack user linked;
 @@ -165,6 +170,14 @@ func (s *Server) Handler() http.Handler {
  		mux.HandleFunc("POST /v1/coordinations/{task}/confirmations", s.confirmCoordination)
@@ -2056,7 +2056,7 @@ func (s *Server) policyDecisions(w http.ResponseWriter, r *http.Request) {
 +	}
  	return mux
  }
- 
+
 ```
 
 ```diff
@@ -2860,7 +2860,7 @@ func (f Factory) PolicyDecisions(ctx context.Context, accessToken, repository st
 +	// policyChanges is rooms_policy_changes_total{repository,class,change} (merge policy stage 6):
 +	// the promotion workflow's records, by a closed change.
 +	policyChanges metric.Int64Counter
- 
+
  	meter             metric.Meter
  	appended          metric.Int64Counter
 @@ -310,6 +313,9 @@ func New(meter metric.Meter) (*Set, error) {
@@ -2876,7 +2876,7 @@ func (f Factory) PolicyDecisions(ctx context.Context, accessToken, repository st
 @@ -444,6 +450,22 @@ func closed(set map[string]bool, v string) string {
  	return "other"
  }
- 
+
 +// PolicyChanges are rooms_policy_changes_total's change values.
 +func PolicyChanges() []string {
 +	return []string{"promotion_requested", "promotion_pr_opened", "promotion_merged", "promotion_abandoned",
@@ -2910,7 +2910,7 @@ func (f Factory) PolicyDecisions(ctx context.Context, accessToken, repository st
 @@ -582,6 +583,17 @@ func coordinationViews(cfg config.Config, r client.Reader, ns string) humanapi.C
  	return coordinationview.Source{Reader: r, Namespace: ns}
  }
- 
+
 +// policyWorkflow is the promotion workflow (merge policy stage 6): nil while
 +// policyManagement.promotion is off, which serves no settings page and no policy route. The
 +// evidence is the factory's, read with the caller's own token at the config's URL, never a request's.
@@ -2932,7 +2932,7 @@ func (f Factory) PolicyDecisions(ctx context.Context, accessToken, repository st
 +	// Policy is the promotion workflow (policyManagement.promotion, merge policy stage 6): the
 +	// settings pages and the policy API. Nil serves neither: each path is the mux's 404.
 +	Policy *Policy
- 
+
  	// Connection bounds; zero takes the default.
  	HelloWait time.Duration // the first frame must arrive within it (10 s)
 @@ -240,6 +243,9 @@ func (s *Server) Routes() http.Handler {
@@ -3208,16 +3208,16 @@ export function cleanClass(c: ClassPolicy): ClassPolicy {
 
 ```diff
 @@ -2,6 +2,7 @@
- 
+
  import { fetchDashboards } from "./dashboards";
  import { mountRoom } from "./room";
 +import { isSettings, mountSettings } from "./settings";
  import { initTheme } from "./theme";
  import { listRooms } from "./view";
- 
+
 @@ -12,4 +13,6 @@ const app = document.getElementById("app")!;
  const theme = initTheme();
- 
+
  const m = location.pathname.match(/^\/r\/([a-z2-7]{8})$/);
 -if (m) mountRoom(app, m[1], theme, { dashboards: () => fetchDashboards(fetch) }); else void listRooms(app, fetch, {}, theme);
 +if (m) mountRoom(app, m[1], theme, { dashboards: () => fetchDashboards(fetch) });

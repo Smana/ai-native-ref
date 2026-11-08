@@ -195,7 +195,7 @@ index 673adaf4..40948389 100644
 +	// classSource is a cut-over repository's classes (SetClassSource).
 +	classSource func(repository string) (map[string]Class, bool)
  }
- 
+
 @@ -312,4 +314,7 @@ type Repository struct {
  	Schedules    []Schedule       `json:"schedules,omitempty"`
  	Checks       Checks           `json:"checks,omitzero"`
@@ -203,7 +203,7 @@ index 673adaf4..40948389 100644
 +	// .github/agent-factory.yaml's, with policyManagement.repositoryAuthority on (stage 4, MP15).
 +	ClassAuthority string `json:"classAuthority,omitempty"`
  }
- 
+
 @@ -352,4 +357,7 @@ func (r *Repository) IsMaintainer(login string) bool {
  // monitor reads main's checks and writes labels through the merger App.
  func (r *Repository) NeedsMerger() bool {
@@ -228,7 +228,7 @@ index 673adaf4..40948389 100644
  	}
  	return []Repository{c.legacyRepository()}
  }
- 
+
 +// withSource is rs with each cut-over repository's classes read from the source, on a copy: the
 +// config itself is never written. Without a cut-over repository it is rs.
 +func (c *Config) withSource(rs []Repository) []Repository {
@@ -291,7 +291,7 @@ index 0da9168d..c247a367 100644
 +	// policy pauses its auto-merge; human merges continue. Needs Read.
 +	RepositoryAuthority bool `json:"repositoryAuthority,omitempty"`
  }
- 
+
 +// The class authorities of a repository (MP15): central classes, or the repository's own file.
 +const (
 +	ClassAuthorityCentral    = "central"
@@ -299,7 +299,7 @@ index 0da9168d..c247a367 100644
 +)
 +
  var profileRE = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]{0,38}[a-z0-9])?$`)
- 
+
 @@ -96,4 +106,7 @@ func (c *Config) validateMergePolicy(bad func(string, ...any)) {
  		bad("policyManagement.dualEvaluation needs read: it evaluates the policy read observes")
  	}
@@ -503,7 +503,7 @@ index 13dcd52a..cfc1929c 100644
 +++ b/internal/factory/mergepolicy/resolve.go
 @@ -35,4 +35,23 @@ func (r Resolved) Variants() []config.Class {
  }
- 
+
 +// inShadow is r with every live variant in shadow (stage 4's pause and MP8's demotion).
 +func (r Resolved) inShadow() Resolved {
 +	shadow := func(cl config.Class) config.Class {
@@ -537,7 +537,7 @@ index 4ad0b955..edf49450 100644
  	"strings"
 @@ -15,9 +16,19 @@ import (
  )
- 
+
 -// The reasons a policy fails to load. Unreadable and stale arrive with repository authority: until
 -// then the fence's own metric reports a failed read, and nothing depends on a fresh policy.
 +// The reasons a policy fails to load. Unreadable and stale are counted by the gate of a cut-over
@@ -558,27 +558,27 @@ index 4ad0b955..edf49450 100644
 +	ErrStale      = errors.New("the repository policy's last read is older than the fence's staleness window")
 +	ErrInvalid    = errors.New("the repository policy is invalid or declares no class")
  )
- 
+
 @@ -26,4 +37,5 @@ type Recorder interface {
  	PolicyLoadError(ctx context.Context, repository, reason string)
  	PolicyDivergence(ctx context.Context, repository string, n int)
 +	PolicyChange(ctx context.Context, repository, class, change string)
  }
- 
+
 @@ -37,4 +49,6 @@ type Snapshot struct {
  	Classes     map[string]Resolved
  	Read        time.Time
 +	// File is the parsed file of a valid snapshot, for the next one's structural comparison.
 +	File *File
  }
- 
+
 @@ -46,8 +60,13 @@ type Watch struct {
  	Log     *slog.Logger
  	Now     func() time.Time
 +	// Stale is how old a cut-over repository's last read may be and still decide (the fence's
 +	// staleness window); 0 never ages.
 +	Stale time.Duration
- 
+
  	mu          sync.RWMutex
  	state       map[string]Snapshot
 -	evaluations int // files parsed and validated, for the cache's test
@@ -586,7 +586,7 @@ index 4ad0b955..edf49450 100644
 +	demoted     map[string]map[string][]string // a cut-over repository's relaxed live classes, and why
 +	evaluations int                            // files parsed and validated, for the cache's test
  }
- 
+
 @@ -79,13 +98,27 @@ func (w *Watch) Observe(ctx context.Context, repository string, body []byte) {
  	case s.Err != nil:
  		w.Metrics.PolicyLoadError(ctx, repository, ReasonInvalid)
@@ -629,7 +629,7 @@ index 4ad0b955..edf49450 100644
  	for name, p := range f.Classes {
 @@ -136,4 +172,87 @@ func (w *Watch) Snapshot(repository string) (Snapshot, bool) {
  }
- 
+
 +// demote compares a cut-over repository's new valid file with its last (MP8), under w.mu: a
 +// relaxation of a class the new file declares live runs that class in shadow until the process
 +// restarts. It returns the changes that are not unchanged, for the caller to count. A comparison
@@ -798,7 +798,7 @@ index e5530333..3a55c689 100644
  		metric.WithDescription("Merge decisions decided again under the repository's policy (stage 3), by agreement: agree, explained (the policy differs where the comparison says), unread (the diff it needed was not read), unexplained, or no_policy. Nothing is decided on it."))
 @@ -575,5 +579,17 @@ func (s *Set) RepositoryOwned(ctx context.Context, repository string, owned bool
  }
- 
+
 -func policyLoadReasons() []string { return []string{"invalid", "guardrail_mismatch"} }
 +func policyLoadReasons() []string {
 +	return []string{"invalid", "guardrail_mismatch", "unreadable", "stale"}
@@ -813,7 +813,7 @@ index e5530333..3a55c689 100644
 +	s.policyChanges.Add(ctx, 1, metric.WithAttributes(attribute.String("repository", s.repository(repository)),
 +		attribute.String("class", class), attribute.String("change", change)))
 +}
- 
+
  // PolicyLoadError counts a failed read of repository's merge policy; a reason outside the list is
 ```
 
@@ -1387,12 +1387,12 @@ index d535dc53..6e32d8f6 100644
 -| `policy=`, `dual=` | Only with `policyManagement.dualEvaluation`: the first 12 hex digits of the repository policy's hash (`-` when none was read) and how its decision compared, as `maku_factory_policy_dual_decisions_total` counts it |
 +| `policy=`, `dual=` | Only with `policyManagement.dualEvaluation`: the first 12 hex digits of the repository policy's hash (`-` when none was read) and how its decision compared, as `maku_factory_policy_dual_decisions_total` counts it. For a cut-over repository, `policy=` alone: the hash of the policy that decided |
  | `reviewer=` | The reviewer run's served models joined with `+`; `none` when the class has no reviewer run |
- 
+
 @@ -1477,4 +1477,5 @@ human-authored pull request changes it. Source: `internal/factory/config/config.
  | `policyManagement.simulation` | `true` lets `maku policy simulate` (a policy file decided on decision fixtures by the gate's own evaluator) and `maku policy diff` (tightening or relaxation, class by class) run against this config. Offline; turned off when the simulator disagrees with the gate | `false` |
  | `policyManagement.dualEvaluation` | `true` decides each merge decision again under the repository's policy as `read` last observed it, counts the agreement and writes it into the decision record. Needs `read`. Stage 3 decides nothing: merge authority stays central | `false` |
 +| `policyManagement.repositoryAuthority` | `true` lets a repository whose entry sets `classAuthority: repository` be decided on its own `.github/agent-factory.yaml`: the gate decides on its classes (every `any` branch, the `requiresApproval` subset asking a maintainer), and every other reader (triage, intake, schedules, the monitor) reads them. The entry declares no central `classes` (one authoritative source, MP15). A file not yet read or older than the fence's window waits (`policy_unavailable`); an invalid one hands off (`policy_invalid`); both pause auto-merge while human merges continue. A relaxation of a live class runs it in shadow. Needs `read`. Rollback: restore the repository's exported central classes and drop `classAuthority` | `false` |
- 
+
  Each `repositories` entry:
 diff --git a/docs/operations.md b/docs/operations.md
 index 98f85be6..c9b31110 100644

@@ -106,7 +106,7 @@ central decision never carries a grant). Stage 5's exit (Task 9) waits for stage
 @@ -48,6 +53,16 @@ func TestHarnessProfilesAndGuardrailsValidate(t *testing.T) {
  	}
  }
- 
+
 +// A grant lives 90 days unless the operator caps it lower (merge policy stage 5).
 +func TestGrantLifetimeDefaultsToNinetyDays(t *testing.T) {
 +	if got := (MergeGuardrails{}).GrantLifetime(); got != 90*24*time.Hour {
@@ -136,7 +136,7 @@ Expected: FAIL to build: unknown field `ApprovalMemory`, `MaxGrantLifetime`.
  	"slices"
 +	"time"
  )
- 
+
  // TemplateNone is the harness of an adopted class: another author's pull requests, no run.
 @@ -52,6 +53,23 @@ type MergeGuardrails struct {
  	MaxPatchFiles    int      `json:"maxPatchFiles,omitempty"`
@@ -160,7 +160,7 @@ Expected: FAIL to build: unknown field `ApprovalMemory`, `MaxGrantLifetime`.
 +	}
 +	return g.MaxGrantLifetime.Duration
  }
- 
+
  // PolicyManagement holds the rollout's switches, all off by default (merge policy stages).
 @@ -66,6 +84,10 @@ type PolicyManagement struct {
  	// Read last observed it, and records whether the two agree (stage 3). It decides nothing: the
@@ -171,7 +171,7 @@ Expected: FAIL to build: unknown field `ApprovalMemory`, `MaxGrantLifetime`.
 +	// Off, no grant is read. Needs Read: a grant is bound to the policy Read observes.
 +	ApprovalMemory bool `json:"approvalMemory,omitempty"`
  }
- 
+
  var profileRE = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]{0,38}[a-z0-9])?$`)
 @@ -95,6 +117,12 @@ func (c *Config) validateMergePolicy(bad func(string, ...any)) {
  	if pm := c.PolicyManagement; pm.DualEvaluation && !pm.Read {
@@ -1374,7 +1374,7 @@ func Exact(path string) string { return regexp.QuoteMeta(path) }
 +	// and then it does not print.
 +	Grant string
  }
- 
+
  // Marker is the hidden one-line record appended to the decision's comment. It is a line of its
  // own beside the comment's event marker (ruling R-m11), and class= lets the tally filter by
  // class (R-I9). An unread field prints "-" (R-m7): an empty string, and the counts of a diff not
@@ -1399,7 +1399,7 @@ func Exact(path string) string { return regexp.QuoteMeta(path) }
 +	"github.com/Smana/maku/internal/factory/grant"
  	"github.com/Smana/maku/internal/factory/steering"
  )
- 
+
 @@ -55,6 +56,20 @@ type ArmInputs struct {
  	// Integration is a coordination dependent's integration hold (v4 MR9), applied to every
  	// decision DecideArm returns.
@@ -1419,11 +1419,11 @@ func Exact(path string) string { return regexp.QuoteMeta(path) }
 +	PolicyHash string
 +	At         time.Time
  }
- 
+
  // ContractRead is the files a pull request changed since the tester's contract commit (row 2c).
 @@ -3,8 +3,12 @@
  package reconciler
- 
+
  import (
 +	"slices"
 +	"strings"
@@ -1432,10 +1432,10 @@ func Exact(path string) string { return regexp.QuoteMeta(path) }
  	"github.com/Smana/maku/internal/factory/filefence"
 +	"github.com/Smana/maku/internal/factory/grant"
  )
- 
+
  // DecideArmUnder is DecideArm with the task's class read from a repository's policy rather than
 @@ -47,7 +51,9 @@ func rank(d ArmDecision) int {
- 
+
  // withApproval applies the approval subset to a class decision: an arm or a shadow of the class,
  // not a maintainer's approval, which is a human's judgement already (AM1). The subset reads the
 -// diff and holds until it is read.
@@ -1966,7 +1966,7 @@ func (c *Client) grantDo(ctx context.Context, route, id string, in, out any) err
 +	ReasonNoGrant         = "no_grant"          // 404: no approval grant has that id
 +	ReasonGrantState      = "grant_state"       // 409: the grant's status or version does not allow the move
  )
- 
+
  // SSE event names, broker → bridge.
 @@ -124,6 +124,10 @@ type Server struct {
  	// either unset refuses it.
@@ -1997,7 +1997,7 @@ func (c *Client) grantDo(ctx context.Context, route, id string, in, out any) err
 +	// such as disabling a grant already revoked.
 +	ErrGrantState = errors.New("rooms: the grant does not move that way")
  )
- 
+
 -// Is matches ErrNoRoom, ErrNotPermitted, ErrSealed and ErrNoRoute.
 +// Is matches ErrNoRoom, ErrNotPermitted, ErrSealed, ErrNoRoute and ErrGrantState.
  func (e *APIError) Is(target error) bool {
@@ -2023,7 +2023,7 @@ func (c *Client) grantDo(ctx context.Context, route, id string, in, out any) err
  	}
  	return "other"
 @@ -379,7 +385,12 @@ func spanReason(r string) string {
- 
+
  // do is one call. Its span carries metadata only (O-1 M3): the room id, the method, the route
  // template, the status and the broker's reason, never a body, the query or the token.
 -func (c *Client) do(ctx context.Context, method, route, room, query string, in any, maxReply int64, out any) (err error) {
@@ -2509,7 +2509,7 @@ func (r *Reconciler) disableGrant(ctx context.Context, t *v1alpha1.Task, why str
 ```diff
 @@ -24,6 +24,7 @@ import (
  	"sigs.k8s.io/controller-runtime/pkg/client"
- 
+
  	v1alpha1 "github.com/Smana/maku/api/factory/v1alpha1"
 +	"github.com/Smana/maku/internal/factory/grant"
  	"github.com/Smana/maku/internal/factory/killswitch"
@@ -2540,7 +2540,7 @@ func (r *Reconciler) disableGrant(ctx context.Context, t *v1alpha1.Task, why str
 @@ -605,6 +614,22 @@ func (s *Set) PolicyDualDecision(ctx context.Context, repository, class, agreeme
  		attribute.String("class", class), attribute.String("agreement", agreement)))
  }
- 
+
 +// ApprovalGrantsActive records the active grants a lookup found for a repository's class (MP18:
 +// the count, never an id).
 +func (s *Set) ApprovalGrantsActive(ctx context.Context, repository, class string, n int) {
@@ -2597,7 +2597,7 @@ func (r *Reconciler) disableGrant(ctx context.Context, t *v1alpha1.Task, why str
 +			"repository", repo.Verdict+":"+repo.Reason, "grant", repo.Rows.Grant)
  	}
  }
- 
+
 @@ -258,6 +258,14 @@ func (r *Reconciler) awaitingCI(ctx context.Context, t *v1alpha1.Task) error {
  	if held, err := r.integrationRecheck(ctx, t, pr.HeadSHA, &d); held || err != nil { // MR9: the decision-to-call race
  		return err
@@ -2705,7 +2705,7 @@ Every handler is checked per role (`TestEveryGrantHandlerChecksItsCallerServerSi
 @@ -61,6 +61,16 @@ func TestLoad(t *testing.T) {
  	}
  }
- 
+
 +// Merge policy stage 5: human.approvalMemory is off unless a file turns it on.
 +func TestLoadApprovalMemory(t *testing.T) {
 +	if c, err := Load(write(t, valid)); err != nil || c.Human.ApprovalMemory {
@@ -2718,7 +2718,7 @@ Every handler is checked per role (`TestEveryGrantHandlerChecksItsCallerServerSi
 +
  // access is the human.access block, appended to valid.
  const access = "  access:\n    readerFile: /etc/room-broker/zitadel-reader/reader.json\n"
- 
+
 ```
 
 ```go
@@ -3663,7 +3663,7 @@ func (s *Server) suspendedUnder(ctx context.Context, id string) (string, bool) {
 +	// policyManagement.approvalMemory.
 +	ApprovalMemory bool `json:"approvalMemory,omitempty"`
  }
- 
+
  // IntakeConfig is human.intake. It holds one block today; it exists so the planner's switch has a
 @@ -160,6 +160,9 @@ type Server struct {
  	// SlackLink is the Slack self-serve link (human.slackLink): its two tools for the Slack App and
@@ -4215,14 +4215,14 @@ export function mountApprovalMemory(root: HTMLElement, get: typeof fetch = fetch
 ```diff
 @@ -1,5 +1,6 @@
  // SPDX-License-Identifier: Apache-2.0
- 
+
 +import { mountApprovalMemory } from "./approval-memory";
  import { fetchDashboards } from "./dashboards";
  import { mountRoom } from "./room";
  import { initTheme } from "./theme";
 @@ -12,4 +13,6 @@ const app = document.getElementById("app")!;
  const theme = initTheme();
- 
+
  const m = location.pathname.match(/^\/r\/([a-z2-7]{8})$/);
 -if (m) mountRoom(app, m[1], theme, { dashboards: () => fetchDashboards(fetch) }); else void listRooms(app, fetch, {}, theme);
 +if (m) mountRoom(app, m[1], theme, { dashboards: () => fetchDashboards(fetch) });

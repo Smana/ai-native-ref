@@ -32,8 +32,10 @@ data:
       # Merge policy stages 1-3: the observer compares each owned repository's
       # .github/agent-factory.yaml with this config (read), unlocks the offline `maku policy
       # simulate|diff` verbs (simulation), and re-decides every merge under the repository policy
-      # without acting on it (dualEvaluation). The central config stays the only merge authority.
-      policyManagement: {read: true, simulation: true, dualEvaluation: true}
+      # without acting on it (dualEvaluation). Promotion (stage 6) serves each class's shadow
+      # evidence to the broker's settings pages; it changes no class. The central config stays the
+      # only merge authority: repositoryAuthority is off.
+      policyManagement: {read: true, simulation: true, dualEvaluation: true, promotion: true}
       harnessProfiles:
         plain: {}
         checked: {checks: true}

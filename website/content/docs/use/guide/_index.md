@@ -45,6 +45,7 @@ flowchart TB
 | 8. [From your terminal and coding agent]({{< relref "terminal-and-coding-agent.md" >}}) | Set up `maku`, hand off side tasks, follow them and check their branches out |
 | 9. [Work across repositories]({{< relref "multi-repository.md" >}}) | Plan one change that spans two repositories |
 | 10. [When things go wrong]({{< relref "when-things-go-wrong.md" >}}) | Fix a set-up problem, unstick a task, stop everything, and undo a merge |
+| 11. [Configure merge policies]({{< relref "merge-policies.md" >}}) | Change a class, check the change, and promote a shadow class to live |
 
 Keep the [cheat sheet]({{< relref "cheat-sheet.md" >}}) at hand: every label, comment, Slack phrase,
 tool and command on one page.

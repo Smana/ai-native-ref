@@ -12,8 +12,9 @@ By the end of this chapter you will know what the factory does for you, and the 
 You have more small fixes than time. A dead link, a version number that drifted, a script that needs
 one more flag. The Agent Factory takes that kind of work off your plate.
 
-Here is the deal. You put the label `factory/ready` on a GitHub issue. The factory hands it to an AI
-agent, which works on its own branch, in a locked-down sandbox, and opens a pull request.
+Here is the deal. You describe the fix: in a Slack thread, to your coding agent, or in a GitHub issue
+labelled `factory/ready`. The factory hands it to an AI agent, which works on its own branch, in a
+locked-down sandbox, and opens a pull request.
 
 A second agent reviews that pull request before you see it. If the checks fail, the first agent fixes
 them. Only then does the factory ask for you.

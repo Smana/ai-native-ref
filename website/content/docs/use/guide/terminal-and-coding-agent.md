@@ -1,7 +1,7 @@
 ---
-title: "6. From your terminal and your coding agent"
-linkTitle: "6. Terminal and coding agent"
-weight: 6
+title: "8. From your terminal and your coding agent"
+linkTitle: "8. Terminal and coding agent"
+weight: 8
 description: "Install maku, connect it to your coding agent, hand off a side task without leaving your session, and bring its branch back."
 ---
 
@@ -32,16 +32,30 @@ maku doctor        # every check should say ok
 ```
 
 For other agents use `opencode`, `codex`, `gemini`, `cursor` or `copilot`. It gives your agent the
-factory's tools and a short skill for handing work over.
+factory's tools and a short skill for handing work over. For Claude Code and OpenCode it also installs
+one short command, `/factory`, with four verbs:
+
+| Type | Does |
+|---|---|
+| `/factory handoff <what>` | Plans or drafts the issue, shows it to you, files it once you confirm |
+| `/factory status [room or #issue]` | The task's card; without an argument, your latest task |
+| `/factory inbox` | Everything that needs you, in one list |
+| `/factory resume [room]` | The brief of the first task that needs you, ending on its next step |
+
+Other agents offer the same four as their own slash commands
+([Reference › Commands]({{< relref "/docs/reference/commands.md#clients" >}})).
+`maku doctor` checks the VPN, the certificate, your login, your GitHub link and the installed skill, in
+the order they fail, and prints the fix of each.
 
 ## Hand off a side task {#handoff}
 
-You are in the middle of something and spot a dead link. Tell your agent (in OpenCode; Claude Code
-spells it `/mcp__factory__handoff`):
+You are in the middle of something and spot a dead link. Tell your agent:
 
 ```text
-/factory:handoff fix the dead link in the install guide
+/factory handoff fix the dead link in the install guide
 ```
+
+[Chapter 3]({{< relref "your-first-task.md#paths" >}}) follows one hand-off from this line to the merge.
 
 Your agent brings back a **plan**, and shows it to you before anything exists. A plan names:
 
@@ -95,7 +109,7 @@ Ask your agent for the status, or run `maku status` yourself. Both show the same
 
 Three more things to ask your agent:
 
-- `/factory:inbox`: everything that needs you, in one list. When nothing does, it says so.
+- `/factory inbox`: everything that needs you, in one list. When nothing does, it says so.
 - "wait for it": your agent follows the task and tells you when it needs you, opens its pull request
   or ends.
 - "check it out": you get the task's branch in a new folder beside your repository, ready to read or
@@ -109,7 +123,7 @@ Back after a day away? Start wide, then close in:
    what is new since the last one; `--since <time>` asks from a moment you choose.
 2. Run `maku status <room>`. It opens with the task's *brief*, a few fixed lines on where it stands,
    then the card.
-3. In your coding agent, use the `resume` prompt (`/factory:resume` in OpenCode). It reads the same
+3. In your coding agent, type `/factory resume`. It reads the same
    list, then the full brief of the first task that needs you, or of the task you name.
 
 An approval still open from before your last call is not new, so `maku needs` leaves it out. To see
@@ -137,5 +151,4 @@ the egress policy.
 Every `maku` command, and what each coding agent supports, is in
 [Reference › Commands]({{< relref "/docs/reference/commands.md" >}}).
 
-**Next:** [chapter 7]({{< relref "when-things-go-wrong.md" >}}) covers what to do when something goes
-wrong.
+**Next:** [chapter 9]({{< relref "multi-repository.md" >}}) plans one change across two repositories.

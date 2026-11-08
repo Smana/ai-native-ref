@@ -7,8 +7,8 @@ description: "The five things you need before you hand the factory a task, and w
 
 By the end of this chapter you will have what you need, and know whom to ask for each piece.
 
-It is a one-time set-up. To hand over a task you need only the first item; the other four let you
-watch it in its room. If you do not know your platform team, ask whoever told you about the factory.
+It is a one-time set-up. To hand over a task from GitHub you need only the first item; the other four
+let you watch it in its room, and Slack and your coding agent need them too. If you do not know your platform team, ask whoever told you about the factory.
 
 ## The five things {#five-things}
 
@@ -39,4 +39,10 @@ Open the room list. You should see your repositories' rooms, or an empty list wi
 means step 4 is missing; an empty list with a GitHub hint means step 5 is. Your admin's side of all
 this is [Operate › Access]({{< relref "/docs/operate/access.md" >}}).
 
-**Next:** [chapter 3]({{< relref "your-first-task.md" >}}) takes your first task from issue to merge.
+Two more, for the path you choose in [chapter 3]({{< relref "your-first-task.md" >}}):
+
+- **Slack:** mention `@factory link` once in a channel the app serves, and confirm the page it sends you.
+- **Your coding agent:** install `maku`, then run `maku setup <client>` and `maku doctor`
+  ([chapter 8]({{< relref "terminal-and-coding-agent.md#from-a-terminal-maku" >}})).
+
+**Next:** [chapter 3]({{< relref "your-first-task.md" >}}) takes your first task from request to merge.

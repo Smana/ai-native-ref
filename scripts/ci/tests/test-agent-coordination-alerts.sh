@@ -14,7 +14,7 @@ trap 'rm -rf "$tmp"' EXIT
 ROOT="$ROOT" OUT="$tmp/rules.yaml" python3 - <<'PY' || exit 1
 import os, sys, yaml
 path = os.path.join(os.environ["ROOT"], "observability/base/agent-platform/vmrule-agent-factory.yaml")
-wanted = ("AgentFactoryCoordinationIntegrationFailed", "AgentFactoryCoordinationAuthorizationLost",
+wanted = ("AgentFactoryCoordinationRecoveryRequired", "AgentFactoryCoordinationIntegrationFailed", "AgentFactoryCoordinationAuthorizationLost",
           "AgentFactoryCoordinationStalled")
 rules = [r for d in yaml.safe_load_all(open(path)) if d and d.get("kind") == "VMRule"
          for g in d["spec"]["groups"] for r in g["rules"] if r.get("alert") in wanted]
@@ -34,6 +34,14 @@ cat >"$tmp/tests.yaml" <<EOT
 rule_files: [rules.yaml]
 evaluation_interval: 1m
 tests:
+  # A recovery standing past 15 minutes fires; one under it, or a primary with none, does not.
+  - interval: 1m
+    input_series:
+      - {series: 'maku_factory_coordination_recovery_age_seconds{repository="Smana/a"}', values: '840 900 960 1020'}
+      - {series: 'maku_factory_coordination_recovery_age_seconds{repository="Smana/b"}', values: '60 120 180 240'}
+    alert_rule_test:
+      - {eval_time: 1m, alertname: AgentFactoryCoordinationRecoveryRequired, exp_alerts: []}
+      - {eval_time: 2m, alertname: AgentFactoryCoordinationRecoveryRequired, exp_alerts: [{exp_labels: {severity: warning, repository: Smana/a}}]}
   # A first failure fires on its own series' birth; a pass never does.
   - interval: 1m
     input_series:

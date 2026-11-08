@@ -2603,7 +2603,7 @@ index 673adaf4..9bde6be5 100644
 @@ -217,10 +219,10 @@ func (c *Coordination) UnmarshalJSON(b []byte) error {
  	return nil
  }
- 
+
 -// coordinationOnce refuses a coordination block, or a key inside it, written twice: YAMLToJSON
 -// keeps the last silently, and a switch must never read differently from what its author sees.
 -// The rest of the file keeps its last-key-wins reading.
@@ -2639,7 +2639,7 @@ index 673adaf4..9bde6be5 100644
  		seen[k] = true
  	}
 @@ -1255,8 +1257,10 @@ func Load(path string) (*Config, error) {
- 
+
  // Parse decodes raw strictly, refusing unknown keys, then validates it and stamps its hash.
  func Parse(raw []byte) (*Config, error) {
 -	if err := coordinationOnce(raw); err != nil {
@@ -2837,7 +2837,7 @@ index 06e7bee3..e459b8ed 100644
 +	// Output is a safe-output event's record (hardening UH4).
 +	Output *OutputRecord `json:"output,omitempty"`
  }
- 
+
  // The integration states, as the Task CRD's status.result enumerates them. A run reports only a
 ```
 
@@ -3929,4 +3929,3 @@ applier that shadows every write, records `status.inputTrust`, and plants the ca
 | Drill scorer | 9 |
 | Offline suites; existing suites unchanged | 10 |
 | AC9, offline half: each of R1 to R7 made false refuses | 5 (`TestReadinessEachFact`, `TestPrerequisitesComposeHardening`) |
-

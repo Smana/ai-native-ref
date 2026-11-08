@@ -6,8 +6,9 @@ every step names its expected output. A **room** is the per-task workspace the r
 
 ## State
 
-The factory is live on aws-0 since 2026-10-30, on Maku v0.32.3 (broker, factory, harness and bridge; the source now pins the broker and factory at v0.36.0, the harness and bridge stay v0.32.3;
-crossplane-configuration v0.9.31; CRD group `maku.ogenki.io`). gcp-0 was torn down on 2026-10-29; its
+The factory is live on aws-0 since 2026-10-30. `main` pins Maku v0.38.0 for the broker, the factory and the
+Slack App; the harness and bridge stay v0.32.3, composed by crossplane-configuration v0.9.32 (CRD group
+`maku.ogenki.io`). gcp-0 was torn down on 2026-10-29; its
 session, [runbook 14](14-gcp-0-session.md), is historical. The merge gate's human path was proven on aws-0
 on 2026-10-30 and 31: [results](results-aws-0-2026-10-30.md). A fresh bootstrap starts with
 [Runbook 00](#runbook-00-one-time-cluster-setup).
@@ -15,7 +16,8 @@ on 2026-10-30 and 31: [results](results-aws-0-2026-10-30.md). A fresh bootstrap 
 | What | In the source today |
 |---|---|
 | Live auto-merge | cloud-native-ref's `docs-links` (Markdown link fixes) and `revert`, `autoMergesPerDay: 1` ([12](12-live-auto-merge-drill.md)) |
-| Shadow | `alert-rules` on cloud-native-ref (RunLore's fixes, [25](25-runlore-kb-phase-1.md)), `dead-links` on both repositories ([15](15-dead-links.md)), `deps-patch` ([16](16-deps-patch.md)); `deps-minor` observed only |
+| Shadow | `alert-rules` on cloud-native-ref (RunLore's fixes, [25](25-runlore-kb-phase-1.md)), `dead-links` on both repositories ([15](15-dead-links.md)), `deps-patch` ([16](16-deps-patch.md)); `deps-minor` observed only; every class of ai-native-ref and of runlore-kb, `kb-entries` among them ([25](25-runlore-kb-phase-1.md)) |
+| Intake | The planner on both clouds' brokers for ai-native-ref and runlore-kb; the Slack App with proposals on for one channel ([22](22-slack.md)); coordination `mode: plan` on aws-0 only, which composes a plan across those two repositories and files nothing |
 | Budgets | Gateway budgets refuse (`SHADOW_MODE: "false"`, [04 Part D](04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)); the fleet's and each person's day are counted, never refused (`enforcePrincipal: false`, [04 Part C](04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week)) |
 | Session switches, off after each live session | `testFirst` on `scripts` ([21](21-test-first-tester.md)), RunLore ([20](20-runlore-agent-to-agent.md); its two halves are the host's three places and `aws-0`'s `runlore` webhook subscriber, [25](25-runlore-kb-phase-1.md)), the `docs` row's provider `models`, `human.mcp.sessionStart` ([19](19-factory-from-your-agent.md)) |
 

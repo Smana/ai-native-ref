@@ -1,5 +1,7 @@
 ---
 title: Harness reference
+aliases:
+  - /docs/platform/ai-platform/agents/tune/harness-reference/
 weight: 10
 description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its example value, what it does, its bounds, and whether it is on by default."
 lastVerified: 2026-10-31
@@ -17,7 +19,8 @@ Every knob of a run, layer by layer. How to use them is on
   {{< card link="#harness" title="Harness" icon="cog" subtitle="The loop's settings, baked into the image." >}}
 {{< /cards >}}
 
-**Pins on `main`:** Maku `v0.32.3`, composed by crossplane-configuration `v0.9.31`. Values below are
+**Pins on `main`:** the harness and bridge on Maku `v0.32.3`, composed by crossplane-configuration
+`v0.9.32`; the factory and broker on `v0.38.0`. Values below are
 examples: the reference host's configuration.
 
 | Status | Meaning |
@@ -156,7 +159,7 @@ turns the claim into the pod. Nothing here is set per run.
 
 | Setting | Value |
 |---|---|
-| Harness image | `ghcr.io/smana/maku-harness:v0.32.3@sha256:d6ec677262d10342dee4e8ba53af087e7d6f227502c0cc7c2ecfe4d6636c040e` (the release's image, composed by crossplane-configuration v0.9.31, where the composition pin lives): a harness change reaches runs only through the composition's digest, so the harness roles reach runs with that bump |
+| Harness image | `ghcr.io/smana/maku-harness:v0.32.3@sha256:d6ec677262d10342dee4e8ba53af087e7d6f227502c0cc7c2ecfe4d6636c040e` (the release's image, composed by crossplane-configuration v0.9.32, where the composition pin lives): a harness change reaches runs only through the composition's digest, so the harness roles reach runs with that bump |
 | Environment | `MODEL`, `DATA_CLASS`, `ROLE`, `LLM_BASE_URL`, `MCP_URL`, `TASK_FILE`, `RULES_FILE`, tracing; `AGENT_CHECKS` and `AGENT_RUN_SECONDS` with `loop.checks`; `AGENT_SEARCH` with `loop.search`. `LLM_REASONING_EFFORT` is not set |
 | `rules.md` | One branch, one PR, never `.github/workflows/`, "a 429 means the budget is spent: stop". Each rule is also enforced outside the sandbox |
 | `task.md` | The task text: the biggest driver of a run's length |

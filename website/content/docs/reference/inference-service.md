@@ -1,5 +1,7 @@
 ---
 title: The InferenceService claim
+aliases:
+  - /docs/platform/ai-platform/serving/inference-service/
 weight: 20
 description: One model, one YAML file — the complete claim, what it renders, and every field it accepts.
 lastVerified: 2026-08-30
@@ -7,8 +9,9 @@ lastVerified: 2026-08-30
 
 A model on this platform is one file. No Deployment, no Service, no HPA, no
 route, no PVC — an `InferenceService` claim, and the Crossplane composition
-renders the rest. The four models running today each live in a single
-manifest under `apps/base/ai/llm/`.
+renders the rest. The four models declared in this repository each live in a single
+manifest under `apps/base/ai/llm/`; serving is off by default (the
+[status page]({{< relref "/docs/status.md#experimental" >}}) says where it runs).
 
 ## A complete claim
 
@@ -188,4 +191,4 @@ with the new model at `minReplicas`, and — if the model should be reachable
 through `model: MoM` rather than only by name — that a Semantic Router
 decision rule targets it. See
 [Gateways]({{< relref "/docs/how-it-works/gateways.md" >}});
-two of the four models today are reachable only by naming them explicitly.
+two of the four models are reachable only by naming them explicitly.

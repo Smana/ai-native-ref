@@ -1,5 +1,7 @@
 ---
 title: User guide
+aliases:
+  - /docs/platform/ai-platform/agents/use/user-guide/
 weight: 10
 description: "A short book in seven chapters: hand an issue to the Agent Factory, follow it, steer it, approve its work, and recover when something goes wrong."
 lastVerified: 2026-10-31

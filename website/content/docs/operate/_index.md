@@ -1,5 +1,7 @@
 ---
 title: Tune and operate
+aliases:
+  - /docs/platform/ai-platform/agents/tune/
 linkTitle: Operate
 weight: 40
 description: "Tune an agent run and look up every harness setting."

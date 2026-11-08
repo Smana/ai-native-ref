@@ -37,7 +37,7 @@ scripts/provision/zitadel-oidc-clients.sh --grant agents-member=<their email>   
 ## The GitHub link {#github-link}
 
 The person signs in at the platform's identity provider, chooses **GitHub**, and links it to their
-existing user. Example (the reference host): `https://auth.gcp.cloud.ogenki.io`.
+existing user. Example (the reference host): `https://auth.cloud.ogenki.io`.
 
 Someone who signs in with Google only ends on a password reset there. An admin adds the link instead:
 

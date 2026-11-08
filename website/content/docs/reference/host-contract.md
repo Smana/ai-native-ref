@@ -1,5 +1,7 @@
 ---
 title: Host contract
+aliases:
+  - /docs/host-contract/
 weight: 30
 description: What cloud-native-ref guarantees the AI platform, and what the AI platform guarantees back.
 lastVerified: 2026-10-16

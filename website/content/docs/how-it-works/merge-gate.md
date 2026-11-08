@@ -1,5 +1,7 @@
 ---
 title: The merge gate
+aliases:
+  - /docs/platform/ai-platform/agents/how-it-works/agents-and-merge-gate/
 linkTitle: The merge gate
 weight: 15
 description: "When an agent's pull request merges by itself, when it waits for your approval, and what you do when it hands off to you."

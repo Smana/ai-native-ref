@@ -25,7 +25,7 @@ the Agent Factory, an agent platform you run yourself, whose every control is de
 agent.**
 
 It is built to be read as much as run. Each design choice has an architecture decision record, each
-feature a runbook with its live proof, and the [status page](https://airef.ogenki.io/docs/platform/ai-platform/status/)
+feature a runbook with its live proof, and the [status page](https://airef.ogenki.io/docs/status/)
 says what works today, what does not yet, and what it costs.
 
 ## What you gain
@@ -93,14 +93,15 @@ flowchart LR
 | Unattended merge works, and so does its rollback | A link-fix pull request merged with no human at the head the gate decided; a revert by label demoted the class back to review |
 | Budgets refuse for real | A run over its budget gets `429 agent_budget_exhausted`, and the refusal alert fires within two minutes |
 
-Sources and the full record: [status](https://airef.ogenki.io/docs/platform/ai-platform/status/),
-[routing and cost](https://airef.ogenki.io/docs/platform/ai-platform/routing/),
-[harness tuning](https://airef.ogenki.io/docs/platform/ai-platform/agents/tune/harness/).
+Sources and the full record: [status](https://airef.ogenki.io/docs/status/),
+[routing and cost](https://airef.ogenki.io/docs/how-it-works/routing-and-cost/),
+[harness tuning](https://airef.ogenki.io/docs/operate/tune-a-run/).
 
 ## Status and roadmap
 
-**v3 is built**: Maku v0.32.3 (CRD group `maku.ogenki.io`), with the harness and bridge on v0.32.3
-through crossplane-configuration v0.9.31. The v3.0.0 release is still a draft. v3 aims at more accepted pull requests per dollar by shaping the task, not
+**v3 is released** ([v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0)). `main` runs
+Maku v0.38.0 for the broker, the factory and the Slack app (CRD group `maku.ogenki.io`), with the harness
+and bridge on v0.32.3 through crossplane-configuration v0.9.32. v3 aims at more accepted pull requests per dollar by shaping the task, not
 by changing the model. A scoper bounds each issue or asks its author; a test-first tester writes the
 contract; the implementer runs the repository's checks in the sandbox and asks a read-only search
 tool; a completion judge reads the result against its checks; a splitter proposes parts for a task
@@ -114,11 +115,11 @@ the human path was proven live: a maintainer's approval of the current head is t
 regression pauses a class and three clean merges lift it, and `dead-links` was drilled once (merged,
 then reverted by the merger itself with no human). Auto-merge is live for Markdown link fixes only;
 `dead-links` and `deps-patch` run in shadow, `deps-minor` in observe. Every line, with its evidence and runbook:
-[status page](https://airef.ogenki.io/docs/platform/ai-platform/status/#roadmap).
+[status page](https://airef.ogenki.io/docs/status/#roadmap).
 
 We are **on the road to a dark factory**, one proven lane at a time: today a human writes the issue
 and approves, the approval being the merge, for most work, and one class ships with no human at all. What that means and
-where we stand: [status and roadmap](https://airef.ogenki.io/docs/platform/ai-platform/status/#dark-factory).
+where we stand: [status and roadmap](https://airef.ogenki.io/docs/status/#dark-factory).
 
 ## How it compares
 
@@ -146,7 +147,7 @@ guarantees back.
 The reference host is [cloud-native-ref](https://github.com/Smana/cloud-native-ref), a GitOps
 platform on GKE and EKS. The controllers, the room broker and the agent harness are built in
 [Maku](https://github.com/Smana/maku), the software the Agent Factory runs on; this repository deploys their released
-images. Installing on any Kubernetes cluster without that host is on the roadmap, after v3.
+images. Installing on any Kubernetes cluster without that host is [v4](https://airef.ogenki.io/docs/status/#v4) on the roadmap.
 
 ## Repository layout
 
@@ -155,7 +156,7 @@ images. Installing on any Kubernetes cluster without that host is on the roadmap
 | `clusters/<cluster>-{ai-gateway,llm-platform,agent-platform}/` | The children of each of the host's three opt-in umbrellas |
 | `infrastructure/`, `security/`, `tooling/`, `observability/`, `apps/` | What those children apply |
 | `flux/sources/` | The AI-owned Flux sources, applied by the `ai-sources` child |
-| `website/` | The docs site, [airef.ogenki.io](https://airef.ogenki.io/), and the AI ADRs (the next is 0060) |
+| `website/` | The docs site, [airef.ogenki.io](https://airef.ogenki.io/), and the AI ADRs (the next is 0061) |
 | `scripts/ops/`, `scripts/docs/` | Factory ops: `task agent:run`, `task agentgateway:live-check`, `task factory:walkthrough`, the identity probe, the cohort sheet |
 | `docs/` | Runbooks, specs and plans, and the drawio sources of the diagrams |
 

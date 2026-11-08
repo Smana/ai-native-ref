@@ -1,5 +1,7 @@
 ---
 title: Gateways
+aliases:
+  - /docs/platform/ai-platform/gateways/
 weight: 70
 description: "Two gateways, one per kind of caller: ai-gateway for humans and coding clients, the agent gateway for agent runs — identity, routing, and what they share."
 lastVerified: 2026-10-29
@@ -155,10 +157,10 @@ endpoint picker stands and what turning it on would take.
 `tier-frontier` is served by GLM-5.3 through Z.ai with the **platform** key, which only the gateway
 holds. It needs no GPU, so it answers with `llm-platform` suspended. The `ai-gateway` umbrella generates
 its API keys in-cluster (Secret `ai-gateway-api-keys` in `envoy-ai-gateway-system`). Example (the
-reference host's GKE endpoint):
+reference host's EKS endpoint):
 
 ```bash
-curl -s https://llm.priv.gcp.ogenki.io/v1/chat/completions \
+curl -s https://llm.priv.aws.ogenki.io/v1/chat/completions \
   -H "Authorization: Bearer $LLM_API_KEY" -H "Content-Type: application/json" \
   -d '{"model": "tier-frontier", "messages": [{"role": "user", "content": "Say hi"}]}'
 ```

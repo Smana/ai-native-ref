@@ -1,5 +1,7 @@
 ---
 title: How it works
+aliases:
+  - /docs/platform/ai-platform/agents/how-it-works/
 weight: 30
 description: "The parts of the platform: the agent roles, the merge gate, the factory, rooms, the runtime, RunLore, the providers, the gateways, routing and cost, serving, and the alternatives considered."
 ---

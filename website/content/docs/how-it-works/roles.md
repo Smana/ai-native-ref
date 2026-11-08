@@ -90,7 +90,7 @@ To change what a role may call, edit its profile, run `scripts/ci/gen-capabiliti
 
 You see a task's phase in its room (the task's live log), with the `maku status <room>` command and in
 `kubectl get tasks`. The diagram keeps
-the main path; Maku's [full diagram](https://github.com/Smana/maku/blob/v0.32.3/docs/factory.md#a-tasks-life)
+the main path; Maku's [full diagram](https://github.com/Smana/maku/blob/v0.38.0/docs/factory.md#a-tasks-life)
 has every transition.
 
 ```mermaid

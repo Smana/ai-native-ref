@@ -14,6 +14,7 @@ row says otherwise.
 | `factory/ready` | The factory takes the issue as a task. After an edit, remove it and put it back |
 | `factory/stop` | Ends the task's runs; its branch stays. On the pinned control issue, it stops every task |
 | `factory/revert` | On a pull request the factory merged on its own, within 7 days: it opens the revert |
+| `factory/publish` | On a RunLore proposal's stub issue (`factory/proposed`): files the fix issue; where the operator allows it, it also starts the fix, charged to you ([RunLore]({{< relref "/docs/how-it-works/runlore.md" >}})) |
 
 ## Comments you write {#comments}
 
@@ -42,7 +43,7 @@ Only a maintainer's comment counts.
 
 | You say | You get |
 |---|---|
-| `/factory:handoff <what>` | A drafted issue, filed after you confirm |
+| `/factory:handoff <what>` | A plan (a draft where the planner is off), filed after you confirm |
 | `/factory:status` | Your latest task's card |
 | `/factory:inbox` | What needs you first |
 

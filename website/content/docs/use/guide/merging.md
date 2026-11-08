@@ -67,14 +67,8 @@ Every factory room has a **Merge policy** fold. Open it to see the task's class 
 `shadow` or `unarmed`), the class's conditions, what it takes to merge, and, once there is one, the gate's
 decision. It is read-only: a repository's policy changes through a pull request.
 
-{{< callout type="info" >}}
-From Maku v0.40.0, maintainers also get **Settings** pages in the rooms UI: each repository's merge
-policies with their promotion evidence, a policy editor that checks and simulates a change, a
-**Promote to live** flow that hands you the pull request to open, a decision timeline per pull request,
-and *approval memory*: a saved grant that lets a later pull request touching the same reviewed files
-merge without asking again. The model, every field and the rollout are in Maku's
-[merge policies guide](https://github.com/Smana/maku/blob/main/docs/merge-policies.md).
-{{< /callout >}}
+Maintainers change a class, check a change and promote a shadow class from the **Settings** pages:
+[chapter 11]({{< relref "merge-policies.md" >}}).
 
 ## Undo a merge {#revert}
 

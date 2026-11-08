@@ -126,5 +126,6 @@ queue a note in the room.
 
 **What if it goes in circles?** Its deadline or spending cap ends it, and you can stop it any time.
 
-**Next:** keep the [cheat sheet]({{< relref "cheat-sheet.md" >}}) at hand. It has every label, comment,
+**Next:** if you maintain a repository, [chapter 11]({{< relref "merge-policies.md" >}}) configures its
+merge policies. Everyone: keep the [cheat sheet]({{< relref "cheat-sheet.md" >}}) at hand. It has every label, comment,
 tool and command on one page.

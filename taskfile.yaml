@@ -11,6 +11,7 @@ tasks:
       - task: host-profile
       - task: validate
       - task: gates
+      - task: factory-config
       - task: vmrules
       - task: test
       - task: links
@@ -38,6 +39,10 @@ tasks:
     cmds:
       - python3 scripts/ci/flux-schema/assert-agent-gateway.py .bundle
       - python3 scripts/ci/flux-schema/assert-ai-gateway.py .bundle
+
+  factory-config:
+    desc: The factory's values and its Factory, Repository and MergePolicy objects, through the pinned Maku's config validate
+    cmds: ["./scripts/ci/validate-factory-config.sh"]
 
   vmrules:
     desc: promtool over every VMRule in the composite, this repository's included

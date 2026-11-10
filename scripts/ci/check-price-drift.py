@@ -25,7 +25,8 @@ from typing import NamedTuple
 
 import yaml
 
-VALUES = pathlib.PurePosixPath("tooling/base/agent-factory/helm-values-configmap.yaml")
+# meter.prices is the Factory's spec.prices (Maku factory resources).
+FACTORY = pathlib.PurePosixPath("tooling/base/agent-factory/resources/factory.yaml")
 FIELDS = ("input", "cacheRead", "cacheWrite", "output")
 LABEL = "prices-drift"
 TITLE = "Price drift: a public catalog disagrees with meter.prices"
@@ -108,12 +109,11 @@ class Finding(NamedTuple):
 
 
 def load_prices(text):
-    """meter.prices from the factory's values ConfigMap: model -> {field: Decimal}, plus `source`."""
-    cm = yaml.safe_load(text) or {}
-    values = yaml.safe_load((cm.get("data") or {}).get("values.yaml") or "") or {}
-    prices = ((values.get("config") or {}).get("meter") or {}).get("prices")
+    """meter.prices, the Factory's spec.prices: model -> {field: Decimal}, plus `source`."""
+    factory = next((d for d in yaml.safe_load_all(text) if isinstance(d, dict) and d.get("kind") == "Factory"), {})
+    prices = (factory.get("spec") or {}).get("prices")
     if not isinstance(prices, dict) or not prices:
-        raise ValueError(f"{VALUES}: no config.meter.prices")
+        raise ValueError(f"{FACTORY}: no Factory spec.prices")
     return {m: {k: (v if k == "source" else Decimal(str(v)))
                 for k, v in row.items() if k in FIELDS or k == "source"}
             for m, row in prices.items()}
@@ -254,7 +254,7 @@ def compare(prices, catalogs, today, mapping=MAPPING, absent=ABSENT, tiers=TIERS
 def issue_body(findings):
     lines = [
         "The nightly price drift check (`.github/workflows/price-drift.yaml`) found public catalogs that "
-        "disagree with `meter.prices` in `tooling/base/agent-factory/helm-values-configmap.yaml`.",
+        "disagree with `meter.prices`, the Factory's `spec.prices` in `tooling/base/agent-factory/resources/factory.yaml`.",
         "",
         "Catalogs copy the providers' page mistakes: confirm each finding on the provider's page "
         "(Source) before changing anything. Then correct the row, or record the deviation in "
@@ -326,7 +326,7 @@ def main(argv=None):
     p.add_argument("root", nargs="?", default=str(pathlib.Path(__file__).resolve().parents[2]))
     a = p.parse_args(argv)
     try:
-        prices = load_prices((pathlib.Path(a.root) / VALUES).read_text())
+        prices = load_prices((pathlib.Path(a.root) / FACTORY).read_text())
         catalogs = {name: read(name, url) for name, url in CATALOGS.items()}
         findings = compare(prices, catalogs, datetime.now(timezone.utc).date())
     except (OSError, ValueError, http.client.HTTPException) as e:

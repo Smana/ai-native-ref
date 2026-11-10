@@ -18,10 +18,10 @@ if len(rules) != 1:
     sys.exit("AgentFactoryClassPausedLong: want exactly one rule")
 # The live classes of the config (live: true, or monitored and not shadow) must be the rule's regex.
 import re
-cm = yaml.safe_load(open(os.path.join(os.environ["ROOT"], "tooling/base/agent-factory/helm-values-configmap.yaml")))
-vals = yaml.safe_load(cm["data"]["values.yaml"])
+sys.path.insert(0, os.path.join(os.environ["ROOT"], "scripts/ci"))
+import factory_config  # the values file with the Factory, Repository and MergePolicy objects over it
 live = set()
-for repo in vals["config"]["repositories"]:
+for repo in factory_config.config(os.environ["ROOT"])["repositories"]:
     if repo["name"] != "Smana/cloud-native-ref":
         if any(not (c or {}).get("shadow") and ((c or {}).get("live") or (c or {}).get("monitor")) for c in repo["classes"].values()):
             sys.exit("%s has a live class: the alert selects Smana/cloud-native-ref only" % repo["name"])

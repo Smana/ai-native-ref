@@ -1,0 +1,28 @@
+# The factory's Repository objects: what a channel may serve.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: Repository
+metadata:
+  name: shop
+spec:
+  factoryRef: aws-0
+  repository: acme/shop
+  maintainers: [acme-owner]
+---
+# Served but unbound in the declaration: the two-channel case binds them.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: Repository
+metadata:
+  name: api
+spec:
+  factoryRef: aws-0
+  repository: acme/api
+  maintainers: [acme-owner]
+---
+apiVersion: maku.ogenki.io/v1alpha1
+kind: Repository
+metadata:
+  name: web
+spec:
+  factoryRef: aws-0
+  repository: acme/web
+  maintainers: [acme-owner]

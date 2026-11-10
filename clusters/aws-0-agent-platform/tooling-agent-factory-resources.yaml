@@ -1,0 +1,31 @@
+---
+# The factory's Factory, Repositories and MergePolicies (Maku factory resources): its catalogue,
+# repositories and merge policies, read live. The CRDs arrive with agent-factory's chart
+# (crds: CreateReplace), so these objects cannot sit in that Kustomization: its dry-run would fail
+# before the upgrade that installs them.
+#
+# No dependsOn agent-factory, on purpose: since the file keeps only plumbing, a factory with none of
+# these objects has no repository and waits at startup, its probes up and not Ready (Maku v0.41.1),
+# so agent-factory's HelmRelease would not turn Ready and a child waiting on it would never apply.
+# Without it the two converge in either order: this dry-run retries every 30s until the chart's CRDs
+# exist, and the waiting factory starts serving once these objects do. wait: false: a Factory's Ready=False (GitHub down) must
+# not wedge Flux.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: agent-factory-resources
+  namespace: flux-system
+spec:
+  prune: true
+  interval: 5m0s
+  retryInterval: 30s
+  timeout: 2m0s
+  wait: false
+  path: ./tooling/aws-0/agent-factory/resources
+  sourceRef:
+    kind: OCIRepository
+    name: ai-native-ref
+  postBuild:
+    substituteFrom:
+      - kind: ConfigMap
+        name: eks-aws-0-vars

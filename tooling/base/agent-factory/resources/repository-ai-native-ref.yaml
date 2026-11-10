@@ -1,0 +1,26 @@
+# The second repository (v2 design D9), this one (Maku factory resources). It used to be the second
+# entry of config.repositories in ../helm-values-configmap.yaml, without its classes and merge
+# rules: those are mergepolicy-ai-native-ref.yaml. Read live, like every Repository.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: Repository
+metadata:
+  name: ai-native-ref
+  namespace: agent-system
+spec:
+  factoryRef: ${cluster_name}
+  repository: Smana/ai-native-ref
+  maintainers: [Smana]
+  triggerLabel: factory/ready
+  # v3 feature 3: what a check-enabled run requests beyond github. Only docs has checks: true,
+  # since the gcp-0 session's live proofs (README, "v3 loop and sandbox layers").
+  checks: {egress: [golang, pypi]}
+  schedules:
+    # dead-links' intake here (MC6, F3): what two nightly runs of this repository's
+    # dead-links.yaml agree on. Inert only if the class is off (MC14). The name keys every
+    # task it starts and is unique across repositories (the factory's strict parse refuses
+    # a second `dead-links`, the host's).
+    - name: ai-native-ref-dead-links
+      cron: "15 7 * * *"  # after the 04:41 scan; the host's slot is 07:00
+      class: dead-links
+      probe: dead-links
+      text: Fix the dead external links listed below.

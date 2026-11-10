@@ -83,7 +83,7 @@ documents each reason's next step.
 
 ## Settings {#settings}
 
-Example (the reference host), from `tooling/base/agent-factory/helm-values-configmap.yaml`:
+Example (the reference host), from each repository's `MergePolicy`, `tooling/base/agent-factory/resources/mergepolicy-<name>.yaml`:
 
 | Setting | cloud-native-ref | ai-native-ref |
 |---|---|---|

@@ -3,7 +3,7 @@
 """Tests for scripts/ci/gen-prices.py, which renders the llm-gateway-prices group and the agentgateway
 model catalog overlay (ConfigMap agent-model-catalog) from meter.prices.
 
-Each case copies the real factory values and price rule into a temporary root, changes one thing and
+Each case copies the real Factory (its spec.prices) and price rule into a temporary root, changes one thing and
 runs the generator there: the rendering holds the design's charges, it rebuilds the group byte for
 byte, a hand edit or a price changed without --write fails with the diff, and each malformed row is
 refused, by name, without a write.
@@ -65,10 +65,10 @@ def run(root, *flags):
 
 @contextlib.contextmanager
 def tree():
-    """A temporary root holding copies of the factory values and the price rule, the group rendered."""
+    """A temporary root holding copies of the Factory and the price rule, the group rendered."""
     with tempfile.TemporaryDirectory() as d:
         root = pathlib.Path(d)
-        for rel in (gen.VALUES, gen.RULES, gen.CATALOG, gen.PARAMETERS):
+        for rel in (gen.FACTORY, gen.RULES, gen.CATALOG, gen.PARAMETERS):
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(ROOT / rel, root / rel)
         run(root, "--write")
@@ -113,7 +113,7 @@ def refused(name, change, needle):
 
 def row(old, new):
     """A tree change that rewrites one meter.prices row."""
-    return lambda t: replace(t, gen.VALUES, old, new)
+    return lambda t: replace(t, gen.FACTORY, old, new)
 
 
 print("the rendering (design offline proof 2)")
@@ -153,7 +153,7 @@ with tree() as t:
           all("cacheWrite" not in m["rates"] for m in zai.values())
           and zai["glm-5.3"]["rates"] == {"input": "1.40", "output": "4.40", "cacheRead": "0.26"}, str(zai))
     check("provenance is never rendered into the catalog",
-          "source" not in (t / gen.CATALOG).read_text() and "checkedAt" not in (t / gen.CATALOG).read_text())
+          '"source"' not in (t / gen.CATALOG).read_text() and "checkedAt" not in (t / gen.CATALOG).read_text())
 with tree() as t:
     path = t / gen.CATALOG
     path.write_text(path.read_text().replace('"output": "20.00"', '"output": "21.00"'))
@@ -163,14 +163,14 @@ with tree() as t:
     code, out = run(t, "--write")
     check("--write restores it", code == 0 and run(t)[0] == 0, out)
 with tree() as t:
-    replace(t, gen.VALUES, HAIKU, HAIKU + "\n          claude-mythos-5: {input: 25.00, cacheRead: 2.50, cacheWrite: 31.25, output: 125.00}")
+    replace(t, gen.FACTORY, HAIKU, HAIKU + "\n    claude-mythos-5: {input: 25.00, cacheRead: 2.50, cacheWrite: 31.25, output: 125.00}")
     code, out = run(t)
     check("a meter.prices row added without --write fails on the catalog too", code == 1 and gen.CATALOG.as_posix() in out, out)
     code, out = run(t, "--write")
     check("--write adds it under anthropic",
           code == 0 and catalog(t)[1]["providers"]["anthropic"]["models"]["claude-mythos-5"]["rates"]["cacheWrite"] == "31.25", out)
 with tree() as t:
-    replace(t, gen.VALUES, FLASH, FLASH + "\n          mystery-1: {input: 1.00, cacheRead: 0.10, output: 2.00}")
+    replace(t, gen.FACTORY, FLASH, FLASH + "\n    mystery-1: {input: 1.00, cacheRead: 0.10, output: 2.00}")
     before = (t / gen.CATALOG).read_text()
     code, out = run(t, "--write")
     check("a model with no provider is refused, by name, without a write",
@@ -229,7 +229,7 @@ with tree() as t:
           and "--write" in out, out)
 with tree() as t:
     before = rules(t).read_text().splitlines()
-    replace(t, gen.VALUES, HAIKU, HAIKU + "\n          claude-mythos-5: {input: 25.00, cacheRead: 2.50, cacheWrite: 31.25, output: 125.00}")
+    replace(t, gen.FACTORY, HAIKU, HAIKU + "\n    claude-mythos-5: {input: 25.00, cacheRead: 2.50, cacheWrite: 31.25, output: 125.00}")
     code, out = run(t)
     check("a row added to meter.prices without --write fails", code == 1 and "differs" in out, out)
     code, out = run(t, "--write")
@@ -247,7 +247,7 @@ with tree() as t:
     check("provenance is never rendered: no source, no checkedAt in the rules",
           "source" not in text and "checkedAt" not in text)
 with tree() as t:
-    replace(t, gen.VALUES, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.60}")
+    replace(t, gen.FACTORY, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.60}")
     code, out = run(t, "--write")
     check("a price change moves its own rule only",
           code == 0 and charges_in(t)[0]["glm-5.3-flash"] == ("0.15", "0.60", "-0.12", "0.00"), out)
@@ -263,7 +263,7 @@ with tree() as t:
 print("refused rows and files")
 for name, change, needle in [
     ("a row without cacheRead", row(FLASH, "glm-5.3-flash: {input: 0.15, output: 0.50}"),
-     "meter.prices.glm-5.3-flash: missing cacheRead"),
+     "spec.prices.glm-5.3-flash: missing cacheRead"),
     ("a price that is not a number", row(FLASH, "glm-5.3-flash: {input: '0.15', cacheRead: 0.03, output: 0.50}"),
      "input must be a positive number of USD per million tokens, got '0.15'"),
     ("a zero price", row(FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0, output: 0.50}"),
@@ -275,8 +275,8 @@ for name, change, needle in [
     ("an unknown key", row(FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, cacheWirte: 0.2, output: 0.50}"),
      "unknown key cacheWirte"),
     ("not a model name", row(FLASH, "'glm 5.3 flash': {input: 0.15, cacheRead: 0.03, output: 0.50}"),
-     "meter.prices key 'glm 5.3 flash' is not a served model name"),
-    ("no row at all", row("        prices:\n", "        prices: {}\n        unused:\n"), "config.meter.prices holds no row"),
+     "spec.prices key 'glm 5.3 flash' is not a served model name"),
+    ("no row at all", row("  prices:\n", "  prices: {}\n  unused:\n"), "spec.prices holds no row"),
     ("no group in the rule file", lambda t: replace(t, gen.RULES, f"- name: {gen.GROUP}\n", "- name: other\n"),
      f"expected one group `- name: {gen.GROUP}`, found 0"),
     ("the group twice", lambda t: replace(t, gen.RULES, "    - name: llm-gateway-budgets\n",
@@ -285,7 +285,7 @@ for name, change, needle in [
 ]:
     refused(name, change, needle)
 with tree() as t:
-    replace(t, gen.VALUES, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}")
+    replace(t, gen.FACTORY, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}")
     code, out = run(t)
     check("TC1's source and checkedAt are optional, and never rendered", code == 0, out)
 

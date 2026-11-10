@@ -1,0 +1,128 @@
+# The factory's catalogue (Maku factory resources, D12 and D15). It used to be the catalogue keys of
+# config: in ../helm-values-configmap.yaml, and meter.prices there. The factory reads this object
+# live, on every replica: an edit applies on the next decision, with no rollout. A refused edit
+# (Accepted=False) keeps the last accepted version serving. Its name is the config's `factory`.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: Factory
+metadata:
+  name: ${cluster_name}
+  namespace: agent-system
+spec:
+  harnessProfiles:
+    plain: {}
+    checked: {checks: true}
+    adopted-none: {template: none}
+  control: {repository: Smana/cloud-native-ref, issue: 2188}  # factory/stop here stops every repository
+  # The template comes from the class and the tier (pair for review, FR-11); no default template or tier (R8).
+  defaults: {dataClass: public, predictedClass: review}
+  triage:
+    # No classifierURL: the classifier (C7) was never deployed, and the scoper replaced it (R8).
+    # Unset, every task takes tier standard, classifier static, without a call (since v0.25.0).
+    # classifierURL is a startup field: it would stay in the values file.
+    controlPercent: 10  # OD-14
+  # Every tier asks for agent-default (R11). The router serves tier-* on both listeners since
+  # AGW-8; a tier moves to its name with that model's meter price below.
+  tiers:
+    # USD caps price cache reads at their own rate (agent-platform#100, v2 cohort, OD-6 on #2369):
+    # runTokens/taskTokens apply only to a run or task the meter cannot price.
+    light:    {model: agent-default, runTokens: 300000,  taskTokens: 600000,  runMinutes: 20, runUSD: 0.51, taskUSD: 1.02}
+    standard: {model: agent-default, runTokens: 1500000, taskTokens: 3000000, runMinutes: 45, runUSD: 2.55, taskUSD: 5.10}
+    frontier: {model: agent-default, runTokens: 4000000, taskTokens: 8000000, runMinutes: 90, runUSD: 6.80, taskUSD: 13.60}
+  templates:
+    solo: {roles: [implementer]}
+    pair: {roles: [implementer, reviewer], maxReviewRounds: 2}
+    # TF2, TO1: the tester writes the tests first (testFirst), never a verdict; trio is pair's shape until the bench.
+    trio: {roles: [implementer, reviewer], maxReviewRounds: 2}
+    investigate: {roles: [triager]}  # R38: proposes a public issue text, never writes
+  # CD22: a revision of another task runs before new intake. One wait reason, no reservation; the review
+  # WIP cap and the run slot are still checked first.
+  caps: {activeTasks: 3, concurrentRuns: 4, tasksPerDay: 20, maxTextBytes: 14336, awaitingHumanWIP: 5, preferRevisions: true}
+  # CD23: one final spend fact after the settle window, so the card's dollars stop moving.
+  facts: {finalSpend: true}
+  # CD12: the reviewer's comments and the failing check's annotations in a revision brief.
+  brief: {ciEvidence: true}
+  budgets:
+    # OD-10: only the principal cap keeps its shadow week (R3); the task cap is enforced
+    # since a shadow one let a task reach 3.35 M of its 3 M. The meter always enforces the run cap.
+    enforceTask: true
+    # Still shadow, the fleet's day and each person's alike (truthful costs TC9): the days count
+    # dollars since agent-platform v0.16.0 (#155), and enforcing waits on their shadow record.
+    enforcePrincipal: false
+    # The days in USD (TC5): the old 25M and 5M at the reference $1.70 per M, now counted at
+    # prices (below), cache reads at their own rate. AG8 holds B2 at or above factoryDailyUSD
+    # plus caps.concurrentRuns frontier runs, and fails a token key (factoryDaily, humanDaily,
+    # perPerson.dailyTokens): v0.25.0 ignores one, a later release refuses it.
+    factoryDailyUSD: 42.50
+    humanDailyUSD: 8.50
+    # Per-person caps in shadow (D8): counted as budget-principal-shadow{principal}, never refused.
+    # Each person's day is humanDailyUSD: perPerson.dailyUSD is unset.
+    perPerson: {enabled: true}
+  # Disruption design §4: a run lost to a reclaim or an eviction resumes on its own, twice per task
+  # at most, and only with a RunTokens left under the task's TaskTokens (enforced on that path).
+  resume: {maxPerTask: 2}
+  # Per-class loop policy and scope (scoper design SC2). Every class is off (D4) but docs: the
+  # gcp-0 session of 2026-10-27 switches one feature at a time on it, so a failure is
+  # attributable (runbooks README, "v3 loop and sandbox layers"). A row is read whole, never merged with default's.
+  loops:
+    default: {scope: "off"}
+    # docs, the gcp-0 session's class (both repositories declare it, so the row reads for both). A
+    # row is read whole: the scoper's key stays on it. Scoper (v3 feature 1): a public triager
+    # run scopes a labelled issue, or asks its author the one question it cannot answer; a
+    # repository's steering note (.github/agent-factory/steering/docs.md) is optional. Loop
+    # policy (feature 2): any of the three keys switches the loop on. stallSteps 60 (default 80,
+    # 1..500): a run with no commit by then stops and posts its findings; the stall drill sets a
+    # lower value for itself. continuations 2: a not_yet continues the same conversation at most
+    # twice (0..5). judge tier-light: the completion judge's alias (the claim's judgeModel),
+    # reading the scoper's checks; without the capability profiles' P4 sidecar (#103) its
+    # /judge/v1 route is refused and the judge is silently skipped.
+    # search: true offers the class's implementer runs the search tool (agent-platform v3 feature
+    # 5): a read-only child on the run's token, 40 iterations, 300k tokens, 300 s, six a run. No
+    # other class has it (D4): the gcp-0 session of 2026-10-27 flips it on for the paired live
+    # gate (SQ5) and, if the pairs do not hold, back off.
+    docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}
+    # scripts: the splitter's class for the gcp-0 session of 2026-10-27 (runbook 17 §2, splitter
+    # design SL3). split needs scope: scoper on the same row, and a row is read whole, so the scoper
+    # is on for scripts too. maxChildren 4 (2..5); familyUSD 20.40, the parent's and every part's
+    # runs together (four standard tasks, SP3); childTier standard (SP5). Back off with the session's
+    # last commit (D4): remove the row. anyTier: true offers the splitter to every scripts task
+    # (agent-platform v0.29.12): gcp-0 deploys no classifier, so no task is ever frontier and the
+    # default would never offer it; the splitter design's SP1 option (b), as an explicit opt-in.
+    # Harness roles HR7: judge tier-light switches the loop on for scripts too (stallSteps 80,
+    # continuations 2 by default), so split parts and test-first tasks are judged; the judge reads
+    # the head's GitHub check runs, so checks: false on the class is fine.
+    scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}, judge: tier-light}
+    # A second-family reviewer on the classes the merge gate may merge without a person: the
+    # live ones and the two shadowed toward going live. A reviewer on the implementer's model
+    # shares its blind spots, and here its approval is the only review. The reviewer runs on
+    # the other tier, frontier for every task today (no classifier), so kimi-frontier applies.
+    # Public tasks only (maku pins no provider alias on an internal task); Kimi processes in
+    # China. A row with only models keeps the loop and the scoper off. ADR-0058 kept the GLM
+    # reviewer because no other family had a public route; Kimi has had one since v3.
+    docs-links: {models: {reviewer: {frontier: kimi-frontier}}}
+    revert: {models: {reviewer: {frontier: kimi-frontier}}}
+    dead-links: {models: {reviewer: {frontier: kimi-frontier}}}
+    deps-patch: {models: {reviewer: {frontier: kimi-frontier}}}
+  # The price overlay (plan J.1), meter.prices in the file: one row per model a backend in
+  # infrastructure/base/agent-gateway pins, so no agentgateway release moves a price
+  # without a commit here. AG10 fails a pinned model without its row. A model with no
+  # row is never free: its runs fall back to their token caps and AgentModelUnpriced
+  # fires. List prices, $ per M tokens, read 2026-10-16:
+  # Z.ai https://docs.z.ai/guides/overview/pricing (cache writes not billed, so no
+  # cacheWrite) and https://platform.claude.com/docs/en/about-claude/pricing (5-minute
+  # cache writes). Haiku 5.5 is at its over-100K-prompt rate, which an agent's context
+  # soon reaches: over-counting is the safe direction for a cap. A nightly workflow compares
+  # every row with three public catalogs: a new row needs its entry in the MAPPING of
+  # scripts/ci/check-price-drift.py, or the check reports it.
+  prices:
+    glm-5.3: {input: 1.40, cacheRead: 0.26, output: 4.40, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+    glm-5.3-flashx: {input: 0.37, cacheRead: 0.075, output: 1.25, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+    glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50, source: "https://docs.z.ai/guides/overview/pricing", checkedAt: "2026-10-16"}
+    # Feature 15, selectable providers (public only). k3.1-pro is NOMINAL: the owner's Kimi Code
+    # subscription is flat-rate (marginal USD 0), and the row is the list price so a run's USD
+    # cap bounds its tokens; a figure here is a token-weighted unit, not a bill.
+    k3.1-pro: {input: 2.00, cacheRead: 0.20, cacheWrite: 2.00, output: 10.00, source: "https://platform.kimi.ai/docs/pricing/chat", checkedAt: "2026-10-28"}
+    mistral-medium-2604: {input: 1.50, cacheRead: 0.15, output: 7.50, source: "https://mistral.ai/pricing", checkedAt: "2026-10-28"}
+    mistral-small-2603: {input: 0.15, cacheRead: 0.015, output: 0.60, source: "https://mistral.ai/pricing", checkedAt: "2026-10-28"}
+    claude-opus-5-5: {input: 4.00, cacheRead: 0.20, cacheWrite: 5.00, output: 20.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
+    claude-sonnet-5-5: {input: 2.00, cacheRead: 0.10, cacheWrite: 2.50, output: 10.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
+    claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}

@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The factory's catalogue, repositories and merge policies (Maku factory resources): what the
+# factory reads live. Applied by its own Flux child after agent-factory, whose chart installs the
+# three CRDs. Every file here is a gate path (.policy.yml): agents never change it.
+# One Repository and one MergePolicy per repository (at most 8); api.repositories is derived from
+# the Repositories' names. scripts/ci/validate-factory-config.sh lays these over the values file's config as the factory does.
+resources:
+  - factory.yaml
+  - repository-cloud-native-ref.yaml
+  - mergepolicy-cloud-native-ref.yaml
+  - repository-ai-native-ref.yaml
+  - mergepolicy-ai-native-ref.yaml
+  - repository-runlore-kb.yaml
+  - mergepolicy-runlore-kb.yaml

@@ -33,6 +33,8 @@ except ImportError:
     sys.exit(77)
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "scripts/ci"))
+import factory_config as factory_resources  # noqa: E402  the Factory, Repository and MergePolicy objects
 # The first maku release whose internal/config knows human.intake. Bump it with the pin: the block
 # may not exist on a broker older than this tag, and must exist on one at or above it.
 INTAKE_RELEASE = "v0.35.0"
@@ -95,7 +97,8 @@ def factory_config(cloud):
         values = yaml.safe_load(cms[ref["name"]]["data"]["values.yaml"]) or {}
         for key, value in (values.get("config") or {}).items():
             merged[key] = value if not isinstance(value, dict) else {**merged.get(key, {}), **value}
-    return merged
+    # The catalogue and the repositories are the Factory, Repository and MergePolicy objects.
+    return factory_resources.assemble(merged, factory_resources.objects(ROOT))
 
 
 def plan_block(cfg):

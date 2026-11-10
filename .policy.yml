@@ -52,6 +52,7 @@ approval_rules:
           - '^observability/(aws-0|gcp-0)/agent-platform/'
           - '^tooling/base/(agent-factory|policy-bot)/'
           - '^tooling/(aws-0|gcp-0)/agent-factory/'
+          - '^tooling/(base|aws-0|gcp-0)/agent-factory/resources/'  # the Factory, Repositories and MergePolicies: the factory's policy, read live
           - '^scripts/ci/'                    # the gates CI runs, assert-agent-gateway.py included
           - '^(HOST_REF|taskfile\.yaml|\.pre-commit-config\.yaml|\.secrets\.baseline|\.gitignore)$'  # what CI validates against, and how
     requires:
@@ -92,6 +93,7 @@ approval_rules:
           - '^observability/(aws-0|gcp-0)/agent-platform/'
           - '^tooling/base/(agent-factory|policy-bot)/'
           - '^tooling/(aws-0|gcp-0)/agent-factory/'
+          - '^tooling/(base|aws-0|gcp-0)/agent-factory/resources/'  # the Factory, Repositories and MergePolicies: the factory's policy, read live
           - '^scripts/ci/'
           - '^(HOST_REF|taskfile\.yaml|\.pre-commit-config\.yaml|\.secrets\.baseline|\.gitignore)$'
           - '^docs/(superpowers|specs)/'

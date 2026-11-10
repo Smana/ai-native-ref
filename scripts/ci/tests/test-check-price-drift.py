@@ -54,13 +54,12 @@ def check(name, condition, detail=""):
         FAILURES.append(name)
 
 
-def configmap(table):
-    values = yaml.safe_dump({"config": {"meter": {"prices": table}}})
-    return yaml.safe_dump({"apiVersion": "v1", "kind": "ConfigMap", "data": {"values.yaml": values}})
+def factory(table):
+    return yaml.safe_dump({"apiVersion": "maku.ogenki.io/v1alpha1", "kind": "Factory", "spec": {"prices": table}})
 
 
 def prices(table=TABLE):
-    return gen.load_prices(configmap(table))
+    return gen.load_prices(factory(table))
 
 
 def catalogs():
@@ -178,7 +177,7 @@ try:
 except gen.CatalogError as e:
     check("a catalog that is not JSON is refused", str(e).startswith("LiteLLM: not JSON"), str(e))
 
-real = gen.load_prices((ROOT / gen.VALUES).read_text())
+real = gen.load_prices((ROOT / gen.FACTORY).read_text())
 check("the real tree's meter.prices loads, every row with an input and an output",
       bool(real) and all(r.get("input", 0) > 0 and r.get("output", 0) > 0 for r in real.values()), str(real))
 
@@ -239,9 +238,9 @@ def run_main(table, fetched, open_issues):
         return open_issues if args[:2] == ("issue", "list") else ""
 
     with tempfile.TemporaryDirectory() as tmp:
-        values = pathlib.Path(tmp) / gen.VALUES
+        values = pathlib.Path(tmp) / gen.FACTORY
         values.parent.mkdir(parents=True)
-        values.write_text(configmap(table))
+        values.write_text(factory(table))
         gen.fetch, gen.gh = fetch, gh
         out = io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):

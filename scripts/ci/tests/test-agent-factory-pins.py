@@ -50,7 +50,9 @@ if not any(names <= set(r.get("matchPackageNames") or []) and r.get("groupName")
 
 # Human path AM1 and AM7: approve-to-merge and the breaker's recovery are on for every repository.
 # The strict decoder refuses both keys on a Maku older than v0.32.0, so they move with the pin.
-for repo in yaml.safe_load(cm["data"]["values.yaml"])["config"]["repositories"]:
+sys.path.insert(0, str(ROOT / "scripts/ci"))
+import factory_config  # noqa: E402  the values file with the Factory, Repository and MergePolicy objects over it
+for repo in factory_config.config(ROOT)["repositories"]:
     merge = repo["merge"]
     if merge.get("approveToMerge") is not True:
         problems.append(f"repository {repo['name']}: merge.approveToMerge is not true")

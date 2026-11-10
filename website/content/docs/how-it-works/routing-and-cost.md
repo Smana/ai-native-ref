@@ -75,7 +75,7 @@ flowchart TB
 | 1 | Which local model answers `MoM` | Semantic Router, `ext_proc` at filter index 0 | Per request | The prompt: domain classifier, keywords, length | `infrastructure/base/vllm-semantic-router/helmrelease.yaml` |
 | 2 | Which backend a model name reaches | `AIGatewayRoute` rule on `x-ai-eg-model` | Per request | The model name only | `infrastructure/base/llm-gateway/aigatewayroute.yaml`; claims with `gateway.enabled` |
 | 3 | Base model or LoRA adapter | Route weights rendered from `gateway.canaries` | Per request, random | None | `apps/base/ai/llm/qwen-coder.yaml` |
-| 4 | A task's tier and template | Factory triage | Once, in `Received` | The classifier's tier (static fallback today), the class, `controlPercent` | `tooling/base/agent-factory/helm-values-configmap.yaml` |
+| 4 | A task's tier and template | Factory triage | Once, in `Received` | The classifier's tier (static fallback today), the class, `controlPercent` | The `Factory`, `tooling/base/agent-factory/resources/factory.yaml` |
 | 5 | The model name a role asks for | The factory | Per run | Tier, role, template | same file: `tiers`, `templates.<name>.reviewerModel` |
 | 6 | Which provider may see the data | The run's token audience | Per run, fixed | `spec.dataClass` | the task (`investigate` forces `internal`) |
 | 7 | Which provider model a name means | `modelAliases` on the backend | Per request, static | The name | `infrastructure/base/agent-gateway/llm.yaml`, `infrastructure/base/agent-gateway/anthropic.yaml` |
@@ -212,7 +212,7 @@ that costs.
 ### Why every tier still asks for `agent-default`
 
 ```yaml
-# tooling/base/agent-factory/helm-values-configmap.yaml
+# tooling/base/agent-factory/resources/factory.yaml, spec
 tiers:
   light:    {model: agent-default, runTokens: 300000,  taskTokens: 600000,  runMinutes: 20, runUSD: 0.51, taskUSD: 1.02}
   standard: {model: agent-default, runTokens: 1500000, taskTokens: 3000000, runMinutes: 45, runUSD: 2.55, taskUSD: 5.10}
@@ -248,7 +248,7 @@ None of it is built: every task reads `classifier: static, fallback: static`.
 
 ### One price table
 
-`meter.prices`, in `tooling/base/agent-factory/helm-values-configmap.yaml`, is the only place a
+`meter.prices`, the `Factory`'s `prices` in `tooling/base/agent-factory/resources/factory.yaml`, is the only place a
 price is edited. Every dollar figure on this page comes from it, and `task check` fails when a copy
 drifts:
 
@@ -471,8 +471,9 @@ it ([autoscaling]({{< relref "/docs/how-it-works/serving/autoscaling-and-gpu.md#
 
 ## Tuning {#tuning}
 
-Every knob, what it trades and how to see the effect. Factory values live in
-`tooling/base/agent-factory/helm-values-configmap.yaml`, a gate path a maintainer changes. A
+Every knob, what it trades and how to see the effect. The factory's tiers, prices, budgets and loops live in the `Factory`,
+`tooling/base/agent-factory/resources/factory.yaml`, a gate path a maintainer changes; the factory reads it
+without a restart ([factory configuration]({{< relref "/docs/reference/factory-configuration.md" >}})). A
 `meter.prices` change must be mirrored in the CEL cost of
 `infrastructure/base/agent-gateway/policy-budgets.yaml`: the CI gateway check fails any difference.
 
@@ -494,7 +495,7 @@ Every knob, what it trades and how to see the effect. Factory values live in
 **Move a tier to its own model:**
 
 ```yaml
-# tooling/base/agent-factory/helm-values-configmap.yaml
+# tooling/base/agent-factory/resources/factory.yaml, spec
 tiers:
   # tier-light is glm-5.3-flash on public, claude-haiku-5-5 on internal (llm.yaml, anthropic.yaml);
   # both are priced in meter.prices, so the USD caps keep working.

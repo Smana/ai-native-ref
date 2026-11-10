@@ -32,7 +32,7 @@ examples: the reference host's configuration.
 
 ## Factory: tiers {#tiers}
 
-`config.tiers` in `tooling/base/agent-factory/helm-values-configmap.yaml`. Triage fixes one tier per
+`tiers` in the `Factory`, `tooling/base/agent-factory/resources/factory.yaml`. Triage fixes one tier per
 task; every run of the task inherits it. {{< badge content="default" color="green" >}}
 
 | Tier | `runUSD` / `taskUSD` | `runMinutes` | `runTokens` / `taskTokens` |

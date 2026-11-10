@@ -123,6 +123,9 @@ import yaml
 
 from yamlcompat import YAML_LOADER
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import factory_config  # noqa: E402  how the factory lays its Factory object over the values' config
+
 CLASS = "agentgateway"
 API_GROUP = "agentgateway.dev"
 ROLES = ("implementer", "reviewer", "tester", "triager")
@@ -197,7 +200,8 @@ GITHUB_READ_MATCHES = (
 GITHUB_STRIPPED = ("authorization", "cookie")
 GITHUB_LISTENERS = {"internal"}
 CLUSTER = re.compile(r"-((?:aws|gcp)-\d+)-")
-# The factory's Helm values, which carry the run meter's query and price overlay (AG10).
+# The factory's Helm values, which carry the run meter's query, and its Factory object, which carries
+# the price overlay, the tiers, the caps and the budgets (AG10; Maku factory resources).
 FACTORY_NS, FACTORY_VALUES = "agent-system", "agent-factory-helm-values"
 PRICE_FIELDS = ("input", "cacheRead", "output")
 # Truthful costs TC5: the daily caps are in USD since agent-platform v0.16.0, which ignores these
@@ -643,11 +647,16 @@ def server_modes(server):
 
 
 def factory_values(objs):
+    """The factory's config as it reads it: the values' config, with its Factory's catalogue (prices as
+    meter.prices) laid over it."""
     cm = next((c for c in kind(objs, "ConfigMap")
                if meta(c).get("namespace") == FACTORY_NS and meta(c).get("name") == FACTORY_VALUES), None)
     if cm is None:
         return None
-    return (yaml.load((cm.get("data") or {}).get("values.yaml") or "", Loader=YAML_LOADER) or {}).get("config") or {}
+    cfg = (yaml.load((cm.get("data") or {}).get("values.yaml") or "", Loader=YAML_LOADER) or {}).get("config") or {}
+    factories = [f for f in kind(objs, "Factory")
+                 if meta(f).get("namespace") == FACTORY_NS and meta(f).get("name") == cfg.get("factory")]
+    return factory_config.assemble(cfg, factories)
 
 
 def factory_floors(cfg):

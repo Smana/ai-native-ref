@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The directory clusters/gcp-0-agent-platform/tooling-agent-factory-resources.yaml applies: base's
+# Factory, Repositories and MergePolicies, named for this cluster by Flux's ${cluster_name}.
+resources:
+  - ../../../base/agent-factory/resources

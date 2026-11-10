@@ -2,7 +2,7 @@
 # requires: go git tar python3
 #
 # The pinned Maku's own config loaders read this repository's configs: every cloud's broker config
-# (internal/config.Load), the merged factory values (internal/factory/config.Parse) and the Slack App's
+# (internal/config.Load), the merged factory values with its resources laid over them (internal/factory/config.Parse) and the Slack App's
 # rendered config (internal/slackapp.LoadConfig), as a pod would at start. A strict key or a new refusal in a chart upgrade then fails here, before a release wedges a
 # rollout (Maku v0.33.0 refused an http:// factoryURL without factoryInsecure: nothing offline saw it).
 #
@@ -81,7 +81,7 @@ build "$tmp/mut" "$tmp/mut-load"; rc=$?
 echo "ok    a syntax error and a renamed Load fail the suite rather than skip it"
 
 # The rendered inputs: Flux's ${var} substituted with values the loaders accept; the factory's merged values
-# (the base ConfigMap, then the cloud's principals; Helm merges maps and replaces lists).
+# (the base ConfigMap, then the cloud's valuesFrom ConfigMaps; Helm merges maps and replaces lists).
 ROOT="$ROOT" TMP="$tmp/cfg" python3 - <<'PY'
 import os, re, yaml
 root, out = os.environ["ROOT"], os.environ["TMP"]
@@ -91,19 +91,13 @@ subs = {"oidc_issuer_url": "https://issuer.test", "oidc_jwks_uri": "https://issu
 sub = lambda t: re.sub(r"\$\{(\w+)\}", lambda m: subs.get(m.group(1), "unset-var-" + m.group(1)), t)
 for cloud in ("base", "aws-0", "gcp-0"):
     open(f"{out}/broker-{cloud}.yaml", "w").write(sub(open(f"{root}/infrastructure/{cloud}/room-broker/config.yaml").read()))
-def values(path):
-    for d in yaml.safe_load_all(open(path)):
-        if d and d.get("kind") == "ConfigMap":
-            return yaml.safe_load(d["data"]["values.yaml"])
-def merge(a, b):
-    if isinstance(a, dict) and isinstance(b, dict):
-        return {**a, **{k: merge(a.get(k), v) if k in a else v for k, v in b.items()}}
-    return b
-base = values(f"{root}/tooling/base/agent-factory/helm-values-configmap.yaml")
-for name, extra in (("base", None), ("aws-0", "tooling/aws-0/agent-factory/helm-values-sponsored.yaml"),
-                    ("gcp-0", "tooling/gcp-0/agent-factory/helm-values-sponsored.yaml")):
-    v = merge(base, values(f"{root}/{extra}")) if extra else base
-    open(f"{out}/factory-{name}.yaml", "w").write(sub(yaml.safe_dump(v["config"])))
+# The factory's config with its Factory, Repository and MergePolicy objects laid over it, in the file's
+# shape: the tag's parser reads it whole (validate-factory-config.sh runs the HelmRelease's own Maku on both).
+import sys
+sys.path.insert(0, f"{root}/scripts/ci")
+import factory_config
+for name, cloud in (("base", None), ("aws-0", "aws-0"), ("gcp-0", "gcp-0")):
+    open(f"{out}/factory-{name}.yaml", "w").write(sub(yaml.safe_dump(factory_config.config(root, cloud))))
 # The App's config is base's, the declaration's rendering (each cloud mounts it unchanged).
 app = sub(open(f"{root}/tooling/base/agent-factory/slack-app/config.yaml").read())
 open(f"{out}/slack-base.yaml", "w").write(app)

@@ -9,11 +9,10 @@ lists; test-maku-config-load.sh replays the values through it. This suite holds 
 import pathlib
 import sys
 
-import yaml
-
 ROOT = pathlib.Path(__file__).resolve().parents[3]
-cm = yaml.safe_load((ROOT / "tooling/base/agent-factory/helm-values-configmap.yaml").read_text())
-repos = yaml.safe_load(cm["data"]["values.yaml"])["config"]["repositories"]
+sys.path.insert(0, str(ROOT / "scripts/ci"))
+import factory_config  # noqa: E402  the values file with the Factory, Repository and MergePolicy objects over it
+repos = factory_config.config(ROOT)["repositories"]
 fails = []
 
 

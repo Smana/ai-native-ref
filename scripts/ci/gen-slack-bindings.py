@@ -20,7 +20,7 @@ decoded document must be the committed one with only that value changed.
 
 The declaration is refused, before any file is written, on: a channel id outside ^[CG][A-Z0-9]{2,20}$;
 a teamID outside ^T[A-Z0-9]{2,20}$; no channel; an empty `repositories`; a repository outside
-^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$, or one the factory's config.repositories does not name (it fails here,
+^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$, or one no Repository of the factory names (it fails here,
 not in the cluster); a maxCostUSD under 0.01 or above the sponsored principal's maxCostUSD; a `notify`
 entry outside the ten event names the App draws a line for; a notify union that is empty (the broker
 refuses `events: []`; one channel's `notify: []`, told nothing, is fine); a duplicate entry or channel;
@@ -48,7 +48,8 @@ APP = "tooling/base/agent-factory/slack-app/config.yaml"
 CLOUDS = ("aws-0", "gcp-0")
 SPONSORED = tuple(f"tooling/{c}/agent-factory/helm-values-sponsored.yaml" for c in CLOUDS)
 BROKER = tuple(f"infrastructure/{c}/room-broker/config.yaml" for c in CLOUDS)
-FACTORY = "tooling/base/agent-factory/helm-values-configmap.yaml"
+# The factory's Repository objects (Maku factory resources): what a channel may serve.
+FACTORY = "tooling/base/agent-factory/resources"
 PRINCIPAL = "slack-app"
 CHANNEL = re.compile(r"^[CG][A-Z0-9]{2,20}$")
 TEAM = re.compile(r"^T[A-Z0-9]{2,20}$")
@@ -133,7 +134,7 @@ def validate(declaration, served, ceiling):
                 raise ConfigError(f"channels.{cid}.repositories: {r!r} is not owner/name")
             if r not in served:
                 raise ConfigError(f"channels.{cid}.repositories: {r} is not a repository the factory's "
-                                  f"config.repositories names ({FACTORY})")
+                                  f"Repository in {FACTORY} names")
         cost = ch["maxCostUSD"]
         if not _number(cost) or cost < MIN_COST or cost > ceiling:
             raise ConfigError(f"channels.{cid}.maxCostUSD {cost!r} is not in [{MIN_COST}, {ceiling}], "
@@ -194,10 +195,14 @@ def _entry(items, at):
 
 
 def registries(root):
-    """(the repositories the factory's config.repositories names, the lowest slack-app principal's maxCostUSD)."""
+    """(the repositories the factory's Repository objects name, the lowest slack-app principal's maxCostUSD)."""
     root = pathlib.Path(root)
-    factory = _parse(FACTORY, _values, (root / FACTORY).read_text())
-    served = {r.get("name") for r in ((factory.get("config") or {}).get("repositories") or []) if isinstance(r, dict)}
+    kustomization = _parse(f"{FACTORY}/kustomization.yaml", yaml.safe_load, (root / FACTORY / "kustomization.yaml").read_text())
+    served = set()
+    for f in (kustomization or {}).get("resources") or []:
+        for d in _parse(f"{FACTORY}/{f}", lambda t: list(yaml.safe_load_all(t)), (root / FACTORY / f).read_text()):
+            if isinstance(d, dict) and d.get("kind") == "Repository":
+                served.add((d.get("spec") or {}).get("repository"))
     ceilings = []
     for path in SPONSORED:
         sponsored = _parse(path, _values, (root / path).read_text())

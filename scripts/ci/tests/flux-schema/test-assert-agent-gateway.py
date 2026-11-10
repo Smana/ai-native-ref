@@ -590,6 +590,29 @@ def edit_meter(edit):
     return edit_config(lambda c: edit(c["meter"]))
 
 
+def as_factory(o):
+    """The tree as it ships (Maku factory resources): prices, tiers, budgets and caps in the Factory named
+    by the values' factory, the values keeping the meter's query."""
+    cm = find(o, "ConfigMap", gate.FACTORY_VALUES)
+    values = yaml.safe_load(cm["data"]["values.yaml"])
+    c = values["config"]
+    spec = {"prices": c["meter"].pop("prices"), **{k: c.pop(k) for k in ("tiers", "budgets", "caps")}}
+    c["factory"] = "aws-0"
+    cm["data"]["values.yaml"] = yaml.safe_dump(values)
+    o.append({"apiVersion": "maku.ogenki.io/v1alpha1", "kind": "Factory",
+              "metadata": {"namespace": "agent-system", "name": "aws-0"}, "spec": spec})
+    return o
+
+
+print("AG8, AG10 the Factory's catalogue is laid over the values, as the factory reads it")
+check("the catalogue moved into the Factory is compliant", gate.run(as_factory(copy.deepcopy(compliant()))) == [],
+      str(gate.run(as_factory(copy.deepcopy(compliant())))))
+expect("a Factory price change the gateway's cost misses fails",
+       lambda o: find(as_factory(o), "Factory", "aws-0")["spec"]["prices"]["glm-5.3"].update({"input": 1.50}),
+       "AG8", "meter.prices")
+expect("a Factory another factory's name is not read: its prices are missing",
+       lambda o: find(as_factory(o), "Factory", "aws-0")["metadata"].update({"name": "gcp-0"}), "AG10", "no meter.prices row")
+
 print("AG8 the gateway follows the factory's values (J-AC2, never refusing first)")
 expect("a meter price change the gateway's cost misses fails",
        edit_meter(lambda m: m["prices"]["glm-5.3"].update({"input": 1.50})), "AG8", "meter.prices")

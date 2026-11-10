@@ -25,7 +25,8 @@ MINI = pathlib.Path(__file__).resolve().parent / "slack-bindings-fixtures/mini"
 # per cloud.
 FIXTURES = {"slack-bindings.yaml": (gen.DECLARATION,), "slack-app-config.yaml": (gen.APP,),
             "helm-values-sponsored.yaml": gen.SPONSORED, "room-broker-config.yaml": gen.BROKER,
-            "helm-values-configmap.yaml": (gen.FACTORY,)}
+            "resources-kustomization.yaml": (f"{gen.FACTORY}/kustomization.yaml",),
+            "resources-repositories.yaml": (f"{gen.FACTORY}/repositories.yaml",)}
 # Both clouds can serve the App (one at a time): each renders its own sponsored values and broker config.
 CONSUMERS = ["tooling/base/agent-factory/slack-app/config.yaml",
              "tooling/aws-0/agent-factory/helm-values-sponsored.yaml",
@@ -43,7 +44,7 @@ def check(name, cond):
 
 
 def mini():
-    """A copy of the five fixture files, each at every path it stands for."""
+    """A copy of the six fixture files, each at every path it stands for."""
     root = pathlib.Path(tempfile.mkdtemp())
     for name, rels in FIXTURES.items():
         for rel in rels:
@@ -123,7 +124,7 @@ def check_an_unserved_repository_fails_at_the_declaration():
     rc, err = run(root, "--write")
     check("an unserved repository exits 1", rc == 1)
     check("the failure names acme/unserved", "acme/unserved" in err)
-    check("the failure names config.repositories", "config.repositories" in err)
+    check("the failure names the factory's Repository objects", f"Repository in {gen.FACTORY}" in err)
     check("a refused declaration writes nothing",
           {p: b for p, b in tree(root).items() if p != gen.DECLARATION} ==
           {p: b for p, b in before.items() if p != gen.DECLARATION})

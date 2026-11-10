@@ -74,8 +74,9 @@ def check(repo, classes, policy):
     return out
 
 
-cm = yaml.safe_load((HOST / "tooling/base/agent-factory/helm-values-configmap.yaml").read_text())
-config = yaml.safe_load(cm["data"]["values.yaml"])["config"]
+sys.path.insert(0, str(HOST / "scripts/ci"))
+import factory_config  # noqa: E402  the values file with the Factory, Repository and MergePolicy objects over it
+config = factory_config.config(HOST)
 fails = []
 for r in config["repositories"]:
     # A repository whose policy file is not in this tree has its fence checked by that repository's

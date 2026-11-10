@@ -1,0 +1,38 @@
+# The host repository (Maku factory resources). It used to be the first entry of config.repositories
+# in ../helm-values-configmap.yaml, without its classes and merge rules: those are
+# mergepolicy-cloud-native-ref.yaml. The factory reads it live: adding, changing or removing a
+# Repository needs no rollout.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: Repository
+metadata:
+  name: cloud-native-ref
+  namespace: agent-system
+spec:
+  factoryRef: ${cluster_name}
+  repository: Smana/cloud-native-ref
+  maintainers: [Smana]
+  triggerLabel: factory/ready
+  # v3 feature 3: what a check-enabled run requests beyond github. Only docs has checks: true,
+  # since the gcp-0 session's live proofs (README, "v3 loop and sandbox layers").
+  checks: {egress: [pypi]}
+  schedules:
+    - name: link-rot
+      cron: "0 6 * * 1"  # Mondays, 06:00 UTC
+      class: docs-links
+      # R52: the gate accepts only Markdown link targets ([text](url), [ref]: url); a URL in a
+      # code block or in prose is held as class_mismatch (runbook 12, 2026-10-18).
+      text: |
+        Find broken external Markdown link targets ([text](url) or [ref]: url) under docs/
+        and website/content/, outside docs/superpowers/, docs/specs/ and
+        website/content/docs/decisions/. Fix those with an obvious replacement on the same
+        host, changing only the link target: leave code blocks, prose and link text alone,
+        change fewer than 21 lines in total and add or delete no file. If none is broken,
+        change nothing and open no pull request.
+    # dead-links' intake (MC6): the findings two consecutive nightly runs of the host's
+    # dead-links.yaml agree on become one task. link-rot stays beside it until the
+    # revert proof (runbook 15 §3) is done: a host change removes it (M4).
+    - name: dead-links
+      cron: "0 7 * * *"  # daily, after the 04:23 UTC scan
+      class: dead-links
+      probe: dead-links
+      text: Fix the dead external links listed below.

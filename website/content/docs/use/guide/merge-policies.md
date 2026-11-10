@@ -38,7 +38,8 @@ The central config sets no `mergeGuardrails`, so promotion needs the default 20 
 
 | File | Repository | Holds |
 |---|---|---|
-| `tooling/base/agent-factory/helm-values-configmap.yaml` | ai-native-ref | The central classes per repository, the `harnessProfiles` a class may name, and the guardrails |
+| `tooling/base/agent-factory/resources/mergepolicy-<name>.yaml` | ai-native-ref | The central classes and merge rules of one repository, in its `MergePolicy` |
+| `tooling/base/agent-factory/resources/factory.yaml` | ai-native-ref | The `harnessProfiles` a class may name, and the guardrails, in the `Factory` |
 | `.github/agent-factory.yaml` | Your repository | `factory:`, the ownership fence, and the repository's own `classes` |
 | `.policy.yml` | Your repository | policy-bot's rules: each class that should merge needs a `low-risk:` rule |
 
@@ -64,13 +65,12 @@ and the host's pin bump), the class's `low-risk:` rule in `.policy.yml`, and the
 
 You need a `maku` from the release the factory runs: `maku policy` is recent.
 
-1. From an ai-native-ref checkout, write the factory's config to a file, with the cluster's values
-   substituted:
+1. From an ai-native-ref checkout, write the factory's config to a file: the values file's `config:`
+   with the `Factory`, `Repository` and `MergePolicy` objects laid over it, as the factory reads them
+   ([factory configuration]({{< relref "/docs/reference/factory-configuration.md" >}})):
 
    ```bash
-   yq '.data["values.yaml"]' tooling/base/agent-factory/helm-values-configmap.yaml | yq '.config' \
-     | cluster_name=<factory> private_domain_name=<your-domain> identity_provider_url=https://<idp> \
-       envsubst '$cluster_name $private_domain_name $identity_provider_url' > factory.yaml
+   python3 scripts/ci/factory_config.py config <factory> > factory.yaml
    ```
 
 2. In your repository, edit `.github/agent-factory.yaml`, then validate it against the default

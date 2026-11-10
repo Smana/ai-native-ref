@@ -58,8 +58,9 @@ else:
     gates = canon["if"]["no_changed_files"]["paths"]
     if canon.get("requires", {}).get("users") != ["Smana"] or canon["requires"].get("count", 0) < 1:
         fails.append(".policy.yml: the agent rule must require Smana's review")
-    cm = yaml.safe_load((OWN / "tooling/base/agent-factory/helm-values-configmap.yaml").read_text())
-    own_classes = next(r for r in yaml.safe_load(cm["data"]["values.yaml"])["config"]["repositories"]
+    sys.path.insert(0, str(OWN / "scripts/ci"))
+    import factory_config  # the values file with the Factory, Repository and MergePolicy objects over it
+    own_classes = next(r for r in factory_config.config(OWN)["repositories"]
                        if r["name"] == REPO).get("classes") or {}
     unreviewed = {f"low-risk: {n}" for n, c in own_classes.items() if not c.get("live")}
     for r in rules:

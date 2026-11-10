@@ -1,0 +1,15 @@
+# The third repository, RunLore's knowledge base (RK3; Maku factory resources). It used to be the
+# third entry of config.repositories in ../helm-values-configmap.yaml, without its classes and
+# merge rules: those are mergepolicy-runlore-kb.yaml. The repository has no `.policy.yml` in this
+# tree: the parity suite skips it, and that repository's own file holds the fence, which names
+# aws-0. Read live, like every Repository.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: Repository
+metadata:
+  name: runlore-kb
+  namespace: agent-system
+spec:
+  factoryRef: ${cluster_name}
+  repository: Smana/runlore-kb
+  maintainers: [Smana]
+  triggerLabel: factory/ready

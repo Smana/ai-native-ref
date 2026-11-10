@@ -14,11 +14,10 @@ run-tests.sh runs this from .composite/ with cwd = this repository."""
 import pathlib
 import sys
 
-import yaml
-
 OWN = pathlib.Path.cwd()
 NOTES = OWN / ".github/agent-factory/steering"
-VALUES = OWN / "tooling/base/agent-factory/helm-values-configmap.yaml"
+sys.path.insert(0, str(OWN / "scripts/ci"))
+import factory_config  # noqa: E402  the values file with the Factory, Repository and MergePolicy objects over it
 MAX_BYTES, MAX_MODULES, VERIFY = 2048, 3, "## Verify"
 
 
@@ -64,15 +63,10 @@ def acceptance_line(raw: bytes) -> str:
 
 def classes() -> set:
     """The classes the factory config declares, and review."""
-    for doc in yaml.safe_load_all(VALUES.read_text()):
-        values = (doc or {}).get("data", {}).get("values.yaml")
-        if values:
-            cfg = yaml.safe_load(values).get("config", {})
-            found = {"review"}
-            for repo in cfg.get("repositories") or [cfg]:
-                found |= set((repo.get("classes") or {}).keys())
-            return found
-    return {"review"}
+    found = {"review"}
+    for repo in factory_config.config(OWN)["repositories"]:
+        found |= set((repo.get("classes") or {}).keys())
+    return found
 
 
 DOCS = ("# Steering: docs\n\n## Verify\n- `task links` (CI: validate): every relative Markdown link resolves.\n"

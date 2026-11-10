@@ -4,11 +4,10 @@
 import pathlib
 import sys
 
-import yaml
-
-values = yaml.safe_load(yaml.safe_load(
-    pathlib.Path("tooling/base/agent-factory/helm-values-configmap.yaml").read_text())["data"]["values.yaml"])
-config = values["config"]
+ROOT = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "scripts/ci"))
+import factory_config  # noqa: E402  the values file with the Factory, Repository and MergePolicy objects over it
+config = factory_config.config(ROOT)
 profiles = config.get("harnessProfiles", {})
 missing = []
 for repo in config["repositories"]:

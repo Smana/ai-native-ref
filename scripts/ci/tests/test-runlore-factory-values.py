@@ -47,13 +47,15 @@ if factory.get("soak") != "30m" or not (factory.get("verify") or {}).get("alertm
     problems.append("stage 2: factory.soak 30m and verify.alertmanager_url on the host's Alertmanager")
 if any(e["secretRef"]["name"] == "runlore-factory-intake" for e in env_from) or (DIR / "externalsecret-intake.yaml").exists():
     problems.append("RA8: the intake bearer is retired")
-fvalues = yaml.safe_load(yaml.safe_load((ROOT / "tooling/base/agent-factory/helm-values-configmap.yaml").read_text())["data"]["values.yaml"])
-if "runlore" in fvalues["config"]:
+sys.path.insert(0, str(ROOT / "scripts/ci"))
+import factory_config  # noqa: E402  the values file with the Factory, Repository and MergePolicy objects over it
+fconfig = factory_config.config(ROOT)
+if "runlore" in fconfig:
     problems.append("RA8: the factory's runlore block is retired")
-alert = fvalues["config"]["repositories"][0]["classes"].get("alert-rules") or {}
+classes = next(r for r in fconfig["repositories"] if r["name"] == "Smana/cloud-native-ref")["classes"]
+alert = classes.get("alert-rules") or {}
 if (alert.get("monitor") or {}).get("verification") != {"within": "2h"}:
     problems.append("the seeded fix's class watches RunLore's verdict for 2h")
-classes = next(r for r in fvalues["config"]["repositories"] if r["name"] == "Smana/cloud-native-ref")["classes"]
 
 
 def hours(d):

@@ -238,7 +238,7 @@ Destroying the cluster is a separate owner call.
 ## v3 loop and sandbox layers on the `docs` class
 
 v3 features are switched on for the `docs` class one at a time, one commit each in
-`tooling/base/agent-factory/helm-values-configmap.yaml`, so a failure is attributable. Prove them in this
+`tooling/base/agent-factory/resources/factory.yaml`, so a failure is attributable. Prove them in this
 order; the next layer waits for the previous one's proofs. Layers 1 to 4 and the splitter's `scripts` row
 are on in the source; `testFirst` (layer 6) is a session switch, off. The class is
 declared by both repositories, so each switch reads for `Smana/ai-native-ref` and

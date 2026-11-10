@@ -218,8 +218,8 @@ Everything else in the generated files stays hand-edited, and the generator neve
 
 The generator refuses the declaration, before anything reaches a cluster, when:
 
-- a channel names a repository the factory's `config.repositories`
-  (`tooling/base/agent-factory/helm-values-configmap.yaml`) does not serve;
+- a channel names a repository the factory's `Repository` objects
+  (`tooling/base/agent-factory/resources/repository-<name>.yaml`) does not serve;
 - a channel's `maxCostUSD` is below 0.01 or above the lower of the clouds' principal `maxCostUSD` (2, in
   each `helm-values-sponsored.yaml`): it is the cap each filed task gets;
 - a `notify` entry is not one of the ten events the App draws a line for (`room.task_triaged`,
@@ -279,7 +279,7 @@ onBehalfOf:
 ```
 
 Key: `<team id>/<Slack member id>`. Value: the GitHub login. Either way the login must be in the factory's
-`maintainers` list (`tooling/base/agent-factory/helm-values-configmap.yaml`), or the refusal is
+`maintainers` list (`tooling/base/agent-factory/resources/repository-<name>.yaml`), or the refusal is
 `not_a_maintainer`. A Slack user with neither gets `Not filed: not_linked`. A git entry goes in the same kind
 of PR as step 5 (the factory rolls on a change).
 

@@ -25,6 +25,7 @@ SENTINELS = [
     ".github/workflows/ci.yaml", "AGENTS.md", ".claude/settings.json", ".agents/skills/x",
     "clusters/aws-0-agent-platform/kustomization.yaml", "flux/sources/ocirepo-agent-factory.yaml",
     "security/base/octo-sts/x", "tooling/base/agent-factory/helm-values-configmap.yaml",
+    "tooling/base/agent-factory/resources/mergepolicy-x.yaml",
     "tooling/aws-0/agent-factory/x", "infrastructure/base/agent-gateway/x",
     "infrastructure/aws-0/agent-gateway/x", "observability/base/agent-platform/x",
     "scripts/ci/flux-schema/assert-agent-gateway.py", "HOST_REF", "taskfile.yaml",

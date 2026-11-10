@@ -21,7 +21,8 @@ startup switches, which the factory reads once when it starts.
 
 Adding a repository is a new `Repository` and its `MergePolicy`: the factory connects to it on its next
 read. Removing both stops the factory serving that repository, and its tasks wait until it is served
-again.
+again. The exception is the last repository: the factory then has nothing servable, so it keeps
+serving the current configuration until it restarts, and a restart then waits, not Ready.
 
 The three objects live in the factory's namespace, `agent-system`. A Flux Kustomization of their own,
 `agent-factory-resources`, applies them, apart from the factory's HelmRelease: their CRDs come with

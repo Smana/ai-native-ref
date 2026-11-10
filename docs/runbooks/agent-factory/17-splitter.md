@@ -17,7 +17,7 @@ after the scoper's live proofs (the split needs `scope: scoper` on the same row)
 
 ## 2. The row, in the session's first commit
 
-In `tooling/base/agent-factory/helm-values-configmap.yaml`, under `loops`:
+In `tooling/base/agent-factory/resources/factory.yaml`, under `loops`:
 
 ```yaml
       scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}}

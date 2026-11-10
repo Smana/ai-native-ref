@@ -47,8 +47,11 @@ The factory checks every object against the rest of the configuration, as it che
 it refuses is marked `Accepted=False` with the reason. The last version it accepted keeps serving,
 while the factory runs.
 
-After a restart, an object that is still invalid is not served, and a factory with no repository to
-serve does not start. So a refused edit is fixed, or reverted, before the next rollout.
+After a restart, an object that is still invalid is not served. A factory with nothing to serve, no
+repository among the file and the objects, waits at startup: its pods run and answer their probes but
+are not Ready, and it starts serving as soon as the objects exist (Maku v0.41.1 and later). So the
+objects and the factory can be applied in either order, and a refused edit is fixed, or reverted,
+before the next rollout.
 
 `task check` refuses such an edit before it merges: `scripts/ci/validate-factory-config.sh` runs
 `maku config validate`, from the release the HelmRelease pins, on the values file and the objects of

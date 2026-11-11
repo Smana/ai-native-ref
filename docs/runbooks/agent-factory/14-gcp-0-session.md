@@ -118,11 +118,12 @@ stale gitignored `.terraform.lock.hcl` files are pinning google 7.x in seven `op
 delete them, per stack, and re-run.
 
 **[OWNER] The admin PAT.** A ZITADEL restored from a seed has no admin PAT, so the OIDC-client sync
-cannot authenticate. Mint one in the ZITADEL console for `iam-admin`, store it as Secret
+cannot authenticate. A PAT stored before the seed was restored is stale: every ZITADEL admin call
+answers 401, the IdP and client sync are skipped with a `[warn]`, and the OpenBao OIDC check fails
+with `App.NotFound`. The admin PAT lacks the INSTANCE role IAM_OWNER (or IDP_URL / the PAT is stale).
+Mint a PAT in the ZITADEL console for the `iam-admin` machine user, store it as Secret
 `security/iam-admin-pat` (key `pat`), and re-run the deploy: it persists the PAT to Secret Manager
-`zitadel-iam-admin-pat`. A PAT stored before the seed was restored is stale: every ZITADEL admin call
-answers 401, the IdP and client sync are skipped with a warning, and the OpenBao OIDC check fails.
-Mint a new one (issue #347 asks the factory to write it).
+`zitadel-iam-admin-pat`.
 
 **After the client sync, restart the rooms proxy.** The sync re-creates the OIDC clients, and
 `rooms-oauth2-proxy` loads its client ids at start. The ExternalSecrets `rooms-proxy` and

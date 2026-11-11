@@ -42,7 +42,7 @@ INTAKE_RELEASE = "v0.35.0"
 # cloud whose factory does not serve it yet.
 PUBLIC_REPO = "Smana/ai-native-ref"
 # Coordination plans span the platform and its knowledge base (ADR-0060 amendment, Maku #369-#371).
-PLANNED_REPOS = [PUBLIC_REPO, "Smana/runlore-kb", "Smana/runlore"]
+PLANNED_REPOS = [PUBLIC_REPO, "Smana/runlore-kb", "Smana/runlore", "Smana/cloud-native-ref"]
 # The tier every task takes when triage names none (the factory's own comment on `triage`): a ceiling
 # above its taskUSD is money the factory does not have.
 DEFAULT_TIER = "standard"
@@ -222,16 +222,19 @@ else:
                 check(repo in names or repo.lower() in {r.lower() for r in PLANNED_REPOS},
                       f"{cloud}: {repo} is neither a repository the factory serves ({', '.join(names)}) "
                       f"nor the public repository the proof uses")
-        # Each class is checked against the classes of every planned repository the factory serves,
-        # each on its own: a class another repository declares is still one this one cannot run. Only
-        # when no planned repository is served (a copy still off) does the pooled set stand in.
+        # Each class is checked against the classes of the planned repositories the factory serves.
+        # Only when none is served (a copy still off) does the pooled set stand in.
         planned = [r.lower() for r in plan.get("repositories") or [] if r.lower() in by_repo]
         for name, row in (plan.get("classes") or {}).items():
             at = f"{cloud}: human.intake.plan.classes[{name!r}]"
-            for repo in planned:
-                check(name in by_repo[repo], f"{at} is not a class of {repo} in the factory's config "
-                                             f"({', '.join(sorted(by_repo[repo]))})")
-            if not planned:
+            # The table is the broker's, one for every planned repository: a class one of them runs is
+            # a class a plan may suggest (the others refuse it at filing). One no planned repository
+            # runs is a plan nothing can pick up.
+            if planned:
+                check(any(name in by_repo[repo] for repo in planned),
+                      f"{at} is not a class of any planned repository in the factory's config "
+                      f"({', '.join(sorted(set().union(*(by_repo[r] for r in planned))))})")
+            else:
                 check(name in classes, f"{at} is not a class of a repository the factory serves "
                                        f"({', '.join(sorted(classes))})")
             check(isinstance(row, dict) and set(row) == CLASS_KEYS,

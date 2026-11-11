@@ -13,7 +13,7 @@ names the clouds a capability was proven on, and links to the evidence: a runboo
 a design record.
 
 **Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0),
-released on 2026-10-31. **On `main`** (tag `v3.5.0`): Maku v0.40.0 for the broker, the factory and the
+released on 2026-10-31. **On `main`** (tag `v3.8.0`): Maku v0.41.1 for the broker, the factory and the
 Slack app; the harness and bridge stay on v0.32.3, composed by crossplane-configuration v0.9.32. **Next:**
 [v3.x releases](#v3x) of this platform, then [v4, anyone can run it](#v4).
 
@@ -52,7 +52,7 @@ flowchart LR
     next["Next: analytics, Gemini,<br/>review, verification, quality,<br/>scale, provenance, memory"]
   end
   subgraph v4["Then v4: anyone can run it"]
-    laptop["The factory on a laptop"]
+    laptop["Built: the factory on a laptop"]
     prod["The production path"]
   end
   subgraph later["Planned"]
@@ -140,6 +140,15 @@ its offline proofs, a release, a live proof, then the switch-on. Each track gets
 | **RunLore's knowledge base, filled by the factory** | What an investigation learns about the running platform becomes a reviewed entry in the knowledge base, and the entries that are safe to merge go through a curated queue rather than waiting on you one by one | The loop is proven live: an incident became a fix, then a verified entry, and a replay recorded merged fixes on their entries ([runbook 25](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/25-runlore-kb-phase-1.md), [live 4](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-runlore-kb-live-4-2026-11-08.md)). Live 1 (a restart keeps the soak) and live 3 (a second generation) are not run. Off by default; `kb-entries` decides in shadow |
 | **Multi-repository coordination** | One change across two repositories, confirmed once: a parent issue that records the change and never writes code, one ordinary task per repository with its own maintainer, branch, gate and pull request, a landed file as the dependency, and a read-only check that the two work together | Plan mode is on, on aws-0: it composes a validated plan across `Smana/ai-native-ref` and `Smana/runlore-kb` and files nothing. Execute refuses every filing until merge classes in your repository and untrusted-input hardening ship. The integration runtime (exact-commit worktrees, one typed result) is built and inert. Four alerts cover integration failures, lost authority, stalls and a recovery standing past 15 minutes ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-05-v4-multi-repo-coordination-design.md), [factory](https://github.com/Smana/maku/blob/main/docs/factory.md#multi-repository-coordination)) |
 | **Untrusted-input hardening** | For repositories where strangers file issues: the agent writes only through validated outputs, text from people outside the maintainers is filtered, outputs pass a threat check before they apply, and CI configuration, agent instructions and manifests stay out of the agent's reach. Scripted injection attacks against every role prove it, on a schedule like the merge-gate drills. **Needed for v4** | Stage H0 is built: the contracts, switched off, changing no behaviour. H1 to H5 (audit, non-code outputs enforced, push enforced, reads filtered, ready) are next ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-07-untrusted-input-hardening-design.md)) |
+| **The factory's settings as objects** | The factory, each repository and each merge policy are `Factory`, `Repository` and `MergePolicy` objects you apply with your GitOps tool. The factory reads them live, so an edit takes effect without a restart, and a bad edit is refused while the last good version keeps serving. `maku config migrate` converts an old settings file and `maku config validate` checks one before you apply it. The factory waits for a servable configuration instead of refusing to start, and the Settings page is hidden when the policy API is off | Served from these objects in the platform (Maku v0.41.2). Waiting for its live proof |
+| **Team evaluation profiles** | Evaluation profiles per team, with outcome metrics, so each team's runs are judged against its own profile | Built in Maku v0.41.0 ([#427](https://github.com/Smana/maku/pull/427), [#431](https://github.com/Smana/maku/pull/431)); waiting for its live proof |
+| **Clarify and track a spec** | The intake asks what is unclear about a factory spec and tracks it from request to pull request | Built in Maku v0.41.1 ([#419](https://github.com/Smana/maku/pull/419)) |
+
+**In progress**, all open pull requests in Maku:
+
+- The coding agent's form times out cleanly: when a client never answers `issue_file`'s form, the factory falls back to the draft, and the handoff skill checks its prerequisites first ([#442](https://github.com/Smana/maku/pull/442)).
+- Slack quick wins: a refused first mention says why, planner progress shows, the closed phrases are listed ([#444](https://github.com/Smana/maku/pull/444)).
+- Designs, not built: natural-language intents in Slack rooms ([#441](https://github.com/Smana/maku/pull/441)) and a suggested workflow and profile choice at intake ([#443](https://github.com/Smana/maku/pull/443)).
 
 **Next:**
 
@@ -171,13 +180,13 @@ and when merge classes in your repository and untrusted-input hardening have shi
 releases, because an outside repository's issues come from strangers. Whatever else has shipped by
 then is part of v4 ([roadmap](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-31-v4-roadmap-design.md#v4-0)).
 
-| Feature | What it will do for you |
-|---|---|
-| **The factory on a laptop** | About 15 minutes from the docs alone, on kind or k3d: one command asks for your model endpoint and key, you click twice on GitHub to create the factory's App, and you get a repository made from a template. Label its first issue, watch the agents work in a room, get a reviewed pull request, and see the merge gate post its verdict; one value lets it merge. It is a demo of how production works, on public repositories only: a table on the quickstart page lists what production adds, such as isolation, per-role tokens and budgets. A nightly job proves the loop |
-| **The production path** | Install on your own cluster from one Helm chart that Flux and Argo CD both consume. You bring your identity provider through OIDC, your secrets store and your GitOps tool; agentgateway and gVisor ship as required pieces. Each seam says what you lose if you leave it out. Proven on a plain k3s or kubeadm cluster with a smoke test, on public repositories; private repositories are documented |
-| **Upgrades you can plan for** | From v4, chart values and the install contract follow semantic versioning: a breaking change waits for a major release or comes with a migration note, and a nightly job upgrades the previous release |
+| Feature | What it will do for you | State |
+|---|---|---|
+| **The factory on a laptop** | About 15 minutes from the docs alone, on kind or k3d: one command asks for your model endpoint and key, you click twice on GitHub to create the factory's App, and you get a repository made from a template. Label its first issue, watch the agents work in a room, get a reviewed pull request, and see the merge gate post its verdict; one value lets it merge. It is a demo of how production works, on public repositories only: a table on the quickstart page lists what production adds, such as isolation, per-role tokens and budgets. A nightly job proves the loop | **Built** in Maku (v0.35 to v0.37): `task demo`, the `charts/agent-factory` umbrella chart and the quickstart ([#347](https://github.com/Smana/maku/pull/347), [#350](https://github.com/Smana/maku/pull/350), [#352](https://github.com/Smana/maku/pull/352), [#356](https://github.com/Smana/maku/pull/356), [#362](https://github.com/Smana/maku/pull/362), [#363](https://github.com/Smana/maku/pull/363), [#366](https://github.com/Smana/maku/pull/366)). Its go test still needs the nightly kind job green with its secrets, and one outside person's friction log |
+| **The production path** | Install on your own cluster from one Helm chart that Flux and Argo CD both consume. You bring your identity provider through OIDC, your secrets store and your GitOps tool; agentgateway and gVisor ship as required pieces. Each seam says what you lose if you leave it out. Proven on a plain k3s or kubeadm cluster with a smoke test, on public repositories; private repositories are documented | Not started |
+| **Upgrades you can plan for** | From v4, chart values and the install contract follow semantic versioning: a breaking change waits for a major release or comes with a migration note, and a nightly job upgrades the previous release | Not started |
 
-Today's kind quickstart runs one attended agent; v4 brings the whole loop.
+The laptop stage is built; the production path is the work left before v4.
 
 ## Planned {#later}
 

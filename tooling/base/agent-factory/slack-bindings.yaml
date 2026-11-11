@@ -9,7 +9,7 @@
 teamID: T07J97G2K2P
 channels:
   C0CC4M8SNVD:
-    repositories: [Smana/cloud-native-ref, Smana/ai-native-ref]
+    repositories: [Smana/cloud-native-ref, Smana/ai-native-ref, Smana/runlore, Smana/runlore-kb]
     maxCostUSD: 2
     # A forge.push wait is drawn as a card with Approve and Deny (Maku docs/slack.md); the broker's
     # human.slackDecide (each cloud's copy) is the authority that answers a press.

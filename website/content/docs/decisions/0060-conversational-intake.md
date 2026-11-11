@@ -103,6 +103,13 @@ its knowledge base together. Nothing else widens: runlore-kb is public, the fact
 it (fenced to aws-0), and the class each plan names is still checked against that repository's own
 class table. This is the "second repository" change the Neutral consequence below names.
 
+**Amendment, 2026-11-12 (the host repository):** the planner's allowlist adds `Smana/cloud-native-ref`,
+on every copy, and the Slack channel serves `Smana/runlore` and `Smana/runlore-kb` beside the two it
+had. The channel's repositories and the allowlist met at one repository, so every Slack request was
+planned for it. The host repository is public and the factory already serves it, and each plan's class
+is still checked against that repository's own class table. The class table also gains `docs`,
+`scripts` and `review`, so a plan is no longer forced into `docs-links`.
+
 ---
 
 ## Consequences

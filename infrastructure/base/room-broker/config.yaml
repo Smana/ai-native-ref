@@ -71,6 +71,10 @@ human:
       repositories: [Smana/ai-native-ref, Smana/runlore-kb, Smana/runlore]      # the public repositories this boundary may plan for
       classes:
         docs-links: {roles: [scoper, implementer, reviewer], ceilingUSD: 2.00, source: "class:docs-links.taskUSD"}
+        # docs and scripts are the ai-native-ref classes a plan may suggest (Factory loops: scoper on both,
+        # pair template). docs is priced like docs-links; scripts at the standard tier's taskUSD.
+        docs: {roles: [scoper, implementer, reviewer], ceilingUSD: 2.00, source: "class:docs.taskUSD"}
+        scripts: {roles: [scoper, implementer, reviewer], ceilingUSD: 5.10, source: "class:scripts.taskUSD"}
   # needs/v1 (CD21, CD28): one list, read by /api/needs and by the CLI. Read-only, so it ships on.
   needs:
     enabled: true

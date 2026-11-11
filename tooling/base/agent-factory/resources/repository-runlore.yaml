@@ -1,0 +1,13 @@
+# The fourth repository, RunLore itself (Smana/runlore: public, default branch main). Like
+# runlore-kb, it has no `.policy.yml` in this tree: the parity suite skips it, and that repository's
+# own file holds the fence, which names gcp-0 (Smana/runlore#617). Read live, like every Repository.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: Repository
+metadata:
+  name: runlore
+  namespace: agent-system
+spec:
+  factoryRef: ${cluster_name}
+  repository: Smana/runlore
+  maintainers: [Smana]
+  triggerLabel: factory/ready

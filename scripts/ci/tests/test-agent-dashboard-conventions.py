@@ -9,7 +9,8 @@ event reads 0, not No data.
 The folder reads as one tool: every dashboard carries the "agents" tag and the shared top-bar link (a
 dashboards-by-tag link, so a new dashboard joins every bar without an edit), every panel says what it shows,
 and a counter the meter or the gateway resets is never read through a bare increase() over a range: the
-series of a run or a payer is born inside the range, and increase() drops its first value (SI11)."""
+series of a run or a payer is born inside the range, and increase() drops its first value (SI11). The
+provider-refusal panel is the one exception: its fixed one-hour increase() is the metric's reporting contract."""
 import json
 import pathlib
 import re
@@ -49,6 +50,7 @@ def panels(file):
 UIDS = {"agents-overview", "agent-fleet", "agent-factory", "agent-gateway", "agent-identity", "agent-room", "agent-run"}
 # Counters (and histogram parts) the meter, the factory or the gateway resets or births inside a range.
 RESET = re.compile(r"(?<!_)\bincrease\(\s*((?:maku|agent)_factory_\w+|gen_ai_client_token_usage_sum|gen_ai_server_request_duration_seconds_(?:count|sum|bucket))\b[^\[]*\[([^\]]+)\]")
+PROVIDER_REFUSAL_HOURLY = "increase(maku_factory_model_refused_total[1h])"
 
 
 def all_boards():
@@ -69,8 +71,12 @@ def check_folder():
                 continue
             check(len(p.get("description", "").strip()) >= 20, f"{name}: {p['title']} has a description")
             for t in p.get("targets", []):
-                for m in RESET.finditer(t.get("expr", "")):
-                    check(m[2] == "$__rate_interval", f"{name}: {p['title']} {t['refId']}: increase({m[1]}[{m[2]}]) is unbounded: increase_pure")
+                expr = t.get("expr", "")
+                for m in RESET.finditer(expr):
+                    exempt = (m[1] == "maku_factory_model_refused_total" and m[2] == "1h"
+                              and expr.count(PROVIDER_REFUSAL_HOURLY) == 1)
+                    check(m[2] == "$__rate_interval" or exempt,
+                          f"{name}: {p['title']} {t['refId']}: increase({m[1]}[{m[2]}]) is unbounded: increase_pure")
     check(set(seen) == UIDS, f"the folder holds exactly {sorted(UIDS)}, found {sorted(seen)} (agent-platform is retired)")
     resources = yaml.safe_load((DASHBOARDS / "kustomization.yaml").read_text())["resources"]
     check(sorted(r for r in resources if r.startswith("grafana-dashboard")) == sorted(seen.values()), "kustomization lists every dashboard file, and only those")

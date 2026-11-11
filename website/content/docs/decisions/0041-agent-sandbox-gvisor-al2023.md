@@ -3,10 +3,10 @@ title: Coding agents run in agent-sandbox Sandboxes under gVisor, on a dedicated
 linkTitle: 0041 · Agent sandbox runtime
 weight: 410
 description: Every agent run is a bare agent-sandbox Sandbox under gVisor on a dedicated spot pool. On aws-0 that is a Karpenter AL2023 pool where runsc is installed at boot, because Bottlerocket ships no runsc; on gcp-0 it is a GKE Sandbox node pool. The harness is OpenHands agent-server, selected by a platform profile the claim cannot override. Kata, OpenHands Enterprise, Coder and hosted sandboxes were rejected.
-lastVerified: 2026-10-01
+lastVerified: 2026-11-11
 ---
 
-**Status**: Accepted
+**Status**: Accepted; reaffirmed by [ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}})
 **Date**: 2026-09-26
 **Deciders**: Smana (Platform Owner)
 **Related Spec**: [SP1 — Agent runtime & identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md)
@@ -74,8 +74,9 @@ creation under `RuntimeDefault`.
 
 agent-server is MIT, runs as UID 10001, speaks OpenAI-compatible HTTP to whatever base URL it is
 given, and exposes the four local operations SP2's room bridge needs. Headless Claude Code is not
-open source; kagent v1 is alpha. The claim names a **profile** (`openhands`), never an image; the
-composition maps it to a digest.
+open source. kagent 1.0's native coding harnesses and BYO adapter were reassessed in ADR-0062; they
+do not remove enough of the existing factory to justify replacing OpenHands. The claim names a
+**profile** (`openhands`), never an image; the composition maps it to a digest.
 
 ---
 

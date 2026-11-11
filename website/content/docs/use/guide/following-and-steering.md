@@ -132,6 +132,12 @@ stops on its own. You see them in three places:
 | The room's facts, and `maku status` | Spent so far against the task's cap: `$0.16 of $5.10 (3 %)` |
 | The Slack proposal, and your agent's plan | The **ceiling**: the most the task may cost, and where that number comes from |
 
+For a run on the owner's flat-rate Kimi Code subscription, the room's dollars are **nominal**: the
+run's marginal cost is **USD 0**, not an extra bill. The configured `kimi-frontier` model is Kimi
+K3.1 Pro (`k3.1-pro`). Its nominal price row is `meter.prices.k3.1-pro` in
+`tooling/base/agent-factory/resources/factory.yaml`; the dollars still bound token use against the
+caps.
+
 The caps come from the task's *tier*. A ceiling from Slack or your coding agent can only lower the
 task's cap, never raise it.
 

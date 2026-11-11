@@ -84,6 +84,9 @@ spec:
       # after 3 failed upgrades Helm rolls back to skip-jwt-bearer-tokens "false"
       # and the release stalls. So after the sync:
       # flux reconcile hr rooms-oauth2-proxy -n agent-system --force
+      # The proxy also reads the client ids at start and the host runs no Reloader: after
+      # every sync, kubectl -n agent-system rollout restart deploy/rooms-oauth2-proxy
+      # (runbook 14 §3).
       - name: OAUTH2_PROXY_EXTRA_JWT_ISSUERS
         valueFrom:
           secretKeyRef:

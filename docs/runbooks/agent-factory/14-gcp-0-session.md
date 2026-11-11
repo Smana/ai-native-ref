@@ -36,6 +36,8 @@ flowchart TD
 | 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Required for the agent platform: `zitadel-github-idp`. Without it the deploy skips the GitHub link IdP and so never writes `room-broker-zitadel-reader`, the broker's link reader. Optional: `github-gha-runner-scale-set-default` (GHA runners only) |
 | 0.5 | cloud-native-ref pins the releases under test | `flux/sources/ocirepo-ai-native-ref.yaml`: an ai-native-ref release on Maku v0.32.0; crossplane-configuration v0.9.29 (cloud-native-ref #2676) |
 | 0.6 | Optional, decided now: serve the Substrate spike's APIs | `TF_VAR_enable_pod_certificate_apis=true` on step 3. It is safe to turn on later, but turning it off later replaces the cluster. It needs a control plane on 1.35 or later: `gcloud container get-server-config --zone europe-west4-a --format='yaml(channels)'` |
+| 0.7 | Tool pins in cloud-native-ref | `mise install` (tofu 1.13.9, terramate 0.17.4), then run the deploy through `mise exec --` |
+| 0.8 | The Z.ai wallet holds credit. Empty, every `agent-default` run fails at 0 tokens | Check the key's account wallet in the Z.ai console. If it is empty, recharge it or use the [moonshot fallback](#if-the-zai-wallet-is-empty-the-moonshot-fallback) |
 
 ### CPU sizing
 
@@ -61,7 +63,10 @@ Short of quota, the `e2-standard-8` cannot start (finding F3 of 2026-09-30) and 
 
 ## 1. [OWNER] The identity-provider topology
 
-**Option A is on `main`** (`primary_cloud = "gcp"`, 2026-10-17). A session starts from step 2 unless it
+**Check `primary_cloud` in cloud-native-ref's `opentofu/config.tm.hcl` before deploying.** It was
+`"gcp"` from 2026-10-17, `"aws"` from 2026-10-30 (aws-0 hosted ZITADEL, cnref #2687), and `"gcp"`
+again from cnref #2812 (2026-11-11). Deployed while it reads `"aws"`, gcp-0 has no IdP of its own and the
+factory crash-loops on the JWKS fetch. On `"gcp"` (option A), a session starts from step 2 unless it
 changes the topology. With AWS primary, gcp-0 alone points every login at the dead
 `auth.cloud.ogenki.io`, and the OIDC-client registration only warns and exits 0: the deploy reports
 success while SSO is dead. The options:
@@ -108,10 +113,31 @@ Run it from a shell whose `KUBECONFIG` names gcp-0 or nothing. Pointed at anothe
 `helm-release-present.sh` answers "absent" and the deploy re-installs flux-operator, which fails
 with `cannot re-use a name`.
 
+Run it through `mise exec --` (0.7). If `tofu init` fails against `~> 8.0` for the google provider,
+stale gitignored `.terraform.lock.hcl` files are pinning google 7.x in seven `opentofu/gcp/*` stacks:
+delete them, per stack, and re-run.
+
 **[OWNER] The admin PAT.** A ZITADEL restored from a seed has no admin PAT, so the OIDC-client sync
-cannot authenticate. Mint one in the ZITADEL console for the IAM admin, store it as Secret
-`security/iam-admin-pat`, and re-run the deploy: it persists the PAT to Secret Manager
-`zitadel-iam-admin-pat`.
+cannot authenticate. Mint one in the ZITADEL console for `iam-admin`, store it as Secret
+`security/iam-admin-pat` (key `pat`), and re-run the deploy: it persists the PAT to Secret Manager
+`zitadel-iam-admin-pat`. A PAT stored before the seed was restored is stale: every ZITADEL admin call
+answers 401, the IdP and client sync are skipped with a warning, and the OpenBao OIDC check fails.
+Mint a new one (issue #347 asks the factory to write it).
+
+**After the client sync, restart the rooms proxy.** The sync re-creates the OIDC clients, and
+`rooms-oauth2-proxy` loads its client ids at start. The ExternalSecrets `rooms-proxy` and
+`rooms-proxy-extra-issuers` refresh, but the running proxy keeps the old allowed audiences: every
+`maku` call fails with `rooms: 400: Bad Request`, and the proxy log says `audience … does not match
+with any of allowed audiences`. The host runs no Reloader, so restart it by hand after every sync:
+
+```bash
+kubectl -n agent-system rollout restart deploy/rooms-oauth2-proxy
+kubectl -n agent-system rollout status deploy/rooms-oauth2-proxy
+```
+
+**`maku login` and the console session.** The device flow reuses a ZITADEL console session. While
+you are signed in to the console as `admin@zitadel…`, `maku login` ends in `403 not in an agents
+group`. Log out of the console, or use a private window, first.
 
 Afterwards, check the clouds rather than the log. Look first at `kubectl get certificate -n security`. Let's Encrypt allows
 five certificates per identifier set per week, and a 429 there shows up as "ZITADEL not ready".
@@ -151,6 +177,12 @@ bao kv put -mount=agents anthropic api_key=-
 # and Mistral's (billing must be active first: pay-as-you-go, $20 cap). Selectable, never a default.
 bao kv put -mount=agents moonshot api_key=-
 bao kv put -mount=agents mistral api_key=-
+# The planner (runbook 19 §2.3): one value in both entries. Written after the 2026-10-29
+# snapshot, so a restore lacks both and the planner stays down.
+key="$(openssl rand -hex 24)"
+bao kv put -mount=agents planner apiKey="$key"
+bao kv put -mount=apps planner apiKey="$key"
+unset key
 bao kv put -mount=agents github-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem>
@@ -164,7 +196,8 @@ unset KEY
 # runlore-factory-principal and agents-runlore-principal: zitadel-oidc-clients.sh sync --apply (host)
 ```
 
-Without `merger-app` the factory pod never starts.
+Without `merger-app` the factory pod never starts. Without `agents/planner` and `apps/planner` the
+planner is down.
 
 `agents/factory-slack-app` is written by the owner from the Slack App's console (the bot token, the
 signing secret and the bot's `U…` user id) and read by the ExternalSecret `factory-slack-app`. It is
@@ -193,6 +226,26 @@ tools, rate limits are personal) and processed in China, so public data only. Mi
 only until the owner approves internal. Mistral works through the gateway but is not recommended as an
 implementer: a run spent its budget on a 5-line pull request.
 
+### If the Z.ai wallet is empty: the moonshot fallback
+
+Used on 2026-11-11 when the wallet ran out. It points the default routes at the `moonshot` (Kimi)
+backend for the session, and suspends the Kustomization that would revert it. Live sessions only.
+
+| Step | Change |
+|---|---|
+| 1 | The agentgateway `moonshot` backend takes the aliases `agent-default` and `tier-*` |
+| 2 | The default `/v1` rule points at `moonshot` |
+| 3 | `flux suspend kustomization agent-gateway -n flux-system`, so Flux does not revert 1 and 2 |
+
+Revert, after recharging the wallet: restore the manifests from Git, then
+
+```bash
+flux resume kustomization agent-gateway -n flux-system
+```
+
+The planner is not covered. It calls Envoy AI gateway, which this switch does not touch, so it stays
+down until the wallet is recharged. Moonshot is processed in China: public data only, as for Feature 15.
+
 ## 6. [OWNER] Go-live commit
 
 **On `main` since 2026-10-17**; check it was not reverted. Going live takes a commit, not `flux resume`: the parent Kustomization
@@ -206,6 +259,17 @@ commit:
 | `.github/agent-factory.yaml` | `factory: gcp-0`. Only one factory may own the repository, so the auto-merge drill (runbook 12) runs on gcp-0 |
 
 Gate: `flux get kustomizations -A | grep -v True` lists nothing but `llm-platform`.
+
+### The merge-gate and Slack Apps point at gcp-0
+
+An App has one URL, so after a switch between clouds, repoint both. **[OWNER]**
+
+| App | Setting | gcp-0 value |
+|---|---|---|
+| `ogenki-merge-gate` (GitHub) | Webhook URL | `https://policy-bot.gcp.cloud.ogenki.io/api/github/hook` |
+| The Slack App ([runbook 22](22-slack.md#4-the-request-url)) | Event Subscriptions and Interactivity Request URL | `https://factory-slack.gcp.cloud.ogenki.io/slack/events` |
+
+After an OpenBao restore, also re-check the policy-bot webhook secret ([README](README.md)).
 
 ## 7. The v2.1 blockers, live
 

@@ -144,11 +144,14 @@ its offline proofs, a release, a live proof, then the switch-on. Each track gets
 | **Team evaluation profiles** | Evaluation profiles per team, with outcome metrics, so each team's runs are judged against its own profile | Built in Maku v0.41.0 ([#427](https://github.com/Smana/maku/pull/427), [#431](https://github.com/Smana/maku/pull/431)); waiting for its live proof |
 | **Clarify and track a spec** | The intake asks what is unclear about a factory spec and tracks it from request to pull request | Built in Maku v0.41.1 ([#419](https://github.com/Smana/maku/pull/419)) |
 
-**In progress**, all open pull requests in Maku:
+**Landed in Maku v0.42.0:**
 
 - The coding agent's form times out cleanly: when a client never answers `issue_file`'s form, the factory falls back to the draft, and the handoff skill checks its prerequisites first ([#442](https://github.com/Smana/maku/pull/442)).
 - Slack quick wins: a refused first mention says why, planner progress shows, the closed phrases are listed ([#444](https://github.com/Smana/maku/pull/444)).
-- Designs, not built: natural-language intents in Slack rooms ([#441](https://github.com/Smana/maku/pull/441)) and a suggested workflow and profile choice at intake ([#443](https://github.com/Smana/maku/pull/443)).
+
+**Designs, open** in Maku:
+
+- Natural-language intents in Slack rooms ([#441](https://github.com/Smana/maku/pull/441)) and a suggested workflow and profile choice at intake ([#443](https://github.com/Smana/maku/pull/443)).
 
 **Next:**
 

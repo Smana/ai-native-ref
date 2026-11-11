@@ -4,7 +4,7 @@ aliases:
   - /docs/platform/ai-platform/agents/alternatives/
 weight: 100
 description: "Work in progress. The alternatives considered for each layer of the Agent Factory, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
-lastVerified: 2026-11-04
+lastVerified: 2026-11-11
 ---
 
 {{< callout type="warning" >}}
@@ -60,7 +60,7 @@ flowchart TB
   end
   subgraph L1["Runtime: isolation, lifecycle, identity"]
     direction LR
-    F1["agent-sandbox + gVisor<br/>(chosen)"] ~~~ S1["Agent Substrate (google/ax<br/>and kagent v1 run on it)"]
+    F1["agent-sandbox + gVisor<br/>(chosen)"] ~~~ S1["Agent Substrate (google/ax;<br/>kagent uses its fork)"]
   end
   L5 --> L4 --> L3 --> L2 --> L1
 ```
@@ -126,52 +126,53 @@ the sandbox, on top of the [Substrate triggers](#reconsidering-substrate-not-now
 
 ### Agent Substrate
 
-*Checked in October 2026 at `16b863a`.*
+*Checked in November 2026 at upstream `4ee8f66` (v1.0.0-rc.3) and kagent's pinned fork `563df06`.*
 
-**What it is.** A runtime that packs many gVisor-isolated agents into shared worker pods and can
-**suspend and resume** an agent, memory included, from snapshots.
+**What it is.** A runtime that packs isolated Actors into shared worker Pods. It supports gVisor and
+microVMs, golden-snapshot warm starts, memory-preserving restore, forks and external credential
+injection.
 
-**What it would bring.** Fork from a running snapshot, and memory snapshots on any cluster (see
-[below](#would-rebuilding-on-kagent--substrate-be-simpler)). agent-sandbox has disk-backed
-suspend since v0.5.0 (`operatingMode: Suspended`, which deletes the pod and keeps its volumes) and
-GKE-only memory snapshots driven from its Python SDK; the composition suspends only finished runs.
+**What it would bring.** Faster starts and process-memory continuity across workers. A local spike
+showed that OpenHands could resume its conversation after cross-node restoration, but the complete
+credentialed factory path and current releases still need proof before those benefits count.
 
-**Why not yet.**
+**Why it stays out.**
 
 | Constraint | Evidence |
 |---|---|
-| Several agents share one pod. Each gets its own egress policy, but Kubernetes identity and Cilium policy apply to the shared pod | [glossary](https://github.com/agent-substrate/substrate/blob/16b863a/docs/glossary.md#L48-L50), [`EgressPolicy`](https://github.com/agent-substrate/substrate/blob/16b863a/pkg/proto/ateapipb/ateapi.proto#L422-L457) |
-| Authorization is experimental and off by default | [`--experimental-enable-authz`](https://github.com/agent-substrate/substrate/blob/16b863a/cmd/ateapi/main.go#L84) |
-| A reclaimed worker leaves its awake agents permanently crashed; the docs warn against spot nodes | [setup guide](https://github.com/agent-substrate/substrate/blob/16b863a/tools/setup-gcp/README.md#L100-L106) |
-| Documented on kind and GKE only; needs Kubernetes certificate APIs that are stable only from 1.37 | [README](https://github.com/agent-substrate/substrate/blob/16b863a/README.md#L86-L147), [Kubernetes 1.37](https://kubernetes.io/blog/2026/08/28/kubernetes-v1-37-pod-certificates-and-cluster-trust-bundles/) |
-| Pre-1.0; EKS-related fixes landed on `main` in October, unreleased | [v0.3.0](https://github.com/agent-substrate/substrate/releases/tag/v0.3.0), [#1898](https://github.com/agent-substrate/substrate/issues/1898), [#432](https://github.com/agent-substrate/substrate/issues/432) |
+| Actors are not Pods. Per-run ServiceAccounts, Cilium policies, restricted PSS and Kueue admission need new mappings | [Architecture](https://github.com/agent-substrate/substrate/blob/4ee8f66ac237adfc3303086b12275aefc150fd6f/docs/concepts/architecture.md) |
+| Actor JWT injection works, but identity across same-name Actor recreation still has an open cache/certificate concern | [Evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md) |
+| Per-run octo-sts requires a custom external credential provider and snapshot-safe credential handling | [Credential provider contract](https://github.com/agent-substrate/substrate/blob/4ee8f66ac237adfc3303086b12275aefc150fd6f/docs/guides/egress-credential-injection.md#for-credential-provider-developers) |
+| Durable Spot recovery needs synchronous suspension and failure testing; worker termination does not suspend automatically | [Eviction contract](https://github.com/agent-substrate/substrate/blob/4ee8f66ac237adfc3303086b12275aefc150fd6f/docs/reference/api-guide.md#eviction) |
+| PostgreSQL, snapshot storage, workers and runtime compatibility add a second control plane without removing the factory or rooms | [Security and operations status](https://github.com/agent-substrate/substrate/blob/4ee8f66ac237adfc3303086b12275aefc150fd6f/docs/security/security.md) |
+| kagent requires Kubernetes 1.37+ and preview Substrate gates; its version page documents CI on kind/Kubernetes 1.35 | [Installation](https://kagent.dev/docs/kagent/latest/setup/installation/), [version support](https://kagent.dev/docs/kagent/latest/reference/versions/) |
 
-**Reconsider:** see the [triggers](#reconsidering-substrate-not-now-deliberately-open).
+**Decision:** deferred without a proof of concept by
+[ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}}). Reconsider
+under the [measured triggers](#reconsidering-substrate-not-now-deliberately-open).
 
 ### kagent
 
-*Checked in October 2026 at `bf8afa56` (v1) and `v0.10.3`.*
+*Checked in November 2026 at `a08cde76` (v1.0.0).*
 
-**What it is.** A CNCF Sandbox project, mostly maintained by Solo.io, and really two products:
-- **v1** (alpha, where the project invests) runs only on its own fork of Agent Substrate, with
-  pluggable harnesses (Claude Code, Codex, its own, or yours) and sessions.
-- **v0.10** (stable, called "legacy" by the project) runs one long-running Deployment per agent.
+**What it is.** A CNCF Sandbox project built on its tested Agent Substrate fork. The 1.0 rewrite
+provides A2A Sessions, immutable Agent revisions, MCP tools, native Claude Code and Codex harnesses,
+BYO gRPC agents, Actor JWTs, default-deny egress, checkpoints and automatic turn suspension.
 
-**Why not.**
+**Why it stays out.**
 
 | Gap | Evidence |
 |---|---|
-| A session has one owner and one agent. Anyone joining through a share link is recorded as the owner, and no message records its author | [share.go](https://github.com/kagent-dev/kagent/blob/bf8afa563e4f55f2c9f9e9cb54c4efa4dd23d271/go/core/internal/service/session/share.go#L36-L39), [schema](https://github.com/kagent-dev/kagent/blob/bf8afa563e4f55f2c9f9e9cb54c4efa4dd23d271/go/core/pkg/migrations/core/000001_initial.sql#L213-L241) |
-| The open-source controller authorizes every action and takes the user's identity from a header, so anything reaching it directly can act as anyone | [auth.go](https://github.com/kagent-dev/kagent/blob/bf8afa563e4f55f2c9f9e9cb54c4efa4dd23d271/go/core/pkg/auth/auth.go#L95-L106) |
-| v1 cannot run without Substrate, and gives an agent no ServiceAccount or pod spec of its own | [app.go](https://github.com/kagent-dev/kagent/blob/bf8afa563e4f55f2c9f9e9cb54c4efa4dd23d271/go/core/pkg/app/app.go#L272-L280), [AGENTS.md](https://github.com/kagent-dev/kagent/blob/bf8afa563e4f55f2c9f9e9cb54c4efa4dd23d271/AGENTS.md#L17-L19) |
-| An agent identifies itself to the controller with an unsigned header until Substrate ships per-agent tokens | [substrate#1660](https://github.com/agent-substrate/substrate/issues/1660) |
-| No GitHub intake, PR handling, merge gate, budgets, daily cap or stop switch, in either edition | [Research](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md) |
-| It dropped kubernetes-sigs/agent-sandbox in June: "substrate is the thing we'll go with" | [#2049](https://github.com/kagent-dev/kagent/pull/2049) |
+| OSS defaults to caller-selected identity and permissive authorization. A trusted proxy still needs external JWT validation and network lockdown | [Identity and authorization](https://kagent.dev/docs/kagent/latest/about/substrate-runtime/identity/) |
+| A Session has one Agent and one Actor. Shares are read-only, so they do not create an attributed multi-participant room | [Core concepts](https://kagent.dev/docs/kagent/latest/about/core-concepts/), [sharing](https://kagent.dev/docs/kagent/latest/agents/share-a-session/) |
+| HITL records a tool decision, not a distinct authenticated approver; traces are not a tamper-proof audit ledger | [HITL](https://kagent.dev/docs/kagent/latest/agents/human-in-the-loop/), [audit limitations](https://kagent.dev/docs/kagent/latest/observability/audit-prompts/) |
+| Cumulative budgets, factory intake, Kueue fairness, GitHub identity and merge controls remain external | [Evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md) |
+| OpenHands needs the BYO A2A adapter. kagent adds a Session database and coupled Substrate upgrades without removing Maku or rooms | [BYO contract](https://kagent.dev/docs/kagent/latest/agents/bring-your-own-agent/), [versions](https://kagent.dev/docs/kagent/latest/reference/versions/) |
 
-**Worth learning from:** forking a session together with a snapshot of the running agent, which
-beats our fork. It depends on Substrate.
-
-**Reconsider:** see the [triggers](#reconsidering-substrate-not-now-deliberately-open).
+**Decision:** deferred by
+[ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}}). Direct
+Substrate is the cleaner candidate if a measured runtime problem emerges because kagent's main
+runtime benefits already come from Substrate.
 
 ### Temporal
 
@@ -370,61 +371,53 @@ proactive intake, a mandate on each task, and task stages that name who the task
 
 ## Would rebuilding on kagent + Substrate be simpler?
 
-It is the strongest challenge to this design, so it is judged on the work still ahead, not on what
-is already built.
+The 1.0 releases make this a stronger challenge, but the comparison starts with what the current
+runtime already does. agent-sandbox supplies PVC-backed attended suspend/resume, and the factory
+recovers interrupted work from its branch and room log. Warm-pool adoption remains a separate track.
 
-**What it would simplify:**
-
-| Today | On Substrate |
+| Current limitation | What Substrate could add |
 |---|---|
-| One pod per run with a bridge sidecar causes a class of failures: a lost pod restarting the conversation, transcripts lost at exit | Durable storage, suspend and resume, and a durable task log remove those classes of bug |
-| A run waiting on a human approval holds a pod or ends | A parked agent costs nothing and resumes with its memory |
-| A fork copies the log and starts a fresh run | A fork carries a snapshot of the running agent |
-| We maintain an identity sidecar to keep provider keys out of the sandbox | Substrate's egress gateway injects them (static keys only) |
-| Every run starts cold and pulls its image | Agents start from a pre-warmed snapshot |
+| A replacement Pod reconstructs the agent around its workspace | Restore process memory and root state on another worker |
+| Cold starts and image pulls dominate some runs | Start from a golden snapshot |
+| A fork starts a fresh run | Carry a runtime snapshot into the fork |
+| The identity proxy keeps credentials outside the sandbox | Inject credentials at an external egress gateway |
 
-Warm pools, disk-backed suspend and GKE memory snapshots are already in agent-sandbox; a spike
-compared Substrate against them ([spike](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-17-substrate-spike.md#conclusion)).
+A spike verified OpenHands cross-node continuation and fast golden starts, but not the complete
+factory, current releases, EKS or Spot loss
+([spike](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-17-substrate-spike.md#conclusion)).
 
-**What we would still build:**
-- **The factory**, whole.
-- **The core of rooms**: several participants, roles, handoff and who may approve.
-- **Authorization for kagent itself**, which means compiling our own controller around kagent's Go
-  library: in effect, maintaining a fork of an alpha.
+**What we would still build or retain:**
+- **The factory**, rooms, approvals, budgets and merge controls.
+- **Per-run identity and admission mappings**, because Actors are not Pods.
 - **Short-lived GitHub tokens per run and role**, through a custom Substrate credential provider.
-- **Budgets**, at the gateway.
+- **Spot recovery, observability attribution and backend garbage collection**.
+- For kagent, **an OSS authorization boundary and an OpenHands BYO adapter**.
 
-**What blocks it today:** no EKS until Kubernetes 1.37 lands there, no spot nodes, a possible
-snapshot-restore failure for a Python harness such as OpenHands (kagent reports one), shared pods
-that would need an amendment to the constitution, and two alphas changing fast.
-
-**Net:** today it adds moving parts we do not control rather than removing them. If we move,
-**Substrate as a backend behind `AgentRun`** beats kagent + Substrate: kagent adds little we lack
-and brings its authorization gap.
+**Net:** both options add moving parts without removing the platform's differentiating controls.
+ADR-0062 keeps agent-sandbox + gVisor + OpenHands and approves neither a migration nor a proof of
+concept. Direct Substrate remains the cleaner candidate if a measured runtime need emerges.
 
 ## Reconsidering Substrate: not now, deliberately open
 
-A spike ran OpenHands as a Substrate agent: it suspended, resumed and restored on another node with
-its conversation intact, and warm-started in seconds. Substrate is **not adopted now**: it needs beta
-kubelet gates, a second control plane, and it has no published images. A run on a reclaimed spot node
-is resumed automatically from its branch. Its state is on the
-[status page]({{< relref "/docs/status.md#later" >}}).
+`AgentRun` remains the abstraction. A future backend would use a new Composition for new runs, never
+change a live run's Composition, and leave backend-generated Actors and Sessions to their own
+controllers. Flux would own installation, Crossplane the common per-run resources and one hand-off,
+and Maku the task and room intent.
 
-The design keeps the door open:
-- `AgentRun` is the abstraction, so a Substrate backend would be a new composition behind it, not a
-  rewrite.
-- Run identity accepts tokens from any issuer.
-- The room bridge avoids WebSocket, which Substrate's egress blocks.
+**Reconsider direct Substrate** when a measured cold-start, memory-continuity or density problem
+justifies a proof of concept, and the candidate can demonstrate:
 
-**We reconsider** as soon as any of these holds:
-- Substrate ships per-agent tokens ([#1660](https://github.com/agent-substrate/substrate/issues/1660))
-  and enforces authorization by default;
-- EKS serves the Kubernetes certificate APIs as stable (EKS 1.37);
-- Substrate gains a story for spot nodes, such as suspending agents on preemption;
-- its costs above shrink upstream (stable kubelet gates, published images);
-- for kagent: open-source authorization, sessions with several attributed participants, per-agent
-  egress ([#3019](https://github.com/kagent-dev/kagent/pull/3019)), and a v1 release with a
-  migration path.
+- supported EKS and GKE installation and upgrades;
+- safe per-run identity and external octo-sts injection;
+- per-run DNS/FQDN egress and Kueue-equivalent admission;
+- controlled node and Spot loss without lost or duplicated effects;
+- complete cleanup and a net reduction in code and operations.
+
+**Reconsider kagent** only when it also provides non-bypassable OSS authorization, attributed
+multi-participant sessions, delegated approver evidence, supported OpenHands restoration and a clean
+one-run/one-identity mapping. Its adoption must delete more custom code than its adapters and control
+planes add. The full evidence and triggers are in the
+[kagent evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md).
 
 ## Sources
 

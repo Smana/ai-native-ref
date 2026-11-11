@@ -5,7 +5,7 @@ aliases:
 linkTitle: Status
 weight: 60
 description: "The one place state lives: what is available, what is experimental, what is planned, and the known limitations."
-lastVerified: 2026-11-08
+lastVerified: 2026-11-11
 ---
 
 The one place the platform's state lives. Every other page describes the design. Each line here
@@ -189,7 +189,7 @@ Today's kind quickstart runs one attended agent; v4 brings the whole loop.
 | Agent-to-agent protocols and trackers: an A2A card; Jira or Linear as delegates | When a consumer speaks A2A or a tracker is in use |
 | Webhook subscribers registered through an API | When subscribers outgrow a reviewed list |
 | Finer permissions: an external policy decision point; a token per backend | When a policy outgrows the compiled gateway rules |
-| Substrate as the sandbox runtime. A spike passed; it is not adopted now ([why]({{< relref "/docs/how-it-works/alternatives.md#reconsidering-substrate-not-now-deliberately-open" >}})) | When its costs shrink upstream |
+| Substrate as the sandbox runtime. A spike passed; it is not adopted now ([why]({{< relref "/docs/how-it-works/alternatives.md#reconsidering-substrate-not-now-deliberately-open" >}})) | When a measured runtime problem meets the [ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}}) triggers |
 | The warm pool: pre-warmed sandboxes handed to a run | After a decision on the binder's token-minting authority, unless agent-sandbox's warm pools replace it |
 
 Not planned: public work on Claude, a doc-writer or standalone architect agent, parallel writers on

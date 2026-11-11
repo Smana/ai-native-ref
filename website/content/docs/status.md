@@ -104,8 +104,8 @@ Hardening is tracked on the **v1 hardening** milestones of
 <span id="class-modes"></span>**Auto-merge class modes**, from the `MergePolicy` objects in `tooling/base/agent-factory/resources/`
 ([when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}})):
 cloud-native-ref has `docs-links` and `revert` live, and `alert-rules`, `dead-links`, `deps-patch` and
-`deps-minor` in shadow; every ai-native-ref class and every runlore-kb class (`kb-entries`
-among them) is in shadow; `approveToMerge` is on for all three.
+`deps-minor` in shadow; every ai-native-ref class, every runlore class and every runlore-kb class (`kb-entries`
+among them) is in shadow; `approveToMerge` is on for all four.
 
 ## Experimental {#experimental}
 

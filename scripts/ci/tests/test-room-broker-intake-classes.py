@@ -42,7 +42,7 @@ INTAKE_RELEASE = "v0.35.0"
 # cloud whose factory does not serve it yet.
 PUBLIC_REPO = "Smana/ai-native-ref"
 # Coordination plans span the platform and its knowledge base (ADR-0060 amendment, Maku #369-#371).
-PLANNED_REPOS = [PUBLIC_REPO, "Smana/runlore-kb"]
+PLANNED_REPOS = [PUBLIC_REPO, "Smana/runlore-kb", "Smana/runlore"]
 # The tier every task takes when triage names none (the factory's own comment on `triage`): a ceiling
 # above its taskUSD is money the factory does not have.
 DEFAULT_TIER = "standard"

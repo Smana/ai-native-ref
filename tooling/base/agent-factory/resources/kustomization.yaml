@@ -14,3 +14,5 @@ resources:
   - mergepolicy-ai-native-ref.yaml
   - repository-runlore-kb.yaml
   - mergepolicy-runlore-kb.yaml
+  - repository-runlore.yaml
+  - mergepolicy-runlore.yaml

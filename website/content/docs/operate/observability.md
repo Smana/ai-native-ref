@@ -91,6 +91,26 @@ to the run. A resumed run counts each step once and has one trace per attempt. T
 transcript to its end: before the harness stops, even on a reclaimed node, it asks maku-bridge to read
 its log to the last event.
 
+### Which model serves each role {#role-models}
+
+Use this table to connect a room's role to its model. The factory selects an alias; the gateway
+resolves it to the model for the run's data class. The planner uses the serving gateway, where
+`tier-frontier` resolves to `glm-5.3`.
+
+| Role | Model alias | Model for `public` runs | Model for `internal` runs |
+|---|---|---|---|
+| Scoper | `agent-default` | `glm-5.3` | `claude-opus-5-5` |
+| Implementer | `agent-default` | `glm-5.3` | `claude-opus-5-5` |
+| Reviewer | `agent-default` | `glm-5.3` | `claude-opus-5-5` |
+| Planner | `tier-frontier` | `glm-5.3` | Not available: the planner reads public repositories only |
+
+For a public task in `docs-links`, `revert`, `dead-links` or `deps-patch`, the reviewer instead uses
+`kimi-frontier`, served by `k3.1-pro` (Kimi K3.1 Pro). These aliases and models come from the
+[factory configuration](https://github.com/Smana/ai-native-ref/blob/main/tooling/base/agent-factory/resources/factory.yaml),
+[agent gateway aliases](https://github.com/Smana/ai-native-ref/blob/main/infrastructure/base/agent-gateway/llm.yaml),
+[planner configuration](https://github.com/Smana/ai-native-ref/blob/main/infrastructure/base/room-broker/config.yaml)
+and [planner route](https://github.com/Smana/ai-native-ref/blob/main/infrastructure/base/llm-gateway/aigatewayroute.yaml).
+
 ### The merge gate's signals {#merge-gate-signals}
 
 The `agent-factory` dashboard's **Human path** row reads the factory's merge series; each series, its

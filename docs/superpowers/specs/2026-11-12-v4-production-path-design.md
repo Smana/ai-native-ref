@@ -1,8 +1,6 @@
 # v4 stage 2, the production path: ANR's part
 
-**Status:** design, agreed with the owner on 2026-11-12. **The design lives in Maku:**
-[`docs/superpowers/specs/2026-11-12-v4-production-path-design.md`](https://github.com/Smana/maku/blob/main/docs/superpowers/specs/2026-11-12-v4-production-path-design.md)
-(draft PR Smana/maku#479), decisions D1–D26. This file holds only what ANR and cnref change.
+**Status:** design, agreed with the owner on 2026-11-12. **The design lives in Maku** ([Smana/maku#479](https://github.com/Smana/maku/pull/479), the 2026-11-12 v4 production path design), decisions D1–D26. This file holds only what ANR and cnref change.
 
 **Release:** nothing here cuts v4. Each step ships as an ANR minor following a Maku v0.4x minor;
 the v4.0.0 release waits for the owner's explicit go.

@@ -393,6 +393,11 @@ def check_fleet_dashboard():
     check({"Runs", "Runs by phase", "Tokens per run", "Trace pipeline (agent-traces-collector)"} <= set(panels), "the fleet panels")
     links = json.dumps(panels.get("Runs", {}).get("fieldConfig", {}))
     check("/d/agent-run/agent-run?var-run=${__value.text}" in links, "one click from a run_id opens its Agent run page (SO-1)")
+    refusals = panels.get("Model provider refusals", {})
+    check(refusals.get("type") == "timeseries", "the fleet shows model provider refusals over time")
+    check([t.get("expr") for t in refusals.get("targets", [])] ==
+          ["sum by (cause, role) (increase(maku_factory_model_refused_total[1h]))"],
+          "the fleet splits hourly model provider refusals by cause and role")
 
 
 def check_fleet_tier():

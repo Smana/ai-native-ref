@@ -1,4 +1,4 @@
-# helm template model-gateway oci://ghcr.io/smana/charts/maku-gateway --version 0.46.0 with
+# helm template model-gateway oci://ghcr.io/smana/charts/maku-gateway --version 0.47.0 with
 # infrastructure/base/agent-gateway/model-gateway/helmrelease.yaml's values, issuer https://issuer.example:
 # AG15's fixture (test-assert-agent-gateway.py). Re-render it with the chart pin.
 ---
@@ -13,7 +13,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 data:
   catalog.json: |
     {
@@ -117,7 +117,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -159,7 +159,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -207,7 +207,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -252,7 +252,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -297,7 +297,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -339,7 +339,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -381,7 +381,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -423,7 +423,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -457,7 +457,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -491,7 +491,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -525,7 +525,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -559,7 +559,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   ai:
     provider:
@@ -601,7 +601,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   # A controller pin change does not re-render the proxy until the Gateway is touched: bump this with
   # the controller, then check the pod's digest.
@@ -684,7 +684,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     -
@@ -717,7 +717,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     -
@@ -779,7 +779,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     -
@@ -841,7 +841,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     -
@@ -901,7 +901,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     -
@@ -938,7 +938,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -965,7 +965,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -992,7 +992,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1019,7 +1019,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1046,7 +1046,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1073,7 +1073,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1100,7 +1100,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1127,7 +1127,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1154,7 +1154,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1181,7 +1181,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1208,7 +1208,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1235,7 +1235,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1259,7 +1259,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1280,7 +1280,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1302,7 +1302,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   endpointSelector:
     matchLabels:
@@ -1389,7 +1389,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   gatewayClassName: agentgateway
   listeners:
@@ -1430,7 +1430,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1466,7 +1466,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1502,7 +1502,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1538,7 +1538,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1574,7 +1574,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1610,7 +1610,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1646,7 +1646,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1682,7 +1682,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1732,7 +1732,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1782,7 +1782,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1832,7 +1832,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1882,7 +1882,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1917,7 +1917,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1965,7 +1965,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.46.0"
+    app.kubernetes.io/version: "v0.47.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

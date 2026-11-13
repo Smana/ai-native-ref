@@ -22,7 +22,12 @@ data:
     # declares `monitor.flux` yet, so nothing reads through it.
     monitor: {flux: {enabled: true}}
     # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
-    githubSecret: agent-factory-github
+    # The GitHub Apps under the chart's apps.* keys (Maku v4 D12): githubSecret and mergerSecret go
+    # in Maku's v4 step 8. The merger stays its own App, from the chart's agent-factory-merger
+    # Secret: mode separate is explicit because step 8 makes `factory` the default.
+    apps:
+      factory: {existingSecret: agent-factory-github}
+      merger: {mode: separate}
     brokerCASecret: openbao-ca
     zitadelReaderSecret: agent-factory-zitadel-reader  # externalsecret-zitadel-reader.yaml, at api.access.readerFile
     config:
@@ -54,6 +59,8 @@ data:
         url: https://room-broker.agent-system.svc.cluster.local:8443
         caFile: /etc/agent-factory/openbao-ca/ca.crt
         tokenFile: /var/run/secrets/agents/rooms/token
+      # The chart writes these four only with apps.merger.mode factory; with separate it mounts the
+      # two Secrets at these paths and the factory reads them from here.
       github:
         appIDFile: /etc/agent-factory-github/app_id
         privateKeyFile: /etc/agent-factory-github/private_key

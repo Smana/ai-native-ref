@@ -26,8 +26,8 @@ one live drill, run on aws-0 on 2026-10-31 ([results](results-aws-0-2026-10-30.m
 
 ## 2. Shadow (L1)
 
-One commit: `dead-links: {…, shadow: true}` on the host's entry in
-`tooling/base/agent-factory/resources/mergepolicy-cloud-native-ref.yaml`, and the `link-rot` schedule removed (M4: the
+One commit: `mode: shadow` on the host's `dead-links` binding in
+`tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml`, and the `link-rot` schedule removed (M4: the
 two schedules would fix the same links twice). `link-rot` stays beside the class until the live drill's
 breaker and revert proof (§3) is done; then a host change removes it.
 
@@ -125,8 +125,8 @@ L1 here, in order:
 
 2. The merger App's installation on this repository grants `actions: read` and `issues: write` (B1: the
    monitor's labels). Accept the permission update on the installation if GitHub asks.
-3. Then `shadow: true` on this repository's `dead-links` entry, in
-   `tooling/base/agent-factory/resources/mergepolicy-ai-native-ref.yaml`.
+3. Then `mode: shadow` on this repository's `dead-links` binding, in
+   `tooling/base/agent-factory/resources/repository-ai-native-ref.yaml`.
 
 From the rule's merge, `low-risk: dead-links` approves any agents pull request inside the class's fence
 on this repository, `docs-links` and `docs` shadow pull requests included. Their shadow decisions can

@@ -1,0 +1,234 @@
+{
+  "Smana/ai-native-ref": {
+    "dashboards": {},
+    "dead-links": {
+      "shadow": true,
+      "allowedFiles": [
+        "^(docs|website/content)/.+\\.md$"
+      ],
+      "protectedFiles": [
+        "^docs/(superpowers|specs)/",
+        "^website/content/docs/decisions/"
+      ],
+      "modifyOnly": true,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
+      "holdoutChecks": [
+        "External links 🔗"
+      ],
+      "maxPerDay": 1,
+      "oracle": {
+        "probe": "dead-links",
+        "workflow": "dead-links.yaml",
+        "maxFindings": 10
+      },
+      "monitor": {
+        "oracleRuns": 2,
+        "followUpWindow": "168h0m0s"
+      }
+    },
+    "docs": {
+      "checks": true
+    },
+    "docs-links": {
+      "shadow": true,
+      "holdoutChecks": [
+        "validate"
+      ]
+    },
+    "revert": {
+      "shadow": true,
+      "holdoutChecks": [
+        "validate"
+      ]
+    },
+    "scripts": {},
+    "tests": {}
+  },
+  "Smana/cloud-native-ref": {
+    "alert-rules": {
+      "shadow": true,
+      "allowedFiles": [
+        "^observability/.+\\.ya?ml$"
+      ],
+      "monitor": {
+        "verification": {
+          "within": "2h0m0s"
+        },
+        "followUpWindow": "2h0m0s"
+      }
+    },
+    "dashboards": {},
+    "dead-links": {
+      "shadow": true,
+      "allowedFiles": [
+        "^(docs|website/content)/.+\\.md$"
+      ],
+      "protectedFiles": [
+        "^docs/(superpowers|specs)/",
+        "^website/content/docs/decisions/"
+      ],
+      "modifyOnly": true,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
+      "holdoutChecks": [
+        "External links 🔗"
+      ],
+      "maxPerDay": 1,
+      "oracle": {
+        "probe": "dead-links",
+        "workflow": "dead-links.yaml",
+        "maxFindings": 10
+      },
+      "monitor": {
+        "oracleRuns": 2,
+        "followUpWindow": "168h0m0s"
+      }
+    },
+    "deps-minor": {
+      "shadow": true,
+      "allowedFiles": [
+        "^(apps|flux|infrastructure|observability|security|tooling)/.+\\.ya?ml$"
+      ],
+      "protectedFiles": [
+        "^security/base/zitadel/",
+        "^security/(aws|gcp)-0/zitadel/",
+        "^flux/sources/helmrepo-zitadel\\.yaml$",
+        "^infrastructure/base/crossplane/configuration-core/",
+        "^flux/sources/gitrepo-gateway-api\\.yaml$",
+        "^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\\.yaml$"
+      ],
+      "modifyOnly": true,
+      "maxPatchFiles": 3,
+      "maxModifiedLines": 10,
+      "diffShape": "semver-minor",
+      "monitor": {
+        "flux": {
+          "source": "flux-system/flux-system",
+          "within": "1h0m0s"
+        },
+        "followUpWindow": "168h0m0s"
+      },
+      "author": {
+        "adopt": {
+          "logins": [
+            "renovate[bot]"
+          ],
+          "branches": [
+            "^renovate/"
+          ]
+        }
+      },
+      "releaseAgeCheck": "renovate/stability-days"
+    },
+    "deps-patch": {
+      "shadow": true,
+      "allowedFiles": [
+        "^(apps|flux|infrastructure|observability|security|tooling)/.+\\.ya?ml$"
+      ],
+      "protectedFiles": [
+        "^security/base/zitadel/",
+        "^security/(aws|gcp)-0/zitadel/",
+        "^flux/sources/helmrepo-zitadel\\.yaml$",
+        "^infrastructure/base/crossplane/configuration-core/",
+        "^flux/sources/gitrepo-gateway-api\\.yaml$",
+        "^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\\.yaml$"
+      ],
+      "modifyOnly": true,
+      "maxPatchFiles": 3,
+      "maxModifiedLines": 10,
+      "diffShape": "semver-patch",
+      "maxPerDay": 2,
+      "monitor": {
+        "flux": {
+          "source": "flux-system/flux-system",
+          "within": "1h0m0s"
+        },
+        "followUpWindow": "168h0m0s"
+      },
+      "author": {
+        "adopt": {
+          "logins": [
+            "renovate[bot]"
+          ],
+          "branches": [
+            "^renovate/"
+          ]
+        }
+      },
+      "releaseAgeCheck": "renovate/stability-days"
+    },
+    "docs": {
+      "checks": true
+    },
+    "docs-links": {
+      "live": true,
+      "holdoutChecks": [
+        "Check the documentation links 🔗"
+      ]
+    },
+    "revert": {
+      "live": true,
+      "holdoutChecks": [
+        "Check the documentation links 🔗"
+      ]
+    },
+    "review": {},
+    "scripts": {},
+    "tests": {}
+  },
+  "Smana/runlore": {
+    "docs-links": {
+      "shadow": true,
+      "holdoutChecks": [
+        "build"
+      ]
+    },
+    "revert": {
+      "shadow": true,
+      "holdoutChecks": [
+        "build"
+      ]
+    }
+  },
+  "Smana/runlore-kb": {
+    "docs-links": {
+      "shadow": true,
+      "holdoutChecks": [
+        "validate"
+      ]
+    },
+    "kb-entries": {
+      "shadow": true,
+      "allowedFiles": [
+        "^incidents/[^/]+\\.md$"
+      ],
+      "diffShape": "added-entry",
+      "holdoutChecks": [
+        "validate"
+      ],
+      "maxPerDay": 5,
+      "author": {
+        "adopt": {
+          "logins": [
+            "runlore[bot]"
+          ],
+          "branches": [
+            "^runlore/kb-"
+          ]
+        }
+      },
+      "companionFiles": [
+        "^index\\.md$",
+        "^log\\.md$"
+      ],
+      "requiredLabel": "ready-to-merge"
+    },
+    "revert": {
+      "shadow": true,
+      "holdoutChecks": [
+        "validate"
+      ]
+    }
+  }
+}

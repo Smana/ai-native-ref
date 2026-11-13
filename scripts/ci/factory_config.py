@@ -26,7 +26,7 @@ RESOURCES = f"{BASE}/resources"
 VALUES_NAME = "agent-factory-helm-values"
 # Maku's resources.CatalogueKeys: the file's top-level keys a Factory replaces.
 CATALOGUE = ("control", "defaults", "tiers", "templates", "caps", "budgets", "facts", "brief", "resume",
-             "scoper", "loops", "harnessProfiles", "mergeGuardrails", "evaluation")
+             "scoper", "loops", "harnessProfiles", "mergeGuardrails", "evaluation", "mergeDefaults")
 REPOSITORY_KEYS = ("maintainers", "triggerLabel", "checks", "schedules", "classAuthority")
 POLICY_KEYS = ("classes", "merge")
 # The Flux variables these files read, as placeholders the factory's parser accepts.
@@ -75,6 +75,62 @@ def objects(root=ROOT):
     return [doc for f in yaml.safe_load((d / "kustomization.yaml").read_text())["resources"] for doc in _docs(d / f)]
 
 
+# Reusable merge policies, the B4 table: how a class-shape MergePolicy and one Repository's binding
+# of it resolve into the class the gate decides on, as Maku's config.Resolve does (the refusals are
+# Maku's to make: scripts/ci/tests/test-agent-resolved-classes.sh compares the two).
+FILL_ONCE = ("allowedFiles", "companionFiles", "requiredLabel")
+ADDITIVE = ("holdoutChecks", "protectedFiles")
+CAPS = ("maxPatchFiles", "maxModifiedLines", "maxPerDay")
+
+
+def resolve(policy, binding, merge, guardrails=None):
+    """The class a binding resolves to (B4, B14): the policy's meaning, the binding's mode, each
+    fill-once parameter from where it is set, the additive lists unioned, the lower cap, the
+    repository's Flux source, then the guardrails."""
+    cl = {k: v for k, v in (policy or {}).items() if k != "requires"}
+    cl = yaml.safe_load(yaml.safe_dump(cl))  # a deep copy: consumers never share a list
+    mode = binding.get("mode")
+    if mode == "live":
+        cl["live"] = True
+    elif mode == "shadow":
+        cl["shadow"] = True
+    for k in FILL_ONCE:
+        if binding.get(k):
+            cl[k] = binding[k]
+    if binding.get("oracleWorkflow") and cl.get("oracle") is not None:
+        cl["oracle"] = {**cl["oracle"], "workflow": binding["oracleWorkflow"]}
+    for k in ADDITIVE:
+        items = list(cl.get(k) or [])
+        items += [x for x in binding.get(k) or [] if x not in items]
+        if items:
+            cl[k] = items
+    approvals = list(cl.get("requiresApproval") or [])
+    approvals += [a for a in binding.get("requiresApproval") or [] if a not in approvals]
+    if approvals:
+        cl["requiresApproval"] = approvals
+    for k in CAPS:
+        if binding.get(k):
+            cl[k] = binding[k] if not cl.get(k) else min(cl[k], binding[k])
+    flux = (cl.get("monitor") or {}).get("flux")
+    if flux is not None and merge.get("fluxSource"):
+        flux["source"] = merge["fluxSource"]
+    g = guardrails or {}
+    for k, into in (("protectedFiles", "protectedFiles"), ("mandatoryChecks", "holdoutChecks")):
+        items = list(cl.get(into) or [])
+        items += [x for x in g.get(k) or [] if x not in items]
+        if items:
+            cl[into] = items
+    for k in CAPS:
+        if g.get(k) and not cl.get(k):
+            cl[k] = g[k]
+    return cl
+
+
+def merge_settings(defaults, merge):
+    """A repository's merge with the Factory's mergeDefaults filled in, key by key (Q8)."""
+    return {**(defaults or {}), **(merge or {})}
+
+
 def assemble(cfg, objs):
     """cfg with objs laid over it, as resources.Assemble merges them (nothing refused, nothing validated)."""
     m = {k: v for k, v in cfg.items()}
@@ -88,14 +144,22 @@ def assemble(cfg, objs):
                 m["triage"] = {**(m.get("triage") or {}), **v}
             else:
                 m[k] = v
-    policies = {o["spec"]["repositoryRef"]: o for o in objs if o["kind"] == "MergePolicy"}
+    mps = [o for o in objs if o["kind"] == "MergePolicy"]
+    policies = {o["spec"]["repositoryRef"]: o for o in mps if "repositoryRef" in o["spec"]}
+    classes = {o["metadata"]["name"]: o["spec"] for o in mps if "repositoryRef" not in o["spec"]}
     repos = sorted((o for o in objs if o["kind"] == "Repository"), key=lambda o: o["metadata"]["name"])
     listed = list(m.get("repositories") or [])
     for r in repos:
         entry = {"name": r["spec"]["repository"]}
         entry.update({k: r["spec"][k] for k in REPOSITORY_KEYS if k in r["spec"]})
-        p = policies.get(r["metadata"]["name"], {}).get("spec", {})
-        entry.update({k: p[k] for k in POLICY_KEYS if k in p})
+        if "merge" in r["spec"] or "mergePolicies" in r["spec"]:
+            # Bound (B2, B3): the Repository's own merge over the defaults, and each binding resolved.
+            entry["merge"] = merge_settings(m.get("mergeDefaults"), r["spec"].get("merge"))
+            entry["classes"] = {b["name"]: resolve(classes.get(b["name"]), b, entry["merge"], m.get("mergeGuardrails"))
+                                for b in r["spec"].get("mergePolicies") or [] if b["name"] in classes}
+        else:
+            p = policies.get(r["metadata"]["name"], {}).get("spec", {})
+            entry.update({k: p[k] for k in POLICY_KEYS if k in p})
         listed.append(entry)
     m["repositories"] = listed
     return m

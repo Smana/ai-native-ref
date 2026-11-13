@@ -1,0 +1,25 @@
+# A class definition (Maku reusable merge policies, B1): the object's name is the class name, and a
+# Repository binds it under spec.mergePolicies with its own mode and parameters. Read live; a
+# refused edit keeps the last accepted generation serving every consumer.
+# M2 (a): Renovate's minors observed in shadow at no cost; semver-minor never goes live.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: MergePolicy
+metadata:
+  name: deps-minor
+  namespace: agent-system
+spec:
+  requires: [allowedFiles]
+  author: {adopt: {logins: ["renovate[bot]"], branches: ['^renovate/']}}
+  diffShape: semver-minor
+  protectedFiles:
+    - '^security/base/zitadel/'
+    - '^security/(aws|gcp)-0/zitadel/'
+    - '^flux/sources/helmrepo-zitadel\.yaml$'
+    - '^infrastructure/base/crossplane/configuration-core/'
+    - '^flux/sources/gitrepo-gateway-api\.yaml$'
+    - '^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\.yaml$'
+  modifyOnly: true
+  maxPatchFiles: 3
+  maxModifiedLines: 10
+  releaseAgeCheck: renovate/stability-days
+  monitor: {flux: {within: 1h}, followUpWindow: 168h}

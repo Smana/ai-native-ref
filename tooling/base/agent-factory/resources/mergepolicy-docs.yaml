@@ -1,0 +1,11 @@
+# A class definition (Maku reusable merge policies, B1): the object's name is the class name, and a
+# Repository binds it under spec.mergePolicies with its own mode and parameters. Read live; a
+# refused edit keeps the last accepted generation serving every consumer.
+# Run-only (Q7): bound off, a maintainer merges.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: MergePolicy
+metadata:
+  name: docs
+  namespace: agent-system
+spec:
+  checks: true  # public runs only: an internal claim with checks is refused by the XRD

@@ -3,7 +3,7 @@
 # file's `config:` (base's ConfigMap, then the cloud's valuesFrom ConfigMaps) and the Factory, Repository and
 # MergePolicy objects its Flux child applies (kustomize build), the Flux variables replaced with placeholders,
 # through `maku config validate`: it lays the objects over the file and refuses what the factory would refuse,
-# one line each. Then a bite: a class both live and shadow is refused, naming R32.
+# one line each. Then a bite: a mode written on a MergePolicy is refused (B4).
 #
 # The binary is the release the HelmRelease's image pins, checked against the sha256 below: a version bump
 # without its digest fails here, so bump both. It is cached under $XDG_CACHE_HOME (default ~/.cache).
@@ -50,20 +50,23 @@ for cloud in aws-0 gcp-0; do
   fi
 done
 
-# It bites: docs-links, live on the host, made shadow too, is refused for R32.
+# It bites: a mode written on a MergePolicy, docs-links made shadow there, is refused: the mode is the
+# binding's (Maku reusable merge policies, B4). A binding that does not resolve drops its class without
+# refusing anything, so scripts/ci/tests/test-agent-resolved-classes.sh, which compares the resolved
+# classes with their snapshot, is what catches that.
 python3 - "$tmp/aws-0/manifests.yaml" "$tmp/bite.yaml" <<'PY'
 import sys, yaml
 docs = [d for d in yaml.safe_load_all(open(sys.argv[1])) if d]
-policy = next(d for d in docs if d["kind"] == "MergePolicy" and d["spec"]["repositoryRef"] == "cloud-native-ref")
-assert policy["spec"]["classes"]["docs-links"].get("live") is True, "the bite needs docs-links live on the host"
-policy["spec"]["classes"]["docs-links"]["shadow"] = True
+policy = next(d for d in docs if d["kind"] == "MergePolicy" and d["metadata"]["name"] == "docs-links")
+assert "repositoryRef" not in policy["spec"], "the bite needs docs-links as a class policy"
+policy["spec"]["shadow"] = True
 yaml.safe_dump_all(docs, open(sys.argv[2], "w"), allow_unicode=True)
 PY
 if out="$("$maku" config validate --config "$tmp/aws-0/config.yaml" "$tmp/bite.yaml" 2>&1)" \
-   || ! grep -q 'MergePolicy/cloud-native-ref: Invalid: .*class docs-links: live and shadow never together (R32)' <<<"$out"; then
-  echo "FAIL  a class both live and shadow was not refused for R32:"; sed 's/^/      /' <<<"$out"; fails=$((fails + 1))
+   || ! grep -q "MergePolicy/docs-links: Invalid: class docs-links: mode is the binding's" <<<"$out"; then
+  echo "FAIL  a mode on a MergePolicy was not refused (B4):"; sed 's/^/      /' <<<"$out"; fails=$((fails + 1))
 else
-  echo "ok    a class both live and shadow is refused: MergePolicy/cloud-native-ref, R32"
+  echo "ok    a mode on a MergePolicy is refused: MergePolicy/docs-links, B4"
 fi
 [ "$fails" -eq 0 ] || { echo "$fails failure(s)"; exit 1; }
 echo PASS

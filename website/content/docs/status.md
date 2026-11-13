@@ -101,7 +101,7 @@ Hardening is tracked on the **v1 hardening** milestones of
 [Maku](https://github.com/Smana/maku/milestone/1) and
 [cloud-native-ref](https://github.com/Smana/cloud-native-ref/milestone/1).
 
-<span id="class-modes"></span>**Auto-merge class modes**, from the `MergePolicy` objects in `tooling/base/agent-factory/resources/`
+<span id="class-modes"></span>**Auto-merge class modes**, from the `Repository` objects' bindings in `tooling/base/agent-factory/resources/`
 ([when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}})):
 cloud-native-ref has `docs-links` and `revert` live, and `alert-rules`, `dead-links`, `deps-patch` and
 `deps-minor` in shadow; every ai-native-ref class, every runlore class and every runlore-kb class (`kb-entries`

@@ -38,8 +38,9 @@ The central config sets no `mergeGuardrails`, so promotion needs the default 20 
 
 | File | Repository | Holds |
 |---|---|---|
-| `tooling/base/agent-factory/resources/mergepolicy-<name>.yaml` | ai-native-ref | The central classes and merge rules of one repository, in its `MergePolicy` |
-| `tooling/base/agent-factory/resources/factory.yaml` | ai-native-ref | The `harnessProfiles` a class may name, and the guardrails, in the `Factory` |
+| `tooling/base/agent-factory/resources/mergepolicy-<class>.yaml` | ai-native-ref | One class's definition, a `MergePolicy` every repository that uses the class binds |
+| `tooling/base/agent-factory/resources/repository-<name>.yaml` | ai-native-ref | One repository's merge rules and its bindings: which classes it uses, in which mode, with which parameters |
+| `tooling/base/agent-factory/resources/factory.yaml` | ai-native-ref | The `harnessProfiles` a class may name, the guardrails and the merge settings every repository shares (`mergeDefaults`), in the `Factory` |
 | `.github/agent-factory.yaml` | Your repository | `factory:`, the ownership fence, and the repository's own `classes` |
 | `.policy.yml` | Your repository | policy-bot's rules: each class that should merge needs a `low-risk:` rule |
 

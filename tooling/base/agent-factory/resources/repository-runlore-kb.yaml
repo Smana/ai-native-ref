@@ -1,8 +1,7 @@
-# The third repository, RunLore's knowledge base (RK3; Maku factory resources). It used to be the
-# third entry of config.repositories in ../helm-values-configmap.yaml, without its classes and
-# merge rules: those are mergepolicy-runlore-kb.yaml. The repository has no `.policy.yml` in this
-# tree: the parity suite skips it, and that repository's own file holds the fence, which names
-# aws-0. Read live, like every Repository.
+# The third repository, RunLore's knowledge base (RK3; Maku factory resources): its settings, its merge
+# rules and the merge policies it binds. RK3: RunLore drafts, the merge gate merges verified entries;
+# shadow until 20 decisions (K8). The repository has no `.policy.yml` in this tree: the parity suite
+# skips it, and that repository's own file holds the fence, which names aws-0. Read live.
 apiVersion: maku.ogenki.io/v1alpha1
 kind: Repository
 metadata:
@@ -13,3 +12,21 @@ spec:
   repository: Smana/runlore-kb
   maintainers: [Smana]
   triggerLabel: factory/ready
+  merge:
+    requiredChecks: [validate, leak-scan]
+    verifyChecks: [validate, leak-scan]
+    autoMergesPerDay: 5
+    fixRuns: 1
+    checkReruns: 0
+    # K12: the knowledge base is public text with secret redaction at each tool output (RK13).
+    # `leak-scan` is the job PR 6 adds to the repository, in both lists above; a red `validate`
+    # would otherwise escalate as secret_scan_red and post "found a live credential".
+    leakScanCheck: leak-scan
+  mergePolicies:
+    - {name: docs-links, mode: shadow, holdoutChecks: [validate]}
+    - {name: revert, mode: shadow, holdoutChecks: [validate]}
+    - name: kb-entries
+      mode: shadow
+      allowedFiles: ['^incidents/[^/]+\.md$']
+      companionFiles: ['^index\.md$', '^log\.md$']
+      requiredLabel: ready-to-merge

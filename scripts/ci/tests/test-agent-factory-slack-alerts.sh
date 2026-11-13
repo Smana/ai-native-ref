@@ -3,7 +3,9 @@
 #
 # The Slack decision path's two alerts, evaluated by promtool on synthetic series shaped as the
 # scrapes leave them: maku_rooms_slack_decisions_total{result, decision} from the broker, and
-# factory_slack_requests_total{route, outcome} from the App.
+# the App's requests counter {route, outcome}, under both its names: factory_slack_requests_total
+# today, maku_slack_app_requests_total after Maku's v4 step 8 rename. The card alert must fire on
+# either, so the rename never silences it.
 #
 # Both are aggregates by necessity — neither counter carries a user, a principal, a room or an
 # approval, and this gate is where that stays true: a label that would make the design's
@@ -42,30 +44,10 @@ yaml.safe_dump({"groups": [{"name": "agent-factory", "rules": rules}]},
 PY
 
 D='maku_rooms_slack_decisions_total{namespace="agent-system", pod="room-broker-0", result="approved", decision="approve"}'
-E='factory_slack_requests_total{namespace="agent-system", pod="factory-slack-app-0", route="'
-cat > "$tmp/tests.yaml" <<EOT
-rule_files: [rules.yaml]
-evaluation_interval: 1m
-tests:
-  # Five approvals inside ten minutes read exactly 5 through increase() and stay silent: \`> 5\` is
-  # the boundary, and it holds at the burst and ten minutes later.
-  - interval: 1m
-    input_series:
-      - {series: '${D}', values: '0x10 5x40'}
-    alert_rule_test:
-      - {eval_time: 10m, alertname: SlackDecisionsSpike, exp_alerts: []}
-      - {eval_time: 15m, alertname: SlackDecisionsSpike, exp_alerts: []}
-      - {eval_time: 21m, alertname: SlackDecisionsSpike, exp_alerts: []}
-  # Six in ten minutes fires, and resolves once the burst has aged out: the rule is a rate over
-  # ten minutes, not a total.
-  - interval: 1m
-    input_series:
-      - {series: '${D}', values: '0x10 6x40'}
-    alert_rule_test:
-      - {eval_time: 10m, alertname: SlackDecisionsSpike, exp_alerts: []}
-      - {eval_time: 15m, alertname: SlackDecisionsSpike, exp_alerts: [{exp_labels: {severity: warning}}]}
-      - {eval_time: 22m, alertname: SlackDecisionsSpike, exp_alerts: []}
-  # The App failing an approval-card update: one route's errors hold the alert pending for the
+card_tests() {  # $1: the App's requests counter name
+local E="$1"'{namespace="agent-system", pod="factory-slack-app-0", route="'
+cat <<EOT
+  # $1: the App failing an approval-card update. One route's errors hold the alert pending for the
   # hour, so a single flapping card never pages, and an hour of them does.
   - interval: 1m
     input_series:
@@ -88,5 +70,43 @@ tests:
     alert_rule_test:
       - {eval_time: 90m, alertname: SlackCardUpdatesFailing, exp_alerts: []}
 EOT
+}
+
+N='{namespace="agent-system", pod="factory-slack-app-0", route="interactions", outcome="error"}'
+{
+cat <<EOT
+rule_files: [rules.yaml]
+evaluation_interval: 1m
+tests:
+  # Five approvals inside ten minutes read exactly 5 through increase() and stay silent: \`> 5\` is
+  # the boundary, and it holds at the burst and ten minutes later.
+  - interval: 1m
+    input_series:
+      - {series: '${D}', values: '0x10 5x40'}
+    alert_rule_test:
+      - {eval_time: 10m, alertname: SlackDecisionsSpike, exp_alerts: []}
+      - {eval_time: 15m, alertname: SlackDecisionsSpike, exp_alerts: []}
+      - {eval_time: 21m, alertname: SlackDecisionsSpike, exp_alerts: []}
+  # Six in ten minutes fires, and resolves once the burst has aged out: the rule is a rate over
+  # ten minutes, not a total.
+  - interval: 1m
+    input_series:
+      - {series: '${D}', values: '0x10 6x40'}
+    alert_rule_test:
+      - {eval_time: 10m, alertname: SlackDecisionsSpike, exp_alerts: []}
+      - {eval_time: 15m, alertname: SlackDecisionsSpike, exp_alerts: [{exp_labels: {severity: warning}}]}
+      - {eval_time: 22m, alertname: SlackDecisionsSpike, exp_alerts: []}
+  # Both names scraped at once, as during a rolling upgrade: the alert still fires once, with
+  # no name label to tell them apart.
+  - interval: 1m
+    input_series:
+      - {series: 'factory_slack_requests_total${N}', values: '0x20 1+1x100'}
+      - {series: 'maku_slack_app_requests_total${N}', values: '0x20 1+1x100'}
+    alert_rule_test:
+      - {eval_time: 90m, alertname: SlackCardUpdatesFailing, exp_alerts: [{exp_labels: {severity: warning}}]}
+EOT
+card_tests factory_slack_requests_total
+card_tests maku_slack_app_requests_total
+} > "$tmp/tests.yaml"
 
 cd "$tmp" && promtool test rules tests.yaml

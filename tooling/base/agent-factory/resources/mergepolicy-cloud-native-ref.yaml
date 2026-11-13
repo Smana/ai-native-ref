@@ -106,6 +106,10 @@ spec:
       - "Check the shell scripts 💻"
       - "Check the documentation links 🔗"
     contractCheck: "Test contract 🧪"  # required on a task with a contract (TF8, row 2b); report-only otherwise
+    # Today's defaults, written out (Maku v4 step 8 flips them to gateStatus: true, policyBot: false):
+    # policy-bot's approval stays the gate, and the factory posts no maku/merge-gate status.
+    gateStatus: false
+    policyBot: true
     policyBotLogin: ogenki-merge-gate[bot]
     mergerLogin: ogenki-agent-merger[bot]
     autoMergesPerDay: 1  # one unattended merge a day across live classes; shadow decisions are not counted

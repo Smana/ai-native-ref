@@ -38,6 +38,10 @@ spec:
     # ci.yaml runs both on push to main too; TruffleHog is a step of `lint`.
     requiredChecks: [validate, lint]
     verifyChecks: [validate, lint]
+    # Today's defaults, written out (Maku v4 step 8 flips them to gateStatus: true, policyBot: false):
+    # policy-bot's approval stays the gate, and the factory posts no maku/merge-gate status.
+    gateStatus: false
+    policyBot: true
     policyBotLogin: ogenki-merge-gate[bot]
     mergerLogin: ogenki-agent-merger[bot]
     autoMergesPerDay: 2

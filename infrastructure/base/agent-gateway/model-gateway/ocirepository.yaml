@@ -1,0 +1,23 @@
+# Maku's model gateway chart (v4 step 4, D7), signed by Maku's release workflow like
+# maku-factory (flux/sources/ocirepo-agent-factory.yaml). Here rather than flux/sources: this
+# child alone reads it, and reverting this pin (or this child) is the rollback.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: maku-gateway
+  namespace: agent-gateway
+spec:
+  interval: 12h
+  url: oci://ghcr.io/smana/charts/maku-gateway
+  # Flux pulls the digest (it wins over the tag). Move it with maku-factory's pin.
+  ref:
+    tag: "0.46.0"  # maku v0.46.0
+    digest: sha256:e9f918cff98ad8a6669c6d42d7c20d6d91d271c47c82baf3d9a135744fefc73a
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+      - issuer: "^https://token\\.actions\\.githubusercontent\\.com$"
+        subject: "^https://github\\.com/Smana/maku/\\.github/workflows/release\\.yaml@refs/tags/v.*$"

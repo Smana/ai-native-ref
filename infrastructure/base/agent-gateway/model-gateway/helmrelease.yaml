@@ -1,0 +1,105 @@
+# The model gateway from Maku's maku-gateway chart (v4 step 4, ANR follow-up 1): Gateway
+# agent-gateway/model-gateway, beside agent-router. It serves the same providers, aliases, keys and
+# prices as agent-router's model backends (../llm.yaml, ../anthropic.yaml, ../moonshot.yaml, ../mistral.yaml,
+# ../model-catalog.yaml), under Maku's identity contract: a run's token carries the audience
+# maku-gateway.<class>.<alias> and calls /m/<alias>/v1 on its class's listener (Maku docs/gateway.md).
+#
+# Nothing calls it yet. XR runs keep agent-router: their identity proxy sends agent-router.<role>.<class>
+# tokens to /v1, which this Gateway's listeners refuse. Follow-up 2 moves runs here
+# (runController.model.mode: gateway), follow-up 3 the planner, and follow-up 5 deletes agent-router's
+# model files once no XR run is live.
+#
+# In agent-gateway, the only namespace the controller writes proxies to (ADR-0053 D1,
+# ../../agentgateway/helmrelease.yaml). The chart reads each provider's key from a Secret of the release
+# namespace: provider-keys.yaml copies agent-system's four. What the chart cannot express is beside it:
+# policy-budgets.yaml, network-policy.yaml.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: model-gateway
+  namespace: agent-gateway
+spec:
+  interval: 30m
+  releaseName: model-gateway
+  driftDetection:
+    mode: enabled
+  chartRef:
+    kind: OCIRepository
+    name: maku-gateway
+    namespace: agent-gateway
+  install:
+    remediation: {retries: 3}
+  upgrade:
+    remediation: {retries: 3, remediateLastFailure: true}
+  values:
+    enabled: true
+    name: model-gateway
+    # The proxy: agent-router's image, replicas and resources (parameters.yaml), the chart's defaults.
+    identity:
+      issuer: ${oidc_issuer_url}
+      # The controller fetches it; its CNP already reaches the JWKS host (../../agentgateway).
+      jwks:
+        source: url
+        url: ${oidc_jwks_uri}
+    # The run-controller's runs (follow-up 2): system:serviceaccount:agents:run-<8 base32>.
+    runs:
+      namespace: agents
+      namePrefix: run-
+    broker:
+      serviceAccount: room-broker
+      namespace: agent-system
+      podLabels: {app.kubernetes.io/name: room-broker}
+    # agent-router's providers and keys. Each data class stays where ADR-0054 put it: Z.ai, Kimi
+    # Code and Mistral public only, Anthropic internal only.
+    providers:
+      zai: {preset: zai, existingSecret: agents-zai-api-key, key: apiKey, dataClasses: [public]}  # pragma: allowlist secret
+      moonshot: {preset: moonshot, existingSecret: agents-moonshot-api-key, key: apiKey, dataClasses: [public]}  # pragma: allowlist secret
+      mistral: {preset: mistral, existingSecret: agents-mistral-api-key, key: apiKey, dataClasses: [public]}  # pragma: allowlist secret
+      anthropic: {preset: anthropic, existingSecret: agents-anthropic-api-key, key: apiKey, dataClasses: [internal]}  # pragma: allowlist secret
+    # llm.yaml's table: the four agent names on both listeners, and feature 15's selectable aliases on
+    # public.
+    aliases:
+      public:
+        agent-default: {provider: zai, model: glm-5.3}
+        tier-light: {provider: zai, model: glm-5.3-flash}
+        tier-standard: {provider: zai, model: glm-5.3-flashx}
+        tier-frontier: {provider: zai, model: glm-5.3}
+        kimi-frontier: {provider: moonshot, model: k3.1-pro}
+        mistral-standard: {provider: mistral, model: mistral-medium-2604}
+        mistral-light: {provider: mistral, model: mistral-small-2603}
+      internal:
+        agent-default: {provider: anthropic, model: claude-opus-5-5}
+        tier-light: {provider: anthropic, model: claude-haiku-5-5}
+        tier-standard: {provider: anthropic, model: claude-sonnet-5-5}
+        tier-frontier: {provider: anthropic, model: claude-opus-5-5}
+    # The planner's route, as the Envoy AI gateway serves it today (tier-frontier on Z.ai glm-5.3).
+    # Unused until follow-up 3 points the broker's human.intake.plan at it. No classifier: cnref runs none.
+    clients:
+      planner: {enabled: true, provider: zai, model: glm-5.3}
+    # meter.prices' rates, the Factory's spec.prices (tooling/base/agent-factory/resources/factory.yaml):
+    # test-model-gateway-values fails on any difference. The chart renders from them the catalog
+    # agent-router's model-catalog.yaml holds.
+    modelCatalog:
+      prices:
+        glm-5.3: {input: 1.40, cacheRead: 0.26, output: 4.40}
+        glm-5.3-flashx: {input: 0.37, cacheRead: 0.075, output: 1.25}
+        glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}
+        k3.1-pro: {input: 2.00, cacheRead: 0.20, cacheWrite: 2.00, output: 10.00}
+        mistral-medium-2604: {input: 1.50, cacheRead: 0.15, output: 7.50}
+        mistral-small-2603: {input: 0.15, cacheRead: 0.015, output: 0.60}
+        claude-opus-5-5: {input: 4.00, cacheRead: 0.20, cacheWrite: 5.00, output: 20.00}
+        claude-sonnet-5-5: {input: 2.00, cacheRead: 0.10, cacheWrite: 2.50, output: 10.00}
+        claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50}
+    # Cilium, providers by FQDN, as agent-router's data plane (../network-policy.yaml). The controller is
+    # ../../agentgateway's.
+    networkPolicy:
+      mode: cilium
+      controller:
+        namespace: agentgateway-system
+        labels: {app.kubernetes.io/name: agentgateway, app.kubernetes.io/instance: agentgateway}
+        port: 9978
+    # vmagent, as for agent-router; the scrape itself comes with follow-up 2's meter retarget.
+    metrics:
+      allowFrom:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: observability}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: vmagent}}

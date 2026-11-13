@@ -16,6 +16,7 @@ no gVisor RuntimeClass child here (GP-9).
 | `agent-router` | `infrastructure/gcp-0/agent-router` | The agents' provider keys (Z.ai, Anthropic) that agentgateway's backends read. Envoy's agent router was removed in phase H |
 | `agentgateway` | `infrastructure/gcp-0/agentgateway` | agentgateway controller and CRDs in `agentgateway-system` (ADR-0053) |
 | `agent-gateway` | `infrastructure/gcp-0/agent-gateway` | The agent router on agentgateway: Gateway `agent-gateway/agent-router`, JWT per listener, capability profiles, budgets B1, B2 and B6 enforced on its own rate-limit server and Valkey |
+| `model-gateway` | `infrastructure/gcp-0/agent-gateway/model-gateway` | Maku's `maku-gateway` chart: Gateway `agent-gateway/model-gateway` with agent-router's providers, aliases and prices under Maku's identity contract, plus budgets B1, B2 and B6 on agent-router's rate-limit server. No caller until runs move to it |
 | `octo-sts` | `security/gcp-0/octo-sts` | GitHub token exchange for the agents' App, reached only through the agent router's `sts` listener |
 | `merge-gate-secrets` | `security/gcp-0/merge-gate-secrets` | `SecretStore merge-gate-secrets` -> the `merge-gate` mount, policy-bot's App secret (SP3 R44) |
 | `agent-mcp` | `infrastructure/gcp-0/agent-mcp` | Flux, VictoriaMetrics and VictoriaLogs MCP servers |

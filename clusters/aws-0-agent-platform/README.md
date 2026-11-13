@@ -25,8 +25,9 @@ Design: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md`.
 | `agent-mcp` | `infrastructure/aws-0/agent-mcp` | Flux, VictoriaMetrics and VictoriaLogs MCP servers |
 | `room-broker` | `infrastructure/aws-0/room-broker` | Room CRD (`rooms.maku.ogenki.io`), broker, room log (CNPG), retention, oauth2-proxy |
 | `room-broker-suspend` (unlisted) | `infrastructure/base/room-broker/suspend` | `patch` on `agentruns`, for the broker's suspend trigger. Listing it, with `suspend.enabled: true` in the broker config, turns suspend on |
-| `agent-factory` | `tooling/aws-0/agent-factory` | The factory: Task CRD and controller, issue intake, run meter (SP3) |
-| `agent-factory-resources` | `tooling/aws-0/agent-factory/resources` | The factory's `Factory`, `Repository` and `MergePolicy` objects: its catalogue, repositories and merge policies, read live. No `dependsOn`: the CRDs come with the factory's chart, and the factory waits, not Ready, until these exist |
+| `agent-factory-crds` | `tooling/base/agent-factory/crds` | The six `maku.ogenki.io` CRDs (Rooms, AgentRuns, Tasks, Factories, Repositories, MergePolicies) from the `agent-factory-crds` chart, `helm.sh/resource-policy: keep`. Adopting existing CRDs: [runbook 26](../../docs/runbooks/agent-factory/26-crds-adoption.md) |
+| `agent-factory` | `tooling/aws-0/agent-factory` | The factory: controller, issue intake, run meter (SP3) |
+| `agent-factory-resources` | `tooling/aws-0/agent-factory/resources` | The factory's `Factory`, `Repository` and `MergePolicy` objects: its catalogue, repositories and merge policies, read live. After `agent-factory-crds`; the factory waits, not Ready, until these exist |
 | `policy-bot` | `tooling/base/policy-bot` | The merge gate: policy-bot, its public hook and tailnet UI (SP3, ADR-0045) |
 | `agent-observability` | `observability/aws-0/agent-platform` | VMRules, the Agents folder's dashboards and the agent trace collector |
 | `runlore-factory` | `observability/base/runlore-factory` | RunLore's factory client (feature 14), merged into RunLore's values only while this umbrella ships it |

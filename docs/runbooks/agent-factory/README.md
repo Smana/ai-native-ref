@@ -99,6 +99,7 @@ Grouped by purpose; the number is the order they were written in.
 |---|---|---|---|
 | [24-screencast.md](24-screencast.md) | — (a recording script: one `docs` task from OpenCode, through the room page and GitHub's approve-to-merge, to the dashboards) | Yes — the session switch (`human.mcp.sessionStart` on aws-0), the owner's approval | ~75 min |
 | [25-runlore-kb-phase-1.md](25-runlore-kb-phase-1.md) | RunLore's knowledge base, phase 1 on aws-0: a restart keeps the soak (live 1), one incident to a verified entry the triager can read (live 2), a second generation (live 3), the replay (live 4), the queue cleared and the phase 1 gate | Yes — the owner's go, the ZITADEL sync, the seeded keys, the three labels, two releases and two host pins per flip | ~8 h a session (two soaks and a repeat between them), three sessions for the gate |
+| [26-crds-adoption.md](26-crds-adoption.md) | — (a migration: the six `maku.ogenki.io` CRDs handed to the `agent-factory-crds` release without deleting one, counts and UIDs before and after, the rollback) | Yes — labelling the four factory CRDs just before the host pin bump | ~30 min |
 
 **Out of scope:** SC-15/SC-16 (gVisor overhead ratio and `validate-manifests.sh`/`task check`
 exit codes) are already closed by the phase-0 spike and by CI — no live step adds evidence.

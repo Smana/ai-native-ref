@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The agent factory's six CRDs (maku.ogenki.io: Rooms, AgentRuns, Tasks, Factories, Repositories,
+# MergePolicies), installed by their own chart ahead of agent-factory and its resources. Every file
+# here is a gate path (.policy.yml): agents never change it. Adopting the CRDs on a cluster that
+# already has them: docs/runbooks/agent-factory/26-crds-adoption.md.
+resources:
+  - ocirepository.yaml
+  - helmrelease.yaml

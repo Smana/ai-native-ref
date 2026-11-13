@@ -20,6 +20,7 @@ resources:
   - infrastructure-agent-mcp.yaml
   - infrastructure-agentgateway-poc.yaml
   - infrastructure-room-broker.yaml
+  - tooling-agent-factory-crds.yaml
   - tooling-agent-factory.yaml
   - tooling-agent-factory-resources.yaml
   - tooling-factory-slack-app.yaml

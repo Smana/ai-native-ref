@@ -20,6 +20,8 @@ spec:
       - kind: ConfigMap
         name: eks-aws-0-vars
   dependsOn:
+    # Its chart's crds/ are skipped: the CRDs come from agent-factory-crds.
+    - name: agent-factory-crds
     - name: agent-secrets
     - name: room-broker
     - name: agent-policies

@@ -9,6 +9,10 @@ pin: any same-repo agent-platform PR's CI can re-push it with a valid signature,
 so the OCIRepository carries `ref.digest`, which Flux resolves before the tag.
 Renovate groups the two (.github/renovate.json); this is what fails when one is
 bumped without the other.
+
+The CRDs chart (agent-factory-crds) is the same Maku release, pinned the same way, and the only
+owner of the CRDs: it renders them with helm.sh/resource-policy: keep, and the factory's
+HelmRelease skips its own crds/. A CRD deleted deletes every object of its kind.
 """
 import json
 import pathlib
@@ -43,6 +47,28 @@ if source["spec"]["url"] != "oci://ghcr.io/smana/charts/maku-factory":
 if image.get("repository") != "ghcr.io/smana/maku-factory":
     problems.append(f"image repository {image.get('repository')!r} is not ghcr.io/smana/maku-factory")
 
+crds_dir = ROOT / "tooling/base/agent-factory/crds"
+crds_source = yaml.safe_load((crds_dir / "ocirepository.yaml").read_text())
+crds_ref = crds_source["spec"]["ref"]
+if crds_source["spec"]["url"] != "oci://ghcr.io/smana/charts/agent-factory-crds":
+    problems.append(f"OCIRepository agent-factory-crds url {crds_source['spec']['url']!r} is not oci://ghcr.io/smana/charts/agent-factory-crds")
+if crds_ref.get("tag") != chart_tag:
+    problems.append(f"CRDs chart {crds_ref.get('tag')!r} is not the factory chart {chart_tag!r}: bump both")
+if not DIGEST.match(crds_ref.get("digest", "")):
+    problems.append(f"OCIRepository agent-factory-crds ref.digest {crds_ref.get('digest')!r} is not sha256:<64 hex>")
+if not crds_source["spec"].get("verify"):
+    problems.append("OCIRepository agent-factory-crds has no cosign verify")
+crds_hr = yaml.safe_load((crds_dir / "helmrelease.yaml").read_text())["spec"]
+if (crds_hr.get("values") or {}).get("keep") is not True:
+    problems.append("HelmRelease agent-factory-crds: values.keep is not true (helm.sh/resource-policy: keep)")
+for phase in ("install", "upgrade"):
+    if (crds_hr.get(phase) or {}).get("remediation"):
+        problems.append(f"HelmRelease agent-factory-crds: {phase}.remediation set; a remediation must never uninstall or roll back the CRDs")
+factory_hr = yaml.safe_load((ROOT / "tooling/base/agent-factory/helmrelease.yaml").read_text())["spec"]
+for phase in ("install", "upgrade"):
+    if factory_hr.get(phase, {}).get("crds") != "Skip":
+        problems.append(f"HelmRelease agent-factory: {phase}.crds is not Skip; agent-factory-crds owns the CRDs")
+
 rules = json.loads((ROOT / ".github/renovate.json").read_text())["packageRules"]
 names = {"ghcr.io/smana/charts/maku-factory", "ghcr.io/smana/maku-factory"}
 if not any(names <= set(r.get("matchPackageNames") or []) and r.get("groupName") for r in rules):
@@ -66,5 +92,5 @@ for repo in factory_config.config(ROOT)["repositories"]:
 
 for p in problems:
     print(f"FAIL: {p}")
-print(f"==> agent-factory pins: chart {chart_tag}, image {version}, {len(problems)} problem(s)")
+print(f"==> agent-factory pins: chart {chart_tag}, CRDs chart {crds_ref.get('tag')}, image {version}, {len(problems)} problem(s)")
 sys.exit(1 if problems else 0)

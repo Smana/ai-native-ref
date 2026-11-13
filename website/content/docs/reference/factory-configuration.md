@@ -14,13 +14,14 @@ startup switches, which the factory reads once when it starts.
 | Setting | Where | Applies |
 |---|---|---|
 | The catalogue: `control`, `defaults`, `triage.controlPercent`, `tiers`, `templates`, `caps`, `budgets`, `facts`, `brief`, `resume`, `loops`, `harnessProfiles`, and the price table (`prices`, read as `meter.prices`) | The `Factory`, `tooling/base/agent-factory/resources/factory.yaml` | Live |
-| A repository: its maintainers, trigger label, check egress and schedules | One `Repository` per repository, `tooling/base/agent-factory/resources/repository-<name>.yaml` | Live |
-| A repository's classes and merge rules | One `MergePolicy` per `Repository`, `tooling/base/agent-factory/resources/mergepolicy-<name>.yaml` | Live |
+| A repository: its maintainers, trigger label, check egress, schedules, merge rules and the classes it binds, each with its mode and parameters | One `Repository` per repository, `tooling/base/agent-factory/resources/repository-<name>.yaml` | Live |
+| A class's definition, shared by every repository that binds it | One `MergePolicy` per class, `tooling/base/agent-factory/resources/mergepolicy-<class>.yaml` | Live |
+| The merge settings every repository shares | `mergeDefaults` in the `Factory`; a `Repository` overrides them key by key | Live |
 | The factory's name, `policyManagement`, `api`, `broker`, `github`, `meter`'s queries and URLs, `poll`, `tracing`, the bot logins, `roomsURL` | `config:` in `tooling/base/agent-factory/helm-values-configmap.yaml` | At the next rollout |
 | The API's sponsored and internal principals | `config.api` in each cluster's `tooling/<cluster>/agent-factory/helm-values-sponsored.yaml` | At the next rollout |
 
-Adding a repository is a new `Repository` and its `MergePolicy`: the factory connects to it on its next
-read. Removing both stops the factory serving that repository, and its tasks wait until it is served
+Adding a repository is a new `Repository` binding the classes it uses: the factory connects to it on
+its next read. Removing it stops the factory serving that repository, and its tasks wait until it is served
 again. The exception is the last repository: the factory then has nothing servable, so it keeps
 serving the current configuration until it restarts, and a restart then waits, not Ready.
 
@@ -64,8 +65,10 @@ each cluster.
 kubectl get factory,repository,mergepolicy -n agent-system
 ```
 
-Each object reports `Accepted`. A `Repository` also reports `Connected`, its GitHub connection, and a
-`MergePolicy` reports each class's mode (`live`, `shadow` or `unarmed`) and its last decision. The
+Each object reports `Accepted`. A `Repository` also reports `Connected`, its GitHub connection,
+`BindingsValid`, and each bound class's mode, the policy generation it serves and its last decision; a
+`MergePolicy` reports its consumers, the Repositories binding it, and how many serve its current
+generation. The
 `Factory` reports `Ready`. Every condition and reason is in Maku's
 [merge policies guide](https://github.com/Smana/maku/blob/main/docs/merge-policies.md#status).
 

@@ -1,0 +1,14 @@
+# A class definition (Maku reusable merge policies, B1): the object's name is the class name, and a
+# Repository binds it under spec.mergePolicies with its own mode and parameters. Read live; a
+# refused edit keeps the last accepted generation serving every consumer.
+# Feature 14's seeded fix (runbook 20): an alerting rule RunLore found broken. RunLore's verdict is
+# a signal for 2h after the merge; a persisting one is a regression, which with the breaker's
+# maxFollowUps: 1 pauses the class. Shadow since RK15 on the host: decided, a maintainer merges.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: MergePolicy
+metadata:
+  name: alert-rules
+  namespace: agent-system
+spec:
+  requires: [allowedFiles]
+  monitor: {verification: {within: 2h}, followUpWindow: 2h}

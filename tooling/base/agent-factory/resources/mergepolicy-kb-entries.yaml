@@ -1,0 +1,16 @@
+# A class definition (Maku reusable merge policies, B1): the object's name is the class name, and a
+# Repository binds it under spec.mergePolicies with its own mode and parameters. Read live; a
+# refused edit keeps the last accepted generation serving every consumer.
+# RK3: RunLore drafts a knowledge base entry, the merge gate merges a verified one; shadow until
+# 20 decisions (K8). The repository's .policy.yml has one low-risk rule, `kb-entries`'.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: MergePolicy
+metadata:
+  name: kb-entries
+  namespace: agent-system
+spec:
+  requires: [allowedFiles, companionFiles, requiredLabel]
+  author: {adopt: {logins: ["runlore[bot]"], branches: ["^runlore/kb-"]}}
+  diffShape: added-entry
+  holdoutChecks: [validate]
+  maxPerDay: 5

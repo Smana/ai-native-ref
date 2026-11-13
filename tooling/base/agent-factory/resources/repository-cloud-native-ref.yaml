@@ -1,7 +1,7 @@
-# The host repository (Maku factory resources). It used to be the first entry of config.repositories
-# in ../helm-values-configmap.yaml, without its classes and merge rules: those are
-# mergepolicy-cloud-native-ref.yaml. The factory reads it live: adding, changing or removing a
-# Repository needs no rollout.
+# The host repository (Maku factory resources): its settings, its merge rules and the merge
+# policies it binds (reusable merge policies, B2 and B3). The policies are the mergepolicy-<class>.yaml
+# objects beside it. The factory reads it live: adding, changing or removing a Repository, or a
+# binding, needs no rollout.
 apiVersion: maku.ogenki.io/v1alpha1
 kind: Repository
 metadata:
@@ -36,3 +36,58 @@ spec:
       class: dead-links
       probe: dead-links
       text: Fix the dead external links listed below.
+  # The repository's merge settings (B2); the keys every repository shares are the Factory's
+  # mergeDefaults (Q8), and a key set here wins whole.
+  merge:
+    # Classic protection's 8 contexts (app 15368), read with `gh api repos/Smana/cloud-native-ref/branches/main/protection`.
+    requiredChecks:
+      - "Pre-commit checks 🛃"
+      - "Security scanning 🔒"
+      - "Kubernetes validation ☸"
+      - "Rendered manifest diff 📝"
+      - "Check the shell scripts 💻"
+      - "Check the documentation links 🔗"
+      - "Validate Vector Log Parsing Configuration (vlsingle)"
+      - "Validate Vector Log Parsing Configuration (vlcluster)"
+    # The jobs ci.yaml runs on push to main, watched on the merge commit (§6.4). Not the Vector
+    # checks (their push trigger is path-filtered) nor the rendered diff (PR-only).
+    verifyChecks:
+      - "Pre-commit checks 🛃"
+      - "Security scanning 🔒"
+      - "Kubernetes validation ☸"
+      - "Check the shell scripts 💻"
+      - "Check the documentation links 🔗"
+    contractCheck: "Test contract 🧪"  # required on a task with a contract (TF8, row 2b); report-only otherwise
+    autoMergesPerDay: 1  # one unattended merge a day across live classes; shadow decisions are not counted
+    fixRuns: 2
+    # Re-runs of a cancelled required check per task (agent-platform #86); 0 hands it to a
+    # human. Above 0 the merger App needs actions: write.
+    checkReruns: 1
+    leakScanCheck: "Security scanning 🔒"  # R42: TruffleHog's check run, in both lists above
+    fluxSource: flux-system/flux-system  # the GitRepository deps-patch and deps-minor's monitors watch (Q14)
+  # The policies this repository binds (B3), each with its mode and the parameters it supplies.
+  mergePolicies:
+    # Live: the one class that merges unattended here (runbook 12, design D4). revert is live
+    # with it, or an auto-merge waits on a human to merge its own revert (D5).
+    - {name: docs-links, mode: live, holdoutChecks: ["Check the documentation links 🔗"]}
+    - {name: revert, mode: live, holdoutChecks: ["Check the documentation links 🔗"]}
+    - {name: docs, mode: "off"}
+    - {name: tests, mode: "off"}
+    - {name: dashboards, mode: "off"}
+    - {name: scripts, mode: "off"}
+    - {name: review, mode: "off"}
+    - {name: alert-rules, mode: shadow, allowedFiles: ['^observability/.+\.ya?ml$']}
+    # Shadow since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed. Its fence
+    # repeats the host's `low-risk: docs-links` rule, which approves its pull requests until
+    # `low-risk: dead-links` lands with the live switch.
+    - name: dead-links
+      mode: shadow
+      allowedFiles: ['^(docs|website/content)/.+\.md$']
+      oracleWorkflow: dead-links.yaml
+    # Shadow since the gcp-0 session of 2026-10-27 (runbook 16): adopted, judged, never merged by the factory.
+    - name: deps-patch
+      mode: shadow
+      allowedFiles: ['^(apps|flux|infrastructure|observability|security|tooling)/.+\.ya?ml$']
+    - name: deps-minor
+      mode: shadow
+      allowedFiles: ['^(apps|flux|infrastructure|observability|security|tooling)/.+\.ya?ml$']

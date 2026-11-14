@@ -87,9 +87,9 @@ who pays for a call, never which model it may name — every key on this listene
 |---|---|---|
 | `openwebui` | OpenWebUI, in cluster | Whatever model its user picks, `MoM` included |
 | `promptfoo` | The nightly evaluation, in cluster | The models its suites name |
-| `planner` | The room broker's planner: one call per plan, never a retry | `tier-frontier`, the one alias the broker's own config allows it |
 
-The planner's single alias is a bound its own config holds, not a policy on the gateway.
+The room broker's planner holds no key here. It calls the model gateway that runs the agents, with its
+own ServiceAccount token ([planner settings]({{< relref "/docs/reference/planner.md" >}})).
 
 **Prompt classification (`ext_proc`, filter index 0).** The Semantic Router is
 wired in as an Envoy `ext_proc` gRPC filter, inserted **ahead of** the AI

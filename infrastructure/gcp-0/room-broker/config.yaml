@@ -71,13 +71,15 @@ human:
   # above carries and both tools live on /mcp, so it needs human.mcp.enabled too (on, below).
   # repositories is the allowlist a plan may ever name (CD5) and is deliberately not
   # human.mcp.sessionStart; classes is the roles and the money every plan gets, never the model's
-  # choice (CD17). The key is the one helmrelease.yaml mounts at /etc/room-broker/planner.
+  # choice (CD17). The model call goes to agent-gateway/model-gateway's clients
+  # listener (:8082), whose route forces tier-frontier to Z.ai glm-5.3, with the projected token
+  # helmrelease.yaml's broker.modelGateway mounts (audience maku-gateway.client.planner): no static key.
   intake:
     plan:
       enabled: true             # on here and in aws-0's copy (ADR-0060), for the repository below
-      url: http://ai-gateway.envoy-gateway-system.svc.cluster.local:8080/v1
+      url: http://model-gateway.agent-gateway.svc.cluster.local:8082/clients/planner/v1
       model: tier-frontier
-      apiKeyFile: /etc/room-broker/planner/api-key
+      apiKeyFile: /var/run/secrets/maku/model-gateway/planner
       deadline: 20s
       reasoningEffort: low       # glm-5.3 always reasons: at its default a plan needs over 20 s (Maku #372)
       dailyPlans: 50

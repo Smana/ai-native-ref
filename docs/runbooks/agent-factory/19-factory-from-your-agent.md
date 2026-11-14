@@ -60,35 +60,20 @@ sequenceDiagram
 | 3 | `opencode`'s config after setup | The server sits under `mcp.servers.factory`, the shape `opencode mcp add` writes, and opencode lists it as connected. **Record the opencode version.** A docs-shaped `mcp.factory` that opencode ignores is a FAIL for `setup`'s snippet |
 | 4 | In each client, list the MCP tools and prompts | `rooms_list`, `room_summary`, `room_changes`, `room_wait`, `room_checkout`, `issue_draft`, `issue_file`; prompts `handoff`, `status`, `inbox`. **Record the slash spelling** each client shows (`/factory:handoff` in OpenCode, `/mcp__factory__handoff` in Claude Code) |
 
-### 2.3 The planner key, written before the merge
+### 2.3 The planner's identity: nothing to write
 
-The planner's model call reaches `ai-gateway` as the client `planner`, on one key. Each side syncs
-its own copy, from the entry its own store can reach: the broker from `agents/planner`, through
-`agent-system`'s `agents-secrets` store, and the gateway from `apps/planner`, through the
-cluster-scoped `openbao-apps` store. One value, written to both entries — the gateway accepts the
-call only when its copy matches the key the broker sends:
+The planner calls the model gateway (`agent-gateway/model-gateway`) on its `clients` listener, at
+`/clients/planner/v1`, with a projected ServiceAccount token of audience `maku-gateway.client.planner`.
+The chart mounts that token at `/var/run/secrets/maku/model-gateway/planner` (`broker.modelGateway` in
+`infrastructure/base/room-broker/helmrelease.yaml`), and the kubelet rotates it hourly. No key exists, so
+there is nothing to seed in OpenBao and nothing to rotate. The `agents/planner` and `apps/planner`
+entries an earlier release needed are unused: delete them when convenient.
 
-```
-key="$(openssl rand -hex 24)"
-bao kv put -mount=agents planner apiKey="$key"
-bao kv put -mount=apps planner apiKey="$key"
-```
-
-Run both on each cloud, **before** the pull request that adds the two `ExternalSecret`s merges.
-Why the order matters:
-
-- An `ExternalSecret` whose remote reference is missing reports `SecretSyncedError`. On the gateway
-  this key sits on the same policy path as every other client's, so a missing entry there refuses
-  every client, not just the planner.
-- A broker without its copy still starts: the volume is `optional`, so it runs with the planner
-  disabled (no key file, no model call) and turns the planner on once the Secret syncs.
-
-The broker's copy lands at `/etc/room-broker/planner/api-key` (`0440`, readable through the pod's
-`fsGroup` alone), and the broker reads it only once a release carries `human.intake.plan`: the
-Secret and the mount are inert until then.
-
-Rotating: write the new value to both entries; each copy refreshes within 20 minutes. Restart the
-broker after a rotation unless the release in use re-reads the mounted file per call.
+The gateway admits only `system:serviceaccount:agent-system:room-broker` there and maps the call's
+`tier-frontier` to Z.ai `glm-5.3` (`clients.planner` in
+`infrastructure/base/agent-gateway/model-gateway/helmrelease.yaml`). A planner that answers 401 or 403
+points at the token's audience or the gateway's `broker` values; one that times out points at the
+network policies on either side.
 
 ## 3. Live proofs
 

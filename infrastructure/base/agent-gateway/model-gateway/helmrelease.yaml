@@ -4,10 +4,8 @@
 # ../model-catalog.yaml), under Maku's identity contract: a run's token carries the audience
 # maku-gateway.<class>.<alias> and calls /m/<alias>/v1 on its class's listener (Maku docs/gateway.md).
 #
-# Nothing calls it yet. XR runs keep agent-router: their identity proxy sends agent-router.<role>.<class>
-# tokens to /v1, which this Gateway's listeners refuse. Follow-up 2 moves runs here
-# (runController.model.mode: gateway), follow-up 3 the planner, and follow-up 5 deletes agent-router's
-# model files once no XR run is live.
+# Its callers: the run-controller's runs (R3, runController.model.mode: gateway) and the broker's
+# planner (follow-up 3). Follow-up 5 deletes agent-router's model files once no XR run is live.
 #
 # In agent-gateway, the only namespace the controller writes proxies to (ADR-0053 D1,
 # ../../agentgateway/helmrelease.yaml). The chart reads each provider's key from a Secret of the release
@@ -72,8 +70,9 @@ spec:
         tier-light: {provider: anthropic, model: claude-haiku-5-5}
         tier-standard: {provider: anthropic, model: claude-sonnet-5-5}
         tier-frontier: {provider: anthropic, model: claude-opus-5-5}
-    # The planner's route, as the Envoy AI gateway serves it today (tier-frontier on Z.ai glm-5.3).
-    # Unused until follow-up 3 points the broker's human.intake.plan at it. No classifier: cnref runs none.
+    # The broker's planner (follow-up 3): /clients/planner/v1 on the clients listener (:8082), tier-frontier
+    # forced to Z.ai glm-5.3, as the Envoy AI gateway served it before. The broker's human.intake.plan
+    # calls it with a maku-gateway.client.planner token (../../room-broker). No classifier: cnref runs none.
     clients:
       planner: {enabled: true, provider: zai, model: glm-5.3}
     # meter.prices' rates, the Factory's spec.prices (tooling/base/agent-factory/resources/factory.yaml):

@@ -274,7 +274,7 @@ spec:
       rules:
         # 6 h outlasts the longest run cap. Only agentgateway series (XC7).
         - record: agent_cost:gateway_run_usd
-          expr: sum by (run) (label_replace(increase(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+"}[6h]), "run", "$$1", "ar_agent", ".*xplane-run-(.+)"))
+          expr: sum by (run) (label_replace(increase(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:run-.+"}[6h]), "run", "$$1", "ar_agent", ".*run-(.+)"))
         # XC4: abs(ledger - gateway) <= max(1% of the gateway, 0.01 USD). Judged only once the
         # gateway's cost has not moved for 10 m, so a run still spending is silent. A run with an
         # Envoy series is left out (XC7): Envoy's router exports no cost, it would always
@@ -291,11 +291,11 @@ spec:
               or
               (
                 (agent_cost:gateway_run_usd > 0.01 unless on (run) maku_factory_run_settled_usd)
-                  and on (run) (sum by (run) (label_replace(changes(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+"}[40m]), "run", "$$1", "ar_agent", ".*xplane-run-(.+)")) > 0)
+                  and on (run) (sum by (run) (label_replace(changes(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:run-.+"}[40m]), "run", "$$1", "ar_agent", ".*run-(.+)")) > 0)
               )
             )
-            and on (run) (sum by (run) (label_replace(changes(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:xplane-run-.+"}[10m]), "run", "$$1", "ar_agent", ".*xplane-run-(.+)")) == 0)
-            unless on (run) label_replace(sum by (ar_agent) (last_over_time(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:xplane-run-.+", namespace!="agent-gateway"}[6h])), "run", "$$1", "ar_agent", ".*xplane-run-(.+)")
+            and on (run) (sum by (run) (label_replace(changes(agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", ar_agent=~"system:serviceaccount:agents:run-.+"}[10m]), "run", "$$1", "ar_agent", ".*run-(.+)")) == 0)
+            unless on (run) label_replace(sum by (ar_agent) (last_over_time(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:run-.+", namespace!="agent-gateway"}[6h])), "run", "$$1", "ar_agent", ".*run-(.+)")
           for: 15m
           labels:
             severity: warning

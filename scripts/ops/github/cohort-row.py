@@ -64,7 +64,7 @@ def exec_log_usage(text):
 def vm_query(run_ids, window_min):
     runs = "|".join(run_ids)
     return ('sum by (gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{'
-            f'ar_agent=~"system:serviceaccount:agents:xplane-run-({runs})", '
+            f'ar_agent=~"system:serviceaccount:agents:run-({runs})", '
             f'gen_ai_token_type=~"input|cached_input|output"}}[{window_min}m]))')
 
 

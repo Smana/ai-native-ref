@@ -4,13 +4,22 @@
 # The broker reads it once at startup: kustomization.yaml's configMapGenerator rolls
 # the pods on a change.
 publicURL: https://rooms.${private_domain_name}
-# The only run issuer today is this cluster's (C2 r5). A runtime with its own
-# workload JWTs is one more entry here, not a new code path. The JWKS URI is
-# per cloud: <issuer>/keys on EKS, <issuer>/jwks on GKE (GCP parity GP-12).
+# The run-controller's runs (R3): maku.ogenki.io AgentRuns named run-<id> in agents. This file
+# replaces the chart's config, so it restates the HelmRelease's runs, runIssuer and roomTools:
+# test-room-broker-run-kind.py fails when they differ.
+runs:
+  group: maku.ogenki.io
+  namespace: agents
+  namePrefix: run-
+# The only run issuer is this cluster's, asked through TokenReview (the HelmRelease binds
+# system:auth-delegator): no JWKS fetch, and the run's subject maps to its id.
 runIssuers:
-  - issuer: ${oidc_issuer_url}
-    jwksURL: ${oidc_jwks_uri}
-    subPattern: '^system:serviceaccount:agents:xplane-run-([a-z2-7]{8})$'
+  - mode: tokenreview
+    subPattern: '^system:serviceaccount:agents:run-([a-z2-7]{8})$'
+# The agents' room tools on :8090 verify each run's own token through the run issuer above.
+roomTools:
+  enabled: true
+  auth: tokenreview
 # System callers present audience rooms-system (ruling P3).
 systemIssuer:
   issuer: ${oidc_issuer_url}

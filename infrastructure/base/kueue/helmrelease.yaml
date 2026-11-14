@@ -28,6 +28,18 @@ spec:
   postRenderers:
     - kustomize:
         patches:
+          # No run is admitted through Kueue since R3 (the run-controller's runs carry no queue
+          # label), and a later change removes it. Its CRDs are chart templates, which an uninstall
+          # deletes with every object of their kinds: keep them, before that removal prunes the
+          # HelmRelease.
+          - target: {group: apiextensions.k8s.io, kind: CustomResourceDefinition}
+            patch: |
+              apiVersion: apiextensions.k8s.io/v1
+              kind: CustomResourceDefinition
+              metadata:
+                name: any
+                annotations:
+                  helm.sh/resource-policy: keep
           - patch: |
               $patch: delete
               apiVersion: apiregistration.k8s.io/v1

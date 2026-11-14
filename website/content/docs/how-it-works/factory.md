@@ -60,10 +60,10 @@ the approval: [approve-to-merge]({{< relref "/docs/how-it-works/merge-gate.md#ap
 | Component | Software | What it does | Why this software |
 |---|---|---|---|
 | Task controller | A Go controller (controller-runtime) | Turns a labelled issue into a task: snapshot, a room, the team's runs on its branch; narrates on the issue. Starts a reviewer after the implementer, and turns "Request changes" into a new run | The only component that creates runs, so every run has a task and a budget |
-| Admission | [Kueue](https://kueue.sigs.k8s.io/docs/overview/) | Queues sandboxes so a burst of tasks waits instead of overloading the node pool. Until it lands, the factory's own caps bound concurrency | The Kubernetes-native job queue, with quotas |
+| Admission | A `ResourceQuota` on the runs' namespace, rendered by Maku's `maku` chart | Caps the CPU, memory and pods all runs hold together; a run over it waits `Pending` and starts when room frees up, never fails. The factory's own caps bound concurrency first | A cluster-level safety net behind the factory's slots and budgets, with nothing to run beside the cluster |
 | Run meter and kill switch | Part of the controller | The run meter revokes any run, hand-launched ones included, at its token cap. The `agent-factory-stop` ConfigMap pauses intake and stops every task; so does a label on a pinned control issue | Controls that act from outside the sandbox |
 | Merge gate | [policy-bot](https://github.com/palantir/policy-bot), the factory's gate and a merger GitHub App | policy-bot posts `policy-bot: main`; the factory's gate decides each head; the merger App (`ogenki-agent-merger[bot]`) merges the head the gate decided or a maintainer approved; only the factory's own revert PRs use GitHub's auto-merge. A separate App holds the right to merge, and only it | The policy lives in the repository and is reviewable; the right to merge is isolated from everything else |
-| Admission policy | [Kyverno](https://kyverno.io) | Denies `AgentRun` creation to anyone but the factory | One path in, so no run escapes its budget |
+| Admission policy | Kubernetes `ValidatingAdmissionPolicy`, from Maku's `maku` chart | Denies `AgentRun` creation to anyone but the factory, and run pods to anyone but the run controller | One path in, so no run escapes its budget |
 
 ## Controls
 

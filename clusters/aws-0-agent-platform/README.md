@@ -8,13 +8,13 @@ Design: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md`.
 | Child Kustomization | Path | Holds |
 |---|---|---|
 | `agent-sandbox` | `infrastructure/base/agent-sandbox` | Sandbox CRD and controller in `agent-system` |
-| `kueue` | `infrastructure/aws-0/kueue` | Kueue controller (SP3) |
-| `kueue-queues` | `infrastructure/base/kueue-queues` | ResourceFlavor, ClusterQueues and LocalQueues (SP3) |
+| `kueue` | `infrastructure/aws-0/kueue` | Kueue controller (SP3). Admits no run since R3: the run-controller's pods carry no queue label; its CRDs are kept (`helm.sh/resource-policy: keep`) for its removal |
+| `kueue-queues` | `infrastructure/base/kueue-queues` | ResourceFlavor, ClusterQueues and LocalQueues (SP3). Unused since R3 |
 | `agents-nodepool` | `infrastructure/base/karpenter-nodepools-agents` | `agents-gvisor` NodePool + EC2NodeClass |
 | `runtimeclass-gvisor` | `infrastructure/base/runtimeclass-gvisor` | RuntimeClass `gvisor` → `runsc` |
 | `agents-headroom` | `infrastructure/base/karpenter-nodepools-agents/headroom` | Preemptible placeholder: one warm `agents-gvisor` node, run images pulled. Off by default (`replicas: 0`) |
 | `agent-runtime` | `infrastructure/base/agent-runtime` | identity-proxy ConfigMap, `agents` default deny |
-| `agent-policies` | `security/base/agent-policies` | Kyverno admission and GC for runs |
+| `agent-policies` | `security/base/agent-policies` | Kyverno: no secret import into `agents`, the reserved audiences, the kill switch, and the GC of finished `maku.ogenki.io` runs. The run pod's shape and the AgentRun's creator and patch limits are the `maku` chart's admission policies (R3) |
 | `agent-secrets` | `security/aws-0/agent-secrets` | `SecretStore agents-secrets` → the `agents` mount |
 | `agent-router` | `infrastructure/aws-0/agent-router` | The agents' provider keys (Z.ai, Anthropic) that agentgateway's backends read. Envoy's agent router was removed in phase H |
 | `agentgateway` | `infrastructure/aws-0/agentgateway` | agentgateway controller and CRDs in `agentgateway-system` (ADR-0053), plus the PoC's namespaces |
@@ -24,9 +24,8 @@ Design: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md`.
 | `octo-sts` | `security/aws-0/octo-sts` | GitHub token exchange for the agents' App, reached only through the agent router's `sts` listener |
 | `merge-gate-secrets` | `security/base/merge-gate-secrets` | `SecretStore merge-gate-secrets` → the `merge-gate` OpenBao mount (SP3, R44) |
 | `agent-mcp` | `infrastructure/aws-0/agent-mcp` | Flux, VictoriaMetrics and VictoriaLogs MCP servers |
-| `room-broker` | `infrastructure/aws-0/room-broker` | Room CRD (`rooms.maku.ogenki.io`), broker, room log (CNPG), retention, oauth2-proxy |
-| `room-broker-suspend` (unlisted) | `infrastructure/base/room-broker/suspend` | `patch` on `agentruns`, for the broker's suspend trigger. Listing it, with `suspend.enabled: true` in the broker config, turns suspend on |
-| `agent-factory-crds` | `tooling/base/agent-factory/crds` | The six `maku.ogenki.io` CRDs (Rooms, AgentRuns, Tasks, Factories, Repositories, MergePolicies) from the `agent-factory-crds` chart, `helm.sh/resource-policy: keep`. Adopting existing CRDs: [runbook 26](../../docs/runbooks/agent-factory/26-crds-adoption.md) |
+| `room-broker` | `infrastructure/aws-0/room-broker` | Room CRD (`rooms.maku.ogenki.io`), broker, room log (CNPG), retention, oauth2-proxy, and since R3 the run-controller: it runs each `maku.ogenki.io` AgentRun as a gVisor pod in `agents`, with the egress proxy, a NetworkPolicy per run, the runs quota and the run-pod admission policy. After `agent-factory-crds` |
+| `agent-factory-crds` | `tooling/base/agent-factory/crds` | The six `maku.ogenki.io` CRDs (Rooms, AgentRuns, Tasks, Factories, Repositories, MergePolicies) from the `agent-factory-crds` chart, `helm.sh/resource-policy: keep`. Adopting existing CRDs: [runbook 26](../../docs/runbooks/agent-factory/26-crds-adoption.md). Before `agent-policies`, `room-broker` and the factory |
 | `agent-factory` | `tooling/aws-0/agent-factory` | The factory: controller, issue intake, run meter (SP3) |
 | `agent-factory-resources` | `tooling/aws-0/agent-factory/resources` | The factory's `Factory`, `Repository` and `MergePolicy` objects: its catalogue, repositories and merge policies, read live. After `agent-factory-crds`; the factory waits, not Ready, until these exist |
 | `policy-bot` | `tooling/base/policy-bot` | The merge gate: policy-bot, its public hook and tailnet UI (SP3, ADR-0045) |
@@ -35,8 +34,8 @@ Design: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md`.
 
 ## Resume
 
-Only once the crossplane-configuration pin serves `AgentRun`. Before it, `agent-policies` installs
-Kyverno policies against an API that does not exist, and Flux still reports it Ready.
+The runs' API, `agentruns.maku.ogenki.io`, comes from `agent-factory-crds`, which `agent-policies`,
+`room-broker` and the factory wait for: no crossplane-configuration pin is involved since R3.
 
 On an **existing** cluster, first apply `opentofu/aws/openbao/management` then
 `opentofu/aws/eks/configure` — they create the `agents-secrets` policy and JWT role, without which

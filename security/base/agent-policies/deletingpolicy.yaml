@@ -1,5 +1,5 @@
 ---
-# Backstop GC behind SP3 deleting runs after harvest (S12). Terminal phases only,
+# Backstop GC behind SP3 deleting runs after harvest (S12): the run-controller's maku.ogenki.io runs (R3). Terminal phases only,
 # and only a day after the run ended, so the harvest and the owner still find a
 # finished or revoked run. A run that ends with no finishedAt (a revocation can)
 # ages from its creation. time.now() is in Kyverno 1.19.1's DeletingPolicy CEL
@@ -12,7 +12,7 @@ spec:
   schedule: "17 3 * * *"
   matchConstraints:
     resourceRules:
-      - apiGroups: [cloud.ogenki.io]
+      - apiGroups: [maku.ogenki.io]
         apiVersions: [v1alpha1]
         operations: ["*"]
         resources: [agentruns]

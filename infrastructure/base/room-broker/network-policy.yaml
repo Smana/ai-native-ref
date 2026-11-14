@@ -1,7 +1,8 @@
 ---
 # The room broker (SP2 §9). Default deny; one allow per flow. It listens on :8443
 # (bridges, system API), :8080 (humans), :8090 (agents' room tools) and :9090
-# (metrics, probes).
+# (metrics, probes). The chart's NetworkPolicy room-broker (networkPolicies.mode kubernetes)
+# selects the same pods; Cilium adds the two policies' allows up.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -12,7 +13,8 @@ spec:
     matchLabels:
       app.kubernetes.io/name: room-broker
   ingress:
-    # Run bridges. The run CNP opens this egress only with roomRef (C3).
+    # Run bridges on :8443, and the harnesses' room tools on :8090 (R3: roomTools.auth tokenreview,
+    # each call carrying the run's own token, which the broker asks the apiserver about).
     - fromEndpoints:
         - matchLabels:
             io.kubernetes.pod.namespace: agents
@@ -22,6 +24,8 @@ spec:
       toPorts:
         - ports:
             - port: "8443"
+              protocol: TCP
+            - port: "8090"
               protocol: TCP
     # SP3's factory: the system API (reads the log, appends task_state).
     - fromEndpoints:
@@ -52,16 +56,6 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # agent-router's MCP proxy, only (§3): identity is the verified x-ar-agent.
-    - fromEndpoints:
-        # agentgateway's agent router (ADR-0053), by Gateway name in its own namespace.
-        - matchLabels:
-            io.kubernetes.pod.namespace: agent-gateway
-            gateway.networking.k8s.io/gateway-name: agent-router
-      toPorts:
-        - ports:
-            - port: "8090"
-              protocol: TCP
     # Kubelet's probes.
     - fromEntities:
         - host
@@ -91,7 +85,7 @@ spec:
           rules:
             dns:
               - matchPattern: "*"
-    # The Room and AgentRun watches, and the leader lease.
+    # The Room and AgentRun watches, the leader lease, and the run tokens' TokenReviews (R3).
     - toEntities:
         - kube-apiserver
       toPorts:

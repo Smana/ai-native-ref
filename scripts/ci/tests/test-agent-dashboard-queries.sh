@@ -67,11 +67,11 @@ def info(run, task, role, branch=""):
 
 
 def tok(run, kind, values):
-    return {"series": f'gen_ai_client_token_usage_sum{{ar_agent="system:serviceaccount:agents:xplane-run-{run}", gen_ai_request_model="m1", gen_ai_token_type="{kind}"}}', "values": values}
+    return {"series": f'gen_ai_client_token_usage_sum{{ar_agent="system:serviceaccount:agents:run-{run}", gen_ai_request_model="m1", gen_ai_token_type="{kind}"}}', "values": values}
 
 
 def tokm(run, model, kind, values):
-    return {"series": f'gen_ai_client_token_usage_sum{{ar_agent="system:serviceaccount:agents:xplane-run-{run}", gen_ai_request_model="{model}", gen_ai_token_type="{kind}"}}', "values": values}
+    return {"series": f'gen_ai_client_token_usage_sum{{ar_agent="system:serviceaccount:agents:run-{run}", gen_ai_request_model="{model}", gen_ai_token_type="{kind}"}}', "values": values}
 
 
 def charge(run, principal, room=""):

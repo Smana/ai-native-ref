@@ -59,7 +59,7 @@ spec:
             severity: warning
           annotations:
             summary: "Room {{ $labels.room }} has a running run and no event for 30 minutes"
-            description: "The run is Running but silent, and the room shows AwaitingHuman. Find its run: kubectl get agentrun -n agents -o custom-columns=RUN:.metadata.name,ROOM:.spec.roomRef | grep {{ $labels.room }}, then check the bridge: kubectl logs -n agents -l agents.ogenki.io/run-id=<RUN without xplane-run-> -c room-bridge"
+            description: "The run is Running but silent, and the room shows AwaitingHuman. Find its run: kubectl get agentrun -n agents -o custom-columns=RUN:.metadata.name,ROOM:.spec.roomRef | grep {{ $labels.room }}, then check the bridge: kubectl logs -n agents -l agents.ogenki.io/run-id=<RUN without run-> -c room-bridge"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#9-observability-and-constitution-compliance"
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         # A stall or a 400 is a bridge/harness contract break, not load: alert on any.
@@ -69,7 +69,7 @@ spec:
             severity: warning
           annotations:
             summary: "A bridge cannot move past the harness log ({{ $labels.reason }})"
-            description: "The bridge's cursor holds and its room was told a harness_error with code {{ $labels.reason }}, so the transcript stops there. List room runs: kubectl get agentrun -n agents -o custom-columns=RUN:.metadata.name,ROOM:.spec.roomRef, then read the bridge: kubectl logs -n agents -l agents.ogenki.io/run-id=<RUN without xplane-run-> -c room-bridge"
+            description: "The bridge's cursor holds and its room was told a harness_error with code {{ $labels.reason }}, so the transcript stops there. List room runs: kubectl get agentrun -n agents -o custom-columns=RUN:.metadata.name,ROOM:.spec.roomRef, then read the bridge: kubectl logs -n agents -l agents.ogenki.io/run-id=<RUN without run-> -c room-bridge"
             runbook_url: "https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md#9-observability-and-constitution-compliance"
             dashboard: "https://grafana.${private_domain_name}/d/agent-room"
         - alert: RoomBridgeItemsRefused

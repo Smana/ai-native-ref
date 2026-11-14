@@ -38,7 +38,7 @@ with tempfile.TemporaryDirectory() as tmp:
     for cloud in ("base", "aws-0", "gcp-0"):
         shutil.copytree(ROOT / "infrastructure" / cloud / "room-broker", infra / cloud / "room-broker")
     before = {c: config_refs(infra, c) for c in ("aws-0", "gcp-0")}
-    # gcp-0 generates from its own copy (v2 suspend), so the edit lands in every copy.
+    # gcp-0 generates from its own copy (its session switches), so the edit lands in every copy.
     for config in infra.glob("*/room-broker/config.yaml"):
         with open(config, "a") as f:
             f.write("# a config-only change\n")

@@ -311,7 +311,6 @@ Run [runbook 11](11-v1-validation.md) end to end, with `CLOUD=gcp`: its private 
 | The internal tier on Claude | One `--class internal` run is answered through agentgateway's Anthropic backend, which proves `agents/anthropic` |
 | The reviewer | A `pair` run's reviewer uses the implementer's model |
 | Rooms | Follow, steer and approve one run in its room (runbook 11 steps 3–5) |
-| Suspend | On on gcp-0 (`tooling/gcp-0/agent-factory/helm-values-suspend.yaml`, `infrastructure/gcp-0/room-broker/config.yaml`): [runbook 01 Step 8](01-runtime-sandbox.md#step-8--suspend-and-resume-a-waiting-run-gcp-0) |
 
 ## 10. The Substrate spike
 

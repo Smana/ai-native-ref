@@ -118,7 +118,7 @@ print("cannot tell (exit 2), no traceback")
 def vm_body(value=None, status="success"):
     body = {"status": status, "data": {"resultType": "vector", "result": []}}
     if value is not None:
-        body["data"]["result"] = [{"metric": {"ar_agent": "system:serviceaccount:agents:xplane-run-aaa"}, "value": [1, value]}]
+        body["data"]["result"] = [{"metric": {"ar_agent": "system:serviceaccount:agents:run-aaa"}, "value": [1, value]}]
     if status != "success":
         body = {"status": status, "errorType": "bad_data", "error": "boom"}
     return body

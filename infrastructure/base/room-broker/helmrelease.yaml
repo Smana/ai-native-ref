@@ -1,7 +1,8 @@
 # The room broker from Maku's `maku` chart (R1, Maku v4 step 6 follow-up 2 and step 5 follow-up 4),
 # in place of the App claim. Same image, database, roles, identity, Service name and policies: the
 # table in the R1 pull request maps every hand-written object to a value here or an overlay kept
-# beside it. Runs stay on the AgentRun XR until R3, so the chart's run-controller is off.
+# beside it. Since R3 the chart's run-controller runs the agents: maku.ogenki.io AgentRuns named
+# run-<id>, in place of the Crossplane XR.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -28,19 +29,74 @@ spec:
     disableTakeOwnership: true
     remediation: {retries: 3, remediateLastFailure: true}
   values:
-    # The XR's run kind, so the broker's RBAC and run-issuer pattern match the runs Crossplane composes.
+    # The run-controller's run kind (R3). The broker's config.yaml says the same, since it replaces the
+    # chart's: test-room-broker-run-kind.py fails when they differ.
     runs:
-      group: cloud.ogenki.io
+      group: maku.ogenki.io
       namespace: agents
-      namePrefix: xplane-run-
-    # The namespace is the host's, and so is its default-deny.
+      namePrefix: run-
+    # The namespace is the host's, and so is its Cilium default-deny (agent-runtime).
     createRunsNamespace: false
-    # network-policy.yaml stays the broker's policy (one allow per flow, as before): v0.47.0's cilium
-    # mode also renders agents/default-deny, which agent-runtime owns.
+    # Plain NetworkPolicies (owner ruling Q11): one per run from the run-controller, the egress proxy
+    # that holds each run's HTTPS to its own hosts, and the chart's policies for the broker, the
+    # controller and the proxy. Cilium enforces them beside the CiliumNetworkPolicies, whose allows
+    # add up with theirs: network-policy.yaml stays the broker's own.
     networkPolicies:
-      mode: none
+      mode: kubernetes
+    # The run's sandbox: GKE Sandbox's RuntimeClass on gcp-0, runtimeclass-gvisor's on aws-0.
+    sandbox:
+      runtimeClassName: gvisor
+    # Kueue's two ClusterQueues together (16 + 8 CPU, 64 + 32Gi, 4 + 4 runs), now that it admits no
+    # run: one run is one pod. Limits leave a small run's 2.15 CPU and 4.1Gi room eight times over.
+    runsQuota:
+      hard:
+        pods: "8"
+        requests.cpu: "24"
+        requests.memory: 96Gi
+        limits.cpu: "32"
+        limits.memory: 64Gi
+    # Maku's copies of the Kyverno rules R3 deletes (agentrun-one-creator, agentrun-factory-patch-limit):
+    # the factory alone creates runs, and patches only its three annotations. Break-glass (a run by
+    # hand while the factory is down): `flux suspend helmrelease -n agent-system room-broker`, then
+    # `kubectl delete validatingadmissionpolicybinding maku-agent-system-agentrun-creators`; resuming
+    # the release puts the binding back.
+    agentRunPolicies:
+      creators: [system:serviceaccount:agent-system:agent-factory]
+      factoryServiceAccount: agent-factory
+      namespaces: [agents]
     runController:
-      enabled: false
+      enabled: true
+      # maku v0.47.0, by digest, as the broker's image.
+      image:
+        repository: ghcr.io/smana/maku-run-controller
+        tag: "v0.47.0@sha256:ab93a16a45234fd769f044abb8ade5341870ff7a526a8f4942c3417fe8ebf75e"
+      images:
+        harness:
+          repository: ghcr.io/smana/maku-harness
+          tag: "v0.47.0@sha256:55569445d1ed3575e22c4d808148cb3b33592697c1bee5bbd4563d3b55db56f5"
+        bridge:
+          repository: ghcr.io/smana/maku-bridge
+          tag: "v0.47.0@sha256:a69f7a8e8b6d8ef9af646ab64ec4480671f85aaccfdac03f229b9163ec070afc"
+      # Runs call the model gateway (agent-gateway/model-gateway, the maku-gateway release) with their
+      # own projected token: no provider key in agents. The aliases are that release's aliases.
+      model:
+        mode: gateway
+        gateway:
+          service: model-gateway
+          namespace: agent-gateway
+          aliases:
+            public: [agent-default, tier-light, tier-standard, tier-frontier, kimi-frontier, mistral-standard, mistral-light]
+            internal: [agent-default, tier-light, tier-standard, tier-frontier]
+      # Each run mounts its own <run>-git Secret, minted by the factory from the agents App
+      # (runTokens.perRun in the factory's values): no shared token Secret to read.
+      gitTokens: perRun
+      gitReadSecret: ""
+      # Each run's span, under its task's trace, to the collector's OTLP/HTTP port, which admits run pods.
+      tracing:
+        otlpEndpoint: http://agent-traces-collector.observability.svc.cluster.local:4318
+        collector:
+          namespace: observability
+          labels: {app.kubernetes.io/name: agent-traces-collector, app.kubernetes.io/instance: agent-traces}
     broker:
       image:
         repository: ghcr.io/smana/maku-broker
@@ -54,11 +110,10 @@ spec:
         requests: {cpu: 100m, memory: 128Mi}
         limits: {cpu: 500m, memory: 256Mi}
       publicURL: https://rooms.${private_domain_name}
-      # Required by the chart in jwks mode. The broker reads config.yaml (below), which says the same.
+      # A run's token is checked by the apiserver (TokenReview, through system:auth-delegator), on :8443
+      # and on :8090. The broker reads config.yaml (below), which says the same.
       runIssuer:
-        mode: jwks
-        issuer: ${oidc_issuer_url}
-        jwksURL: ${oidc_jwks_uri}
+        mode: tokenreview
       factoryURL: http://agent-factory.agent-system.svc.cluster.local:8082
       factoryInsecure: true
       # The composition's roles (step 5 follow-up 4). The owner's DSN turns on the migrate init
@@ -76,14 +131,15 @@ spec:
       # tls.yaml's Certificate fills it (no issuerRef here: the chart then renders none).
       tls:
         secretName: room-broker-tls  # pragma: allowlist secret
-      # :8090 is served (the default), and the key agent-router injects decides (ruling P13).
+        # The run-controller's copy of the CA that signs room-broker-tls (ca.crt only): agent-secrets'
+        # openbao-ca, the chain the factory trusts too.
+        caSecretName: openbao-ca  # pragma: allowlist secret
+      # :8090 verifies each run's own token (R3): the chart opens it on the Service and hands the
+      # run-controller its URL. agent-router's federation no longer reaches it (owner ruling Q12).
       roomTools:
         enabled: true
+        auth: tokenreview
       extraEnv:
-        # The key agent-router injects on :8090. Unset, :8090 refuses every call.
-        - name: ROOMS_MCP_KEY
-          valueFrom:
-            secretKeyRef: {name: room-broker-mcp-key, key: apiKey}
         # The factory App's key (verdict comments, §3). Empty until the owner writes it.
         - name: ROOMS_GITHUB_APP_DIR
           value: /var/run/secrets/factory-app
@@ -125,7 +181,7 @@ spec:
     - kustomize:
         patches:
           # config.yaml stays this repository's file: the chart's ConfigMap carries no top-level
-          # policyManagement, suspend, webhooks or coordination. The chart's config volume (the first)
+          # policyManagement, webhooks or coordination. The chart's config volume (the first)
           # goes; the generated one in extraVolumes takes its name and mount.
           - target: {kind: Deployment, name: room-broker}
             patch: |-
@@ -141,15 +197,8 @@ spec:
               kind: ConfigMap
               metadata:
                 name: room-broker-config
-          # agent-router reaches the room tools at room-broker:8090 (agent-gateway/mcp.yaml); the
-          # chart opens that port on the Service only under roomTools.auth tokenreview.
-          - target: {kind: Service, name: room-broker}
-            patch: |-
-              - op: add
-                path: /spec/ports/-
-                value: {name: mcp, port: 8090, targetPort: 8090}
-          # No patch on AgentRuns here: the suspend grant is suspend/rbac.yaml's, listed where suspend is
-          # on, and unlisting it stays the kill switch (test-room-broker-suspend.py).
+          # No patch on AgentRuns: the chart grants it for the suspend trigger, which this platform does
+          # not run (owner ruling Q10).
           - target: {kind: Role, name: room-broker, namespace: agents}
             patch: |-
               - op: test

@@ -29,7 +29,7 @@ yaml.safe_dump({"groups": [{"name": "agent-cache", "rules": groups[0]["rules"]}]
                open(os.environ["OUT"], "w"), sort_keys=False)
 PY
 
-S='gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="anthropic", ar_agent="system:serviceaccount:agents:xplane-run-'
+S='gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="anthropic", ar_agent="system:serviceaccount:agents:run-'
 cat > "$tmp/tests.yaml" <<EOF
 rule_files: [rules.yaml]
 evaluation_interval: 30s
@@ -44,11 +44,11 @@ tests:
       - eval_time: 3m
         alertname: AgentCacheReadZero
         exp_alerts:
-          - exp_labels: {severity: critical, ar_agent: "system:serviceaccount:agents:xplane-run-zero"}
+          - exp_labels: {severity: critical, ar_agent: "system:serviceaccount:agents:run-zero"}
       - eval_time: 16m
         alertname: AgentCacheReadShareLow
         exp_alerts:
-          - exp_labels: {severity: warning, ar_agent: "system:serviceaccount:agents:xplane-run-zero"}
+          - exp_labels: {severity: warning, ar_agent: "system:serviceaccount:agents:run-zero"}
   # A dropped marker whose cached_input series exists at zero (Anthropic answers
   # cache_read_input_tokens: 0 on every reply): the same alerts fire as for an absent series.
   - interval: 30s
@@ -61,11 +61,11 @@ tests:
       - eval_time: 3m
         alertname: AgentCacheReadZero
         exp_alerts:
-          - exp_labels: {severity: critical, ar_agent: "system:serviceaccount:agents:xplane-run-zeroseries"}
+          - exp_labels: {severity: critical, ar_agent: "system:serviceaccount:agents:run-zeroseries"}
       - eval_time: 16m
         alertname: AgentCacheReadShareLow
         exp_alerts:
-          - exp_labels: {severity: warning, ar_agent: "system:serviceaccount:agents:xplane-run-zeroseries"}
+          - exp_labels: {severity: warning, ar_agent: "system:serviceaccount:agents:run-zeroseries"}
   # A run that dropped its marker and then ended: input reaches 120k and stays flat (the gateway
   # keeps exporting the series). It fires at 3m; at 20m the 15m window (5m-20m) holds no increase,
   # so the alert has resolved.
@@ -77,7 +77,7 @@ tests:
       - eval_time: 3m
         alertname: AgentCacheReadZero
         exp_alerts:
-          - exp_labels: {severity: critical, ar_agent: "system:serviceaccount:agents:xplane-run-ended"}
+          - exp_labels: {severity: critical, ar_agent: "system:serviceaccount:agents:run-ended"}
       - {eval_time: 20m, alertname: AgentCacheReadZero, exp_alerts: []}
   # A healthy run: 90% read. Neither fires.
   - interval: 30s
@@ -93,7 +93,7 @@ tests:
       - expr: agent_run:cache_read_share:ratio15m
         eval_time: 16m
         exp_samples:
-          - labels: 'agent_run:cache_read_share:ratio15m{ar_agent="system:serviceaccount:agents:xplane-run-ok"}'
+          - labels: 'agent_run:cache_read_share:ratio15m{ar_agent="system:serviceaccount:agents:run-ok"}'
             value: 0.9
   # A gradual loss: 50% read on 600k input over 15 minutes.
   - interval: 30s
@@ -107,7 +107,7 @@ tests:
       - eval_time: 16m
         alertname: AgentCacheReadShareLow
         exp_alerts:
-          - exp_labels: {severity: warning, ar_agent: "system:serviceaccount:agents:xplane-run-half"}
+          - exp_labels: {severity: warning, ar_agent: "system:serviceaccount:agents:run-half"}
   # The same 50% on 90k input in the window (a condensation in a quiet run): under the volume floor.
   - interval: 30s
     input_series:
@@ -120,7 +120,7 @@ tests:
   # A public run on Z.ai reads nothing explicit: never selected.
   - interval: 30s
     input_series:
-      - series: 'gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="zai", ar_agent="system:serviceaccount:agents:xplane-run-public", gen_ai_token_type="input"}'
+      - series: 'gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="zai", ar_agent="system:serviceaccount:agents:run-public", gen_ai_token_type="input"}'
         values: '0+20000x40'
     alert_rule_test:
       - {eval_time: 3m, alertname: AgentCacheReadZero, exp_alerts: []}
@@ -129,9 +129,9 @@ tests:
   # was Anthropic's alone), and an Anthropic run beside it records its own.
   - interval: 30s
     input_series:
-      - series: 'gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="zai", ar_agent="system:serviceaccount:agents:xplane-run-zaiok", gen_ai_token_type="input"}'
+      - series: 'gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="zai", ar_agent="system:serviceaccount:agents:run-zaiok", gen_ai_token_type="input"}'
         values: '0+20000x40'
-      - series: 'gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="zai", ar_agent="system:serviceaccount:agents:xplane-run-zaiok", gen_ai_token_type="cached_input"}'
+      - series: 'gen_ai_client_token_usage_sum{namespace="agent-gateway", gen_ai_provider_name="zai", ar_agent="system:serviceaccount:agents:run-zaiok", gen_ai_token_type="cached_input"}'
         values: '0+18000x40'
       - series: '${S}anth", gen_ai_token_type="input"}'
         values: '0+20000x40'
@@ -141,9 +141,9 @@ tests:
       - expr: agent_run:cache_read_share:ratio15m
         eval_time: 16m
         exp_samples:
-          - labels: 'agent_run:cache_read_share:ratio15m{ar_agent="system:serviceaccount:agents:xplane-run-zaiok"}'
+          - labels: 'agent_run:cache_read_share:ratio15m{ar_agent="system:serviceaccount:agents:run-zaiok"}'
             value: 0.9
-          - labels: 'agent_run:cache_read_share:ratio15m{ar_agent="system:serviceaccount:agents:xplane-run-anth"}'
+          - labels: 'agent_run:cache_read_share:ratio15m{ar_agent="system:serviceaccount:agents:run-anth"}'
             value: 0.5
 EOF
 

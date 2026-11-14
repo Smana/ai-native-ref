@@ -233,7 +233,7 @@ def check_agent_gateway():
     check(endpoint.get("port") == "metrics", "the proxy's port 15020 is named metrics")
     rules = endpoint.get("metricRelabelConfigs", [])
     base = {"namespace": "agent-gateway", "gen_ai_system": "zai", "gen_ai_request_model": "glm-5.3",
-            "ar_agent": "system:serviceaccount:agents:xplane-run-x"}
+            "ar_agent": "system:serviceaccount:agents:run-x"}
     for agw_type, want in (("input", "input"), ("output", "output"),
                            ("input_cache_read", "cached_input"), ("input_cache_write", "cache_creation_input")):
         for suffix in ("sum", "count", "bucket"):
@@ -367,7 +367,7 @@ def check_run_dashboard():
     check(any('"phase", "Suspended"' in t.get("expr", "") for t in panels.get("Phase", {}).get("targets", [])),
           "the phase timeline derives Suspended, which KSM's stateSet does not export")
     targets = json.dumps([t for p in flat(board) for t in p.get("targets", [])])
-    check('run_id=\\"${run}\\"' in targets and "xplane-run-${run}" in targets and "agent.run_id=${run}" in targets,
+    check('run_id=\\"${run}\\"' in targets and "run-${run}" in targets and "agent.run_id=${run}" in targets,
           "the panels filter on the run: KSM run_id, the pod and principal, the span tag")
 
 
@@ -420,8 +420,8 @@ def check_task_runs():
 
 def check_agentgateway_dashboards():
     raw_run = (ROOT / f"{DASHBOARDS}/grafana-dashboard-agent-run.yaml").read_text()
-    check('gateway.networking.k8s.io/gateway-name:\\"agent-router\\"' in raw_run and "log.http.path" in raw_run,
-          "the run page's gateway log panels select agentgateway's proxies and fields too (ADR-0053)")
+    check('gateway.networking.k8s.io/gateway-name:\\"model-gateway\\"' in raw_run and "log.http.path" in raw_run,
+          "the run page's gateway log panels select the model gateway's proxies and fields (ADR-0053, R3)")
     board = dashboard(f"{DASHBOARDS}/grafana-dashboard-agent-gateway.yaml", "agent-gateway")
     check(board.get("uid") == "agent-gateway", "uid agent-gateway: the agent-gateway alerts link to it")
     targets = json.dumps([t for p in board.get("panels", []) for t in p.get("targets", [])])

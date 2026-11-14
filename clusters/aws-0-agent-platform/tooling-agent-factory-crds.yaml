@@ -1,8 +1,9 @@
 ---
-# The agent factory's CRDs (all six maku.ogenki.io kinds), before the factory and its resources,
-# which both dependsOn this child. After room-broker: its vendored Room CRD carries this release's
-# ownership metadata, which Helm needs to adopt it (runbook 26). wait: the factory and its
-# resources start only once every CRD is established.
+# The agent factory's CRDs (all six maku.ogenki.io kinds), before the agent policies, the room
+# broker (its run-controller reconciles AgentRuns), the factory and its resources, which all
+# dependsOn this child. No dependsOn room-broker any more (R3): that ordering only let Flux label the
+# Room CRD before Helm adopted it (runbook 26), done once, and it would now be a cycle. wait: the
+# children after it start only once every CRD is established.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -17,8 +18,6 @@ spec:
   sourceRef:
     kind: OCIRepository
     name: ai-native-ref
-  dependsOn:
-    - name: room-broker
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease

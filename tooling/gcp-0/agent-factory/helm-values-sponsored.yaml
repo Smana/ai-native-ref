@@ -1,6 +1,6 @@
 # The API's principals on gcp-0, sponsored (the Slack App, factory interfaces part 2, runbook 18) and
 # internal (RunLore, feature 14, runbook 20). Merged over
-# agent-factory-helm-values after helm-values-suspend.yaml: Helm deep-merges, so config.api.sponsored and
+# agent-factory-helm-values: Helm deep-merges, so config.api.sponsored and
 # config.api.internalPrincipals land beside base's api. The name and the client id file are the broker's human.mcp.sponsored entry's
 # (infrastructure/gcp-0/room-broker/config.yaml); the Secret behind both files is
 # tooling/base/agent-factory/slack-app/externalsecret-sponsored.yaml.

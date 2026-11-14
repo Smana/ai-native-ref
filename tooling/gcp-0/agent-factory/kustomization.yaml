@@ -6,21 +6,15 @@ kind: Kustomization
 # security/gcp-0/agent-secrets already points at Secret Manager.
 resources:
   - ../../base/agent-factory
-  - helm-values-suspend.yaml
   - helm-values-sponsored.yaml
 
 patches:
-  # Helm deep-merges valuesFrom in order: these entries add sandbox.suspend, then api.sponsored, to base's config.
+  # Helm deep-merges valuesFrom in order: this entry adds api.sponsored to base's config.
   - target:
       group: helm.toolkit.fluxcd.io
       kind: HelmRelease
       name: agent-factory
     patch: |-
-      - op: add
-        path: /spec/valuesFrom/-
-        value:
-          kind: ConfigMap
-          name: agent-factory-helm-values-suspend
       # The Slack App's sponsored principal (runbook 18), merged last: it adds config.api.sponsored.
       - op: add
         path: /spec/valuesFrom/-

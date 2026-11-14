@@ -48,7 +48,7 @@ sequenceDiagram
 | Where | Change |
 |---|---|
 | gcp-0's broker config copy, `infrastructure/gcp-0/room-broker/config.yaml` | `human.mcp.sessionStart: [<owner>/<repo>]` (one entry, `owner/name`). `sessionStart` needs `human.mcp.enabled` and `human.access` |
-| `scripts/ci/tests/test-room-broker-suspend.py` | Widen the parity: gcp-0's copy may differ from base in `suspend` and `human.mcp.sessionStart` |
+| `scripts/ci/tests/test-room-broker-config-parity.py` | Widen the parity: gcp-0's copy may differ from base in `human.mcp.sessionStart` |
 | `scripts/ci/tests/test-factory-interfaces-off.py` | Its `sessionStart` check skips gcp-0's copy |
 
 ### 2.2 Setup

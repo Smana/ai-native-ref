@@ -10,7 +10,8 @@ on gcp-0 Google manages `runsc`. See [README.md](README.md) for prerequisites an
 ## Prerequisites
 
 - Runbook 00's first check passes (`main` tracked, both umbrellas `Ready`).
-- No owner action specific to this runbook, except Step 8: the owner decides its approval in the room.
+- No owner action specific to this runbook. Suspend and resume (the former Step 8) left the platform
+  with the run-controller (R3, owner ruling Q10): no run is suspendable.
 
 ## Headroom: off by default, on for production
 
@@ -213,136 +214,16 @@ refusing the recreate, not an error.
 
 **What this proves:** R7 as built. A lost pod fails closed, and `agent-run --branch` resumes the work; a factory run resumes on its own ([10](10-disruption.md)).
 
-### Step 8 — suspend and resume a waiting run (gcp-0)
-
-The live proof of the [warm-sandboxes design](../../superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#9-acceptance--live-proof-on-aws-0-owner-go)
-rows S2–S4, on gcp-0, where suspend is on. A run in an **attended** room whose approval has
-waited in an idle room for the broker's `suspend.after` (5 min) is suspended: its pod is deleted
-and its `workspace` PVC kept. Once the approval is decided it resumes in a new gVisor pod, with the
-same ServiceAccount and the same conversation.
-
-| Piece | Where | What it does |
-|---|---|---|
-| Factory | `tooling/gcp-0/agent-factory/helm-values-suspend.yaml` | `sandbox.suspend.enabled`: a run created in an attended room gets `spec.suspendable: true`, immutable |
-| Composition | crossplane-configuration ≥ v0.9.15 | A suspendable run: `workspace` on a PVC from the default class (`standard-rwo` on gcp-0), `AGENT_SUSPENDABLE=true` on the harness and the bridge, `operatingMode` from the `operating-mode` annotation |
-| Broker | `infrastructure/gcp-0/room-broker/config.yaml` | `suspend: {enabled: true, after: 5m}`: writes `operating-mode` + `remaining-seconds` at suspend, `operating-mode` + `resumed-at` at resume |
-| Grant | `room-broker-suspend` Kustomization | `patch` on `agentruns`, fenced by Kyverno's `agentrun-broker-patch-limit` to those three annotations of a suspendable run |
-| Harness and bridge | Maku ≥ v0.15.2 | agent-run reattaches the conversation it finds on the PVC; the bridge answers the reloaded confirmation from the room's decision |
-
-```bash
-flux get kustomizations -n flux-system | grep -E '^(room-broker-suspend|room-broker|agent-factory)[[:space:]]'
-kubectl get validatingpolicy agentrun-broker-patch-limit -o jsonpath='{.status.conditionStatus.ready}{"\n"}'
-```
-
-Expected: the three `Ready=True`; `true`.
-
-Open a new room in the rooms web view (`https://rooms.<private domain>`) on
-`Smana/cloud-native-ref`, class `public`; its profile defaults to `attended`. Then start a run in it
-whose task opens a pull request. In an attended room `forge.pr` asks a human.
-
-```bash
-ROOM=<room id from the web view>
-SRUN=$(task agent:run -- --room "$ROOM" --role implementer --class public --task "Do not search for typos. Open docs/platform-constitution.md, reword one sentence for clarity (one line only), then commit, push and open a pull request. Change nothing else." | tail -1); echo "$SRUN"
-kubectl get agentrun -n agents $SRUN -o jsonpath='{.spec.suspendable}{"\n"}'
-kubectl wait -n agents agentrun/$SRUN --for=jsonpath='{.status.phase}'=Running --timeout=15m
-kubectl get pod -n agents $SRUN -o jsonpath='{.spec.runtimeClassName} {.spec.serviceAccountName}{"\n"}'
-kubectl get pvc -n agents workspace-$SRUN -o jsonpath='{.status.phase} {.spec.storageClassName}{"\n"}'
-```
-
-Expected: `true`; `Running`; `gvisor xplane-run-<id>`; `Bound standard-rwo`.
-
-> The task names its file: an open-ended "find a typo" task on clean docs ran until the per-run
-> token budget (2.2M tokens, `BudgetExhausted`, reason `budget-run`).
-
-> Run the marker `kubectl exec` as soon as the approval appears: the run can suspend before a human
-> gets there. If it does, the PVC uid unchanged across the suspend and a single conversation directory
-> are the fallback evidence.
-
-When the room page shows the pull-request approval pending, leave a marker on the PVC and wait
-past `after`, keeping the room idle (a message resets the idle clock):
-
-```bash
-kubectl exec -n agents $SRUN -c harness -- sh -c 'date -u > /workspace/.suspend-proof; ls /workspace/conversations'
-kubectl wait -n agents agentrun/$SRUN --for=jsonpath='{.status.phase}'=Suspended --timeout=10m
-kubectl get agentrun -n agents $SRUN -o jsonpath='{.metadata.annotations.agents\.ogenki\.io/operating-mode} {.metadata.annotations.agents\.ogenki\.io/remaining-seconds}{"\n"}'
-kubectl get pod -n agents $SRUN 2>&1 | tail -1
-kubectl get pvc -n agents workspace-$SRUN -o jsonpath='{.status.phase}{"\n"}'
-kubectl logs -n agent-system -l app.kubernetes.io/name=room-broker --prefix --tail=-1 | grep '"msg":"run suspended"' | tail -1
-```
-
-Expected:
-- the conversation's directory (one 32-hex name);
-- `Suspended` within about 6 min of the approval opening (5 min idle, then the broker's 15 s resync);
-- `Suspended <seconds>`, under the tier's `runMinutes × 60`;
-- `Error from server (NotFound)` for the pod;
-- `Bound`: the PVC outlives the pod;
-- the leader replica's `run suspended` line, naming the room and the run.
-
-Now approve the pull request in the room page.
-
-```bash
-kubectl wait -n agents agentrun/$SRUN --for=jsonpath='{.status.phase}'=Running --timeout=15m
-kubectl get agentrun -n agents $SRUN -o jsonpath='{.metadata.annotations.agents\.ogenki\.io/operating-mode} {.metadata.annotations.agents\.ogenki\.io/resumed-at}{"\n"}'
-kubectl get pod -n agents $SRUN -o jsonpath='{.spec.runtimeClassName} {.spec.serviceAccountName} {.spec.activeDeadlineSeconds}{"\n"}'
-kubectl exec -n agents $SRUN -c harness -- dmesg | head -3
-kubectl exec -n agents $SRUN -c harness -- cat /workspace/.suspend-proof
-kubectl wait -n agents agentrun/$SRUN --for=jsonpath='{.status.phase}'=Succeeded --timeout=30m
-gh pr list -R Smana/cloud-native-ref --head "agent/$ROOM" --state all --json number,url
-```
-
-Expected:
-- `Running` again, once the new pod is Ready;
-- `Running <RFC 3339 UTC time>`: all three annotations are now set;
-- `gvisor xplane-run-<id> <seconds>`: a new gVisor pod, same ServiceAccount, its deadline the
-  `remaining-seconds` the broker wrote, not the full budget;
-- the `Starting gVisor...` banner;
-- the marker written before the suspend: the PVC came back, so nothing was re-cloned;
-- `Succeeded`, and exactly one pull request: the approved call ran once. The room's first progress
-  note after the resume starts with `(resumed)`.
-
-Optional, S4: repeat with a fresh room and leave the approval undecided. The attended approval
-expires at 30 min, the run resumes on the denial, the agent reads why, and the run ends with no
-pull request.
-
-**What this proves:** design rows S2 and S3 on gcp-0 under gVisor (S4 with the optional run). The
-annotations, the PVC and the deadline carry the run across the pod's deletion, and nobody but the
-room's decision continues the waiting call.
-
-> If the run never suspends: `spec.suspendable` empty means the factory's flag did not reach the run
-> (`kubectl get cm -n agent-system agent-factory-config -o yaml | grep -A2 sandbox`); a broker log
-> `forbidden` means the grant is not applied; a Kyverno denial names the annotation it refused.
-
 ### Cleanup
 
 ```bash
-kubectl delete agentrun -n agents $RUN $RUN2 $SRUN --wait
+kubectl delete agentrun -n agents $RUN $RUN2 --wait
 kubectl get sa,cm,cnp,sandbox,pod,usages.protection.crossplane.io -n agents -l agents.ogenki.io/run-id=${RUN#xplane-run-}
-kubectl get pvc -n agents workspace-$SRUN 2>&1 | tail -1
 ```
 
-Expected: `No resources found` (this doubles as an early look at SC-14, fully proven in runbook 07),
-and `NotFound` for the suspendable run's PVC.
+Expected: `No resources found` (this doubles as an early look at SC-14, fully proven in runbook 07).
 
 ## Results
-
-### Step 8 — gcp-0, 2026-10-18 (ai-native-ref v0.1.14)
-
-**Suspend and resume pass on gcp-0 under gVisor** (design rows S2 and S3; S4 not run).
-
-| Step | Expected | Observed | Pass/Fail |
-|---|---|---|---|
-| Pre-flight | Three `Ready=True`; policy `true`; suspend on | `room-broker-suspend`, `room-broker`, `agent-factory` `Ready=True`; `validatingpolicy agentrun-broker-patch-limit` ready=`true`; factory `sandbox.suspend.enabled` `true` | PASS |
-| Run start | `true`; `Running`; PVC `Bound standard-rwo` | `xplane-run-r2mbw56k` in attended room `lr7e7kpk`, `spec.suspendable=true`, `Running` 06:13:55Z, workspace PVC `Bound standard-rwo` | PASS |
-| Suspend | `Suspended` ~6 min after the approval; pod gone; PVC `Bound` | Approval opened ~06:14Z; broker `run suspended room=lr7e7kpk run=r2mbw56k remainingSeconds=6781` at 06:19:41Z; annotations `operating-mode=Suspended`, `remaining-seconds=6781`; pod gone 06:19:48Z; PVC `Bound` (uid `898caf65-1878-4d15-8d52-3bd88121f322`) | PASS |
-| Marker | Written before the suspend | Not written: the run suspended before the owner ran it | N/A |
-| Resume | New gVisor pod, same SA, deadline = `remaining-seconds`, same PVC | Owner approved; broker `run resumed` 06:21:26Z; annotations `Running 2026-10-18T06:21:26Z`; new pod uid `1b71533e…`, runtimeClass `gvisor`, SA `xplane-run-r2mbw56k`, `activeDeadlineSeconds=6781`; `Starting gVisor...`; same PVC uid; one conversation dir `d8cbb363990941aaa6dfa4633db3fd81` | PASS |
-| Outcome | `Succeeded`, exactly one PR | `Succeeded`, 92,392 tokens, exactly one PR (Smana/cloud-native-ref#2499, closed afterwards as a test artifact) | PASS |
-| Cleanup | `No resources found`; PVC `NotFound` | Both runs deleted; `agents` namespace left with only the `default` SA and the default-deny CNP; PVC gone | PASS |
-
-Notes:
-- The first attempt, `xplane-run-jede5jsq`, ended `BudgetExhausted`: the open-ended typo task, since reworded in Step 8.
-- Steering from the room page is impossible for a CLI-started run: Smana/maku#147.
-- The broker's `run resumed` log line carries an empty `remainingSeconds` (cosmetic).
 
 ### Round 7 — gcp-0, 2026-09-30 (`integration/agent-factory` @ `a2c645ba`)
 

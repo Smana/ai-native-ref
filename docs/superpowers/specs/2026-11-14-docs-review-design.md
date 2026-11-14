@@ -292,3 +292,16 @@ to the sibling designs' plans.
 1. Do ANR releases keep the name "Agent Factory v3.x", or become "ai-native-ref v3.x"? Until
    decided, the rule 18 guard allows `v[0-3]`.
 2. Should the user guide move to Maku when Maku gets a rendered site?
+
+## Amendments found while planning
+
+Reading both repositories for the plans showed four statements above cannot be built as written. The plans carry the corrected form; it wins over the text above.
+
+| Above | What the plans do instead | Why |
+|---|---|---|
+| A moved Maku page redirects | It leaves a short `moved` stub, deleted in a later release | Maku's docs are plain Markdown with no alias mechanism |
+| Every page declares a type and obeys its ceiling | A page opts in by declaring its type; requiring it everywhere is deferred | The pages that wait for a sibling change would fail the ceiling today |
+| The guide chapters are typed now | They stay untyped until the UX rewrite | They run up to 1,860 words against the style guide's 600 |
+| The link shortcode arrives with the pin bump | It lands in the correctness pull request; only its raw-link guard waits for the pin bump | One fix-first defect needs it |
+
+One guard is added: `status.md`'s active cluster must equal the one the fence file names.

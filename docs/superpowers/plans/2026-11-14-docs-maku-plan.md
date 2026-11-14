@@ -79,7 +79,7 @@ Run: `grep -n -i -E 'zitadel|tailnet' docs/api.md docs/factory.md docs/slack.md 
 
 - [ ] **Step 2: Rewrite to the generic seam**
 
-"ZITADEL ID token" becomes "ID token from your identity provider"; `human:<zitadel sub>` becomes `human:<sub>`; "Your browser needs the tailnet" becomes "Your browser must reach the broker's address (see [Exposure](exposure.md))". `docs/identity.md` stays the one page that names presets.
+"ZITADEL ID token" becomes "ID token from your identity provider"; `human:<zitadel sub>` becomes `human:<sub>`; "Your browser needs the tailnet" becomes "Your browser must reach the broker's address (see Exposure (`exposure.md`))". `docs/identity.md` stays the one page that names presets.
 
 - [ ] **Step 3: Keep the preset**
 

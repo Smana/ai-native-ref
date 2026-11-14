@@ -145,6 +145,14 @@ spec:
             gateway.networking.k8s.io/gateway-name: model-gateway
       toPorts:
         - ports: [{port: "8082", protocol: TCP}]
+    # RunLore's knowledge base (roomTools.knowledge in config.yaml): kb_search and kb_get forwarded to
+    # its read-only /mcp. RunLore's ingress admits room-broker on 8080 (host contract H8).
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: runlore
+            app.kubernetes.io/name: runlore
+      toPorts:
+        - ports: [{port: "8080", protocol: TCP}]
 ---
 # The retention job reaches the log and nothing else.
 apiVersion: cilium.io/v2

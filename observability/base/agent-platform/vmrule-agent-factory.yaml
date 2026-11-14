@@ -239,7 +239,8 @@ spec:
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         # D8/D10/D14: the Slack decision path and its cards. Both expressions are aggregates on
         # purpose: maku_rooms_slack_decisions_total carries {result, decision} and
-        # factory_slack_requests_total {route, outcome}, so no per-person, per-room-policy or
+        # factory_slack_requests_total {route, outcome} (maku_slack_app_requests_total from Maku's v4
+        # step 8 rename; the rule reads either, the new name first), so no per-person, per-room-policy or
         # per-approval clause is computable from them. No user, principal, room or approval label is
         # added: they are unbounded, and a per-person label on a broker metric is a cardinality and a
         # privacy problem. Each description says what the logs answer instead.
@@ -253,7 +254,7 @@ spec:
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md#7-verify-end-to-end"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: SlackCardUpdatesFailing
-          expr: sum(rate(factory_slack_requests_total{route=~"interactions|webhooks", outcome="error"}[10m])) > 0
+          expr: sum(rate(maku_slack_app_requests_total{route=~"interactions|webhooks", outcome="error"}[10m]) or rate(factory_slack_requests_total{route=~"interactions|webhooks", outcome="error"}[10m])) > 0
           for: 1h
           labels:
             severity: warning

@@ -1,0 +1,28 @@
+# A class definition (Maku reusable merge policies, B1): the object's name is the class name, and a
+# Repository binds it under spec.mergePolicies with its own mode and parameters. Read live; a
+# refused edit keeps the last accepted generation serving every consumer.
+# Renovate's patch bumps of what Flux deploys (R42), adopted and judged; Renovate keeps merging
+# meanwhile (MC12). Its never-automerge files are protected (test-agent-merge-gate-parity.py
+# derives them from renovate.json). The Flux source is the Repository's merge.fluxSource (B2).
+apiVersion: maku.ogenki.io/v1alpha1
+kind: MergePolicy
+metadata:
+  name: deps-patch
+  namespace: agent-system
+spec:
+  requires: [allowedFiles]
+  author: {adopt: {logins: ["renovate[bot]"], branches: ['^renovate/']}}
+  diffShape: semver-patch
+  protectedFiles:
+    - '^security/base/zitadel/'
+    - '^security/(aws|gcp)-0/zitadel/'
+    - '^flux/sources/helmrepo-zitadel\.yaml$'
+    - '^infrastructure/base/crossplane/configuration-core/'
+    - '^flux/sources/gitrepo-gateway-api\.yaml$'
+    - '^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\.yaml$'
+  modifyOnly: true
+  maxPatchFiles: 3
+  maxModifiedLines: 10
+  releaseAgeCheck: renovate/stability-days
+  maxPerDay: 2
+  monitor: {flux: {within: 1h}, followUpWindow: 168h}

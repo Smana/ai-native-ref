@@ -83,7 +83,7 @@ documents each reason's next step.
 
 ## Settings {#settings}
 
-Example (the reference host), from each repository's `MergePolicy`, `tooling/base/agent-factory/resources/mergepolicy-<name>.yaml`:
+Example (the reference host), from each repository's `Repository` merge rules, `tooling/base/agent-factory/resources/repository-<name>.yaml`, over the `Factory`'s `mergeDefaults`:
 
 | Setting | cloud-native-ref | ai-native-ref |
 |---|---|---|

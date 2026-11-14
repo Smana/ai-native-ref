@@ -1,9 +1,10 @@
 # Vendored from Smana/maku (ruling P16): the release asset since the merge wave.
-# Source: the crd-rooms.yaml asset of maku v0.46.0, the maku-broker pin.
+# Source: the crd-rooms.yaml asset of maku v0.47.0, the maku-broker pin.
 # Refresh with every maku pin: gh release download <tag> --repo Smana/maku --pattern crd-rooms.yaml,
 # then restore the labels and annotations below. They hand the CRD to Helm's agent-factory-crds
 # release (tooling/base/agent-factory/crds), which renders the same CRD, so Flux sets them before
 # Helm adopts it. prune: disabled keeps the CRD, and every Room, when a later change drops this file.
+# room-broker's HelmRelease (Maku's maku chart) skips its crds/, so no other release owns it.
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition

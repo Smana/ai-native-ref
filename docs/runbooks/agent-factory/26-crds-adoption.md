@@ -12,7 +12,7 @@ release, so these steps label each CRD first. Nothing in this change deletes a C
 
 | CRD | Today | After |
 |---|---|---|
-| `rooms` | `room-broker` (vendored `crd-rooms.yaml`) | Both `room-broker` and the release apply the same object. The file carries the release's labels and `kustomize.toolkit.fluxcd.io/prune: disabled`, so Flux labels it for Helm and never deletes it when a later change drops the file |
+| `rooms` | The `room-broker` Flux child (vendored `crd-rooms.yaml`). Its `room-broker` HelmRelease (Maku's `maku` chart) ships the same CRD in `crds/` but runs `crds: Skip`, so no Helm release owns it | Both the `room-broker` child and the release apply the same object. The file carries the release's labels and `kustomize.toolkit.fluxcd.io/prune: disabled`, so Flux labels it for Helm and never deletes it when a later change drops the file. The `room-broker` release keeps `crds: Skip` (`test-agent-factory-pins.py`), so two releases never own it |
 | `tasks`, `factories`, `repositories`, `mergepolicies` | `agent-factory`'s chart `crds/`, `crds: CreateReplace` | The release. `agent-factory` moves to `crds: Skip`, which never deletes a CRD |
 | `agentruns` | Absent (the runs use `agentruns.cloud.ogenki.io`, Crossplane's) | Created, empty |
 
@@ -26,6 +26,10 @@ uninstalls. Flux orders the children: `room-broker`, then `agent-factory-crds`, 
 - [ ] The pull request that adds `agent-factory-crds` is open and still a draft.
 - [ ] `kubectl` points at the cluster (`kubectl config current-context`), with rights to label CRDs.
 - [ ] `agent-factory` is Ready on its current pin: `flux get helmreleases -n agent-system agent-factory`.
+- [ ] No Helm release owns `rooms` yet. The `room-broker` release skips its chart's `crds/`, so this
+      prints nothing:
+      `kubectl get crd rooms.maku.ogenki.io -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}'`.
+      If it prints a release name, stop: that release would fight `agent-factory-crds` for the CRD.
 
 ## 2. Record the CRDs and count every object
 

@@ -118,11 +118,11 @@ check("ai-gateway-planner-key" in names and names[0] == "ai-gateway-api-keys",
 # The broker mounts its own copy under its own name, and never reads another namespace's Secret.
 # optional: an absent key runs the broker with the planner disabled instead of crashlooping;
 # 0440 is the octal the API wants, readable through the pod's fsGroup alone.
-app = load("infrastructure/base/room-broker/app.yaml")
-mounts = [m for m in app["spec"]["extraVolumeMounts"] if m["name"] == "planner"]
+broker = load("infrastructure/base/room-broker/helmrelease.yaml")["spec"]["values"]["broker"]
+mounts = [m for m in broker["extraVolumeMounts"] if m["name"] == "planner"]
 check(mounts and mounts[0]["mountPath"] == "/etc/room-broker/planner" and mounts[0]["readOnly"],
       "the broker's mount")
-volumes = [v for v in app["spec"]["extraVolumes"] if v["name"] == "planner"]
+volumes = [v for v in broker["extraVolumes"] if v["name"] == "planner"]
 want_volume = {"secretName": "room-broker-planner", "optional": True, "defaultMode": 0o440}  # pragma: allowlist secret
 check(volumes and volumes[0]["secret"] == want_volume,
       "the planner volume: its own Secret, optional, 0440")

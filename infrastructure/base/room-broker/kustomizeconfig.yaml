@@ -1,9 +1,9 @@
-# Kustomize rewrites generated names only in the built-in kinds' fields. The App claim
-# is a CRD: without this, its volume keeps the bare name and nothing rolls.
+# Kustomize rewrites generated names only in the built-in kinds' fields. The HelmRelease is a CRD:
+# without this, its config volume keeps the bare name and a config change rolls nothing.
 nameReference:
   - kind: ConfigMap
     version: v1
     fieldSpecs:
-      - kind: App
-        group: cloud.ogenki.io
-        path: spec/extraVolumes/configMap/name
+      - kind: HelmRelease
+        group: helm.toolkit.fluxcd.io
+        path: spec/values/broker/extraVolumes/configMap/name

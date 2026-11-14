@@ -13,7 +13,7 @@ tier's is a plan nothing can run — refused here, offline, instead of by the fi
 
 The release comes first, and both ends of that order are held here. `human.intake` is unknown to
 maku's strict decoder before the release that adds it, so a block written early fails the broker's
-rollout (`test-maku-config-load.sh` loads every copy through the tag `app.yaml` pins and says so).
+rollout (`test-maku-config-load.sh` loads every copy through the tag `helmrelease.yaml` pins and says so).
 Below INTAKE_RELEASE the block must therefore be absent everywhere and the pin must be below it; at
 or above it the block must be present in every copy. Whoever cuts that release bumps the pin and
 INTAKE_RELEASE in the same commit, and writes the block in that commit too.
@@ -111,19 +111,18 @@ def served(repo):
 
 
 pinned = next(d for d in build("infrastructure/base/room-broker")
-              if d["kind"] == "App" and d["metadata"]["name"] == "room-broker")
-pin = pinned["spec"]["image"]["tag"].split("@")[0]
-check(re.fullmatch(r"v\d+\.\d+\.\d+", pin) is not None, f"app.yaml's tag is a release tag: {pin}")
+              if d["kind"] == "HelmRelease" and d["metadata"]["name"] == "room-broker")
+image = pinned["spec"]["values"]["broker"]["image"]
+pin = image["tag"].split("@")[0]
+check(re.fullmatch(r"v\d+\.\d+\.\d+", pin) is not None, f"helmrelease.yaml's image tag is a release tag: {pin}")
 
 # --- the pin is one release, in the four places that name it ------------------------------
-# A half-bump is the failure this guards: the Deployment on one release, the retention CronJob, the
-# CRDs and the schema on another, and nothing offline noticing.
-digest = pinned["spec"]["image"]["tag"].split("@")[-1]
-cronjob = next(d for d in build("infrastructure/base/room-broker")
-               if d["kind"] == "CronJob")
-cron_image = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]["image"]
-check(cron_image == f"ghcr.io/smana/maku-broker:{pin}@{digest}",
-      "the retention CronJob runs the same release and digest as app.yaml")
+# A half-bump is the failure this guards: the broker on one release, the chart that renders it and its
+# retention CronJob, the CRDs and the schema on another, and nothing offline noticing. The chart
+# renders the CronJob from the same image value, so the chart's own version is what can drift.
+chart_source = yaml.safe_load((ROOT / "infrastructure/base/room-broker/ocirepository.yaml").read_text())
+check(f"v{chart_source['spec']['ref']['tag']}" == pin,
+      f"the maku chart's tag (infrastructure/base/room-broker/ocirepository.yaml) is {pin} without its v")
 crd = (ROOT / "infrastructure/base/room-broker/crd-rooms.yaml").read_text().splitlines()[1]
 check(f"maku {pin}" in crd, f"crd-rooms.yaml's source comment names {pin}")
 schema = yaml.safe_load((ROOT / "infrastructure/base/room-broker/sqlinstance.yaml").read_text())
@@ -158,7 +157,7 @@ else:
         check(but_switch(blocks[cloud]) == but_switch(blocks.get("base") or {}),
               f"{cloud}: human.intake is base's copy, verbatim but for enabled")
     # The key A1 mounted, not a path a block invents: a planner reading elsewhere 401s every plan.
-    mounts = [m for m in pinned["spec"].get("extraVolumeMounts") or [] if m.get("mountPath") == PLANNER_MOUNT]
+    mounts = [m for m in pinned["spec"]["values"]["broker"].get("extraVolumeMounts") or [] if m.get("mountPath") == PLANNER_MOUNT]
 
     # --- the allowlist and the class table, against the factory that has to run them ----------
     for cloud in clouds:

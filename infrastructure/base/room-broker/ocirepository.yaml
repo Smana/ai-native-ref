@@ -1,0 +1,25 @@
+# Maku's broker chart (R1): the room broker, rendered from charts/maku instead of the hand-written
+# App claim. Here rather than flux/sources, beside the one HelmRelease it feeds (as agentgateway's):
+# flux/sources is the host's list. Same signing identity as flux/sources/ocirepo-agent-factory.yaml;
+# move both tags together.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: maku
+  namespace: agent-system
+spec:
+  interval: 12h
+  url: oci://ghcr.io/smana/charts/maku
+  # Flux pulls the digest (it wins over the tag), so a re-pushed tag changes nothing. The tag
+  # stays for Renovate and for readers.
+  ref:
+    tag: "0.47.0"  # maku v0.47.0
+    digest: sha256:426f9b668d24894a2c6d4d348a97cb7157573fb28581327bd2aa6c6b4ec5894b
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+      - issuer: "^https://token\\.actions\\.githubusercontent\\.com$"
+        subject: "^https://github\\.com/Smana/maku/\\.github/workflows/release\\.yaml@refs/tags/v.*$"

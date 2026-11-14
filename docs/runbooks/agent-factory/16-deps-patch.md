@@ -29,8 +29,9 @@ is observed only. A class with no `live` or `shadow` key adopts nothing and deci
 
 ## 2. Shadow (L3)
 
-One commit (M3), already in the source: `deps-patch: {…, shadow: true}` and `deps-minor: {…, shadow: true}`
-on the host's entries in `tooling/base/agent-factory/resources/mergepolicy-cloud-native-ref.yaml`. Renovate keeps
+One commit (M3), already in the source: `mode: shadow` on the host's `deps-patch` and `deps-minor` bindings in
+`tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml` (their definitions are
+`mergepolicy-deps-patch.yaml` and `mergepolicy-deps-minor.yaml`). Renovate keeps
 merging meanwhile (MC12). An adopted Task runs no agent, costs nothing and fills no factory cap.
 
 | # | Do | Expected reading |

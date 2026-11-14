@@ -68,6 +68,21 @@ factory_hr = yaml.safe_load((ROOT / "tooling/base/agent-factory/helmrelease.yaml
 for phase in ("install", "upgrade"):
     if factory_hr.get(phase, {}).get("crds") != "Skip":
         problems.append(f"HelmRelease agent-factory: {phase}.crds is not Skip; agent-factory-crds owns the CRDs")
+# room-broker's maku chart ships the Room and AgentRun CRDs in its crds/: two releases must never
+# claim one CRD, so it skips them too.
+broker_hr = yaml.safe_load((ROOT / "infrastructure/base/room-broker/helmrelease.yaml").read_text())["spec"]
+for phase in ("install", "upgrade"):
+    if broker_hr.get(phase, {}).get("crds") != "Skip":
+        problems.append(f"HelmRelease room-broker: {phase}.crds is not Skip; agent-factory-crds owns the CRDs")
+# crd-rooms.yaml hands the Rooms CRD to agent-factory-crds and is never pruned (runbook 26).
+rooms = yaml.safe_load((ROOT / "infrastructure/base/room-broker/crd-rooms.yaml").read_text())["metadata"]
+want = {"helm.sh/resource-policy": "keep", "kustomize.toolkit.fluxcd.io/prune": "disabled",
+        "meta.helm.sh/release-name": "agent-factory-crds", "meta.helm.sh/release-namespace": "agent-system"}
+for key, value in want.items():
+    if (rooms.get("annotations") or {}).get(key) != value:
+        problems.append(f"crd-rooms.yaml: annotation {key} is not {value!r}")
+if (rooms.get("labels") or {}).get("app.kubernetes.io/managed-by") != "Helm":
+    problems.append("crd-rooms.yaml: label app.kubernetes.io/managed-by is not Helm")
 
 rules = json.loads((ROOT / ".github/renovate.json").read_text())["packageRules"]
 names = {"ghcr.io/smana/charts/maku-factory", "ghcr.io/smana/maku-factory"}

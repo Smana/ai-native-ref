@@ -6,7 +6,8 @@ renders its RBAC, Service, policies and run-controller from the HelmRelease's va
 cloud's render, the config must restate the values: runs (group, namespace, namePrefix), the run
 issuer's mode and subPattern (the chart's pattern for those runs), and roomTools.auth. A drift
 would leave the broker watching one run kind while the chart grants and admits another. The
-run-controller's model gateway and aliases are agent-gateway/model-gateway's."""
+run-controller's model gateway and aliases are agent-gateway/model-gateway's, and so is the planner's
+clients route: each config's human.intake.plan names what broker.modelGateway derives."""
 import pathlib
 import sys
 
@@ -21,6 +22,7 @@ sys.path.insert(0, str(ROOT / "scripts/ci"))
 import room_broker_chart  # noqa: E402
 
 checks = {}
+plans = {}
 for cloud in ("aws-0", "gcp-0"):
     try:
         docs = room_broker_chart.build(ROOT, f"infrastructure/{cloud}/room-broker")
@@ -31,6 +33,7 @@ for cloud in ("aws-0", "gcp-0"):
     cm = next(d for d in docs if d["kind"] == "ConfigMap" and d["metadata"]["name"].startswith("room-broker-config"))
     values, config = release["spec"]["values"], yaml.safe_load(cm["data"]["config.yaml"])
     runs, broker = values["runs"], values["broker"]
+    plans[cloud] = ((config.get("human") or {}).get("intake") or {}).get("plan") or {}
     pattern = f"^system:serviceaccount:{runs['namespace']}:{runs['namePrefix']}([a-z2-7]{{8}})$"
     issuers = config.get("runIssuers") or []
     checks[f"{cloud}: config runs is the values' runs"] = config.get("runs") == runs
@@ -53,6 +56,21 @@ checks["they name exactly the aliases each of its listeners serves"] = all(
     sorted(model["gateway"]["aliases"][c]) == sorted(gw_values["aliases"][c]) for c in ("public", "internal"))
 checks["it admits exactly these runs"] = (
     gw_values["runs"] == {"namespace": runs["namespace"], "namePrefix": runs["namePrefix"]})
+
+# The planner calls the same release's clients listener (follow-up 3). config.yaml replaces the chart's
+# config, so each copy states the URL and token the chart derives from broker.modelGateway itself.
+mg = values["broker"].get("modelGateway") or {}
+checks["broker.modelGateway names the model gateway release, its clients port and audience prefix"] = (
+    mg.get("service") == gw_values["name"] and mg.get("namespace") == gw["metadata"]["namespace"]
+    and mg.get("port") == (gw_values.get("listeners") or {}).get("clients", 8082)
+    and mg.get("audiencePrefix") == gw_values.get("audiencePrefix", "maku-gateway"))
+checks["the gateway admits this broker and serves its planner"] = (
+    gw_values["broker"]["serviceAccount"] == "room-broker" and gw_values["broker"]["namespace"] == "agent-system"
+    and gw_values["clients"]["planner"]["enabled"] is True)
+for cloud, plan in plans.items():
+    checks[f"{cloud}: human.intake.plan names the chart's planner route and token"] = (
+        plan.get("url") == f"http://{mg.get('service')}.{mg.get('namespace')}.svc.cluster.local:{mg.get('port')}/clients/planner/v1"
+        and plan.get("apiKeyFile") == "/var/run/secrets/maku/model-gateway/planner")
 
 fails = 0
 for desc, ok in checks.items():

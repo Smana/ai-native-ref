@@ -139,6 +139,16 @@ spec:
       roomTools:
         enabled: true
         auth: tokenreview
+      # The planner's model call (v4 step 4, ANR follow-up 3): model-gateway's clients listener, with a
+      # projected token per client (audience maku-gateway.client.planner, 3600 s, re-read at each call),
+      # mounted at /var/run/secrets/maku/model-gateway. config.yaml's human.intake.plan names that URL and
+      # token, since it replaces the chart's config: test-room-broker-run-kind.py fails when they differ.
+      # The chart's NetworkPolicy reaches the gateway's pods on 8082; network-policy.yaml says the same.
+      modelGateway:
+        service: model-gateway
+        namespace: agent-gateway
+        port: 8082
+        audiencePrefix: maku-gateway
       extraEnv:
         # The factory App's key (verdict comments, §3). Empty until the owner writes it.
         - name: ROOMS_GITHUB_APP_DIR
@@ -164,8 +174,6 @@ spec:
           secret: {secretName: room-broker-webhook-slack-app, optional: true, defaultMode: 0440}  # pragma: allowlist secret
         - name: webhook-runlore
           secret: {secretName: room-broker-webhook-runlore, optional: true, defaultMode: 0440}  # pragma: allowlist secret
-        - name: planner
-          secret: {secretName: room-broker-planner, optional: true, defaultMode: 0440}  # pragma: allowlist secret
       extraVolumeMounts:
         - {name: oidc, mountPath: /etc/room-broker/oidc, readOnly: true}
         - {name: factory-app, mountPath: /var/run/secrets/factory-app, readOnly: true}
@@ -174,7 +182,6 @@ spec:
         - {name: sponsored, mountPath: /etc/room-broker/sponsored, readOnly: true}
         - {name: webhook-slack-app, mountPath: /etc/room-broker/webhooks/slack-app, readOnly: true}
         - {name: webhook-runlore, mountPath: /etc/room-broker/webhooks/runlore, readOnly: true}
-        - {name: planner, mountPath: /etc/room-broker/planner, readOnly: true}
   # What v0.48.0's values cannot say. Each patch tests what it replaces, so a chart that moves it
   # fails the release instead of patching the wrong field.
   postRenderers:

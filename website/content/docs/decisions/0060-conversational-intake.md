@@ -110,6 +110,12 @@ planned for it. The host repository is public and the factory already serves it,
 is still checked against that repository's own class table. The class table also gains `docs`,
 `scripts` and `review`, so a plan is no longer forced into `docs-links`.
 
+**Amendment, 2026-11-14 (the model gateway):** the planner's one call leaves the AI Gateway for the
+model gateway that runs the agents, `agent-gateway/model-gateway`. It calls the `clients` listener's
+planner route with the broker's own projected ServiceAccount token, in place of a shared `planner` key.
+The gateway admits only the broker there and maps `tier-frontier` to the same Z.ai `glm-5.3`. Every
+bound above is unchanged.
+
 ---
 
 ## Consequences

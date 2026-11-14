@@ -197,8 +197,8 @@ unset KEY
 # runlore-factory-principal and agents-runlore-principal: zitadel-oidc-clients.sh sync --apply (host)
 ```
 
-Without `merger-app` the factory pod never starts. Without `agents/planner` and `apps/planner` the
-planner is down.
+Without `merger-app` the factory pod never starts. The planner needs no entry: it calls the model
+gateway with the broker's own projected token (runbook 19, §2.3).
 
 `agents/factory-slack-app` is written by the owner from the Slack App's console (the bot token, the
 signing secret and the bot's `U…` user id) and read by the ExternalSecret `factory-slack-app`. It is
@@ -244,8 +244,8 @@ Revert, after recharging the wallet: restore the manifests from Git, then
 flux resume kustomization agent-gateway -n flux-system
 ```
 
-The planner is not covered. It calls Envoy AI gateway, which this switch does not touch, so it stays
-down until the wallet is recharged. Moonshot is processed in China: public data only, as for Feature 15.
+The planner is not covered. It calls the model gateway's `clients.planner` route (Z.ai `glm-5.3`), which
+this switch does not touch, so it stays down until the wallet is recharged. Moonshot is processed in China: public data only, as for Feature 15.
 
 ## 6. [OWNER] Go-live commit
 

@@ -27,12 +27,10 @@ spec:
       kind: Gateway
       name: ai-gateway
   apiKeyAuth:
-    # A list of Secrets, each contributing one client id per data key: the platform's own keys,
-    # then the room broker's, whose planner calls the data plane as `planner` — a client id of
-    # its own, so the tokens it spends are attributable without a new pricing table.
+    # Each Secret contributes one client id per data key. The room broker's planner left for
+    # agent-gateway/model-gateway (Maku v4 step 4, ANR follow-up 3), and its key with it.
     credentialRefs:
       - name: ai-gateway-api-keys
-      - name: ai-gateway-planner-key
     extractFrom:
       - headers: ["Authorization"]
     forwardClientIDHeader: x-ai-gateway-client-id

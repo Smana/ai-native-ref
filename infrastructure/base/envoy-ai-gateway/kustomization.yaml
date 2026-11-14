@@ -12,8 +12,6 @@ resources:
   - network-policy.yaml
   # API-key authentication on the Gateway listener (B-1).
   - api-keys-externalsecret.yaml
-  # The planner's client key: the broker's one model call, authenticated as `planner` (CD18).
-  - externalsecret-planner-key.yaml
   # MCP session-encryption seed consumed by helmrelease.yaml's valuesFrom
   # (phase-5 review I1).
   - externalsecret-mcp-session-seed.yaml

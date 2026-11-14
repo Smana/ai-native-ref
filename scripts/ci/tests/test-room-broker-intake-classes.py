@@ -55,7 +55,8 @@ PLAN_KEYS = {"enabled", "url", "model", "apiKeyFile", "deadline", "dailyPlans", 
 # it answers in about 4 s (measured on aws-0, 2026-11-07; Maku #372). Every copy carries it.
 REASONING_EFFORT = "low"
 CLASS_KEYS = {"roles", "ceilingUSD", "source"}
-PLANNER_MOUNT = "/etc/room-broker/planner"
+# The planner calls model-gateway's clients listener with the projected token broker.modelGateway mounts.
+PLANNER_TOKEN = "/var/run/secrets/maku/model-gateway/planner"
 # The copies whose switch is on (ADR-0060, amended 2026-11-07): both clouds, for the one public
 # repository. Base's copy keeps it off.
 ENABLED_IN = {"aws-0", "gcp-0"}
@@ -156,8 +157,8 @@ else:
     for cloud in clouds:
         check(but_switch(blocks[cloud]) == but_switch(blocks.get("base") or {}),
               f"{cloud}: human.intake is base's copy, verbatim but for enabled")
-    # The key A1 mounted, not a path a block invents: a planner reading elsewhere 401s every plan.
-    mounts = [m for m in pinned["spec"]["values"]["broker"].get("extraVolumeMounts") or [] if m.get("mountPath") == PLANNER_MOUNT]
+    # The token broker.modelGateway mounts, not a path a block invents: a planner reading elsewhere 401s every plan.
+    mounts = bool((pinned["spec"]["values"]["broker"].get("modelGateway") or {}).get("service"))
 
     # --- the allowlist and the class table, against the factory that has to run them ----------
     for cloud in clouds:
@@ -205,8 +206,8 @@ else:
               f"{cloud}: human.intake.plan.dailyPlans is at least 1 per requester")
         check(plan.get("fallback") in ("off", "composer"),
               f"{cloud}: human.intake.plan.fallback is off or composer")
-        check(mounts and plan.get("apiKeyFile") == f"{PLANNER_MOUNT}/api-key",
-              f"{cloud}: human.intake.plan.apiKeyFile is the mounted planner key ({PLANNER_MOUNT}/api-key)")
+        check(mounts and plan.get("apiKeyFile") == PLANNER_TOKEN,
+              f"{cloud}: human.intake.plan.apiKeyFile is the mounted planner token ({PLANNER_TOKEN})")
 
         for repo in plan.get("repositories") or []:
             check(re.fullmatch(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+", repo) is not None,

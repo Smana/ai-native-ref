@@ -2,7 +2,7 @@
 title: Planner settings
 weight: 17
 description: "Every setting of the planner a room broker runs: the route it calls, the model it may name, the repositories it may plan for, and the class table its roles and money come from."
-lastVerified: 2026-11-06
+lastVerified: 2026-11-14
 ---
 
 The planner turns what you asked for into a [plan]({{< relref "/docs/use/guide/terminal-and-coding-agent.md#handoff" >}}):
@@ -16,9 +16,9 @@ prices.
 | Key | Example value | What it does | Bounds |
 |---|---|---|---|
 | `enabled` | `false` | Serves the planner's two tools; off, both answer `unknown tool` | `true` or `false` |
-| `url` | `http://ai-gateway.envoy-gateway-system.svc.cluster.local:8080/v1` | The AI Gateway data plane the one model call goes to | An absolute `http(s)://` URL, no credentials in it |
+| `url` | `http://model-gateway.agent-gateway.svc.cluster.local:8082/clients/planner/v1` | The model gateway's planner route, on its `clients` listener, where the one model call goes. The gateway admits only the broker's ServiceAccount there and maps `tier-frontier` to Z.ai `glm-5.3` | An absolute `http(s)://` URL, no credentials in it |
 | `model` | `tier-frontier` | The model the plan call names | `tier-frontier`, and nothing else |
-| `apiKeyFile` | `/etc/room-broker/planner/api-key` | The client key, read at each call so a rotation needs no restart | A path the broker already mounts |
+| `apiKeyFile` | `/var/run/secrets/maku/model-gateway/planner` | The broker's projected ServiceAccount token, audience `maku-gateway.client.planner`, mounted by the chart's `broker.modelGateway`. It is read at each call, so the kubelet's hourly rotation needs no restart | A path the broker already mounts |
 | `deadline` | `20s` | How long the one call may take | Above 0, at most 20 s |
 | `reasoningEffort` | `low` | Sent as the call's `reasoning_effort`; unset sends nothing. Set it for a model that always reasons, or a plan can outlast the deadline | `low`, `medium`, `high`, or unset |
 | `dailyPlans` | `50` | Plans one person may ask for per day | At least 1 |

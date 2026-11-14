@@ -132,20 +132,16 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
-    # The planner's one model call (CD18), to the AI Gateway data-plane pods directly, as OpenWebUI
-    # and the nightly eval do. toEndpoints selects PODS: the Service name matches nothing, and the
-    # four labels are the data-plane policy's own endpointSelector. The data plane's policy carries
-    # the other half: either alone refuses. Appended last on purpose — gcp-0's overlay patches
-    # /spec/egress/5 by index, so a rule inserted above it would edit the wrong one.
+    # The planner's one model call (CD18): model-gateway's clients listener in agent-gateway, which
+    # admits only this ServiceAccount (its own CiliumNetworkPolicy and the route's jwt.sub rule carry
+    # the other half). toEndpoints selects the gateway's PODS, by the label agentgateway puts on them.
+    # Appended last on purpose: gcp-0's overlay patches /spec/egress/5 by index.
     - toEndpoints:
         - matchLabels:
-            io.kubernetes.pod.namespace: envoy-gateway-system
-            app.kubernetes.io/managed-by: envoy-gateway
-            app.kubernetes.io/component: proxy
-            gateway.envoyproxy.io/owning-gateway-name: ai-gateway
-            gateway.envoyproxy.io/owning-gateway-namespace: envoy-ai-gateway-system
+            io.kubernetes.pod.namespace: agent-gateway
+            gateway.networking.k8s.io/gateway-name: model-gateway
       toPorts:
-        - ports: [{port: "8080", protocol: TCP}]
+        - ports: [{port: "8082", protocol: TCP}]
 ---
 # The retention job reaches the log and nothing else.
 apiVersion: cilium.io/v2

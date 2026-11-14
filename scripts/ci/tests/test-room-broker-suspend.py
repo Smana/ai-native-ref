@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-# requires: python3 kustomize
+# requires: python3 kustomize helm
 """v2 warm-sandboxes S5: the room broker's suspend trigger is on exactly where the three
 switches agree, gcp-0 today, and off everywhere else. A cluster in ON lists the
 room-broker-suspend Kustomization, renders the broker's suspend.enabled with after 5m, and
 renders the factory's sandbox.suspend.enabled; any other cluster has none of the three, so a
 half-on cluster (a grant with no trigger, or suspendable runs nobody suspends) fails here.
-The grant, patch on agentruns, lives only in room-broker/suspend; the broker's own RBAC
-never patches or updates a run; base's config never enables suspend, and gcp-0's copy of it
+The grant, patch on agentruns, lives only in room-broker/suspend; the broker's own RBAC (the
+maku chart's, as its postRenderer leaves it) never patches or updates a run; base's config never enables suspend, and gcp-0's copy of it
 differs in suspend, webhooks, human.mcp, human.slackLink, human.intake and human.slackDecide alone,
 and aws-0's copy in the same keys less suspend (the Slack App, the planner and the session switches);
 and the Kyverno limit that fences the grant is always there, for the broker alone, naming exactly the
@@ -76,8 +76,18 @@ for cluster in sorted((ROOT / "clusters").glob("*-agent-platform")):
         checks[f"{cluster.name}: it applies room-broker-suspend"] = \
             spec["path"] == "./infrastructure/base/room-broker/suspend"
 
-checks["the broker's own RBAC never patches or updates a run"] = all(
-    not {"patch", "update"} & set(r["verbs"]) for r, _ in run_rules("infrastructure/base/room-broker/rbac.yaml"))
+sys.path.insert(0, str(ROOT / "scripts/ci"))
+import room_broker_chart  # noqa: E402
+
+for cloud in ("aws-0", "gcp-0"):
+    try:
+        chart_rules = [r for d in room_broker_chart.render(ROOT, cloud) if d["kind"] == "Role" for r in d["rules"]
+                       if "agentruns" in r.get("resources", [])]
+    except room_broker_chart.Unavailable as e:
+        print(f"SKIP: {e}")
+        sys.exit(77)
+    checks[f"{cloud}: the broker's own RBAC reads and deletes runs, never patches or updates one"] = bool(chart_rules) and all(
+        not {"patch", "update"} & set(r["verbs"]) for r in chart_rules)
 
 grant = run_rules("infrastructure/base/room-broker/suspend/rbac.yaml")
 bindings = [d for d in docs("infrastructure/base/room-broker/suspend/rbac.yaml") if d["kind"] == "RoleBinding"]

@@ -4,14 +4,16 @@ kind: Kustomization
 # The room broker (SP2): the log of record for every AgentRun with a roomRef.
 resources:
   - crd-rooms.yaml
-  - rbac.yaml
   - tls.yaml
-  - app.yaml
+  # The broker itself, from Maku's chart (R1): its Deployment, Service, ServiceAccount, RBAC and
+  # retention CronJob. pdb.yaml and the policies below are this repository's overlays.
+  - ocirepository.yaml
+  - helmrelease.yaml
+  - pdb.yaml
   - network-policy.yaml
   - network-policy-webhooks.yaml
   - sqlinstance.yaml
   - network-policy-cnpg.yaml
-  - retention-cronjob.yaml
   - vmservicescrape.yaml
   - externalsecret-rooms-proxy.yaml
   - externalsecret-roomctl.yaml
@@ -21,12 +23,12 @@ resources:
   - externalsecret-mcp-key.yaml
   - externalsecret-factory-app.yaml
   - externalsecret-zitadel-reader.yaml
-  # The planner's client key (CD18), mounted by the App below.
+  # The planner's client key (CD18), mounted by helmrelease.yaml.
   - externalsecret-planner.yaml
 
 # The broker reads its config once at startup, so the ConfigMap is generated: a change
-# moves the content-hash suffix, the App's volume reference follows it through
-# kustomizeconfig.yaml, and the composed Deployment rolls (#2274). Flux substitutes
+# moves the content-hash suffix, the HelmRelease's volume reference follows it through
+# kustomizeconfig.yaml, and the chart's Deployment rolls (#2274). Flux substitutes
 # after the build, so a change in a cluster variable alone does not roll it.
 configMapGenerator:
   - name: room-broker-config

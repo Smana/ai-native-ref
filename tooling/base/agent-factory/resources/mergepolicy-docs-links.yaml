@@ -1,0 +1,12 @@
+# A class definition (Maku reusable merge policies, B1): the object's name is the class name, and a
+# Repository binds it under spec.mergePolicies with its own mode and parameters. Read live; a
+# refused edit keeps the last accepted generation serving every consumer.
+# Fixes a broken link in the docs: links-only is built in (R52). Live on the host, shadow
+# elsewhere; each repository names its own holdout.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: MergePolicy
+metadata:
+  name: docs-links
+  namespace: agent-system
+spec:
+  requires: [holdoutChecks]

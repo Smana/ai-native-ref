@@ -1,6 +1,7 @@
-# The second repository (v2 design D9), this one (Maku factory resources). It used to be the second
-# entry of config.repositories in ../helm-values-configmap.yaml, without its classes and merge
-# rules: those are mergepolicy-ai-native-ref.yaml. Read live, like every Repository.
+# The second repository (v2 design D9), this one (Maku factory resources): its settings, its merge
+# rules and the merge policies it binds (reusable merge policies, B2 and B3). Every class is review or
+# shadow: nothing arms until its own 20 shadow decisions (v2 D9). Its .policy.yml has one low-risk
+# rule, `dead-links`' (R50). Read live, like every Repository.
 apiVersion: maku.ogenki.io/v1alpha1
 kind: Repository
 metadata:
@@ -24,3 +25,26 @@ spec:
       class: dead-links
       probe: dead-links
       text: Fix the dead external links listed below.
+  merge:
+    # The `main` ruleset's 2 contexts (app 15368): `gh api repos/Smana/ai-native-ref/rulesets/25225244`.
+    # ci.yaml runs both on push to main too; TruffleHog is a step of `lint`.
+    requiredChecks: [validate, lint]
+    verifyChecks: [validate, lint]
+    autoMergesPerDay: 2
+    fixRuns: 1
+    checkReruns: 0  # a cancelled check goes to a human
+    leakScanCheck: lint
+  mergePolicies:
+    # No testFirst here (TO4): the tests live under the gate path scripts/ci/.
+    - {name: docs-links, mode: shadow, holdoutChecks: [validate]}
+    - {name: revert, mode: shadow, holdoutChecks: [validate]}
+    - {name: docs, mode: "off"}
+    - {name: tests, mode: "off"}
+    - {name: dashboards, mode: "off"}
+    - {name: scripts, mode: "off"}
+    # Shadow (MC14, runbook 15 §6): its detector is this repository's dead-links.yaml and its rule
+    # `low-risk: dead-links` in .policy.yml (test-agent-merge-gate-parity.py holds the two).
+    - name: dead-links
+      mode: shadow
+      allowedFiles: ['^(docs|website/content)/.+\.md$']
+      oracleWorkflow: dead-links.yaml

@@ -25,6 +25,11 @@ spec:
     - name: agent-secrets
     - name: agent-policies
   healthChecks:
+    # The chart's release (R1), and its Deployment.
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: room-broker
+      namespace: agent-system
     - apiVersion: apps/v1
       kind: Deployment
       name: room-broker

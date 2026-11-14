@@ -1,0 +1,23 @@
+# A class definition (Maku reusable merge policies, B1): the object's name is the class name, and a
+# Repository binds it under spec.mergePolicies with its own mode and parameters. Read live; a
+# refused edit keeps the last accepted generation serving every consumer.
+# Retargets the dead external links a detector found (merge gate classes MC14, runbook 15 §2).
+# Each consumer names its own fence and its own dead-links.yaml; a repository's .policy.yml
+# `low-risk: dead-links` rule repeats the fence (test-agent-merge-gate-parity.py holds the two).
+apiVersion: maku.ogenki.io/v1alpha1
+kind: MergePolicy
+metadata:
+  name: dead-links
+  namespace: agent-system
+spec:
+  requires: [allowedFiles, oracleWorkflow]
+  protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
+  modifyOnly: true
+  maxModifiedLines: 20
+  diffShape: links-only
+  holdoutChecks: ["External links 🔗"]
+  oracle: {probe: dead-links, maxFindings: 10}  # the workflow is the binding's (oracleWorkflow)
+  # MC7: every merge of this class stays under watch, whoever made it. No `flux`: Markdown
+  # deploys nothing. The monitor records a verdict and never reverts.
+  monitor: {oracleRuns: 2, followUpWindow: 168h}
+  maxPerDay: 1

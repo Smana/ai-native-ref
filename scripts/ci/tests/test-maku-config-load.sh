@@ -15,8 +15,8 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 MAKU_DIR="${MAKU_DIR:-$HOME/Sources/maku}"
 python3 -c 'import yaml' 2>/dev/null || { echo "SKIP: pyyaml not installed"; exit 77; }
-tag="$(sed -n 's/.*ghcr.io\/smana\/maku-broker:\(v[0-9.]*\)@sha256.*/\1/p;s/^ *tag: "\(v[0-9.]*\)@sha256.*/\1/p' "$ROOT/infrastructure/base/room-broker/app.yaml" | head -1)"
-[ -n "$tag" ] || { echo "FAIL: no maku tag in room-broker/app.yaml"; exit 1; }
+tag="$(sed -n 's/.*ghcr.io\/smana\/maku-broker:\(v[0-9.]*\)@sha256.*/\1/p;s/^ *tag: "\(v[0-9.]*\)@sha256.*/\1/p' "$ROOT/infrastructure/base/room-broker/helmrelease.yaml" | head -1)"
+[ -n "$tag" ] || { echo "FAIL: no maku tag in room-broker/helmrelease.yaml"; exit 1; }
 git -C "$MAKU_DIR" rev-parse -q --verify "refs/tags/$tag" >/dev/null 2>&1 || { echo "SKIP: no $tag in $MAKU_DIR"; exit 77; }
 
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT

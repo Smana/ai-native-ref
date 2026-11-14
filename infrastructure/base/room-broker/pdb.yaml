@@ -1,0 +1,13 @@
+# The broker's disruption budget (the App claim's pdb, which the chart has no value for): one replica
+# serves through a drain. Its own name, so the cut-over never has two objects claim one.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: room-broker-pdb
+  namespace: agent-system
+spec:
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: room-broker

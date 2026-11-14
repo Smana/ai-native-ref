@@ -47,12 +47,14 @@ linked to your ZITADEL user; `agents-admin` reads every room
 
 ## Changing and rolling back the broker
 
-Everything ships through Git under `infrastructure/base/room-broker/`, so a rollback is a revert.
+Everything ships through Git under `infrastructure/base/room-broker/`, so a rollback is a revert. The
+broker runs from Maku's `maku` chart (`helmrelease.yaml`, with the chart pinned in `ocirepository.yaml`);
+`config.yaml`, the network policies, the TLS certificate and the database stay files of their own.
 
 | What changes | What happens | Rollback |
 |---|---|---|
 | Config (`config.yaml`) | The generated ConfigMap's hash suffix changes, so the pod template does | Revert the commit: the old hash rolls the pods back. A change to a cluster variable alone does not roll them (Flux substitutes after the build) |
-| Binary (`app.yaml` image) | The new digest rolls the pods | Revert the pin, which moves with the retention CronJob's image, `crd-rooms.yaml` and `atlasSchema.ref` |
+| Binary (`helmrelease.yaml` image) | The new digest rolls the pods; the chart's `migrate` init container applies the release's migrations first, as the database owner | Revert the pin, which moves with the chart in `ocirepository.yaml`, `crd-rooms.yaml` and `atlasSchema.ref` |
 | Schema (`atlasSchema.ref` in `sqlinstance.yaml`) | Atlas applies the new migrations | None: migrations are append-only and Atlas never runs a down migration, so the database keeps the newer schema after a binary revert |
 
 How a developer uses a room day to day is in the

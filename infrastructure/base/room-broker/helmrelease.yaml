@@ -1,0 +1,160 @@
+# The room broker from Maku's `maku` chart (R1, Maku v4 step 6 follow-up 2 and step 5 follow-up 4),
+# in place of the App claim. Same image, database, roles, identity, Service name and policies: the
+# table in the R1 pull request maps every hand-written object to a value here or an overlay kept
+# beside it. Runs stay on the AgentRun XR until R3, so the chart's run-controller is off.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: room-broker
+  namespace: agent-system
+spec:
+  interval: 30m
+  releaseName: room-broker
+  driftDetection:
+    mode: enabled
+  chartRef:
+    kind: OCIRepository
+    name: maku
+    namespace: agent-system
+  # The Room CRD stays crd-rooms.yaml's, and the chart's maku.ogenki.io AgentRun CRD is for its own
+  # run-controller (off): Helm installs neither. No take-ownership: an object the cut-over left in
+  # place fails the install by name instead of being adopted and then pruned by Flux.
+  install:
+    crds: Skip
+    disableTakeOwnership: true
+    remediation: {retries: 3}
+  upgrade:
+    crds: Skip
+    disableTakeOwnership: true
+    remediation: {retries: 3, remediateLastFailure: true}
+  values:
+    # The XR's run kind, so the broker's RBAC and run-issuer pattern match the runs Crossplane composes.
+    runs:
+      group: cloud.ogenki.io
+      namespace: agents
+      namePrefix: xplane-run-
+    # The namespace is the host's, and so is its default-deny.
+    createRunsNamespace: false
+    # network-policy.yaml stays the broker's policy (one allow per flow, as before): v0.47.0's cilium
+    # mode also renders agents/default-deny, which agent-runtime owns.
+    networkPolicies:
+      mode: none
+    runController:
+      enabled: false
+    broker:
+      image:
+        repository: ghcr.io/smana/maku-broker
+        # maku v0.47.0, by digest. Move it with ocirepository.yaml (the chart), crd-rooms.yaml and
+        # sqlinstance.yaml's atlasSchema.ref together.
+        tag: "v0.47.0@sha256:8bb91548911022e9b32b6ca9f3db177ae98bd57f4e2e6826d7f94f867be117c8"
+      # Two (§9): the leader lease picks the controller, and every replica serves humans through the
+      # LISTEN/NOTIFY hub (ruling AT). pdb.yaml keeps one through a drain.
+      replicas: 2
+      resources:
+        requests: {cpu: 100m, memory: 128Mi}
+        limits: {cpu: 500m, memory: 256Mi}
+      publicURL: https://rooms.${private_domain_name}
+      # Required by the chart in jwks mode. The broker reads config.yaml (below), which says the same.
+      runIssuer:
+        mode: jwks
+        issuer: ${oidc_issuer_url}
+        jwksURL: ${oidc_jwks_uri}
+      factoryURL: http://agent-factory.agent-system.svc.cluster.local:8082
+      factoryInsecure: true
+      # The composition's roles (step 5 follow-up 4). The owner's DSN turns on the migrate init
+      # container: its first run adopts the Atlas operator's ledger, and maku_rooms_schema_unverified
+      # drops to 0. Its Secret is the database owner's (xplane-rooms-cnpg-rooms, user rooms_owner).
+      database:
+        ownerSecret: xplane-rooms-cnpg-rooms  # pragma: allowlist secret
+        brokerSecret: xplane-rooms-cnpg-role-rooms-broker  # pragma: allowlist secret
+        retentionSecret: xplane-rooms-cnpg-role-rooms-retention  # pragma: allowlist secret
+        secretKey: uri  # pragma: allowlist secret
+        # CNPG's CA, mounted for sslmode=verify-full; the composition's DSNs keep their sslmode.
+        caSecret: xplane-rooms-cnpg-cluster-ca  # pragma: allowlist secret
+      retention:
+        schedule: "17 3 * * *"
+      # tls.yaml's Certificate fills it (no issuerRef here: the chart then renders none).
+      tls:
+        secretName: room-broker-tls  # pragma: allowlist secret
+      # :8090 is served (the default), and the key agent-router injects decides (ruling P13).
+      roomTools:
+        enabled: true
+      extraEnv:
+        # The key agent-router injects on :8090. Unset, :8090 refuses every call.
+        - name: ROOMS_MCP_KEY
+          valueFrom:
+            secretKeyRef: {name: room-broker-mcp-key, key: apiKey}
+        # The factory App's key (verdict comments, §3). Empty until the owner writes it.
+        - name: ROOMS_GITHUB_APP_DIR
+          value: /var/run/secrets/factory-app
+      # config is the generated room-broker-config-<hash> (kustomizeconfig.yaml rewrites the name), so
+      # a config change rolls the pods; postRenderers below drop the chart's own config volume.
+      # The rest are the App claim's mounts, unchanged: each file is re-read at use, and each optional
+      # Secret is inert until it exists. 0440 is readable through the pod's fsGroup.
+      extraVolumes:
+        - name: config
+          configMap: {name: room-broker-config}
+        - name: oidc
+          secret: {secretName: room-broker-oidc}  # pragma: allowlist secret
+        - name: factory-app
+          secret: {secretName: room-broker-factory-app, optional: true, defaultMode: 0440}  # pragma: allowlist secret
+        - name: roomctl
+          secret: {secretName: room-broker-roomctl, optional: true}  # pragma: allowlist secret
+        - name: zitadel-reader
+          secret: {secretName: room-broker-zitadel-reader, optional: true, defaultMode: 0440}  # pragma: allowlist secret
+        - name: sponsored
+          secret: {secretName: room-broker-sponsored, optional: true, defaultMode: 0440}  # pragma: allowlist secret
+        - name: webhook-slack-app
+          secret: {secretName: room-broker-webhook-slack-app, optional: true, defaultMode: 0440}  # pragma: allowlist secret
+        - name: webhook-runlore
+          secret: {secretName: room-broker-webhook-runlore, optional: true, defaultMode: 0440}  # pragma: allowlist secret
+        - name: planner
+          secret: {secretName: room-broker-planner, optional: true, defaultMode: 0440}  # pragma: allowlist secret
+      extraVolumeMounts:
+        - {name: oidc, mountPath: /etc/room-broker/oidc, readOnly: true}
+        - {name: factory-app, mountPath: /var/run/secrets/factory-app, readOnly: true}
+        - {name: roomctl, mountPath: /etc/room-broker/roomctl, readOnly: true}
+        - {name: zitadel-reader, mountPath: /etc/room-broker/zitadel-reader, readOnly: true}
+        - {name: sponsored, mountPath: /etc/room-broker/sponsored, readOnly: true}
+        - {name: webhook-slack-app, mountPath: /etc/room-broker/webhooks/slack-app, readOnly: true}
+        - {name: webhook-runlore, mountPath: /etc/room-broker/webhooks/runlore, readOnly: true}
+        - {name: planner, mountPath: /etc/room-broker/planner, readOnly: true}
+  # What v0.47.0's values cannot say. Each patch tests what it replaces, so a chart that moves it
+  # fails the release instead of patching the wrong field.
+  postRenderers:
+    - kustomize:
+        patches:
+          # config.yaml stays this repository's file: the chart's ConfigMap carries no top-level
+          # policyManagement, suspend, webhooks or coordination. The chart's config volume (the first)
+          # goes; the generated one in extraVolumes takes its name and mount.
+          - target: {kind: Deployment, name: room-broker}
+            patch: |-
+              - op: test
+                path: /spec/template/spec/volumes/0/configMap/name
+                value: room-broker-config
+              - op: remove
+                path: /spec/template/spec/volumes/0
+          - target: {kind: ConfigMap, name: room-broker-config}
+            patch: |-
+              $patch: delete
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: room-broker-config
+          # agent-router reaches the room tools at room-broker:8090 (agent-gateway/mcp.yaml); the
+          # chart opens that port on the Service only under roomTools.auth tokenreview.
+          - target: {kind: Service, name: room-broker}
+            patch: |-
+              - op: add
+                path: /spec/ports/-
+                value: {name: mcp, port: 8090, targetPort: 8090}
+          # No patch on AgentRuns here: the suspend grant is suspend/rbac.yaml's, listed where suspend is
+          # on, and unlisting it stays the kill switch (test-room-broker-suspend.py).
+          - target: {kind: Role, name: room-broker, namespace: agents}
+            patch: |-
+              - op: test
+                path: /rules/0/verbs
+                value: [get, list, watch, delete, patch]
+              - op: replace
+                path: /rules/0/verbs
+                value: [get, list, watch, delete]

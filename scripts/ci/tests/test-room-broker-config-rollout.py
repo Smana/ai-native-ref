@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # requires: python3 kustomize
 """#2274: the room broker reads its config once at startup, so a config change must
-change the App's pod template, or nothing rolls. In each cloud's render, the App's
-config volume must name the generated ConfigMap, and an edit to config.yaml alone
-must move that name. A plain ConfigMap, or a lost nameReference for the App CRD,
+change the broker's pod template, or nothing rolls. In each cloud's render, the
+HelmRelease's config volume (broker.extraVolumes, which the chart renders into the
+Deployment) must name the generated ConfigMap, and an edit to config.yaml alone must
+move that name. A plain ConfigMap, or a lost nameReference for the HelmRelease CRD,
 fails here."""
 import pathlib
 import shutil
@@ -26,8 +27,8 @@ def config_refs(infra, cloud):
     docs = [d for d in yaml.safe_load_all(out) if d]
     cms = [d["metadata"]["name"] for d in docs if d["kind"] == "ConfigMap"
            and d["metadata"]["name"].startswith("room-broker-config")]
-    app = next(d for d in docs if d["kind"] == "App" and d["metadata"]["name"] == "room-broker")
-    vol = next(v for v in app["spec"]["extraVolumes"] if v["name"] == "config")
+    release = next(d for d in docs if d["kind"] == "HelmRelease" and d["metadata"]["name"] == "room-broker")
+    vol = next(v for v in release["spec"]["values"]["broker"]["extraVolumes"] if v["name"] == "config")
     return cms, vol["configMap"]["name"]
 
 
@@ -45,7 +46,7 @@ with tempfile.TemporaryDirectory() as tmp:
         _, after = config_refs(infra, cloud)
         checks = {
             "one generated ConfigMap with a hash suffix": len(cms) == 1 and cms[0] != "room-broker-config",
-            "the App's config volume names it": cms == [ref],
+            "the HelmRelease's config volume names it": cms == [ref],
             "a config edit moves the name": after != ref,
         }
         for desc, ok in checks.items():

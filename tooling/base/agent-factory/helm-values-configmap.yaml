@@ -40,7 +40,6 @@ data:
     # the factory's create, patch and delete on Secrets there to those it labels and the run owns.
     runTokens: {enabled: true, perRun: true}
     brokerCASecret: openbao-ca
-    zitadelReaderSecret: agent-factory-zitadel-reader  # externalsecret-zitadel-reader.yaml, at api.access.readerFile
     config:
       # The ownership fence (agent-platform v0.14.0): a repository is acted on only while its
       # .github/agent-factory.yaml names this factory, so aws-0 and gcp-0 never take the same issue.
@@ -97,14 +96,12 @@ data:
         clientIDFiles:
           - /etc/agent-factory-oidc/rooms-proxy-client-id
           - /etc/agent-factory-oidc/roomctl-client-id
-        # Resolves a human caller to their GitHub login: the broker's GitHub account links first
-        # (links: broker, GET /v1/links/github on broker.url as system:factory, ANR follow-up 2), else
-        # the ZITADEL reader, mounted from externalsecret-zitadel-reader.yaml, for an account with no
-        # link; write on the repository is then asked of GitHub. Without either every human run is
-        # refused 403 repository_permission. readerFile goes once every human has linked (follow-up 3).
+        # Resolves a human caller to their GitHub login from the broker's GitHub account links
+        # (links: broker, GET /v1/links/github on broker.url as system:factory); write on the
+        # repository is then asked of GitHub. An account with no link is refused 403
+        # repository_permission.
         access:
           links: broker
-          readerFile: /etc/agent-factory-zitadel-reader/reader.json
           ttl: 5m
         # Sponsored principals (factory interfaces part 2), none declared (D4): a gcp-0 session declares
         # the Slack App in gcp-0's copy (runbook 18). It needs meter.prices, and projectIDFile beside it;

@@ -36,7 +36,7 @@ flowchart TD
 | 0.1 | **[OWNER]** Interactive Google auth for both the CLI and ADC. A reauth can expire ADC mid-run with `invalid_rapt`, which needs this step again | `gcloud auth login`, then `gcloud auth application-default login`, then `gcloud auth application-default set-quota-project ogenki-435905` |
 | 0.2 | **[OWNER]** The CPU quota fits the platform (sizing below) | `gcloud compute project-info describe --project ogenki-435905 --flatten=quotas --filter='quotas.metric=CPUS_ALL_REGIONS' --format='value(quotas.limit,quotas.usage)'` and `gcloud compute regions describe europe-west4 --project ogenki-435905 --flatten=quotas --filter='quotas.metric:(CPUS N2_CPUS E2_CPUS)' --format='table(quotas.metric,quotas.limit,quotas.usage)'` |
 | 0.3 | **[OWNER]** Shell inputs | `export TF_VAR_tailscale_api_key=…`, plus AWS credentials for `opentofu/shared/*` (state, Route53 federation) |
-| 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Required for the agent platform: `zitadel-github-idp`. Without it the deploy skips the GitHub link IdP and so never writes `room-broker-zitadel-reader`, the broker's link reader. Optional: `github-gha-runner-scale-set-default` (GHA runners only) |
+| 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Required for the agent platform: `zitadel-github-idp`. Optional: `github-gha-runner-scale-set-default` (GHA runners only) |
 | 0.5 | cloud-native-ref pins the releases under test | `flux/sources/ocirepo-ai-native-ref.yaml`: an ai-native-ref release; the Maku charts and images are pinned inside it |
 | 0.6 | Optional, decided now: serve the Substrate spike's APIs | `TF_VAR_enable_pod_certificate_apis=true` on step 3. It is safe to turn on later, but turning it off later replaces the cluster. It needs a control plane on 1.35 or later: `gcloud container get-server-config --zone europe-west4-a --format='yaml(channels)'` |
 | 0.7 | Tool pins in cloud-native-ref | `mise install` (tofu 1.13.9, terramate 0.17.4), then run the deploy through `mise exec --` |
@@ -199,8 +199,8 @@ unset KEY
 
 Without `merger-app` the factory pod never starts. Without `github-link` the broker still starts,
 and `/link/github` answers 503 until the ExternalSecret `room-broker-github-link` syncs; then each
-human opens `https://rooms.priv.gcp.ogenki.io/link/github` once and presses *Link GitHub*. Until
-every human has linked, the ZITADEL reader stays the fallback. The planner needs no entry: it calls the model
+human opens `https://rooms.priv.gcp.ogenki.io/link/github` once and presses *Link GitHub*. A human
+with no link has no GitHub login, so no room access and no run. The planner needs no entry: it calls the model
 gateway with the broker's own projected token (runbook 19, §2.3).
 
 `agents/factory-slack-app` is written by the owner from the Slack App's console (the bot token, the

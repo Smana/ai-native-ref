@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 # requires: python3 kustomize helm
-"""The GitHub account link beside the ZITADEL reader (Maku docs/github-link.md, v4 step 5 ANR
-follow-ups 1 and 2), on each cloud as Flux applies it:
+"""The GitHub account link, the only source of a human's GitHub login (Maku docs/github-link.md,
+v4 step 5 ANR follow-ups 1 to 3), on each cloud as Flux applies it:
 
 - every broker config copy says human.preset zitadel and the same human.githubLink, whose two files
-  sit in one directory, and keeps human.access.readerFile as the fallback;
+  sit in one directory, and no human.access.readerFile: the ZITADEL reader is gone (follow-up 3);
 - the HelmRelease mounts room-broker-github-link there, optional, and not through
   broker.githubLink.existingSecret: Maku v0.48.0 refuses to start without the files under the chart's
   mount, and its NetworkPolicy would open any public address on 443;
 - the ExternalSecret room-broker-github-link holds client_id and client_secret from agents/github-link;
 - oauth2-proxy lets the callback and roomctl's discovery document through unauthenticated, nothing else;
 - the broker's CiliumNetworkPolicy reaches github.com and api.github.com on 443;
-- the factory reads the links from the broker (api.access.links broker), keeps readerFile, and says
+- nothing mounts or syncs a ZITADEL reader Secret, in the broker or the factory;
+- the factory reads the links from the broker (api.access.links broker), has no readerFile, and says
   api.preset zitadel.
 
 The rendered Deployment (the chart with its postRenderers) is checked where the chart can be had.
@@ -31,6 +32,7 @@ sys.path.insert(0, str(ROOT / "scripts/ci"))
 import room_broker_chart  # noqa: E402
 
 SECRET = "room-broker-github-link"  # pragma: allowlist secret
+READER = "zitadel-reader"  # any Secret, volume or mount naming it is the reader reappearing
 SKIP_AUTH = {"GET=^/\\.well-known/roomctl$", "GET=^/link/github/callback$"}
 CLOUDS = ("aws-0", "gcp-0")
 
@@ -49,7 +51,8 @@ for copy in ("base", *CLOUDS):
     checks[f"{copy} config: human.githubLink sets both files and activeWindow 168h"] = (
         bool(gl.get("clientIDFile")) and bool(gl.get("clientSecretFile")) and gl.get("activeWindow") == "168h")
     checks[f"{copy} config: human.githubLink is base's"] = gl == link
-    checks[f"{copy} config: human.access.readerFile stays the fallback"] = bool((human.get("access") or {}).get("readerFile"))
+    checks[f"{copy} config: human.access has no readerFile"] = (
+        isinstance(human.get("access"), dict) and "readerFile" not in human["access"])
 
 link_dir = posixpath.dirname(link.get("clientIDFile", ""))
 checks["the two link files share one directory"] = bool(link_dir) and posixpath.dirname(link.get("clientSecretFile", "")) == link_dir
@@ -68,6 +71,10 @@ for cloud in CLOUDS:
     vol = next((v for v in vols.values() if (v.get("secret") or {}).get("secretName") == SECRET), None)
     checks[f"{cloud}: the HelmRelease mounts {SECRET}, optional, at the config's directory"] = (
         vol is not None and vol["secret"].get("optional") is True and mounts.get(vol["name"]) == link_dir)
+    checks[f"{cloud}: the HelmRelease mounts no ZITADEL reader"] = not any(
+        READER in str(x) for x in [*vols.values(), *mounts.values()])
+    checks[f"{cloud}: no ExternalSecret or Secret names the ZITADEL reader"] = not any(
+        d["kind"] in ("ExternalSecret", "Secret") and READER in d["metadata"]["name"] for d in docs)
     checks[f"{cloud}: broker.githubLink.existingSecret stays unset"] = not (hr.get("githubLink") or {}).get("existingSecret")
 
     es = find(docs, "ExternalSecret", SECRET)
@@ -99,13 +106,19 @@ for cloud in CLOUDS:
     checks[f"{cloud}: the rendered broker mounts {SECRET} once, optional, at {link_dir}"] = (
         rvol is not None and rvol["secret"].get("optional") is True and rmounts.get(rvol["name"]) == link_dir
         and sum((v.get("secret") or {}).get("secretName") == SECRET for v in pod["volumes"]) == 1)
+    checks[f"{cloud}: the rendered broker mounts no ZITADEL reader"] = not any(
+        READER in str(v) for v in pod["volumes"])
 
-factory = yaml.safe_load(yaml.safe_load((ROOT / "tooling/base/agent-factory/helm-values-configmap.yaml").read_text())
-                         ["data"]["values.yaml"])["config"]["api"]
+values = yaml.safe_load(yaml.safe_load((ROOT / "tooling/base/agent-factory/helm-values-configmap.yaml").read_text())
+                        ["data"]["values.yaml"])
+factory = values["config"]["api"]
 access = factory.get("access") or {}
 checks["factory: api.preset zitadel"] = factory.get("preset") == "zitadel"
-checks["factory: api.access.links broker, readerFile kept as the fallback"] = (
-    access.get("links") == "broker" and bool(access.get("readerFile")))
+checks["factory: api.access.links broker, no readerFile"] = (
+    access.get("links") == "broker" and "readerFile" not in access)
+checks["factory: no zitadelReaderSecret value"] = "zitadelReaderSecret" not in values
+checks["factory: no ZITADEL reader ExternalSecret beside it"] = not any(
+    READER in f.name for f in (ROOT / "tooling/base/agent-factory").iterdir())
 
 fails = 0
 for desc, ok in checks.items():

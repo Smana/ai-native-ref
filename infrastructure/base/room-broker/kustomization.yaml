@@ -21,7 +21,6 @@ resources:
   - network-policy-oauth2-proxy.yaml
   - httproute.yaml
   - externalsecret-factory-app.yaml
-  - externalsecret-zitadel-reader.yaml
   - externalsecret-github-link.yaml
 
 # The broker reads its config once at startup, so the ConfigMap is generated: a change

@@ -14,9 +14,9 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/maku-factory
-      # maku v0.48.0, the chart's appVersion.
+      # maku v0.49.0, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
-      tag: "v0.48.0@sha256:ff345d5594a03c13f929f964b76d99de6402065d4bee6f8e1fd6da00dcde23f3"
+      tag: "v0.49.0@sha256:b6b71df0eb32d8f0e83e92c01eea7d91d39f0a7cc1f2ca75724ac05936c5efed"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.
@@ -26,17 +26,17 @@ data:
     # Both releases rendering them fails the CRD chart's upgrade on Helm's ownership check.
     clusterRoles: false
     # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
-    # The GitHub Apps under the chart's apps.* keys (Maku v4 D12): githubSecret and mergerSecret go
-    # in Maku's v4 step 8. The merger stays its own App, from the chart's agent-factory-merger
-    # Secret: mode separate is explicit because step 8 makes `factory` the default.
+    # The GitHub Apps under the chart's apps.* keys (Maku v4 D12), the only keys since Maku v0.49.0
+    # removed githubSecret and mergerSecret. The merger stays its own App, from the chart's
+    # agent-factory-merger Secret: mode separate is explicit because v0.49.0 made `factory` the default.
     apps:
       factory: {existingSecret: agent-factory-github}
       # The agents' App (externalsecret-agents-app.yaml), the per-run token minter's (R3).
       agents: {existingSecret: agent-factory-agents-app}
       merger: {mode: separate}
     # Each run's git token is its own Secret, <run>-git in agents, minted from the agents' App for the
-    # run's repository and role (Maku v4 D10). The run-controller mounts it (runController.gitTokens
-    # perRun in infrastructure/base/room-broker/helmrelease.yaml); the chart's admission policy bounds
+    # run's repository and role (Maku v4 D10). The run-controller mounts it (infrastructure/base/
+    # room-broker/helmrelease.yaml; per-run is the only mode since Maku v0.49.0); the chart's admission policy bounds
     # the factory's create, patch and delete on Secrets there to those it labels and the run owns.
     runTokens: {enabled: true, perRun: true}
     brokerCASecret: openbao-ca

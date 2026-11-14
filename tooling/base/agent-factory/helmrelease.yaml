@@ -15,9 +15,9 @@ spec:
     kind: OCIRepository
     name: agent-factory
     namespace: agent-system
-  # The chart's crds/ are skipped: agent-factory-crds installs and upgrades every maku.ogenki.io
-  # CRD (tooling/base/agent-factory/crds), and a second owner replacing them would strip its
-  # ownership metadata. Skip never deletes a CRD.
+  # agent-factory-crds installs and upgrades every maku.ogenki.io CRD (tooling/base/agent-factory/crds),
+  # and a second owner replacing them would strip its ownership metadata. Since Maku v0.49.0 this chart
+  # ships no crds/, so Skip is a no-op kept as a guard. Skip never deletes a CRD.
   install:
     crds: Skip
     remediation: {retries: 3}

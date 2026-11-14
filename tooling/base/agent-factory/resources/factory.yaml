@@ -11,8 +11,9 @@ spec:
   # The merge settings every Repository shares (reusable merge policies, Q8): a Repository's own
   # spec.merge overrides them key by key, each key whole (its own breaker replaces this one).
   mergeDefaults:
-    # Today's defaults, written out (Maku v4 step 8 flips them to gateStatus: true, policyBot: false):
-    # policy-bot's approval stays the gate, and the factory posts no maku/merge-gate status.
+    # The pre-v0.49.0 defaults, kept explicitly (Maku v0.49.0 flipped them to gateStatus: true,
+    # policyBot: false): policy-bot's approval stays the gate, and the factory posts no
+    # maku/merge-gate status.
     gateStatus: false
     policyBot: true
     policyBotLogin: ogenki-merge-gate[bot]

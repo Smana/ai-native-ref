@@ -371,3 +371,13 @@ Vocabulary, and what Slack, the CLI and MCP show of a decision, are in
 ## Open questions for the owner
 
 None. The interview and the builder check settled them (MR12 to MR14 and the calls above).
+
+## Amendments found while planning
+
+Reading the code for the plans showed three statements above cannot be built as written. The plans carry the corrected form; it wins over the text above.
+
+| Above | What the plans do instead | Why |
+|---|---|---|
+| The catalog's `deps-patch` replaces a platform's own | `mergePolicies.catalog.exclude` lists catalog policies a platform keeps as its own; ANR excludes `deps-patch` and `docs` | ANR's `deps-patch` carries a `monitor`, which a binding cannot add |
+| Guardrail defaults are chart values | They are defaults in the factory's code | The `Factory` object is the platform's; no chart renders it |
+| `stage` defaults to `manage` | Same default, and the broker's start-up check on `factoryURL` is relaxed | A broker with no `factoryURL` would otherwise refuse to start |

@@ -125,9 +125,12 @@ spec:
             - port: "443"
               protocol: TCP
     # api.github.com: agents' review verdicts as the factory App's PR comments (SP2 design §3).
-    # Also (D7): GET /user/{id} and the collaborator-permission API for room access.
+    # Also (D7): GET /user/{id} and the collaborator-permission API for room access, and the GitHub
+    # link's GET /user and token revocation. github.com: the link's code exchange (Maku
+    # docs/github-link.md). One rule, so gcp-0's overlay keeps patching /spec/egress/5 by index.
     - toFQDNs:
         - matchName: api.github.com
+        - matchName: github.com
       toPorts:
         - ports:
             - port: "443"

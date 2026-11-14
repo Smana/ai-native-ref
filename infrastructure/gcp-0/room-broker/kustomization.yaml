@@ -10,7 +10,7 @@ resources:
   - ../../base/room-broker
   - externalsecret-webhook-runlore.yaml
 
-# This config.yaml is base's plus suspend.enabled, human.mcp.sponsored and sessionStart, and webhooks.
+# This config.yaml is base's plus human.mcp.sponsored and sessionStart, the Slack links, and webhooks.
 configMapGenerator:
   - name: room-broker-config
     namespace: agent-system

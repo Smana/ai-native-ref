@@ -37,7 +37,7 @@ for r in rules:
 yaml.safe_dump({"groups": [{"name": "agent-cost-crosscheck", "rules": rules}]}, open(os.environ["OUT"], "w"), sort_keys=False)
 PY
 
-A='system:serviceaccount:agents:xplane-run-'
+A='system:serviceaccount:agents:run-'
 G='agentgateway_gen_ai_client_cost_usd_total{namespace="agent-gateway", gen_ai_request_model="claude-opus-5-5", ar_agent="'"$A"
 L='maku_factory_run_settled_usd{namespace="agent-system", pod="agent-factory-0", run="'
 E='gen_ai_client_token_usage_sum{namespace="envoy-gateway-system", gen_ai_token_type="input", ar_agent="'"$A"

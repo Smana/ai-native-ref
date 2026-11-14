@@ -30,7 +30,7 @@ spec:
         # call, so it sends no cache marker at all. AgentCacheReadZero catches the same loss from
         # the gateway side, and also a gateway that drops the marker, which logs nothing.
         - alert: AgentCacheMarkerMissing
-          expr: 'kubernetes.pod_namespace:"agents" AND kubernetes.pod_name:xplane-run-* AND _msg:"prompt cache NOT applied" | stats count() as lines | filter lines:>0'
+          expr: 'kubernetes.pod_namespace:"agents" AND kubernetes.pod_name:run-* AND _msg:"prompt cache NOT applied" | stats count() as lines | filter lines:>0'
           labels:
             severity: warning
           annotations:

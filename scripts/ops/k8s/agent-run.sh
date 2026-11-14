@@ -81,6 +81,6 @@ case "$code" in
 esac
 run="$(jq -r .runId <<<"$json")"
 branch="$(jq -r .branch <<<"$json")"
-printf 'agent-run: run %s on %s; watch it with kubectl get agentrun -n agents xplane-run-%s -w%s\n' \
+printf 'agent-run: run %s on %s; watch it with kubectl get agentruns.maku.ogenki.io -n agents run-%s -w%s\n' \
   "$run" "$branch" "$run" "${room:+, or in the room https://rooms.priv.aws.ogenki.io/r/$room}" >&2
 echo "$run"

@@ -34,7 +34,7 @@ c = yaml.safe_load(yaml.safe_dump(values["alternateConfig"]).replace("$${", "${"
 # No API server here: the stub stamps what k8s_attributes reads from a run pod's labels.
 c["processors"]["transform/stub-k8s"] = {"error_mode": "ignore", "trace_statements": [{"statements": [
     'set(resource.attributes["agent.run_id"], "testrun1") where resource.attributes["test.pod"] == "run"',
-    'set(resource.attributes["k8s.pod.name"], "xplane-run-testrun1") where resource.attributes["test.pod"] == "run"']}]}
+    'set(resource.attributes["k8s.pod.name"], "run-testrun1") where resource.attributes["test.pod"] == "run"']}]}
 del c["processors"]["k8s_attributes"]
 procs = c["service"]["pipelines"]["traces/agents"]["processors"]
 procs[procs.index("k8s_attributes")] = "transform/stub-k8s"

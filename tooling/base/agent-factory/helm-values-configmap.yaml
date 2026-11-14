@@ -27,13 +27,28 @@ data:
     # Secret: mode separate is explicit because step 8 makes `factory` the default.
     apps:
       factory: {existingSecret: agent-factory-github}
+      # The agents' App (externalsecret-agents-app.yaml), the per-run token minter's (R3).
+      agents: {existingSecret: agent-factory-agents-app}
       merger: {mode: separate}
+    # Each run's git token is its own Secret, <run>-git in agents, minted from the agents' App for the
+    # run's repository and role (Maku v4 D10). The run-controller mounts it (runController.gitTokens
+    # perRun in infrastructure/base/room-broker/helmrelease.yaml); the chart's admission policy bounds
+    # the factory's create, patch and delete on Secrets there to those it labels and the run owns.
+    runTokens: {enabled: true, perRun: true}
     brokerCASecret: openbao-ca
     zitadelReaderSecret: agent-factory-zitadel-reader  # externalsecret-zitadel-reader.yaml, at api.access.readerFile
     config:
       # The ownership fence (agent-platform v0.14.0): a repository is acted on only while its
       # .github/agent-factory.yaml names this factory, so aws-0 and gcp-0 never take the same issue.
       factory: ${cluster_name}
+      # The run-controller's runs (R3), not the Crossplane XR: maku.ogenki.io AgentRuns named run-<id>.
+      # They call the model gateway with their own token (runController.model.mode gateway), so the
+      # meter prices them from its series.
+      runs:
+        group: maku.ogenki.io
+        namespace: agents
+        namePrefix: run-
+        gatewayIdentity: true
       # Merge policy stages 1-3: the observer compares each owned repository's
       # .github/agent-factory.yaml with this config (read), unlocks the offline `maku policy
       # simulate|diff` verbs (simulation), and re-decides every merge under the repository policy
@@ -97,17 +112,19 @@ data:
         #     onBehalfOf:
         #       slack: {"<team id>/<user id>": <maintainer login>}
       poll: {issues: 60s, tasks: 30s, meter: 30s}
-      # SP4 PR 2's agent_router:run_tokens:total expression over the raw series (R12).
+      # The model gateway's token series (agent-gateway/model-gateway, relabelled to the gen_ai_* names
+      # by infrastructure/base/agent-gateway/vmpodscrape.yaml), keyed by the run's verified subject.
       meter:
         url: http://vmsingle-victoria-metrics-k8s-stack.observability.svc:8428
         # Grouped by gen_ai_request_model, the model the backend's alias resolved to: the meter
         # prices each run by the model that served it (plan, phase J), since agent-default is
-        # GLM-5.3 on public and Claude Opus 5.5 on internal.
-        query: 'sum by (ar_agent, gen_ai_request_model, gen_ai_token_type) (gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:xplane-run-.+", gen_ai_token_type=~"input|cached_input|cache_creation_input|output"})'
+        # GLM-5.3 on public and Claude Opus 5.5 on internal. Grouped by pod too, so a gateway
+        # replica whose scrape drops out for a tick is not charged twice on its return.
+        query: 'sum by (ar_agent, gen_ai_request_model, gen_ai_token_type, pod) (gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:run-.+", gen_ai_token_type=~"input|cached_input|cache_creation_input|output"})'
         # meter.prices, the price overlay, is the Factory's spec.prices (resources/factory.yaml).
         # The 429 lookup (R13): throttle hits per agent over the gateway's access logs.
-        # agentgateway's agent router (ADR-0053, plan F.4): a rate-limit refusal logs http.status 429, reason RateLimit.
+        # The model gateway (agentgateway, ADR-0053, plan F.4): a rate-limit refusal logs http.status 429, reason RateLimit.
         logsURL: http://victoria-logs-victoria-logs-single-server.observability.svc:9428
-        throttleQuery: '_time:2m kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"agent-router" | unpack_json | filter log.http.status:429 AND log.reason:RateLimit | stats by (log.x_ar_agent) count() hits'
+        throttleQuery: '_time:2m kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"model-gateway" | unpack_json | filter log.http.status:429 AND log.reason:RateLimit | stats by (log.x_ar_agent) count() hits'
       # Task spans (R46) to the trace collector's platform port (observability plan O20).
       tracing: {otlpEndpoint: agent-traces-collector.observability.svc.cluster.local:4317}

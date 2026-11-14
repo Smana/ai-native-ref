@@ -30,8 +30,8 @@ from decimal import Decimal, InvalidOperation
 REL = Decimal("0.01")
 RUN_FLOOR = Decimal("0.01")
 DAY_FLOOR = Decimal("0.10")
-RUN_AGENT = r"system:serviceaccount:agents:xplane-run-.+"
-RUN_ID = re.compile(r".*xplane-run-(.+)$")
+RUN_AGENT = r"system:serviceaccount:agents:run-.+"
+RUN_ID = re.compile(r".*run-(.+)$")
 VM_PROXY = "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy"
 MICRO = Decimal(1_000_000)
 

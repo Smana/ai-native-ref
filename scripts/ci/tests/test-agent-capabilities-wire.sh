@@ -57,7 +57,7 @@ json.dump({"keys": [{"kty": "RSA", "kid": "k1", "alg": "RS256", "use": "sig",
 for aud in ("agent-router.reviewer.internal", "agent-router.implementer.internal"):
     head = b64(json.dumps({"alg": "RS256", "kid": "k1", "typ": "JWT"}).encode())
     body = b64(json.dumps({"iss": "https://issuer.test", "aud": [aud], "exp": int(time.time()) + 3600,
-                           "sub": "system:serviceaccount:agents:xplane-run-wiretest"}).encode())
+                           "sub": "system:serviceaccount:agents:run-wiretest"}).encode())
     sig = subprocess.run(["openssl", "dgst", "-sha256", "-sign", f"{tmp}/key.pem"], input=f"{head}.{body}".encode(),
                          capture_output=True, check=True).stdout
     open(f"{tmp}/{aud}.jwt", "w").write(f"{head}.{body}.{b64(sig)}")
@@ -256,7 +256,7 @@ expect "no token is still 401" "401 -" "$(call "$gw_port" /v1/chat/completions "
 models="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://127.0.0.1:$gw_port/v1/models" -H "authorization: Bearer $(cat "$tmp/$R.jwt")")"
 expect "/v1/models keeps its 404: the rule does not target it" "404" "$models"
 gwlog="$(docker logs "$gw" 2>&1)"
-grep 'http.status=403' <<<"$gwlog" | grep -q 'jwt.sub=system:serviceaccount:agents:xplane-run-wiretest' \
+grep 'http.status=403' <<<"$gwlog" | grep -q 'jwt.sub=system:serviceaccount:agents:run-wiretest' \
   && echo "ok    a refusal's access log names the run (gate 1)" || fail "no 403 access log line names jwt.sub"
 
 # rpc <aud> <JSON-RPC message>: prints "<status> <arguments of the tools/call the server saw, or ->".

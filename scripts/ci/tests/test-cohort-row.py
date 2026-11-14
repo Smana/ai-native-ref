@@ -51,7 +51,7 @@ except ValueError:
     pass
 
 q = cr.vm_query(["impl-1", "rev-1"], 95)
-for part in ['xplane-run-(impl-1|rev-1)"', 'gen_ai_token_type=~"input|cached_input|output"',
+for part in ['run-(impl-1|rev-1)"', 'gen_ai_token_type=~"input|cached_input|output"',
              "[95m]", "sum by (gen_ai_token_type)"]:
     if part not in q:
         fails.append(f"vm_query lacks {part!r}: {q}")
@@ -176,7 +176,7 @@ with tempfile.TemporaryDirectory() as d:
     check("timeout ended/fixes", (t_row["ended"], t_row["fix_runs"]), ("timeout", "2"))
     check("VM query uses tls_context", [type(c) for c in contexts], [ssl.SSLContext])
     qs = urllib.parse.unquote_plus(queries[0]) if queries else ""
-    if "xplane-run-(impl-1|rev-1)" not in qs:
+    if "run-(impl-1|rev-1)" not in qs:
         fails.append(f"VM query lacks both run ids: {qs}")
     if "[105m]" not in qs:  # 90 min label to merge, plus 15
         fails.append(f"VM query window is not 105m: {qs}")

@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 # requires: python3 helm kustomize
-"""R1: the room broker runs from Maku's `maku` chart, and what Flux applies keeps the App claim's
-shape. For each cloud, the chart rendered with its HelmRelease's values and postRenderers
-(scripts/ci/room_broker_chart.py) must hold:
+"""R1, R3: the room broker and the run-controller run from Maku's `maku` chart, and what Flux
+applies keeps the App claim's shape for the broker. For each cloud, the chart rendered with its
+HelmRelease's values and postRenderers (scripts/ci/room_broker_chart.py) must hold:
 
-- the broker alone: no run-controller, no Namespace, no policy of the chart's (network-policy.yaml
-  and tls.yaml stay this repository's), and in `agents` only the broker's Role and RoleBinding;
+- no Namespace, CiliumNetworkPolicy, Certificate or RuntimeClass of the chart's (network-policy.yaml
+  and tls.yaml stay this repository's, the RuntimeClass the cluster's), and one chart ConfigMap, the
+  run-controller's; in `agents` only the three Roles and RoleBindings (broker, run-controller, egress
+  proxy), the default-deny NetworkPolicy and the runs quota (R3);
 - one config volume, naming the generated room-broker-config-<hash>, and no chart ConfigMap;
 - the composition's three roles: the migrate init container as rooms_owner, the broker as
   rooms_broker, the retention CronJob as rooms_retention, each with CNPG's CA mounted;
-- the Service the policies and callers name: room-broker, its four ports (8090 for agent-router's
-  room tools), selecting the pods network-policy.yaml, pdb.yaml and vmservicescrape.yaml select;
-- two replicas of the pinned image, and the MCP key from room-broker-mcp-key.
+- the Service the policies and callers name: room-broker, its four ports (8090 for the runs' room
+  tools), selecting the pods network-policy.yaml, pdb.yaml and vmservicescrape.yaml select;
+- two replicas of the pinned image, and no MCP key: :8090 verifies each run's token (R3).
 """
 import pathlib
 import sys
@@ -68,12 +70,15 @@ for cloud in ("aws-0", "gcp-0"):
     config_vols = [v for v in pod["volumes"] if v.get("configMap")]
     image = release["spec"]["values"]["broker"]["image"]
     checks = {
-        "no run-controller, Namespace, ConfigMap, policy or Certificate of the chart's": not {
-            k for k in kinds if k[0] in ("Namespace", "ConfigMap", "CiliumNetworkPolicy", "NetworkPolicy",
-                                         "Certificate", "RuntimeClass", "ResourceQuota")
-            or "run-controller" in k[1] or "egress-proxy" in k[1]},
-        "in agents, the broker's Role and RoleBinding alone": sorted(
-            (k[0], k[1]) for k in by if k[2] == "agents") == [("Role", "room-broker"), ("RoleBinding", "room-broker")],
+        "no Namespace, CNP, Certificate or RuntimeClass, and the run-controller's ConfigMap alone": not {
+            k for k in kinds if k[0] in ("Namespace", "CiliumNetworkPolicy", "Certificate", "RuntimeClass")}
+            and sorted(k[1] for k in kinds if k[0] == "ConfigMap") == ["run-controller-config"],
+        "the run-controller and the egress proxy run": {("Deployment", "run-controller"),
+                                                        ("Deployment", "egress-proxy")} <= kinds,
+        "in agents, the three Roles and RoleBindings, the default-deny and the quota": sorted(
+            (k[0], k[1]) for k in by if k[2] == "agents") == sorted(
+            [(kind, name) for kind in ("Role", "RoleBinding") for name in ("egress-proxy", "room-broker", "run-controller")]
+            + [("NetworkPolicy", "default-deny"), ("ResourceQuota", "runs")]),
         "one config volume, the generated ConfigMap, mounted where ROOMS_CONFIG reads": (
             len(generated) == 1 and [v["configMap"]["name"] for v in config_vols] == generated
             and {"name": config_vols[0]["name"], "mountPath": "/etc/room-broker/config", "readOnly": True}
@@ -92,7 +97,7 @@ for cloud in ("aws-0", "gcp-0"):
         "two replicas of the pinned image, in the job too": deploy["spec"]["replicas"] == 2 and {
             broker["image"], init[0]["image"], job["containers"][0]["image"]} == {
             f"{image['repository']}:{image['tag']}"},
-        "the MCP key is room-broker-mcp-key's": secret_ref(env(broker, "ROOMS_MCP_KEY")) == "room-broker-mcp-key",
+        "no MCP key: :8090 verifies the runs' own tokens": env(broker, "ROOMS_MCP_KEY") is None,
         "the Service serves 8443, 9090, 8080 and 8090": sorted(p["port"] for p in svc["spec"]["ports"])
             == [8080, 8090, 8443, 9090],
         "the Service and Deployment select what the overlays select": (

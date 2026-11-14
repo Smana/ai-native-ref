@@ -44,7 +44,7 @@ def q(title, ref, principal):
 
 A, B, F = "github:alice", "github:bob", "system:factory"
 X = 'namespace="agent-system", pod="agent-factory-0"'
-G = 'gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent="system:serviceaccount:agents:xplane-run-'
+G = 'gen_ai_client_token_usage_sum{namespace="agent-gateway", ar_agent="system:serviceaccount:agents:run-'
 
 
 def charge(principal, run, task, room):

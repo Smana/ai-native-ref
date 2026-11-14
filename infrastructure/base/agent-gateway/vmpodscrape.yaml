@@ -59,3 +59,56 @@ spec:
           targetLabel: gen_ai_provider_name
         - action: labeldrop
           regex: gen_ai_system
+---
+# The model gateway (maku-gateway, agent-gateway/model-gateway), which the runs call since R3: the
+# same relabels, so the run meter's query, the budget alerts and the run page read its series
+# under the same gen_ai_* names, keyed by the run's verified subject in ar_agent.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: model-gateway
+  namespace: agent-gateway
+spec:
+  selector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: model-gateway
+  namespaceSelector:
+    matchNames:
+      - agent-gateway
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      metricRelabelConfigs:
+        - sourceLabels: [__name__]
+          regex: agentgateway_(gen_ai_client_token_usage_(?:bucket|sum|count))
+          targetLabel: __name__
+        # Seconds already (1.6 observes as_secs_f64); Envoy's name carries the unit.
+        - sourceLabels: [__name__]
+          regex: agentgateway_gen_ai_server_request_duration_bucket
+          targetLabel: __name__
+          replacement: gen_ai_server_request_duration_seconds_bucket
+        - sourceLabels: [__name__]
+          regex: agentgateway_gen_ai_server_request_duration_sum
+          targetLabel: __name__
+          replacement: gen_ai_server_request_duration_seconds_sum
+        - sourceLabels: [__name__]
+          regex: agentgateway_gen_ai_server_request_duration_count
+          targetLabel: __name__
+          replacement: gen_ai_server_request_duration_seconds_count
+        # The meter's query selects cached_input and cache_creation_input (J0):
+        # under 1.6's names it would never see a cache token.
+        - sourceLabels: [__name__, gen_ai_token_type]
+          regex: gen_ai_client_token_usage_(?:bucket|sum|count);input_cache_read
+          targetLabel: gen_ai_token_type
+          replacement: cached_input
+        - sourceLabels: [__name__, gen_ai_token_type]
+          regex: gen_ai_client_token_usage_(?:bucket|sum|count);input_cache_write
+          targetLabel: gen_ai_token_type
+          replacement: cache_creation_input
+        # 1.6 names the provider gen_ai_system; Envoy, gen_ai_provider_name.
+        - sourceLabels: [gen_ai_system]
+          regex: (.+)
+          targetLabel: gen_ai_provider_name
+        - action: labeldrop
+          regex: gen_ai_system

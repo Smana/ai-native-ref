@@ -70,16 +70,6 @@ def identity():
           and "authorization" not in seen, f"HTTP {code} x-ar-agent={seen.get('x-ar-agent')} authorization={'authorization' in seen}")
 
 
-def sts():
-    code, _, body = call("GET", "/echo", port=8082)
-    check("L8/P1", "public-audience token on sts -> 401", code == 401, f"HTTP {code} {body}")
-    code, _, body = call("GET", "/echo", token="sts", port=8082, headers={"x-ar-agent": "forged"})
-    seen = json.loads(body).get("headers", {}) if code == 200 else {}
-    check("L8/AG4", "sts token on sts -> 200, x-ar-agent verified, the bearer forwarded (preserveToken)",
-          code == 200 and seen.get("x-ar-agent", "").startswith(SUB) and "authorization" in seen,
-          f"HTTP {code} x-ar-agent={seen.get('x-ar-agent')} authorization={'authorization' in seen}")
-
-
 def rogue():
     code, _, body = call("GET", "/echo")
     check("L8/P1", "right audience, wrong namespace -> 403", code == 403, f"HTTP {code} {body}")
@@ -248,7 +238,7 @@ def drain(secs):
 
 
 cmd = sys.argv[1]
-{"identity": identity, "sts": sts, "rogue": rogue, "models": models}.get(cmd, lambda: None)()
+{"identity": identity, "rogue": rogue, "models": models}.get(cmd, lambda: None)()
 if cmd == "llm":
     llm(*sys.argv[2:3])
 elif cmd == "mcp":

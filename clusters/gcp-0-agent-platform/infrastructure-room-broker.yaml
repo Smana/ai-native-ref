@@ -1,7 +1,7 @@
 ---
 # The room broker and its log (SP2). After agent-secrets: from phase 2 its
-# oauth2-proxy and client id come through that store. After agent-policies: its
-# exception is what admits the room-broker-ca ExternalSecret in agents.
+# oauth2-proxy and client id come through that store. After agent-policies: namespace
+# agents' admission policies are in place before the broker serves runs.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

@@ -76,7 +76,6 @@ flowchart LR
   run -->|"every call, per-run token"| gw["Agent gateway<br/>identity · budgets · routing"]
   gw --> models["Models<br/>GLM, Claude"]
   gw --> tools["MCP tools"]
-  gw --> sts["octo-sts<br/>GitHub token for agent/**"]
   run --> pr["Pull request"] --> review["Reviewer agent"] --> gate{"Merge gate"}
   gate -->|"proven class, green CI,<br/>daily cap"| merged["Merged"]
   gate -->|"otherwise"| human

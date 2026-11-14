@@ -1,7 +1,7 @@
 # Throwaway identity probe for SP1 verification. A Sandbox in `agents` whose
-# curl container holds four tokens a real run never shows its harness: the
-# implementer gateway audience of each class, one reviewer audience (to
-# exercise the log-tool Allow rules implementer lacks), and the octo-sts one.
+# curl container holds three tokens a real run never shows its harness: the
+# implementer gateway audience of each class, and one reviewer audience (to
+# exercise the log-tool Allow rules implementer lacks).
 # Apply, test, delete in the same session:
 #   kubectl apply -f scripts/ops/k8s/agent-probe.yaml
 #   kubectl -n agents patch sandbox agent-probe --type=merge \
@@ -43,8 +43,7 @@ spec:
             dns:
               - matchPattern: "*"
     # Namespace pinned as a run's CNP pins it (CC-1): any namespace can name a
-    # Gateway `agent-router`. octo-sts is reached through its `sts` listener
-    # (:8082), never directly: that listener pins this cluster's issuer.
+    # Gateway `agent-router`.
     - toEndpoints:
         # agentgateway's agent router (ADR-0053).
         - matchLabels:
@@ -55,8 +54,6 @@ spec:
             - port: "8080"
               protocol: TCP
             - port: "8081"
-              protocol: TCP
-            - port: "8082"
               protocol: TCP
 ---
 apiVersion: agents.x-k8s.io/v1beta1
@@ -92,7 +89,7 @@ spec:
           # Ready means all three tokens are mounted, so `kubectl wait` is enough.
           readinessProbe:
             exec:
-              command: ["sh", "-c", "test -s /var/run/secrets/probe/public/token && test -s /var/run/secrets/probe/internal/token && test -s /var/run/secrets/probe/sts/token"]
+              command: ["sh", "-c", "test -s /var/run/secrets/probe/public/token && test -s /var/run/secrets/probe/internal/token && test -s /var/run/secrets/probe/internal-reviewer/token"]
           livenessProbe:
             exec:
               command: ["sh", "-c", "test -s /var/run/secrets/probe/public/token"]
@@ -111,7 +108,6 @@ spec:
             - {name: public, mountPath: /var/run/secrets/probe/public, readOnly: true}
             - {name: internal, mountPath: /var/run/secrets/probe/internal, readOnly: true}
             - {name: internal-reviewer, mountPath: /var/run/secrets/probe/internal-reviewer, readOnly: true}
-            - {name: sts, mountPath: /var/run/secrets/probe/sts, readOnly: true}
             - {name: tmp, mountPath: /tmp}
       volumes:
         - name: tmp
@@ -134,7 +130,3 @@ spec:
           projected:
             sources:
               - serviceAccountToken: {audience: agent-router.reviewer.internal, expirationSeconds: 600, path: token}
-        - name: sts
-          projected:
-            sources:
-              - serviceAccountToken: {audience: octo-sts/Smana/cloud-native-ref/implementer, expirationSeconds: 600, path: token}

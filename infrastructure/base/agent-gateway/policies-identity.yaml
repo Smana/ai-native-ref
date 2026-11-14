@@ -2,8 +2,8 @@
 # ServiceAccount token offline against this cluster's issuer, require `exp` and
 # `sub` (a sub-less token would share one unlimited rate-limit bucket, #3523) and
 # the `agents` sub prefix, and REPLACE x-ar-agent with the verified sub. The
-# validated JWT is removed before any backend sees it (preserveToken is off); only
-# `sts` forwards it, to octo-sts. Audiences are the Envoy agent-router's, so one
+# validated JWT is removed before any backend sees it (preserveToken is off on
+# every listener, gate AG4). Audiences are the Envoy agent-router's, so one
 # token works on both gateways during the cutover; Kyverno reserves them for
 # namespace agents.
 #
@@ -138,53 +138,3 @@ spec:
     # A long GLM completion must not time out (agent-router's agent-models rule).
     timeouts:
       request: 600s
----
-# octo-sts's trust policies match the EKS issuer by pattern (it changes every
-# rebuild); this pins THIS cluster's issuer and the audiences first, four per
-# repository. These audiences ARE the per-repository opt-in (ADR-0043): another
-# repository fails closed here. Two repositories fill the provider's 8: a third
-# needs a second listener (second-repository design). The only listener that
-# forwards the bearer.
-apiVersion: agentgateway.dev/v1alpha1
-kind: AgentgatewayPolicy
-metadata:
-  name: listener-sts
-  namespace: agent-gateway
-spec:
-  targetRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: agent-router
-      sectionName: sts
-  traffic:
-    jwtAuthentication:
-      mode: Strict
-      preserveToken: true
-      providers:
-        - issuer: ${oidc_issuer_url}
-          audiences:
-            - octo-sts/Smana/cloud-native-ref/implementer
-            - octo-sts/Smana/cloud-native-ref/reviewer
-            - octo-sts/Smana/cloud-native-ref/tester
-            - octo-sts/Smana/cloud-native-ref/triager
-            - octo-sts/Smana/ai-native-ref/implementer
-            - octo-sts/Smana/ai-native-ref/reviewer
-            - octo-sts/Smana/ai-native-ref/tester
-            - octo-sts/Smana/ai-native-ref/triager
-          jwks:
-            remote:
-              url: ${oidc_jwks_uri}
-          validation:
-            requiredClaims:
-              - exp
-              - sub
-    authorization:
-      action: Require
-      policy:
-        matchExpressions:
-          - 'jwt.sub.startsWith("system:serviceaccount:agents:")'
-    transformation:
-      request:
-        set:
-          - name: x-ar-agent
-            value: jwt.sub

@@ -16,7 +16,7 @@
 # prompts and resources included, which no role is granted.
 #
 # No MCP server sees a run's token: the listener drops the validated JWT
-# (preserveToken is off outside sts, gate AG4).
+# (preserveToken is off on every listener, gate AG4).
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayBackend
 metadata:

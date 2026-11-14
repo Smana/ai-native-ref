@@ -59,7 +59,7 @@ Grouped by purpose; the number is the order they were written in.
 | [02-identity-tokens.md](02-identity-tokens.md) | R2 (token TTL), Q8, SC-05, SC-07 | Yes — 1 | ~30 min |
 | [03-egress.md](03-egress.md) | SC-09, Q3, Q4 | No | ~15 min |
 | [04-gateway-secrets-budgets.md](04-gateway-secrets-budgets.md) | SC-10, SC-17 (listener half), SP4 frontier route + budgets | Yes — 1, 2 | ~20 min |
-| [05-github-octo-sts.md](05-github-octo-sts.md) | SC-11, sts listener end to end | Yes — 1, 3, 4 | ~25 min |
+| [05-github-octo-sts.md](05-github-octo-sts.md) | Retired: octo-sts is deleted, the factory mints run tokens (R3) | — | — |
 | [06-mcp.md](06-mcp.md) | SC-12, SC-17 (MCP half) | Yes — 1 | ~15 min |
 | [07-end-to-end.md](07-end-to-end.md) | SC-04, SC-06, SC-13, SC-14 | Yes — 1–5 | ~2 h |
 | [08-observability.md](08-observability.md) | The VMRules (`agent-platform`, `agent-platform-logs`, `agent-factory`, `agent-rooms`), the dashboards, SP4 gateway metrics, the per-run view (SO-1…SO-5) | No | ~15 min |

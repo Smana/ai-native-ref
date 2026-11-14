@@ -18,10 +18,10 @@ Related designs, each owning what this one only names:
 
 | Subject | Owner |
 |---|---|
-| Merge policy fields, the gate reading the diff | [merge policies](2026-11-14-merge-policies-review-design.md) |
-| Vocabulary, the MCP tools, Slack | [UX](2026-11-14-ux-review-design.md) |
-| Model and effort per role | [cache and costs](2026-11-14-cache-costs-review-design.md) |
-| The onboarding page | [docs](2026-11-14-docs-review-design.md) |
+| Merge policy fields, the gate reading the diff | merge policies (`2026-11-14-merge-policies-review-design.md`, branch `docs/review-merge-policies`) |
+| Vocabulary, the MCP tools, Slack | UX (`2026-11-14-ux-review-design.md`, branch `docs/review-ux`) |
+| Model and effort per role | cache and costs (`2026-11-14-cache-costs-review-design.md`, branch `docs/review-cache-costs`) |
+| The onboarding page | docs (`2026-11-14-docs-review-design.md`, branch `docs/review-docs`) |
 
 ## Why
 
@@ -112,7 +112,7 @@ carries its loop wherever the class is (`RowFor`, `evaluation.go`).
 | Stage | Maku release | What changes | Engine change |
 |---|---|---|---|
 | A | N | The chart ships the YAML above. A class still names its workflow as `harness`; classes whose floor is `standard`, `review` included, allow `careful`. The docs, the room page and the plan say "workflow". Old keys and labels warn | none, except the measurement's one key |
-| B | N+1, with the diff-chosen gate and its reviewer rule ([merge policies](2026-11-14-merge-policies-review-design.md)) | The class no longer selects the workflow. `Factory.spec.workflows` is the only name, the `workflow:` label is the only pin, `loops` rows are keyed by workflow, and every removal is refused | small, listed under [what changes where](#what-changes-where) |
+| B | N+1, with the diff-chosen gate and its reviewer rule (merge policies (`2026-11-14-merge-policies-review-design.md`, branch `docs/review-merge-policies`)) | The class no longer selects the workflow. `Factory.spec.workflows` is the only name, the `workflow:` label is the only pin, `loops` rows are keyed by workflow, and every removal is refused | small, listed under [what changes where](#what-changes-where) |
 
 Stage A keeps one rule of the engine that stage B drops: a variant may never run fewer roles than
 its class's floor (`belowFloor`, `evaluation.go`), and a live or shadow class has one workflow. So
@@ -161,7 +161,7 @@ per-class profiles, so its refusal codes about classes (`class_no_profiles`, `cl
 | `checks` | `Factory.spec.workflows.<name>.checks` | already a harness profile field |
 
 Model and effort per role become fields of a workflow's definition, in the advanced layer; the
-[cache and costs design](2026-11-14-cache-costs-review-design.md) owns them. ANR's per-class model
+cache and costs design (`2026-11-14-cache-costs-review-design.md`, branch `docs/review-cache-costs`) owns them. ANR's per-class model
 rows (the Kimi reviewer on `docs-links`, `revert`, `dead-links`, `deps-patch`) go with the re-keying
 if those tasks run `quick`, which has no reviewer; the builder verifies.
 

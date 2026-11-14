@@ -461,7 +461,7 @@ workflow. Record the task name in the results file of Task 1.
 
 ### Task 6: The site says five roles and three workflows
 
-The [docs design](../specs/2026-11-14-docs-review-design.md) owns the pages' structure and their
+The docs design (`2026-11-14-docs-review-design.md`, branch `docs/review-docs`) owns the pages' structure and their
 reduction to this platform's values; this task changes only the words that become false with
 Task 1. If the docs plan has already rewritten a page, apply the vocabulary there instead.
 

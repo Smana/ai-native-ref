@@ -292,3 +292,15 @@ No question is left for the owner.
 | No trial budget | Under Q16 a trial task is live traffic, bounded by the existing caps. |
 | Warm node window, and Kimi at list price | The owner named the cluster (Q18); the hours are the author's. List price matches the caps. |
 | No metric or label renamed | The `profile` label carries the workflow name as a value; the UX spec lists renaming metrics as a non-goal. |
+
+## Amendments found while planning
+
+Reading aws-0's manifests for the plans showed three dependencies the text above does not state. The plans carry them; they win over the text above.
+
+| Above | What the plans do instead | Why |
+|---|---|---|
+| The light alias for the search child and the condenser is a lot 2 gain | It waits for aws-0 to run on the run-controller (Maku `docs/v4-readiness.md`, row 13) | aws-0 still runs on the Crossplane XR, with the run-controller off |
+| The cost panels ship in Maku's chart | Same, and ANR shows them only once it adopts the chart's dashboards (readiness row 18) | This repository still ships its own copies |
+| Cost per merged pull request reuses two counters as they are | `Task.Status.OutcomeCounted` is added | A task with no profile has no once-mark, so it would be counted on every reconcile |
+
+Two values are the planner's and unchecked: the warm node is scheduled by KEDA's cron trigger (KEDA is in the host contract), and the condenser starts at `max_size` 240, `keep_first` 8, to be confirmed against the SDK validator.

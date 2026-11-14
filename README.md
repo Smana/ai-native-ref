@@ -98,7 +98,7 @@ Sources and the full record: [status](https://airef.ogenki.io/docs/status/),
 ## Status and roadmap
 
 **v3 is released** ([v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0)). `main` runs
-Maku v0.48.0 for every component (CRD group `maku.ogenki.io`): the broker and its run-controller, the
+Maku v0.49.0 for every component (CRD group `maku.ogenki.io`): the broker and its run-controller, the
 harness and bridge, the factory, the model gateway and the Slack app. v3 aims at more accepted pull requests per dollar by shaping the task, not
 by changing the model. A scoper bounds each issue or asks its author; a test-first tester writes the
 contract; the implementer runs the repository's checks in the sandbox and asks a read-only search
@@ -108,11 +108,20 @@ OpenCode) or RunLore, whose alerts come back as verified fixes.
 
 All of it was proven live on `gcp-0` from 2026-10-27 to 2026-10-29, with capability profiles and
 Kimi K3.1 Pro for public work; Mistral works through the gateway but is not recommended as an
-implementer. `gcp-0` was torn down on 2026-10-29. The factory runs on `aws-0` since 2026-10-30, where
+implementer. `gcp-0` was torn down on 2026-10-29. The factory then ran on `aws-0` from 2026-10-30, where
 the human path was proven live: a maintainer's approval of the current head is the merge, a
 regression pauses a class and three clean merges lift it, and `dead-links` was drilled once (merged,
 then reverted by the merger itself with no human). Auto-merge is live for Markdown link fixes only;
-`dead-links` and `deps-patch` run in shadow, `deps-minor` in observe. Every line, with its evidence and runbook:
+`dead-links` and `deps-patch` run in shadow, `deps-minor` in observe.
+
+Between v3.16.0 and v3.26.0, a rebuilt `gcp-0` proved Maku taking over the runtime: the room broker from Maku's
+chart, the `maku.ogenki.io` CRDs and shared ClusterRoles from the `agent-factory-crds` release, Maku's
+model gateway serving runs and the broker's planner, and runs on Maku's run-controller end to end
+(issue [#377](https://github.com/Smana/ai-native-ref/issues/377) went through triager, implementer and reviewer runs to
+PR [#383](https://github.com/Smana/ai-native-ref/pull/383), approved and merged by the factory's merger).
+Kueue, octo-sts and the ZITADEL reader are gone; room access goes through the broker's GitHub link.
+`gcp-0` was torn down on 2026-11-14, so **the platform is not running now**; a rebuild is the host's
+bootstrap plus this repository's pin. v4.0 is deferred. Every line, with its evidence and runbook:
 [status page](https://airef.ogenki.io/docs/status/#roadmap).
 
 We are **on the road to a dark factory**, one proven lane at a time: today a human writes the issue

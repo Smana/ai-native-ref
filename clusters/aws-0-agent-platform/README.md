@@ -18,7 +18,6 @@ Design: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md`.
 | `agent-gateway` | `infrastructure/aws-0/agent-gateway` | The agent router on agentgateway: Gateway `agent-gateway/agent-router`, JWT per listener, budgets on its own rate-limit server and Valkey |
 | `model-gateway` | `infrastructure/aws-0/agent-gateway/model-gateway` | Maku's `maku-gateway` chart: Gateway `agent-gateway/model-gateway` with agent-router's providers, aliases and prices under Maku's identity contract, plus budgets B1, B2 and B6 on agent-router's rate-limit server. No caller until runs move to it |
 | `agentgateway-poc` | `infrastructure/aws-0/agentgateway-poc` | The PoC Gateway `agw-poc/agent-router-agw` (aws-0 only) |
-| `octo-sts` | `security/aws-0/octo-sts` | GitHub token exchange for the agents' App, reached only through the agent router's `sts` listener |
 | `merge-gate-secrets` | `security/base/merge-gate-secrets` | `SecretStore merge-gate-secrets` → the `merge-gate` OpenBao mount (SP3, R44) |
 | `agent-mcp` | `infrastructure/aws-0/agent-mcp` | Flux, VictoriaMetrics and VictoriaLogs MCP servers |
 | `room-broker` | `infrastructure/aws-0/room-broker` | Room CRD (`rooms.maku.ogenki.io`), broker, room log (CNPG), retention, oauth2-proxy, and since R3 the run-controller: it runs each `maku.ogenki.io` AgentRun as a gVisor pod in `agents`, with the egress proxy, a NetworkPolicy per run, the runs quota and the run-pod admission policy. After `agent-factory-crds` |
@@ -41,8 +40,8 @@ On an **existing** cluster, first apply `opentofu/aws/openbao/management` then
 
 The owner prerequisites come next, in this order (ADR-0043): the branch and tag rulesets
 (`task ops:github:agent-branch-ruleset -- Smana/cloud-native-ref`), then the App installed and its
-key written to `github-app` on the `agents` mount. Without the key, `octo-sts` sits in
-`CreateContainerConfigError` and its child fails the health check.
+key written to `github-app` on the `agents` mount. Without the key, the factory mints
+no run its git token (`tooling/base/agent-factory/externalsecret-agents-app.yaml`).
 
 The factory App `ogenki-agent-factory` is installed on `Smana/cloud-native-ref` with its key at
 `factory-app` on the `agents` mount. Without it, the room broker still runs, and reviewers' verdicts

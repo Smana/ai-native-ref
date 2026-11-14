@@ -6,7 +6,8 @@ description: A run exchanges its projected ServiceAccount token at an in-cluster
 lastVerified: 2026-09-26
 ---
 
-**Status**: Accepted
+**Status**: Partly superseded
+**Partly superseded** (2026-11-14): the octo-sts exchange. Since R3, Maku's run-controller has the factory mint each run's installation token of the agents' App, scoped to the run's repository and role, so octo-sts, the agent router's `sts` listener and the trust policies are deleted. The two rulesets that confine the App stand.
 **Date**: 2026-09-26
 **Deciders**: Smana (Platform Owner)
 **Related Spec**: [SP1 — Agent runtime & identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md)
@@ -142,7 +143,7 @@ repository it grants.
 
 ## Implementation Notes
 
-`security/base/octo-sts/` (its only route in is `httproute.yaml`, on agent-router's `sts` listener),
+octo-sts (deleted 2026-11-14, see the status above; its only route in was agent-router's `sts` listener),
 `.github/chainguard/agent-*.sts.yaml`, `.github/rulesets/agent-branches.json` and `.github/rulesets/agent-tags.json`, both applied by
 `task ops:github:agent-branch-ruleset`. The App key is `github-app` on the `agents` kv-v2 mount. octo-sts reads
 it once at startup, so a rotated key needs `kubectl rollout restart deploy/octo-sts -n agent-system`.

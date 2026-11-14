@@ -3,7 +3,7 @@
 # so one bucket per principal across every listener and route: entries name the verified sub
 # (B1) or a constant (B2), never a route, and read no claim the listener
 # policies do not require (#3523: a descriptor whose CEL fails is dropped,
-# unlimited; gate AG8). Only LLM calls carry tokens: MCP and sts count nothing.
+# unlimited; gate AG8). Only LLM calls carry tokens: MCP counts nothing.
 #
 # Cost = the request's price in reference tokens (design D11, OD-6, J-AC2), from
 # the run meter's own table: [input, cacheRead, cacheWrite, output] in USD per M

@@ -2,8 +2,7 @@
 # requires: python3
 """This repository as the agent factory's second repository (second-repository design D7, D9).
 
-- Each trust policy is the host's, byte for byte, but for its audience: the issuer, subject and
-  permissions never drift wider than the host's, and the audience names this repository.
+- No octo-sts trust policy: the factory mints each run's git token (R3), so none is served here.
 - The fence names gcp-0, the only live factory.
 - .policy.yml: every agent rule excludes the whole gate list, and every sentinel is a gate path.
   An agent rule approves without a review only as `low-risk: <class>` of a class this repository
@@ -16,15 +15,13 @@ import sys
 
 import yaml
 
-HOST = pathlib.Path(__file__).resolve().parents[3]
 OWN = pathlib.Path.cwd()
 REPO = "Smana/ai-native-ref"
-ROLES = ["implementer", "reviewer", "tester", "triager"]
 SENTINELS = [
     ".policy.yml", ".github/agent-factory.yaml", ".github/chainguard/agent-implementer.sts.yaml",
     ".github/workflows/ci.yaml", "AGENTS.md", ".claude/settings.json", ".agents/skills/x",
     "clusters/aws-0-agent-platform/kustomization.yaml", "flux/sources/ocirepo-agent-factory.yaml",
-    "security/base/octo-sts/x", "tooling/base/agent-factory/helm-values-configmap.yaml",
+    "tooling/base/agent-factory/helm-values-configmap.yaml",
     "tooling/base/agent-factory/resources/mergepolicy-x.yaml",
     "tooling/aws-0/agent-factory/x", "infrastructure/base/agent-gateway/x",
     "infrastructure/aws-0/agent-gateway/x", "observability/base/agent-platform/x",
@@ -33,19 +30,8 @@ SENTINELS = [
 ]
 fails = []
 
-for role in ROLES:
-    rel = f".github/chainguard/agent-{role}.sts.yaml"
-    own, host = OWN / rel, HOST / rel
-    if not own.is_file() or not host.is_file():
-        fails.append(f"{rel}: missing here or on the host")
-        continue
-    want = host.read_text().replace(
-        f"audience: octo-sts/Smana/cloud-native-ref/{role}\n", f"audience: octo-sts/{REPO}/{role}\n")
-    if own.read_text() != want:
-        fails.append(f"{rel}: differs from the host's beyond the audience octo-sts/{REPO}/{role}")
-extra = {p.name for p in (OWN / ".github/chainguard").glob("*.sts.yaml")} - {f"agent-{r}.sts.yaml" for r in ROLES}
-if extra:
-    fails.append(f"unexpected trust policies: {sorted(extra)}")
+if trust := sorted(p.name for p in (OWN / ".github/chainguard").glob("*.sts.yaml")):
+    fails.append(f"octo-sts trust policies are retired, found {trust}")
 
 fence = OWN / ".github/agent-factory.yaml"
 if not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": "gcp-0"}:

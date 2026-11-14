@@ -1,5 +1,9 @@
 # 05 — GitHub credentials via octo-sts
 
+> **Retired (2026-11-14).** octo-sts, the agent router's `sts` listener and the trust policies are
+> deleted: since R3 the factory mints each run's git token (ADR-0043, partly superseded). Kept as the
+> record of what was proven; do not run it.
+
 Proves that octo-sts is reachable only through `agent-router`'s `sts` listener (never directly), that
 per-role trust policies actually enforce write-vs-read scoping, and that the branch ruleset confines
 every token to `spec.branch` of one repository — an implementer can push its own run's `agent/**`

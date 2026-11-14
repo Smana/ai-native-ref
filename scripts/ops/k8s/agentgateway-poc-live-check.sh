@@ -133,7 +133,7 @@ spec:
     - toEndpoints: [{matchLabels: {io.kubernetes.pod.namespace: kube-system, k8s-app: kube-dns}}]
       toPorts: [{ports: [{port: "53", protocol: UDP}, {port: "53", protocol: TCP}], rules: {dns: [{matchPattern: "*"}]}}]
     - toEndpoints: [{matchLabels: {io.kubernetes.pod.namespace: agent-gateway, gateway.networking.k8s.io/gateway-name: agent-router}}]
-      toPorts: [{ports: [{port: "8080", protocol: TCP}, {port: "8081", protocol: TCP}, {port: "8082", protocol: TCP}]}]
+      toPorts: [{ports: [{port: "8080", protocol: TCP}, {port: "8081", protocol: TCP}]}]
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -192,7 +192,6 @@ spec:
   parentRefs:
     - {group: gateway.networking.k8s.io, kind: Gateway, namespace: agent-gateway, name: agent-router, sectionName: public}
     - {group: gateway.networking.k8s.io, kind: Gateway, namespace: agent-gateway, name: agent-router, sectionName: internal}
-    - {group: gateway.networking.k8s.io, kind: Gateway, namespace: agent-gateway, name: agent-router, sectionName: sts}
   rules:
     - matches: [{path: {type: PathPrefix, value: /echo}}]
       backendRefs: [{name: agw-check-echo, port: 8080}]
@@ -266,7 +265,7 @@ spec:
         - name: c
           image: $IMAGE
           command: ["sleep", "3600"]
-          readinessProbe: {exec: {command: ["sh", "-c", "test -s /var/run/agw/public && test -s /var/run/agw/sts"]}}
+          readinessProbe: {exec: {command: ["sh", "-c", "test -s /var/run/agw/public && test -s /var/run/agw/internal"]}}
           livenessProbe: {exec: {command: ["true"]}}
           resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 500m, memory: 128Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}, seccompProfile: {type: RuntimeDefault}}
@@ -277,7 +276,6 @@ spec:
             sources:
               - serviceAccountToken: {audience: agent-router.implementer.public, expirationSeconds: 3600, path: public}
               - serviceAccountToken: {audience: agent-router.implementer.internal, expirationSeconds: 3600, path: internal}
-              - serviceAccountToken: {audience: octo-sts/Smana/cloud-native-ref/implementer, expirationSeconds: 3600, path: sts}
 EOF
 }
 real_cleanup() {
@@ -314,7 +312,7 @@ real() {
   echo "== JWKS: the listeners trust this cluster's current issuer (it changes on every rebuild)"
   local iss
   iss=$($K get --raw /.well-known/openid-configuration | python3 -c 'import json,sys; print(json.load(sys.stdin)["issuer"])')
-  for l in public internal sts; do
+  for l in public internal; do
     got=$($K -n agent-gateway get agentgatewaypolicy "listener-$l" -o jsonpath='{.spec.traffic.jwtAuthentication.providers[0].issuer}')
     assert "JWKS listener-$l issuer $got is the cluster's $iss" [ "$got" = "$iss" ]
   done
@@ -330,8 +328,6 @@ real() {
 
   echo "== L8/P1/P2 identity from EKS projected tokens, public and internal"
   run agents agw-check identity
-  echo "== L8/AG4 sts: own audience, the bearer forwarded"
-  run agents agw-check sts
   echo "== L8/P1 wrong namespace: Kyverno refuses to mint the audience outside agents"
   if $K -n agent-gateway create token default --audience agent-router.implementer.public >/dev/null 2>&1; then
     fail "L8/P1 a token for agent-router.implementer.public was minted outside agents"
@@ -340,7 +336,7 @@ real() {
   fi
 
   echo "== L5 requiredClaims on every listener (#3523)"
-  for l in public internal sts; do
+  for l in public internal; do
     got=$($K -n agent-gateway get agentgatewaypolicy "listener-$l" \
       -o jsonpath='{.spec.traffic.jwtAuthentication.providers[0].validation.requiredClaims}')
     assert "L5 listener-$l requires $got (exp)" grep -q 'exp' <<<"$got"
@@ -350,7 +346,7 @@ real() {
 
   echo "== phase C routes Accepted (agent-system)"
   $K -n agent-system get httproute agentgateway-models agentgateway-mcp-public agentgateway-mcp-internal \
-    agentgateway-sts agw-check-mcp -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.parents[*].conditions[?(@.type=="Accepted")].status}{"\n"}{end}'
+    agw-check-mcp -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.parents[*].conditions[?(@.type=="Accepted")].status}{"\n"}{end}'
   $K -n agent-system get agentgatewaybackend zai zai-anthropic agent-mcp agw-check-mcp
 
   echo "== L7/N3 /v1/models"; run agents agw-check models

@@ -4,8 +4,7 @@ kind: Kustomization
 # The room broker on gcp-0, and a render root of its own so CI renders it with
 # gcp-0's fixture values, not AWS's. Cloud-shaped: the claim's composition and backup
 # bucket (as security/gcp-0/zitadel), and the CNP's credential endpoint (GKE's, not
-# EKS Pod Identity: security/AGENTS.md trap 3) and object-store hosts, and the CA the
-# run bridges trust (Secret Manager's entry, as security/gcp-0/agent-secrets).
+# EKS Pod Identity: security/AGENTS.md trap 3) and object-store hosts.
 resources:
   - ../../base/room-broker
   - externalsecret-webhook-runlore.yaml
@@ -64,19 +63,6 @@ patches:
         value:
           - matchName: storage.googleapis.com
           - matchPattern: "*.storage.googleapis.com"
-  - target:
-      group: external-secrets.io
-      kind: ExternalSecret
-      name: room-broker-ca
-    patch: |-
-      - op: test
-        path: /spec/data/0/remoteRef/key
-        value: certificates/${private_domain_name}/ca-chain
-      - op: replace
-        path: /spec/data/0/remoteRef/key
-        value: openbao-priv-gcp-ca-chain
-      - op: remove
-        path: /spec/data/0/remoteRef/property
   # ZITADEL on gcp-0 is this cluster's own Gateway VIP: Envoy enforces policy on
   # its runtime listener port, so any toPorts fails (ruling AU; measured in
   # tooling/gcp-0/headlamp/network-policy.yaml).

@@ -79,8 +79,6 @@ def compliant(key=REAL):
             "issuer": "https://issuer.example", "audiences": sorted(gate.audiences(prof, section)),
             "jwks": {"remote": {"url": "https://issuer.example/jwks"}},
             "validation": {"requiredClaims": ["exp", "sub"]}}]}
-        if section == "sts":
-            jwt["preserveToken"] = True
         return obj("AgentgatewayPolicy", gw_ns, f"listener-{section}", {
             "targetRefs": [dict(gw_ref, sectionName=section)],
             "traffic": {"jwtAuthentication": jwt,
@@ -273,7 +271,7 @@ expect("an internal audience on public fails", lambda o: jwt_of(o, "public")["pr
        .append("agent-router.implementer.internal"), "AG2")
 expect("Allow instead of Require fails", lambda o: spec_at(o, "AgentgatewayPolicy", "listener-public", "traffic",
                                                            "authorization").update({"action": "Allow"}), "AG2")
-expect("no x-ar-agent set fails", lambda o: spec_at(o, "AgentgatewayPolicy", "listener-sts", "traffic")
+expect("no x-ar-agent set fails", lambda o: spec_at(o, "AgentgatewayPolicy", "listener-internal", "traffic")
        .pop("transformation"), "AG2")
 expect("requiredClaims without sub fails", lambda o: jwt_of(o, "public")["providers"][0]["validation"]
        .update({"requiredClaims": ["exp"]}), "AG2")
@@ -289,7 +287,7 @@ expect("no PreRouting phase fails", lambda o: spec_at(o, "AgentgatewayPolicy", "
 
 print("AG4 token isolation")
 expect("preserveToken on public fails", lambda o: jwt_of(o, "public").update({"preserveToken": True}), "AG4")
-expect("no preserveToken on sts fails", lambda o: jwt_of(o, "sts").pop("preserveToken"), "AG4")
+expect("preserveToken on internal fails", lambda o: jwt_of(o, "internal").update({"preserveToken": True}), "AG4")
 expect("an MCP key in Authorization fails", lambda o: spec_at(o, "AgentgatewayBackend", "agent-mcp", "mcp", "targets")[0]
        ["static"]["policies"]["auth"]["credentials"][0]["location"]["header"].update({"name": "Authorization"}), "AG4")
 expect("auth.secretRef on an MCP target fails", lambda o: spec_at(o, "AgentgatewayBackend", "agent-mcp", "mcp", "targets")[0]
@@ -421,7 +419,7 @@ expect("a descriptor reading a header fails",
        lambda o: glob(o)["descriptors"][0]["entries"][0].update({"expression": 'request.headers["x-ar-agent"]'}),
        "AG8", "#3523")
 expect("sub no longer required on one listener fails",
-       lambda o: jwt_of(o, "sts")["providers"][0]["validation"].update({"requiredClaims": ["exp"]}), "AG8", "#3523")
+       lambda o: jwt_of(o, "internal")["providers"][0]["validation"].update({"requiredClaims": ["exp"]}), "AG8", "#3523")
 expect("an unkeyed local token limit fails", lambda o: local(o)[0].pop("key"), "AG8", "key")
 expect("a local key reading an unrequired claim fails", lambda o: local(o)[0].update({"key": "jwt.team"}),
        "AG8", "#3523")
@@ -535,7 +533,7 @@ def github_parents(o):
 
 expect("the GitHub route on public fails", lambda o: github_parents(o)[0].update({"sectionName": "public"}),
        "AG13", "internal")
-expect("a second parent on sts fails", lambda o: github_parents(o).append(dict(github_parents(o)[0], sectionName="sts")),
+expect("a second parent on public fails", lambda o: github_parents(o).append(dict(github_parents(o)[0], sectionName="public")),
        "AG13", "internal")
 expect("a receive-pack POST fails", lambda o: github_rules(o)[1]["matches"][0]["path"].update(
     {"value": r"^/Smana/cloud-native-ref\.git/git-receive-pack$"}), "AG13", "read-only")
@@ -703,7 +701,7 @@ def drop_b6_rule(o):
 
 expect("B6 without its descriptor in the ConfigMap fails", drop_b6_rule, "AG8", "provider")
 expect("aud read where a covered listener checks no audience fails",
-       lambda o: jwt_of(o, "sts")["providers"][0].pop("audiences"), "AG8", "aud")
+       lambda o: jwt_of(o, "internal")["providers"][0].pop("audiences"), "AG8", "aud")
 
 
 def run_main(d):

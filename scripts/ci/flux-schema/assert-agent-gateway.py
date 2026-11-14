@@ -17,8 +17,8 @@ names its listeners, audiences, caller namespace and route namespace:
        a `set` of x-ar-agent from jwt.sub.
   AG3  A Gateway-scoped PreRouting transformation removes the four identity
        headers before routing.
-  AG4  preserveToken is true on the sts listener and nowhere else, and no MCP
-       target credential or transformation writes Authorization.
+  AG4  preserveToken is set nowhere, so no backend sees a run's bearer, and no
+       MCP target credential or transformation writes Authorization.
   AG5  Every route on the Gateway sets sectionName and lives in the route
        namespace; a Z.ai backend is reachable from `public` only and an
        Anthropic one from `internal` only (ADR-0054); a rule sends to one
@@ -200,8 +200,7 @@ MODEL_MUTATIONS = ("overrides", "defaults")
 # Identity design T4: the internal listener's GitHub route reads, never writes. Git's
 # smart-HTTP fetch is these two requests; a push is GET ?service=git-receive-pack then
 # POST /git-receive-pack, and the REST API is not routed at all. The repositories are
-# the octo-sts opt-in: REPOSITORIES feeds both, and each repository's trust policies accept only
-# its own audiences. A third repository needs a second sts listener (design, security analysis).
+# the factory's: REPOSITORIES feeds both.
 REPOSITORIES = ("Smana/cloud-native-ref", "Smana/ai-native-ref")
 _REPOS = "(" + "|".join(r.split("/")[1] for r in REPOSITORIES) + ")"
 GITHUB_READ_MATCHES = (
@@ -238,7 +237,7 @@ class Profile(NamedTuple):
 # Keyed by Gateway (namespace, name). Phase H removes the PoC with its entry.
 PROFILES = {
     ("agent-gateway", "agent-router"): Profile(
-        listeners={"public": 8080, "internal": 8081, "sts": 8082},
+        listeners={"public": 8080, "internal": 8081},
         routes_ns="agent-system", aud_prefix="agent-router", sub_ns="agents", required=True),
     ("agw-poc", "agent-router-agw"): Profile(
         listeners={"public": 8080, "internal": 8081},
@@ -279,8 +278,6 @@ def chart_aud_class(listener):
 
 
 def audiences(prof, listener):
-    if listener == "sts":
-        return {f"octo-sts/{repo}/{r}" for repo in REPOSITORIES for r in prof.roles}
     return {f"{prof.aud_prefix}.{r}.{listener}" for r in prof.roles}
 
 
@@ -497,9 +494,6 @@ def check_listener_identity(objs):
             sets = ((traffic.get("transformation") or {}).get("request") or {}).get("set") or []
             if {"name": "x-ar-agent", "value": "jwt.sub"} not in sets:
                 out.append(f"AG2: {ref(p)} must set x-ar-agent from jwt.sub")
-            preserve = jwt.get("preserveToken") is True
-            if preserve != (listener == "sts"):
-                out.append(f"AG4: {ref(p)} preserveToken is {preserve}; only the sts listener forwards the bearer")
     chart_listener = {id(p) for g, c in charted(objs) for p in policies(objs)
                       if set(gateway_targets(p, g)) & set(c.listeners)}
     for p in policies(objs):
@@ -529,9 +523,8 @@ def check_token_isolation(objs):
     out = []
     for p in policies(objs):
         traffic = spec_of(p).get("traffic") or {}
-        if (traffic.get("jwtAuthentication") or {}).get("preserveToken") is True and not any(
-                "sts" in gateway_targets(p, g) for g, _ in profiled(objs)):
-            out.append(f"AG4: {ref(p)} sets preserveToken outside an sts listener")
+        if (traffic.get("jwtAuthentication") or {}).get("preserveToken") is True:
+            out.append(f"AG4: {ref(p)} sets preserveToken: no backend sees a run's bearer")
         for section in (traffic, spec_of(p).get("backend") or {}):
             req = (section.get("transformation") or {}).get("request") or {}
             for h in (req.get("set") or []) + (req.get("add") or []):

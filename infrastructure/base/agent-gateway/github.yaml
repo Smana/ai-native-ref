@@ -7,7 +7,7 @@
 # GitHub sees an anonymous fetch of a public repository.
 #
 # The matches ARE the allow-list (gate AG13): a smart-HTTP fetch is these two
-# requests, of the octo-sts opt-in repositories only. A push (receive-pack), a
+# requests, of the factory's two repositories only. A push (receive-pack), a
 # REST call or another repository matches no route and gets 404.
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayBackend

@@ -17,7 +17,6 @@ no gVisor RuntimeClass child here (GP-9).
 | `agentgateway` | `infrastructure/gcp-0/agentgateway` | agentgateway controller and CRDs in `agentgateway-system` (ADR-0053) |
 | `agent-gateway` | `infrastructure/gcp-0/agent-gateway` | The agent router on agentgateway: Gateway `agent-gateway/agent-router`, JWT per listener, capability profiles, budgets B1, B2 and B6 enforced on its own rate-limit server and Valkey |
 | `model-gateway` | `infrastructure/gcp-0/agent-gateway/model-gateway` | Maku's `maku-gateway` chart: Gateway `agent-gateway/model-gateway` with agent-router's providers, aliases and prices under Maku's identity contract, plus budgets B1, B2 and B6 on agent-router's rate-limit server. No caller until runs move to it |
-| `octo-sts` | `security/gcp-0/octo-sts` | GitHub token exchange for the agents' App, reached only through the agent router's `sts` listener |
 | `merge-gate-secrets` | `security/gcp-0/merge-gate-secrets` | `SecretStore merge-gate-secrets` -> the `merge-gate` mount, policy-bot's App secret (SP3 R44) |
 | `agent-mcp` | `infrastructure/gcp-0/agent-mcp` | Flux, VictoriaMetrics and VictoriaLogs MCP servers |
 | `room-broker` | `infrastructure/gcp-0/room-broker` | Room CRD (`rooms.maku.ogenki.io`), broker, room log (CNPG), retention, oauth2-proxy, and since R3 the run-controller: it runs each `maku.ogenki.io` AgentRun as a gVisor pod in `agents`, with the egress proxy, a NetworkPolicy per run, the runs quota and the run-pod admission policy. After `agent-factory-crds` |
@@ -56,8 +55,8 @@ and its key written to `github-app` on gcp-0's `agents` mount:
 
     bao kv put -mount=agents github-app app_id=<id> private_key=@<pem file>
 
-Without the key, `octo-sts` sits in `CreateContainerConfigError` and its child fails the health
-check. The GCP lineage's raft snapshot cannot be restored across the AWS lineage's KMS seal, so the
+Without the key, the factory mints no run its git token
+(`tooling/base/agent-factory/externalsecret-agents-app.yaml`). The GCP lineage's raft snapshot cannot be restored across the AWS lineage's KMS seal, so the
 other agent keys are written the same way, once per GCP lineage:
 
     bao kv put -mount=agents zai api_key=-

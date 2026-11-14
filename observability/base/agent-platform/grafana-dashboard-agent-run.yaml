@@ -202,7 +202,7 @@ spec:
           {"id": 15,
            "type": "table",
            "title": "agent-router traces (adds calls outside the run trace)",
-           "description": "The same traces again, plus the router's calls outside the run's trace (the GitHub token exchanges, /sts/exchange). Open these for a call the harness trace lacks.",
+           "description": "The same traces again, plus the router's calls outside the run's trace. Open these for a call the harness trace lacks.",
            "gridPos": {"x": 0, "y": 47, "w": 24, "h": 6},
            "datasource": {"type": "jaeger", "uid": "VictoriaTraces"},
            "targets": [{"refId": "A", "queryType": "search", "service": "agent-router", "tags": "agent.principal=system:serviceaccount:agents:run-$${run}", "limit": 50}]}

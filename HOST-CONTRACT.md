@@ -56,7 +56,7 @@ Children use `postBuild.substituteFrom` the ConfigMap `<eks|gke>-<cluster>-vars`
 | `project_id` (gcp) | The model bucket and its volume, maku-broker backups |
 | `private_domain_name`, `public_domain_name` | Hostnames on the tailnet and public Gateways |
 | `identity_provider_url` | ZITADEL issuer for humans (rooms, run API) |
-| `oidc_issuer_url`, `oidc_issuer_host`, `oidc_jwks_uri`, `oidc_jwks_host` | The cluster's ServiceAccount issuer, for run tokens at the gateway, octo-sts and the broker |
+| `oidc_issuer_url`, `oidc_issuer_host`, `oidc_jwks_uri`, `oidc_jwks_host` | The cluster's ServiceAccount issuer, for run tokens at the gateway and the broker |
 | `region` | Cloud region in backends and buckets |
 | `storage_class` | Persistent volumes |
 | `llm_hf_token_secret` | The model-download secret name |

@@ -40,8 +40,6 @@ spec:
               protocol: TCP
             - port: "8081"
               protocol: TCP
-            - port: "8082"
-              protocol: TCP
     - fromEntities:
         - host
       toPorts:
@@ -98,15 +96,6 @@ spec:
       toPorts:
         - ports:
             - port: "443"
-              protocol: TCP
-    # octo-sts behind the sts listener (sts.yaml).
-    - toEndpoints:
-        - matchLabels:
-            io.kubernetes.pod.namespace: agent-system
-            app.kubernetes.io/name: octo-sts
-      toPorts:
-        - ports:
-            - port: "8080"
               protocol: TCP
     # The MCP targets (mcp.yaml).
     - toEndpoints:

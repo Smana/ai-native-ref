@@ -1,0 +1,136 @@
+# The chart reads each provider's key from a Secret of its release namespace, by name (D14), and the
+# controller writes proxies to agent-gateway only (ADR-0053 D1). The keys stay agent-system's: OpenBao
+# agents/* through agents-secrets, whose role only agent-system can use. These copy the four
+# Secrets agent-router's backends read, through External Secrets' kubernetes provider, so no key is
+# duplicated in OpenBao and no host role changes. A key rotated in OpenBao reaches agent-system within
+# an hour, then here within the next.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: model-gateway-keys
+  namespace: agent-gateway
+automountServiceAccountToken: false
+---
+# Read the four keys by name, nothing else in agent-system.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: model-gateway-keys
+  namespace: agent-system
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - agents-zai-api-key
+      - agents-moonshot-api-key
+      - agents-mistral-api-key
+      - agents-anthropic-api-key
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: model-gateway-keys
+  namespace: agent-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: model-gateway-keys
+subjects:
+  - kind: ServiceAccount
+    name: model-gateway-keys
+    namespace: agent-gateway
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: agent-system-provider-keys
+  namespace: agent-gateway
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: agent-system
+      server:
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
+      auth:
+        serviceAccount:
+          name: model-gateway-keys
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: agents-zai-api-key
+  namespace: agent-gateway
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: agent-system-provider-keys
+  target:
+    name: agents-zai-api-key
+    creationPolicy: Owner
+  data:
+    - secretKey: apiKey  # pragma: allowlist secret
+      remoteRef:
+        key: agents-zai-api-key
+        property: apiKey  # pragma: allowlist secret
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: agents-moonshot-api-key
+  namespace: agent-gateway
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: agent-system-provider-keys
+  target:
+    name: agents-moonshot-api-key
+    creationPolicy: Owner
+  data:
+    - secretKey: apiKey  # pragma: allowlist secret
+      remoteRef:
+        key: agents-moonshot-api-key
+        property: apiKey  # pragma: allowlist secret
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: agents-mistral-api-key
+  namespace: agent-gateway
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: agent-system-provider-keys
+  target:
+    name: agents-mistral-api-key
+    creationPolicy: Owner
+  data:
+    - secretKey: apiKey  # pragma: allowlist secret
+      remoteRef:
+        key: agents-mistral-api-key
+        property: apiKey  # pragma: allowlist secret
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: agents-anthropic-api-key
+  namespace: agent-gateway
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: agent-system-provider-keys
+  target:
+    name: agents-anthropic-api-key
+    creationPolicy: Owner
+  data:
+    - secretKey: apiKey  # pragma: allowlist secret
+      remoteRef:
+        key: agents-anthropic-api-key
+        property: apiKey  # pragma: allowlist secret

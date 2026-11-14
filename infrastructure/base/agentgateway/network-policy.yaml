@@ -27,6 +27,10 @@ spec:
         - matchLabels:
             io.kubernetes.pod.namespace: agent-gateway
             gateway.networking.k8s.io/gateway-name: agent-router
+        # The model gateway from Maku's chart (../agent-gateway/model-gateway), in the same namespace.
+        - matchLabels:
+            io.kubernetes.pod.namespace: agent-gateway
+            gateway.networking.k8s.io/gateway-name: model-gateway
       toPorts:
         - ports:
             - port: "9978"

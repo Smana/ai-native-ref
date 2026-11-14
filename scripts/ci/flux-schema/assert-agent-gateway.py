@@ -102,6 +102,19 @@ names its listeners, audiences, caller namespace and route namespace:
        policy sets frontend.http.maxBufferSize: the rule reads the body within
        it, and without it 1.6 buffers 2 MiB there and 32 MiB for the backend,
        so a long run's call would be refused that the backend could take.
+  AG15 A Gateway rendered by Maku's maku-gateway chart (CHART_GATEWAYS) is
+       judged by the chart's contract instead of a profile (Maku
+       docs/gateway.md): its listeners and ports, routes from its own
+       namespace; one Strict JWT policy per listener, all on one issuer,
+       requiring exp and sub, forwarding no token, setting x-ar-agent, and
+       Requiring exactly the listener's subject and audience prefix; every
+       LLM route Required to its own audience and the subject again, unless
+       a directResponse answers it; each provider on its data class's
+       listeners only (ADR-0054, the clients listener serving public data);
+       each LLM backend one provider and one alias, the `model`
+       transformation forcing that alias. The chart renders its objects with
+       no namespace: they are read in their HelmRelease's. AG3, AG8 and AG9
+       hold on it as on the agent router.
 
 1.6 CRDs store no defaults, so every check reads explicit fields: an absent
 field fails rather than being assumed. The bundle holds base and per-cluster
@@ -233,6 +246,38 @@ PROFILES = {
 }
 
 
+class ChartProfile(NamedTuple):
+    listeners: dict
+    classes: dict
+    aud_prefix: str
+    runs_ns: str
+    run_prefix: str
+    broker_sub: str
+
+
+# AG15: Gateways the maku-gateway chart renders, by (namespace, name), with the values they must hold.
+# classes: the data class each listener carries for ADR-0054's PROVIDER_LISTENERS (the planner's issue
+# text is public).
+CHART = "maku-gateway"
+CHART_GATEWAYS = {
+    ("agent-gateway", "model-gateway"): ChartProfile(
+        listeners={"public": 8080, "internal": 8081, "clients": 8082},
+        classes={"public": "public", "internal": "internal", "clients": "public"},
+        aud_prefix="maku-gateway", runs_ns="agents", run_prefix="run-",
+        broker_sub="system:serviceaccount:agent-system:room-broker"),
+}
+
+
+def chart_sub(cprof, listener):
+    if listener == "clients":
+        return f'jwt.sub == "{cprof.broker_sub}"'
+    return f'jwt.sub.matches("^system:serviceaccount:{re.escape(cprof.runs_ns)}:{cprof.run_prefix}[a-z2-7]{{8}}$")'
+
+
+def chart_aud_class(listener):
+    return "client" if listener == "clients" else listener
+
+
 def audiences(prof, listener):
     if listener == "sts":
         return {f"octo-sts/{repo}/{r}" for repo in REPOSITORIES for r in prof.roles}
@@ -294,6 +339,29 @@ def gateways(objs):
 
 def profiled(objs):
     return [(g, p) for g, p in gateways(objs) if p]
+
+
+def charted(objs):
+    """(Gateway, ChartProfile) for every Gateway the maku-gateway chart renders (AG15)."""
+    return [(g, CHART_GATEWAYS[key(g)]) for g, _ in gateways(objs) if key(g) in CHART_GATEWAYS]
+
+
+def adopt_chart_namespaces(objs):
+    """The chart's objects carry no namespace, and Flux applies them in their HelmRelease's: stamp it."""
+    releases = {}
+    for hr in kind(objs, "HelmRelease"):
+        s = spec_of(hr)
+        source = (s.get("chartRef") or {}).get("name") or (((s.get("chart") or {}).get("spec") or {}).get("chart"))
+        if source == CHART:
+            releases[s.get("releaseName") or meta(hr).get("name")] = s.get("targetNamespace") or meta(hr).get("namespace")
+    out = []
+    for o in objs:
+        labels = meta(o).get("labels") or {}
+        ns = releases.get(labels.get("app.kubernetes.io/instance"))
+        if ns and labels.get("app.kubernetes.io/name") == CHART and not meta(o).get("namespace"):
+            o = {**o, "metadata": {**meta(o), "namespace": ns}}
+        out.append(o)
+    return out
 
 
 def gateway_targets(policy, gw):
@@ -374,6 +442,8 @@ def check_gateway(objs):
            for (ns, name), prof in PROFILES.items()
            if prof.required and (ns, name) not in {key(g) for g, _ in gws}]
     for g, prof in gws:
+        if prof is None and key(g) in CHART_GATEWAYS:
+            continue
         if prof is None:
             out.append(f"AG1: {ref(g)} is a Gateway of class {CLASS} with no entry in PROFILES")
             continue
@@ -430,15 +500,18 @@ def check_listener_identity(objs):
             preserve = jwt.get("preserveToken") is True
             if preserve != (listener == "sts"):
                 out.append(f"AG4: {ref(p)} preserveToken is {preserve}; only the sts listener forwards the bearer")
+    chart_listener = {id(p) for g, c in charted(objs) for p in policies(objs)
+                      if set(gateway_targets(p, g)) & set(c.listeners)}
     for p in policies(objs):
-        if (spec_of(p).get("traffic") or {}).get("jwtAuthentication") is not None and id(p) not in listener_policies:
+        if (spec_of(p).get("traffic") or {}).get("jwtAuthentication") is not None \
+                and id(p) not in listener_policies | chart_listener:
             out.append(f"AG5: {ref(p)} carries jwtAuthentication but targets no profiled listener")
     return out
 
 
 def check_strip(objs):
     out = []
-    for g, _ in profiled(objs):
+    for g, _ in profiled(objs) + charted(objs):
         for p in policies(objs):
             if None not in gateway_targets(p, g):
                 continue
@@ -609,15 +682,19 @@ def ratelimit_configs(objs):
 def required_claims(objs, policy):
     """Claims that every listener the policy covers refuses a token without (#3523's workaround)."""
     sets = []
-    for g, prof in profiled(objs):
+    for g, prof in profiled(objs) + charted(objs):
         sections = gateway_targets(policy, g)
         listeners = set(prof.listeners) if None in sections else set(sections)
         for p in policies(objs):
             jwt = (spec_of(p).get("traffic") or {}).get("jwtAuthentication")
             if jwt is None or not listeners & set(gateway_targets(p, g)):
                 continue
+            # The chart checks audiences in a Require (AG15), which refuses a token without one.
+            authz = (spec_of(p).get("traffic") or {}).get("authorization") or {}
+            aud_required = authz.get("action") == "Require" and any(
+                str(e).startswith("jwt.aud.exists(") for e in (authz.get("policy") or {}).get("matchExpressions") or [])
             sets += [set((prov.get("validation") or {}).get("requiredClaims") or [])
-                     | ({"aud"} if prov.get("audiences") else set())
+                     | ({"aud"} if prov.get("audiences") or aud_required else set())
                      for prov in jwt.get("providers") or []]
     return set.intersection(*sets) if sets else set()
 
@@ -727,7 +804,8 @@ def check_budgets(objs):
                 out.append(f"AG8: {ref(p)} local key reads {extra}, which the JWT policy does not require: "
                            "an unevaluable key falls into one shared bucket (#3523)")
             # Only the real router serves runs; the PoC's limits are test values.
-            serves_runs = any(prof.required and gateway_targets(p, g) for g, prof in profiled(objs))
+            serves_runs = any(prof.required and gateway_targets(p, g) for g, prof in profiled(objs)) or any(
+                gateway_targets(p, g) for g, _ in charted(objs))
             factory = factory_values(objs)
             if serves_runs and factory is not None and lim.get("tokens", 0) < (floor := raw_run_ceiling(objs, factory)):
                 out.append(f"AG8: {ref(p)} local limit is {lim.get('tokens', 0)} raw tokens, below the {floor} the "
@@ -784,7 +862,7 @@ def check_budgets(objs):
 
 def check_parameters(objs):
     out = []
-    for g, _ in profiled(objs):
+    for g, _ in profiled(objs) + charted(objs):
         pref = (spec_of(g).get("infrastructure") or {}).get("parametersRef") or {}
         params = next((p for p in kind(objs, "AgentgatewayParameters")
                        if key(p) == (meta(g).get("namespace"), pref.get("name"))), None)
@@ -847,9 +925,10 @@ def router_backends(objs):
 def check_model_pinning(objs):
     out = []
     routed = router_backends(objs)
+    charted_backends = {b for g, _ in charted(objs) for r in routes_on(objs, g) for b in backend_refs(r)}
     for b in kind(objs, "AgentgatewayBackend"):
         provs = providers(b)
-        if not provs:
+        if not provs or (key(b) in charted_backends and key(b) not in routed):
             continue
         if len(provs) > 1:
             out.append(f"AG12: {ref(b)} has {len(provs)} providers; an agent name maps to one provider model")
@@ -1085,13 +1164,96 @@ def valid_day(day):
     return True
 
 
+def check_chart_gateway(objs):
+    out = []
+    llm = {key(b): b for b in kind(objs, "AgentgatewayBackend") if providers(b)}
+    for g, c in charted(objs):
+        issuers = set()
+        got = {lst.get("name"): lst.get("port") for lst in spec_of(g).get("listeners") or []}
+        if got != c.listeners:
+            out.append(f"AG15: {ref(g)} listeners are {got}, expected {c.listeners}")
+        for lst in spec_of(g).get("listeners") or []:
+            if ((lst.get("allowedRoutes") or {}).get("namespaces") or {}).get("from") != "Same":
+                out.append(f"AG15: {ref(g)} listener {lst.get('name')} must admit routes from its own namespace only")
+        for listener in c.listeners:
+            found = [p for p in policies(objs) if listener in gateway_targets(p, g)
+                     and (spec_of(p).get("traffic") or {}).get("jwtAuthentication") is not None]
+            if len(found) != 1:
+                out.append(f"AG15: {ref(g)} listener {listener} has {len(found)} jwtAuthentication policies, expected 1")
+                continue
+            p = found[0]
+            traffic = spec_of(p).get("traffic") or {}
+            jwt = traffic["jwtAuthentication"]
+            provs = jwt.get("providers") or []
+            if jwt.get("mode") != "Strict" or len(provs) != 1:
+                out.append(f"AG15: {ref(p)} needs mode Strict and one provider")
+            for prov in provs:
+                issuers.add(prov.get("issuer"))
+                if not REQUIRED_CLAIMS <= set((prov.get("validation") or {}).get("requiredClaims") or []):
+                    out.append(f"AG15: {ref(p)} requiredClaims must hold exp and sub (#3523)")
+            if jwt.get("preserveToken") is True:
+                out.append(f"AG15: {ref(p)} forwards the caller's token to the provider")
+            want = [chart_sub(c, listener),
+                    f'jwt.aud.exists(a, a.startsWith("{c.aud_prefix}.{chart_aud_class(listener)}."))']
+            authz = traffic.get("authorization") or {}
+            if authz.get("action") != "Require" or (authz.get("policy") or {}).get("matchExpressions") != want:
+                out.append(f"AG15: {ref(p)} must Require exactly {want}")
+            sets = ((traffic.get("transformation") or {}).get("request") or {}).get("set") or []
+            if {"name": "x-ar-agent", "value": "jwt.sub"} not in sets:
+                out.append(f"AG15: {ref(p)} must set x-ar-agent from jwt.sub")
+        # One issuer, this cluster's: the values' ${oidc_issuer_url}, which the bundle substitutes from fixtures.
+        if len(issuers) != 1 or not str(next(iter(issuers))).startswith("https://"):
+            out.append(f"AG15: {ref(g)} listeners verify {sorted(map(str, issuers))}, not one https:// issuer")
+        for r in routes_on(objs, g):
+            if meta(r).get("namespace") != meta(g).get("namespace") or any(not x.get("sectionName") for x in parents(r, g)):
+                out.append(f"AG15: {ref(r)} must attach from {meta(g).get('namespace')} with a sectionName")
+            targeting = [p for p in policies(objs) if meta(p).get("namespace") == meta(r).get("namespace")
+                         and any(t.get("kind") == r.get("kind") and t.get("name") == meta(r).get("name")
+                                 for t in spec_of(p).get("targetRefs") or [])]
+            if any("directResponse" in (spec_of(p).get("traffic") or {}) for p in targeting):
+                continue
+            reached = [llm[b] for b in backend_refs(r) if b in llm]
+            if not reached:
+                continue
+            for listener in listeners_of(r, g):
+                cls = c.classes.get(listener)
+                for b in reached:
+                    if (name := provider_name(b)) and cls not in PROVIDER_LISTENERS[name]:
+                        out.append(f"AG15: {ref(r)} reaches {name} from {listener} ({cls} data); "
+                                   f"{name} serves {'/'.join(sorted(PROVIDER_LISTENERS[name]))} only")
+                pinned = [p for p in targeting if ((spec_of(p).get("traffic") or {}).get("authorization") or {})
+                          .get("action") == "Require"]
+                exprs = [e for p in pinned for e in (((spec_of(p).get("traffic") or {}).get("authorization") or {})
+                                                     .get("policy") or {}).get("matchExpressions") or []]
+                auds = [m.group(1) for e in exprs if (m := re.fullmatch(r'"([^"]+)" in jwt\.aud', e))]
+                prefix = f"{c.aud_prefix}.{chart_aud_class(listener)}."
+                if len(pinned) != 1 or len(auds) != 1 or not auds[0].startswith(prefix) \
+                        or chart_sub(c, listener) not in exprs:
+                    out.append(f"AG15: {ref(r)} needs one Require of its own {prefix}<alias> audience and "
+                               f"{chart_sub(c, listener)}: a token for another alias would reach it")
+        for b in {key(x): x for r in routes_on(objs, g) for k in backend_refs(r) if (x := llm.get(k))}.values():
+            ai = ai_policy(spec_of(b))
+            aliases = ai.get("modelAliases") or {}
+            xfm = {t.get("field"): t.get("expression") for t in ai.get("transformations") or []}
+            fixed = any(isinstance(v, dict) and v.get("model") for p in providers(b) for v in p.values())
+            alias = next(iter(aliases), None)
+            if len(providers(b)) != 1 or len(aliases) != 1 or "*" in str(alias) or fixed \
+                    or xfm.get("model") != f'"{alias}"' \
+                    or any("model" in (ai.get(f) or {}) for f in MODEL_MUTATIONS):
+                out.append(f"AG15: {ref(b)} must serve one provider and one alias, its `model` transformation "
+                           "forcing that alias: any other name would buy another model with the key")
+    return out
+
+
 CHECKS = (check_gateway, check_listener_identity, check_strip, check_token_isolation, check_routes,
           check_zai_provider, check_mcp_authz, check_models_list, check_budgets, check_parameters,
-          check_meter_prices, check_provider_paths, check_model_pinning, check_github_route, check_model_authz)
+          check_meter_prices, check_provider_paths, check_model_pinning, check_github_route, check_model_authz,
+          check_chart_gateway)
 
 
 def run(objs):
     """Violations for one cluster's objects, each starting with its check id."""
+    objs = adopt_chart_namespaces(objs)
     return list(dict.fromkeys(v for check in CHECKS for v in check(objs)))
 
 

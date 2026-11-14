@@ -424,3 +424,15 @@ running agent. A setting the person filing a task must fill in.
   posting the end line from `room.merged` when it arrives first.
 - The duration's exact bounds when a task has several runs with waits between them.
 - Renaming `mcp_needs_roomctl` with an alias for release N.
+
+## Amendments found while planning
+
+Reading the code for the plans showed points the text above leaves wrong or implicit. The plans carry the corrected form; it wins over the text above.
+
+| Above | What the plans do instead | Why |
+|---|---|---|
+| The gate line names the policy from release N | Release N shows today's decision sentences; the sentences naming a policy are a last pull request, after the merge-policies change | The decision does not carry a policy name until then |
+| `room.merged` and `room.reverted` leave the default notifications | They post no line of their own, and stay subscribed | The broker must still send them for the end line to be edited |
+| `answer` reads `canStart` from `issue_draft` | `task` returns it | `issue_draft` is removed in release N+1 |
+
+Three additions are the planner's: `handoff_check` is an unlisted broker tool, `run_create` takes a handoff id, and the relay filters the tool list.

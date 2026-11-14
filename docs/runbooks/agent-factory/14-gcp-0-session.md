@@ -1,6 +1,6 @@
 # 14 — The gcp-0 session: a full test, then v2 and v2.1 on GCP
 
-This is an ordered checklist for bringing `gcp-0` up **alone** and running the Agent Factory on it. aws-0 is torn down.
+This is an ordered checklist for bringing `gcp-0` up **alone** and running the Agent Factory on it.
 Owner steps are marked **[OWNER]**. Everything else can be done by an agent holding the
 kubeconfig.
 
@@ -8,9 +8,12 @@ Each step points to the runbook that holds its detail. Results go in that runboo
 cluster-level evidence goes in a `results-gcp-0-<date>.md`, as in
 [the 2026-09-30 round](results-gcp-0-2026-09-30.md).
 
-**Historical.** gcp-0 was torn down on 2026-10-29, and the factory has run on aws-0 since 2026-10-30 (Maku v0.32.3, [results](results-aws-0-2026-10-30.md)). The checklist stays for a gcp-0 rebuild, which is fresh, on a Maku release at least v0.32.0 (CRD group
-`maku.ogenki.io`): no cluster may still run v0.30.x Rooms, or Flux prunes `rooms.agents.ogenki.io` and
-every Room under it. Steps 1 and 6 are already on cloud-native-ref's `main`; check they still are.
+gcp-0 runs the factory again since 2026-11-11 (the ownership fence names `gcp-0`), on Maku v0.48.0. Since R3
+(2026-11-14) runs are Maku's run-controller's (`run-<id>` AgentRuns, gVisor, NetworkPolicies and the egress
+proxy, per-run git tokens from the factory, model calls through `model-gateway`): no Kueue, octo-sts or
+identity-proxy. A rebuild is fresh, on a Maku release at least v0.32.0 (CRD group `maku.ogenki.io`): no
+cluster may still run v0.30.x Rooms, or Flux prunes `rooms.agents.ogenki.io` and every Room under it.
+Steps 1 and 6 are already on cloud-native-ref's `main`; check they still are.
 
 ```mermaid
 flowchart TD
@@ -34,7 +37,7 @@ flowchart TD
 | 0.2 | **[OWNER]** The CPU quota fits the platform (sizing below) | `gcloud compute project-info describe --project ogenki-435905 --flatten=quotas --filter='quotas.metric=CPUS_ALL_REGIONS' --format='value(quotas.limit,quotas.usage)'` and `gcloud compute regions describe europe-west4 --project ogenki-435905 --flatten=quotas --filter='quotas.metric:(CPUS N2_CPUS E2_CPUS)' --format='table(quotas.metric,quotas.limit,quotas.usage)'` |
 | 0.3 | **[OWNER]** Shell inputs | `export TF_VAR_tailscale_api_key=…`, plus AWS credentials for `opentofu/shared/*` (state, Route53 federation) |
 | 0.4 | The Secret Manager entries the deploy reads exist (names only, never values) | `gcloud secrets list --project ogenki-435905 --format='value(name)'`. Required: `tailscale-k8s-operator-oauth`, `openbao-priv-gcp-{root-token,recovery-keys,ca-chain,intermediate-ca}`, `zitadel-envvars`, `zitadel-google-idp`. Required for the agent platform: `zitadel-github-idp`. Without it the deploy skips the GitHub link IdP and so never writes `room-broker-zitadel-reader`, the broker's link reader. Optional: `github-gha-runner-scale-set-default` (GHA runners only) |
-| 0.5 | cloud-native-ref pins the releases under test | `flux/sources/ocirepo-ai-native-ref.yaml`: an ai-native-ref release on Maku v0.32.0; crossplane-configuration v0.9.29 (cloud-native-ref #2676) |
+| 0.5 | cloud-native-ref pins the releases under test | `flux/sources/ocirepo-ai-native-ref.yaml`: an ai-native-ref release; the Maku charts and images are pinned inside it |
 | 0.6 | Optional, decided now: serve the Substrate spike's APIs | `TF_VAR_enable_pod_certificate_apis=true` on step 3. It is safe to turn on later, but turning it off later replaces the cluster. It needs a control plane on 1.35 or later: `gcloud container get-server-config --zone europe-west4-a --format='yaml(channels)'` |
 | 0.7 | Tool pins in cloud-native-ref | `mise install` (tofu 1.13.9, terramate 0.17.4), then run the deploy through `mise exec --` |
 | 0.8 | The Z.ai wallet holds credit. Empty, every `agent-default` run fails at 0 tokens | Check the key's account wallet in the Z.ai console. If it is empty, recharge it or use the [moonshot fallback](#if-the-zai-wallet-is-empty-the-moonshot-fallback) |
@@ -178,12 +181,6 @@ bao kv put -mount=agents anthropic api_key=-
 # and Mistral's (billing must be active first: pay-as-you-go, $20 cap). Selectable, never a default.
 bao kv put -mount=agents moonshot api_key=-
 bao kv put -mount=agents mistral api_key=-
-# The planner (runbook 19 §2.3): one value in both entries. Written after the 2026-10-29
-# snapshot, so a restore lacks both and the planner stays down.
-key="$(openssl rand -hex 24)"
-bao kv put -mount=agents planner apiKey="$key"
-bao kv put -mount=apps planner apiKey="$key"
-unset key
 bao kv put -mount=agents github-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem>
@@ -212,22 +209,22 @@ optional until the App is switched on ([runbook 18](18-factory-interfaces.md)).
 
 ### Feature 15 providers, a smoke through the gateway
 
-Once the two keys are seeded, with a public run's token (the identity proxy's `x-ar-model` pin is
-what routes; a class names these aliases with `loops.<class>.models`, switched on for a live session only):
+Once the two keys are seeded, start one public run per alias. A run's model token names its alias
+(`maku-gateway.public.<alias>`), and the model gateway serves it that alias only; a class names these
+aliases with `loops.<class>.models`, switched on for a live session only:
 
 ```bash
-# GW = the public listener's address inside the cluster; TOKEN = a public role's run token
 for A in kimi-frontier mistral-standard mistral-light; do
-  curl -sS "$GW/v1/chat/completions" -H "authorization: Bearer $TOKEN" -H "x-ar-model: $A" \
-    -H 'content-type: application/json' \
-    -d '{"model":"agent-default","max_tokens":2048,"messages":[{"role":"user","content":"say ok"}]}' \
-    | jq '{model, usage}'
+  task agent:run -- --role implementer --class public --model "$A" \
+    --task "Reply with the word ok, then finish. Change nothing." | tail -1
 done
 ```
 
-Pass: each answers 200 with a `usage.prompt_tokens_details.cached_tokens` on the second identical call.
-Kimi needs a generous `max_tokens`: its `reasoning_content` spends it before `content`. The same call on
-an internal token answers 403, and Hubble shows no flow to `api.kimi.ai` or `api.mistral.ai` from a run pod.
+Pass: each run ends `Succeeded`, and its `gen_ai_client_token_usage_sum{ar_agent="system:serviceaccount:agents:run-<id>"}`
+series names the alias's model (`k3.1-pro`, `mistral-medium-2604`, `mistral-small-2603`). The same alias on
+an `--class internal` run is refused at creation (an internal run never names a provider alias), and no
+run pod reaches `api.kimi.ai` or `api.mistral.ai` itself: only the gateway does. Kimi needs a generous
+token budget: its `reasoning_content` spends it before `content`.
 Kimi is a flat-rate plan (tokens metered, nominal price, owner-accepted risk: plan terms aim at coding
 tools, rate limits are personal) and processed in China, so public data only. Mistral is EU, public
 only until the owner approves internal. Mistral works through the gateway but is not recommended as an
@@ -235,23 +232,23 @@ implementer: a run spent its budget on a 5-line pull request.
 
 ### If the Z.ai wallet is empty: the moonshot fallback
 
-Used on 2026-11-11 when the wallet ran out. It points the default routes at the `moonshot` (Kimi)
-backend for the session, and suspends the Kustomization that would revert it. Live sessions only.
+Used on 2026-11-11 when the wallet ran out, on `agent-router`; since R3 runs call the model gateway, so the
+switch is there. It points the public aliases at `moonshot` (Kimi) for the session, and suspends the
+Kustomization that would revert it. Live sessions only.
 
 | Step | Change |
 |---|---|
-| 1 | The agentgateway `moonshot` backend takes the aliases `agent-default` and `tier-*` |
-| 2 | The default `/v1` rule points at `moonshot` |
-| 3 | `flux suspend kustomization agent-gateway -n flux-system`, so Flux does not revert 1 and 2 |
+| 1 | In the `model-gateway` HelmRelease's values, `aliases.public.agent-default` and `tier-*` become `{provider: moonshot, model: k3.1-pro}` |
+| 2 | `flux suspend kustomization model-gateway -n flux-system`, so Flux does not revert 1 |
 
-Revert, after recharging the wallet: restore the manifests from Git, then
+Revert, after recharging the wallet: restore the HelmRelease from Git, then
 
 ```bash
-flux resume kustomization agent-gateway -n flux-system
+flux resume kustomization model-gateway -n flux-system
 ```
 
-The planner is not covered. It calls the model gateway's `clients.planner` route (Z.ai `glm-5.3`), which
-this switch does not touch, so it stays down until the wallet is recharged. Moonshot is processed in China: public data only, as for Feature 15.
+The planner is covered only if `clients.planner` moves to `moonshot` as well; left on Z.ai `glm-5.3`, it
+stays down until the wallet is recharged. Not yet run on the model gateway. Moonshot is processed in China: public data only, as for Feature 15.
 
 ## 6. [OWNER] Go-live commit
 

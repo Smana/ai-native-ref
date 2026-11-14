@@ -1,5 +1,11 @@
 # 02 — Identity and tokens
 
+> **Retired (2026-11-14).** It probes `agent-router`'s listeners, the in-pod identity-proxy and
+> octo-sts audiences, none of which a run uses since R3: runs call the model gateway with their own
+> token ([Maku's gateway identity model](https://github.com/Smana/maku/blob/main/docs/gateway.md)), and
+> [01](01-runtime-sandbox.md) and [03](03-egress.md) cover the run's tokens and network. Kept as the
+> record of what was proven; do not run it.
+
 Proves that `agent-router`'s per-listener JWT authentication returns the right 401/403 for every
 wrong-token combination and attributes the verified subject correctly (SC-05); that a run's tokens
 live until the run's deadline rather than the projected volume's nominal TTL (R2); that the harness

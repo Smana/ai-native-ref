@@ -86,9 +86,9 @@ to **Agent fleet**, `uid: agent-fleet`, and **Agent gateway**, `uid: agent-gatew
 | Panel | Expression | Expect |
 |---|---|---|
 | Sandbox pods by phase (Agent fleet) | `sum by (phase) (kube_pod_status_phase{namespace="agents"})` | A line per phase seen during this session |
-| Tokens per run (Agent fleet; the former "through agent-router" panel) | `sum by (ar_agent) (rate(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:.*"}[5m]))` | Non-empty only while/after a run made model calls (runbooks 01, 02, 07) |
+| Tokens per run (Agent fleet) | `sum by (ar_agent) (rate(gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:.*"}[5m]))` | Non-empty only while/after a run made model calls (runbooks 01, 03, 07) |
 | agents-gvisor usage over limit (Agent fleet) | `karpenter_nodepools_usage / karpenter_nodepools_limit` for `agents-gvisor` | Empty on gcp-0: Karpenter-only metric, no series on a GKE node pool. Non-empty on aws-0, may be near-zero if the pool scaled to zero |
-| Access log: 4xx and 5xx (Agent gateway) | LogsQL, `kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"agent-router" \| unpack_json \| filter log.http.status:4*` | Entries corresponding to the 401/403 checks in runbooks 02 and 04 |
+| Access log: 4xx and 5xx (Agent gateway) | LogsQL, `kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"model-gateway" \| unpack_json \| filter log.http.status:4*` | Entries for any refusal in the window, such as runbook 04's budget checks |
 
 The "Tokens per run" panel is empty only if no run made model calls in the window. Record "no data"
 as a fail only if a run from an earlier runbook definitely made model calls in the last 24h.
@@ -139,7 +139,8 @@ A `forbidden` line means the collector's Role is too narrow for `k8s_attributes`
 the Role to the chart preset's `pods` and `namespaces` `get/list/watch`, as a ClusterRole.
 
 **What this proves:** the collector runs on its namespaced Role, and agent-router carries the
-OpenTelemetry tracer.
+OpenTelemetry tracer. Runs call the model gateway since R3; whether its chart sends spans to the
+collector is not yet recorded, so Step 8's router rows may come back empty.
 
 ### Step 7 — SO-5, and the two runs
 
@@ -147,12 +148,12 @@ OpenTelemetry tracer.
 task agent:run -- --role implementer --class public --task "Run \`echo TMARK-$R\` in the terminal. Then finish; your final message is exactly CMARK-$R. Never repeat this token: PMARK-$R." 2>$OUT/err | tail -1 | tee $OUT/a
 grep '^agent-run: dashboard ' $OUT/err
 task agent:run -- --role implementer --class public --task "Run \`sleep 240; ls docs\` in the terminal, then finish." 2>/dev/null | tail -1 | tee $OUT/b
-A=$(sed 's/^xplane-run-//' $OUT/a); B=$(sed 's/^xplane-run-//' $OUT/b)
+A=$(cat $OUT/a); B=$(cat $OUT/b)
 sleep 60; vmq "agentrun_status_phase{run_id=\"$A\"} == 1"
 ```
 
 Expected:
-- `tail -1` prints `xplane-run-<8 chars>` twice.
+- `tail -1` prints a run id, 8 characters, twice; the runs are `run-$A` and `run-$B`.
 - `$OUT/err` holds `agent-run: dashboard https://grafana.priv.$CLOUD.ogenki.io/d/agent-run/agent-run?var-run=<A>&from=<13 digits>&to=now`.
 - The query returns one series, whose `phase` is `Pending` or `Running`.
 
@@ -164,17 +165,17 @@ exports `AgentRun` state.
 Once A has ended:
 
 ```bash
-kubectl wait agentrun/xplane-run-$A -n agents --for=jsonpath='{.status.phase}'=Succeeded --timeout=20m
+kubectl wait agentruns.maku.ogenki.io/run-$A -n agents --for=jsonpath='{.status.phase}'=Succeeded --timeout=20m
 now=$(date +%s); tags=$(jq -rn --arg r "$A" '{"agent.run_id":$r}|tojson|@uri')
 curl -s --cacert $CA "$VT/select/jaeger/api/traces?service=agent-harness&tags=$tags&limit=200&start=$(( (now-7200)*1000000 ))&end=$(( now*1000000 ))" > $OUT/traces.json
 jq '[.data[].traceID] | unique | length' $OUT/traces.json
 jq '[.data[].spans[] | select(.operationName | startswith("llm."))] | length' $OUT/traces.json
-curl -s --cacert $CA $VL/select/logsql/query --data-urlencode "query=_time:2h kubernetes.pod_namespace:\"agent-gateway\" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:\"agent-router\" | unpack_json | log.x_ar_agent:\"system:serviceaccount:agents:xplane-run-$A\" AND log.http.path:~\"chat/completions\" AND log.http.status:\"200\" | stats count() calls"
+curl -s --cacert $CA $VL/select/logsql/query --data-urlencode "query=_time:2h kubernetes.pod_namespace:\"agent-gateway\" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:\"model-gateway\" | unpack_json | log.x_ar_agent:\"system:serviceaccount:agents:run-$A\" AND log.http.path:~\"chat/completions\" AND log.http.status:\"200\" | stats count() calls"
 for m in PMARK TMARK CMARK; do printf '%s %s\n' $m "$(curl -s --cacert $CA "$VT/select/logsql/query" --data-urlencode "query=_time:2h \"$m-$R\"" | wc -l)"; done
 curl -s --cacert $CA "$VT/select/logsql/query" --data-urlencode "query=_time:2h \"span_attr:agent.run_id\":\"$A\" \"span_attr:redaction.redacted.count\":>0 | stats count() spans"
 curl -s --cacert $CA "$VT/select/logsql/field_names" --data-urlencode "query=_time:2h \"span_attr:agent.run_id\":\"$A\"" | jq -r '.values[].value' | grep 'attr:' | sed -E 's/^.*attr://' | sort -u > $OUT/keys
 python3 -c 'import sys,yaml; hr=next(d for d in yaml.safe_load_all(open("observability/base/agent-platform/agent-traces-collector.yaml")) if d and d["kind"]=="HelmRelease"); ok=set(hr["spec"]["values"]["alternateConfig"]["processors"]["redaction"]["allowed_keys"])|{"redaction.redacted.count","redaction.masked.count"}; print("outside the allowlist:", sorted(set(open(sys.argv[1]).read().split())-ok) or "none")' $OUT/keys
-curl -s --cacert $CA "$VT/select/jaeger/api/traces?service=agent-router&tags=$(jq -rn --arg p "system:serviceaccount:agents:xplane-run-$A" '{"agent.principal":$p}|tojson|@uri')&limit=200&start=$(( (now-7200)*1000000 ))&end=$(( now*1000000 ))" | jq '[.data[].traceID] | unique'
+curl -s --cacert $CA "$VT/select/jaeger/api/traces?service=agent-router&tags=$(jq -rn --arg p "system:serviceaccount:agents:run-$A" '{"agent.principal":$p}|tojson|@uri')&limit=200&start=$(( (now-7200)*1000000 ))&end=$(( now*1000000 ))" | jq '[.data[].traceID] | unique'
 ```
 
 Then the trace root, and the step log's trace link:
@@ -182,7 +183,7 @@ Then the trace root, and the step log's trace link:
 ```bash
 jq -r '.data[].spans[] | select((.references // []) | length == 0) | .operationName' $OUT/traces.json
 jq -r '[.data[].spans[] | {id: .spanID, name: .operationName}] as $s | .data[].spans[] | select(.operationName == "conversation") | .references[0].spanID as $p | $s[] | select(.id == $p) | .name' $OUT/traces.json
-curl -s --cacert $CA $VL/select/logsql/query --data-urlencode "query=_time:2h kubernetes.pod_name:\"xplane-run-$A\" AND kubernetes.container_name:\"harness\" AND _msg:~\"^agent-run step \" | extract_regexp \"trace_id=(?P<trace_id>[0-9a-f]{32})\" | stats by (trace_id) count() lines"
+curl -s --cacert $CA $VL/select/logsql/query --data-urlencode "query=_time:2h kubernetes.pod_name:\"run-$A\" AND kubernetes.container_name:\"harness\" AND _msg:~\"^agent-run step \" | extract_regexp \"trace_id=(?P<trace_id>[0-9a-f]{32})\" | stats by (trace_id) count() lines"
 jq -r '[.data[].traceID] | unique[]' $OUT/traces.json
 ```
 
@@ -196,7 +197,7 @@ Expected, in order:
 | Markers | `PMARK 0`, `TMARK 0`, `CMARK 0` | Content leaked: SO-3 fails |
 | Redacted spans | > 0 | Zero markers prove nothing if no content was ever sent |
 | Attribute keys | `outside the allowlist: none` | |
-| Router trace ids | Equal to the harness trace's id | Other ids: no join. The run page still finds the router's spans, because it also looks them up by `agent.principal`. Known issue (F16): each `/mcp` call opens its own root trace, so expect the harness trace id among the ids plus one per MCP call |
+| Router trace ids | Equal to the harness trace's id, or empty | The query asks for `agent-router`'s spans, a Gateway runs no longer call. Empty is expected until the model gateway's spans are recorded; other ids mean no join |
 | Root spans | `agent-run` | |
 | `conversation`'s parent | `agent-run` | No `conversation` span at all: raise the harness's `FLUSH_WAIT_S` |
 | Step-log `trace_id` | One row, equal to the trace id, `lines` equal to the run's step count | |
@@ -212,7 +213,7 @@ While B is `Running`:
 ```bash
 COLL=$(kubectl get svc -n observability agent-traces-collector -o jsonpath='{.spec.clusterIP}')
 VTIP=$(kubectl get endpointslices -n observability -l kubernetes.io/service-name=victoria-traces-vt-single-server -o jsonpath='{.items[0].endpoints[0].addresses[0]}')  # headless Service: no clusterIP
-kubectl exec -i -n agents xplane-run-$B -c harness -- /usr/local/bin/python - "$COLL" "$VTIP" <<'PY'
+kubectl exec -i -n agents run-$B -c harness -- /usr/local/bin/python - "$COLL" "$VTIP" <<'PY'
 import socket, sys, urllib.error, urllib.request
 coll, vt = sys.argv[1], sys.argv[2]
 def post(url):
@@ -230,53 +231,47 @@ s = socket.socket(); s.settimeout(5)
 print("grpc", "open" if s.connect_ex((coll, 4317)) == 0 else "blocked")
 print("victoriatraces", post("http://%s:10428/insert/opentelemetry/v1/traces" % vt))
 PY
-NODE=$(kubectl get pod -n agents xplane-run-$B -o jsonpath='{.spec.nodeName}')
+NODE=$(kubectl get pod -n agents run-$B -o jsonpath='{.spec.nodeName}')
 CILIUM_POD=$(kubectl get pods -n kube-system -l k8s-app=cilium --field-selector spec.nodeName=$NODE -o jsonpath='{.items[0].metadata.name}')
-kubectl exec -n kube-system $CILIUM_POD -c cilium-agent -- hubble observe --from-pod agents/xplane-run-$B --to-namespace observability --last 50 -o compact
+kubectl exec -n kube-system $CILIUM_POD -c cilium-agent -- hubble observe --from-pod agents/run-$B --to-namespace observability --last 50 -o compact
 kubectl logs -n observability deploy/agent-traces-collector | grep -ciE 'unmarshal|bad request|unsupported'
 ```
 
 Expected:
-- `traces 200`, `logs 403` (Cilium's L7 "Access denied"), `grpc blocked`, and a timeout name for
-  `victoriatraces` (`URLError` or `TimeoutError`).
-- Hubble shows `http-request FORWARDED (HTTP/1.1 POST …/v1/traces)`, `http-request DROPPED (HTTP/1.1
-  POST …/v1/logs)`, and `Policy denied DROPPED` to :4317 and to :10428.
+- `traces 200`; `logs` anything but `200`; `grpc blocked`; and a timeout name for `victoriatraces`
+  (`URLError` or `TimeoutError`).
+- Hubble shows `Policy denied DROPPED` to :4317 and to :10428.
 - The collector log count is `0`.
 
-Look at the Hubble output for `/v1/logs` flows from a run's own harness, besides the probe's. A
-`DROPPED` there means lmnr exports OTel log records. The CNP stops them, as the run CNP intends
-(traces only, ADR-0051): record it.
+Since R3 the run's policy is a plain NetworkPolicy: it opens the collector's pods on :4318 at L4 and
+has no HTTP path rule, so the path restriction rests on the collector, which serves only
+`/v1/traces`. The `logs` answer comes from the collector, not from Cilium. Not yet recorded on the
+run-controller.
 
-If `traces` is `403` or times out, or Step 8 found no spans at all:
-1. Run `kubectl logs -n observability deploy/agent-traces-collector | grep -i 'pod_association\|no pod'`.
-2. Check Hubble's source IP for the flow.
-3. If the source is the node rather than the pod, the collector cannot resolve the run: drop the L7
-   `rules.http` from the run CNP's rule to :4318 and keep the L4 rule (a crossplane-configuration
-   change). The path restriction then rests on the collector, which serves only `/v1/traces`.
+If `traces` times out, or Step 8 found no spans at all, run
+`kubectl logs -n observability deploy/agent-traces-collector | grep -i 'pod_association\|no pod'`
+and check Hubble's source IP for the flow.
 
-**What this proves:** SO-4. A run can reach only the collector's OTLP/HTTP traces path, never logs,
-never gRPC, and never VictoriaTraces directly.
+**What this proves:** SO-4. A run can reach only the collector's OTLP/HTTP port, never gRPC, and
+never VictoriaTraces directly; the collector accepts only traces.
 
 ### Step 10 — SO-1, SO-2, and the printer columns
 
 ```bash
-kubectl annotate --overwrite agentrun -n agents xplane-run-$A agents.ogenki.io/pull-request=https://github.com/Smana/cloud-native-ref/pull/<a real PR number in this repo>
-kubectl get agentrun -n agents
-kubectl get agentrun -n agents xplane-run-$A -o jsonpath='{.metadata.annotations.agents\.ogenki\.io/usage-tokens} {.status.usage.tokens}{"\n"}'
+kubectl annotate --overwrite agentruns.maku.ogenki.io -n agents run-$A agents.ogenki.io/pull-request=https://github.com/Smana/cloud-native-ref/pull/<a real PR number in this repo>
+kubectl get agentruns.maku.ogenki.io -n agents
 vmq "topk by (run_id) (1, tlast_over_time(agentrun_pull_request_info{run_id=\"$A\"}[1h]))"
-vmq "sum(max_over_time(gen_ai_client_token_usage_sum{ar_agent=\"system:serviceaccount:agents:xplane-run-$A\", gen_ai_token_type=~\"input|output\"}[2h]))"
+vmq "sum(max_over_time(gen_ai_client_token_usage_sum{ar_agent=\"system:serviceaccount:agents:run-$A\", gen_ai_token_type=~\"input|output\"}[2h]))"
 vmq "max(agentrun_budget_max_tokens{run_id=\"$A\"})"
-curl -s --cacert $CA $VL/select/logsql/query --data-urlencode "query=_time:2h kubernetes.pod_namespace:\"agents\" AND kubernetes.pod_name:\"xplane-run-$A\" AND kubernetes.container_name:\"harness\" AND _msg:~\"^agent-run\"" | jq -r '."kubernetes.pod_name"' | sort | uniq -c
-curl -s --cacert $CA $VL/select/logsql/query --data-urlencode "query=_time:2h kubernetes.pod_namespace:\"agent-gateway\" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:\"agent-router\" | unpack_json | log.x_ar_agent:\"system:serviceaccount:agents:xplane-run-$A\"" | jq -r '."log.x_ar_agent"' | sort | uniq -c
+curl -s --cacert $CA $VL/select/logsql/query --data-urlencode "query=_time:2h kubernetes.pod_namespace:\"agents\" AND kubernetes.pod_name:\"run-$A\" AND kubernetes.container_name:\"harness\" AND _msg:~\"^agent-run\"" | jq -r '."kubernetes.pod_name"' | sort | uniq -c
+curl -s --cacert $CA $VL/select/logsql/query --data-urlencode "query=_time:2h kubernetes.pod_namespace:\"agent-gateway\" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:\"model-gateway\" | unpack_json | log.x_ar_agent:\"system:serviceaccount:agents:run-$A\"" | jq -r '."log.x_ar_agent"' | sort | uniq -c
 ```
 
 Expected:
-- The header row reads `NAME ROLE CLASS PHASE BRANCH PRINCIPAL PR TOKENS REASON`. A's row shows the PR
-  URL, and a TOKENS value equal to the two numbers the jsonpath prints. Those are the run meter's own
-  reading (the annotation) and its projection (`status.usage.tokens`), equal and > 0. Never overwrite
-  `usage-tokens` here: the composition never lowers `status.usage.tokens`, so a smaller value is
-  ignored and a larger one destroys the real reading.
-- `agentrun_pull_request_info` carries the `pull_request` label.
+- The header row reads `NAME PHASE ROLE ROOM REASON AGE` (the `maku.ogenki.io` AgentRun's printer
+  columns; it carries no token count, which is the meter's: `maku_factory_run_spend_usd`).
+- `agentrun_pull_request_info` carries the `pull_request` label. Not yet recorded on the
+  `maku.ogenki.io` series.
 - Gateway tokens are > 0, and the budget is `2000000`.
 - Each `uniq -c` output has exactly one line: A's pod, then A's principal. B ran at the same time
   (SO-2).
@@ -292,12 +287,14 @@ Expected:
    - a step line with "View Trace", which opens A's trace
 3. Record it under Results.
 
-Tear down: `kubectl delete agentrun -n agents xplane-run-$A xplane-run-$B; rm -r $OUT`.
+Tear down: `kubectl delete agentruns.maku.ogenki.io -n agents run-$A run-$B; rm -r $OUT`.
 
 **What this proves:** SO-1 and SO-2. One run's page shows its outcome, spend, log and trace, and
 nothing from a run beside it.
 
 ## Results
+
+The rounds below ran on the Crossplane `AgentRun` XR (`xplane-run-<id>`) and its per-run `CiliumNetworkPolicy`, before R3.
 
 > Every round below predates phase H (#2429): Step 3's router check, the 4xx panel and Step 6's
 > tracer check read Envoy's agent-router.

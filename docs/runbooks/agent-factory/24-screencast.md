@@ -161,7 +161,7 @@ Record when the issue reads "*waits for a maintainer's review*" (dry run tells y
    - One line per run after it.
    - **Say**: "The factory talks on the issue. Budget, a watch link, and how to stop it — every time."
 2. **PR**:
-   - Author `app/ogenki-agents` (the GitHub App; tokens via octo-sts, per run, short-lived).
+   - Author `app/ogenki-agents` (the GitHub App; a token the factory mints per run, short-lived).
    - **Files changed**: the small diff.
    - **Commits**: the `Agent-Run: <id>` trailer — every commit traces back to a run.
    - The **reviewer** run's verdict.

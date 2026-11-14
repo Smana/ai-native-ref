@@ -6,7 +6,8 @@ description: Every agent run is a bare agent-sandbox Sandbox under gVisor on a d
 lastVerified: 2026-11-11
 ---
 
-**Status**: Accepted; reaffirmed by [ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}})
+**Status**: Accepted; reaffirmed by [ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}}); partly superseded
+**Partly superseded** (2026-11-14): the agent-sandbox `Sandbox`. Since R3, Maku's run-controller runs each run as its own pod. gVisor, the dedicated spot pool per cloud and the OpenHands harness stand.
 **Date**: 2026-09-26
 **Deciders**: Smana (Platform Owner)
 **Related Spec**: [SP1 — Agent runtime & identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md)

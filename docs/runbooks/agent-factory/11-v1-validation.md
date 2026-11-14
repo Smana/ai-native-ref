@@ -128,7 +128,7 @@ accepted risk of GitHub sign-in is understood (R14, R26).
 Pick a run of `$TASK`:
 
 ```bash
-RUN=$(kubectl get agentrun -n agents -l agents.ogenki.io/task=$TASK -o jsonpath='{.items[0].metadata.name}'); RUNID=${RUN#xplane-run-}; echo "$RUN"
+RUN=$(kubectl get agentruns.maku.ogenki.io -n agents -l agents.ogenki.io/task=$TASK -o jsonpath='{.items[0].metadata.name}'); RUNID=${RUN#run-}; echo "$RUN"
 ```
 
 The private endpoints need `--cacert ca.pem` (Prerequisites). The VictoriaLogs MCP server does not trust that CA, so use `curl`.
@@ -140,16 +140,16 @@ curl -sS --cacert ca.pem https://vl.priv.$CLOUD.ogenki.io/select/logsql/query \
   --data-urlencode "query=kubernetes.pod_name:\"$RUN\" | stats by (kubernetes.container_name) count() hits"
 ```
 
-Expected: rows for the `harness`, `room-bridge`, `room-gate` and `identity-proxy` containers.
+Expected: rows for the `harness`, `room-bridge` and `room-gate` containers.
 
 **Metrics** (a scrape in the first minute can read 0; query again after the meter has written):
 
 ```bash
-curl -sS --cacert ca.pem https://vm.priv.$CLOUD.ogenki.io/api/v1/query --data-urlencode "query=agentrun_usage_tokens{run_id=\"$RUNID\"}"
+curl -sS --cacert ca.pem https://vm.priv.$CLOUD.ogenki.io/api/v1/query --data-urlencode "query=maku_factory_run_settled_usd{run=\"$RUNID\"}"
 curl -sS --cacert ca.pem https://vm.priv.$CLOUD.ogenki.io/api/v1/query --data-urlencode 'query=maku_factory_kill_switch_engaged'
 ```
 
-Expected: a non-zero token count; `maku_factory_kill_switch_engaged` `0`.
+Expected: a non-zero settled cost (kept an hour after the run ends); `maku_factory_kill_switch_engaged` `0`.
 
 **Traces:**
 
@@ -183,43 +183,11 @@ Expected: `true` (exit 0): one parentless `agent-factory` span, and the parent c
 **Dashboards:** in Grafana (`https://grafana.priv.$CLOUD.ogenki.io`), `agent-run` (`/d/agent-run/agent-run?var-run=$RUNID`) and
 `agent-fleet` show this task's run, tokens and phase.
 
-**Alert:** an `AgentRun` takes its image from the composition, so use a bare `Sandbox` with an image that cannot be pulled. The
-alert needs the pod `Pending` for 15 minutes. Write `/tmp/podpending-probe.yaml` (Write tool, not a heredoc):
+**Alert:** retired (2026-11-14). The probe was a bare `Sandbox` in `agents`; Maku's run pod policy
+admits a pod there from the run-controller only, so it is refused. `AgentSandboxPodPending` is now
+seen only on a real run whose pod cannot schedule.
 
-```yaml
-apiVersion: agents.x-k8s.io/v1beta1
-kind: Sandbox
-metadata: {name: podpending-probe, namespace: agents}
-spec:
-  service: false
-  shutdownPolicy: Delete
-  podTemplate:
-    spec:
-      automountServiceAccountToken: false
-      runtimeClassName: gvisor
-      restartPolicy: Never
-      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
-      containers:
-        - name: probe
-          image: registry.invalid/does-not-exist:0
-          resources: {requests: {cpu: 10m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
-          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
-```
-
-```bash
-kubectl apply -f /tmp/podpending-probe.yaml
-kubectl get pod -n agents podpending-probe -o jsonpath='{.status.phase} {.status.containerStatuses[0].state.waiting.reason}{"\n"}'
-# after 15 minutes:
-curl -sS --cacert ca.pem https://vm.priv.$CLOUD.ogenki.io/api/v1/query --data-urlencode 'query=ALERTS{alertname="AgentSandboxPodPending",alertstate="firing"}'
-```
-
-Expected: `Pending ErrImagePull` or `ImagePullBackOff`; the `ALERTS` series for `AgentSandboxPodPending` after 15 minutes.
-Kyverno may refuse the manifest. If it does, record the refusal reason as this step's evidence and fall back to the AgentRun path
-the factory uses.
-
-Cleanup: `kubectl delete sandbox podpending-probe -n agents && rm /tmp/podpending-probe.yaml`.
-
-**What this proves:** a run is visible in logs, metrics, traces and both dashboards, and a stuck pod pages.
+**What this proves:** a run is visible in logs, metrics, traces and both dashboards.
 
 ### Step 7 — SP3 10.6 Step 2: one task end to end on release pins
 
@@ -227,7 +195,7 @@ A task must be (re)started with a fresh `factory/ready`. A `/factory retry` only
 cluster, and a rebuilt cluster has none.
 
 ```bash
-kubectl get configuration.pkg -o custom-columns=NAME:.metadata.name,PKG:.spec.package
+kubectl get helmrelease -n agent-system room-broker -o jsonpath='{.spec.values.runController.images.harness.tag}{"\n"}'
 gh issue edit <issue> --repo Smana/cloud-native-ref --add-label factory/ready
 until kubectl get task -n agent-system -o name | grep -q .; do sleep 5; done
 TASK=$(kubectl get task -n agent-system --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')
@@ -246,6 +214,8 @@ phases (`Rejected`, `NoOp`, `Reverted`, `Escalated`, `Closed`, `Stopped`) are a 
 **What this proves:** the whole path works on released artifacts.
 
 ## Results
+
+The rounds below ran on the Crossplane `AgentRun` XR (`xplane-run-<id>`), before R3.
 
 aws-0 on Maku `v0.8.0` and crossplane-configuration `v0.9.3`, 2026-10-08. `TASK=yacoriey` (issue
 [#2266](https://github.com/Smana/cloud-native-ref/issues/2266), PR [#2267](https://github.com/Smana/cloud-native-ref/pull/2267)).

@@ -3,8 +3,8 @@ title: Gateways
 aliases:
   - /docs/platform/ai-platform/gateways/
 weight: 70
-description: "Two gateways, one per kind of caller: ai-gateway for humans and coding clients, the agent gateway for agent runs — identity, routing, and what they share."
-lastVerified: 2026-10-29
+description: "Two gateways, one per kind of caller: ai-gateway for humans and coding clients, the model gateway for agent runs — identity, routing, and what they share."
+lastVerified: 2026-11-14
 ---
 
 Every model call on this platform crosses one of two gateways, chosen by who is calling. Both speak
@@ -15,13 +15,13 @@ it and what it costs is on [Model routing and cost]({{< relref "/docs/how-it-wor
 
 | | `ai-gateway` | Agent gateway |
 |---|---|---|
-| **Callers** | Humans and coding clients: OpenCode, Continue, OpenWebUI, the nightly Promptfoo eval | Agent runs, through each run's identity-proxy sidecar |
+| **Callers** | Humans and coding clients: OpenCode, Continue, OpenWebUI, the nightly Promptfoo eval | Agent runs, each with its own token, and the room broker's planner |
 | **Identity** | An API key per client, from AWS Secrets Manager | A projected token per run (JWT), verified on every call |
-| **Model choice** | Named by the client, or picked from the prompt by the Semantic Router (`model: MoM`) | An alias, mapped statically to one backend; nothing selects per request |
-| **Also carries** | — | MCP tool calls, and the token exchange (`sts`) with octo-sts |
-| **Software** | Envoy Gateway + Envoy AI Gateway (Agent Router) `1.1.0` | [agentgateway](https://agentgateway.dev/docs/) `v1.6.0` ([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})) |
+| **Model choice** | Named by the client, or picked from the prompt by the Semantic Router (`model: MoM`) | The alias the run's token names, mapped statically to one backend; nothing selects per request |
+| **Software** | Envoy Gateway + Envoy AI Gateway (Agent Router) `1.1.0` | [agentgateway](https://agentgateway.dev/docs/) `v1.6.0`, Gateway `model-gateway` from Maku's `maku-gateway` chart ([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})) |
 
-![The two gateways side by side. Top: humans and coding clients reach ai-gateway over the tailnet with an API key; the Semantic Router may pick the model, and the request lands on a vLLM model in the serving fleet. Bottom: an agent run's identity-proxy sidecar, beside the maku-harness, attaches the run's own token; the agent gateway verifies it, meters the run's tokens and routes the model alias to a frontier provider (Z.ai GLM, Moonshot Kimi and Mistral for public data only, Claude for internal data), the MCP tools, or octo-sts for a GitHub token. Both gateways write access logs and gen_ai metrics to the Victoria stack](/images/diagrams/ai-platform-2.svg)
+<!-- TODO: redraw ai-platform.drawio page 2 for the model gateway: the picture still shows the identity-proxy sidecar, the MCP tools and octo-sts behind the agent gateway. -->
+![The two gateways side by side. Top: humans and coding clients reach ai-gateway over the tailnet with an API key; the Semantic Router may pick the model, and the request lands on a vLLM model in the serving fleet. Bottom: an agent run calls the model gateway with its own token; the gateway verifies it, meters the run's tokens and routes the alias the token names to a frontier provider (Z.ai GLM, Moonshot Kimi and Mistral for public data only, Claude for internal data). Both gateways write access logs and gen_ai metrics to the Victoria stack](/images/diagrams/ai-platform-2.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 2.*
 
@@ -167,8 +167,8 @@ curl -s https://llm.priv.aws.ogenki.io/v1/chat/completions \
 
 The gateway strips `x-ar-agent`, `x-ar-human` and `x-ai-gateway-client-id` from every request before
 authentication runs, so a client-forged value never survives to be charged. Today only
-`x-ai-gateway-client-id` is then set — from the API key that matched. `x-ar-agent` exists only on
-the separate `agent-router` Gateway; `x-ar-human` arrives with `ai-gateway`'s `oidc` listener. A
+`x-ai-gateway-client-id` is then set — from the API key that matched. `x-ar-agent` belongs to the agent
+side, where the verified token sets it; `x-ar-human` arrives with `ai-gateway`'s `oidc` listener. A
 client cannot choose whose budget it spends.
 
 Daily token budgets per API-key client (5M), per human (10M) and on all frontier spend (20M) are
@@ -177,128 +177,88 @@ counted in **shadow mode**: nothing is rejected yet
 
 ## The agent gateway: agent runs
 
-Every call an agent makes, to a model, a tool or the token exchange, crosses
-[agentgateway](https://agentgateway.dev)'s Gateway `agent-router` in namespace `agent-gateway` under
-the run's own identity. The human `ai-gateway` stays on Envoy Gateway
-([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})). The harness
-never sees the run's token: its identity-proxy sidecar attaches it (see
+Every model call an agent run makes crosses the model gateway, `model-gateway` in namespace
+`agent-gateway`, under the run's own identity. It is an [agentgateway](https://agentgateway.dev)
+Gateway configured by Maku's `maku-gateway` chart
+([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})). The run's
+harness calls it with a projected token of its own; only the gateway holds the provider keys (see
 [Agent runtime]({{< relref "/docs/how-it-works/runtime.md" >}})). Manifests:
-`infrastructure/base/agent-gateway/`.
+`infrastructure/base/agent-gateway/model-gateway/`.
 
 ```mermaid
 flowchart LR
-  subgraph run["Run pod, gVisor"]
-    H["OpenHands harness"] --> P["identity-proxy<br/>127.0.0.1:4000 · 4002 · 4001"]
+  subgraph callers["Callers"]
+    R["Run pod, gVisor<br/>token aud maku-gateway.public.tier-light"]
+    B["Room broker's planner<br/>token aud maku-gateway.client.planner"]
   end
-  subgraph agw["agentgateway · Gateway agent-router · ns agent-gateway"]
+  subgraph mg["agentgateway · Gateway model-gateway · ns agent-gateway"]
     LP["public :8080"]
     LI["internal :8081"]
-    LS["sts :8082"]
+    LC["clients :8082"]
   end
-  P -->|".public JWT"| LP
-  P -->|".internal JWT"| LI
-  P -->|"octo-sts JWT"| LS
-  LP -->|"/v1, /anthropic"| Z["Z.ai GLM-5.3<br/>backends zai, zai-anthropic"]
-  LP -->|"/v1, pinned alias only"| KM["Moonshot Kimi · Mistral<br/>public data only"]
-  LI -->|"model route"| A["Claude<br/>Anthropic API"]
-  LP -->|"/mcp"| M["agent-mcp<br/>MCP federation"]
-  LI -->|"/mcp"| M
-  LS -->|"/sts/exchange"| O["octo-sts"]
-  M --> T["flux-operator-mcp · mcp-victoriametrics<br/>mcp-victorialogs · runlore-kb"]
-  agw -.->|"B1, B2, B6 enforced"| RL["agent-ratelimit"] --> V[("Valkey<br/>xplane-agent-ratelimit")]
+  R -->|"/m/alias/v1"| LP
+  R -->|"/m/alias/v1"| LI
+  B -->|"/clients/planner/v1"| LC
+  LP --> Z["Z.ai GLM-5.3<br/>Moonshot Kimi · Mistral"]
+  LI --> A["Claude<br/>Anthropic API"]
+  LC --> Z
+  mg -.->|"B1, B2, B6 enforced"| RL["agent-ratelimit"] --> V[("Valkey<br/>xplane-agent-ratelimit")]
 ```
 
 ### Listeners and data classes
 
-| Listener | Port | Audiences | Routes |
+| Listener | Port | Audiences | Serves |
 |---|---|---|---|
-| `public` | 8080 | `agent-router.<role>.public` | `/v1` and `/anthropic` to Z.ai, and `/v1` to Moonshot or Mistral when the run's pinned alias names one ([providers]({{< relref "/docs/how-it-works/providers.md" >}}), public data only); `/v1/models` answers a 404 body, not a model list; `/mcp` with documentation tools |
-| `internal` | 8081 | `agent-router.<role>.internal` | `/mcp` with cluster, metric and log reads per role; the model route to Claude through the Anthropic API (Bedrock or Vertex optional per cloud; ADR-0054) and a read-only GitHub route for clones of either repository ([ai-native-ref#11](https://github.com/Smana/ai-native-ref/pull/11)) |
-| `sts` | 8082 | `octo-sts/<owner>/<repo>/<role>` (example (the reference host): `octo-sts/Smana/{cloud-native-ref,ai-native-ref}/<role>`) | `/sts/exchange` to octo-sts, with the bearer forwarded (`preserveToken`) |
+| `public` | 8080 | `maku-gateway.public.<alias>` | `/m/<alias>/v1` for the four tier aliases on Z.ai, and the provider aliases on Moonshot or Mistral ([providers]({{< relref "/docs/how-it-works/providers.md" >}}), public data only) |
+| `internal` | 8081 | `maku-gateway.internal.<alias>` | `/m/<alias>/v1` for the four tier aliases on Claude, through the Anthropic API (ADR-0054) |
+| `clients` | 8082 | `maku-gateway.client.<name>` | The broker's planner, on `/clients/planner/v1` ([planner settings]({{< relref "/docs/reference/planner.md" >}})) |
+
+Each provider serves only the data classes it is declared for: Z.ai, Moonshot and Mistral `public`,
+Anthropic `internal`. An alias a listener does not serve does not exist on it.
 
 ### Identity
 
 | Check | Where | A failure answers |
 |---|---|---|
-| Signature, issuer, the listener's own audiences, `exp` and `sub` present | `jwtAuthentication`, `mode: Strict`, one policy per listener | 401 |
-| `sub` starts with `system:serviceaccount:agents:` | the listener's `authorization` rule | 403 |
-| The model the call reaches is one the caller's profile names | `capabilities-<listener>` on the model routes (`policy-capabilities.yaml`) | 403 |
-| A tool call carries no argument value the caller's profile excludes (today: `get_kubernetes_resources` with `kind: Secret`) | `capabilities-mcp-<listener>` on the MCP route (`policy-capabilities.yaml`) | 403 |
-| No client-set `x-ar-agent`, `x-ar-human`, `x-ai-gateway-client-id` or `agent-session-id` | `strip-identity-headers`, before routing | — (removed) |
+| Signature, issuer, `exp` and `sub` present, an audience of this listener | The listener's JWT policy | 401 |
+| `sub` is a run of `agents` (`system:serviceaccount:agents:run-*`), or the broker on `clients` | The listener's authorization rule | 403 |
+| The token's audience names the alias of the route it calls | The route's authorization rule | 403 |
 
-Each listener then sets `x-ar-agent` from the verified `jwt.sub`, and the same `sub` labels every
-signal: `x_ar_agent` in the access log, `ar_agent` on metrics, `agent.principal` on spans
-(`policies-identity.yaml`, `policy-frontend.yaml`).
+The backend then forces the model to the alias's own, whatever the request body names, so a run
+reaches exactly one model. The run-controller refuses to start a run whose alias, or whose judge's
+alias, its listener does not serve. The verified `sub` labels every signal: `ar_agent` on the
+`gen_ai_*` metrics (`vmpodscrape.yaml` relabels them), and the run in the access log.
 
-### MCP federation
+### Tools
 
-One `AgentgatewayBackend`, `agent-mcp` (`mcp.yaml`), federates the in-cluster servers with stateless
-sessions and names every tool `<target>_<tool>`: `flux-operator-mcp_search_flux_docs`,
-`mcp-victoriametrics_query`. Each listener's route carries an `Allow` list,
-one expression per role and target, so a role sees only its tools in `tools/list` and a denied call
-answers `Unknown tool`. A target that fails is dropped from the list rather than failing the session
-(`failureMode: FailOpen`). No run bearer reaches a server. The room tools are not here: a run
-calls the broker's `:8090` directly with its own token, which the broker checks with a TokenReview.
+A run's only MCP server is the broker's room tools on `room-broker:8090`, which the run calls directly
+with a token of audience `room-tools`; the broker checks it with a TokenReview. A run without a room
+has no MCP server.
 
-The lists are generated. One profile per role and data class in
-`infrastructure/base/agent-gateway/profiles/` names its tools, `scripts/ci/gen-capabilities.py` with `--write`
-renders them into `mcp.yaml`, and `task check` fails when the two differ: adding a tool is a line in a
-profile and its expected set in `test-agent-mcp-scope` (then `--write`).
-
-The models are generated the same way. A profile's `models` lists the aliases its role may call, and
-the generator renders one route-level `authorization` per listener into `policy-capabilities.yaml`,
-on the model routes but not `/v1/models`. A call whose model the caller's profile does not name is
-refused 403 before any upstream call, and the access log names the run. The model is `x-ar-model`
-when the run's identity proxy set it, else the body's, the same choice the backends' `model`
-transformation makes. The rule reads the raw body, so a gzip request with no `x-ar-model` is refused
-403 too. The identity proxy sets it on every model path, over any value the harness
-sends: the run's alias (the claim's `spec.model`) on `/v1` and `/anthropic`, and the completion
-judge's on `/judge/v1` (`spec.loop.judgeModel`, or `none`, which the rule refuses, when the claim
-names no judge). Every profile lists the four tier aliases, and only the public ones add the
-provider aliases, so on tiers the rule binds nothing until a role moves to its own size: narrowing a
-profile is the switch, and the CI gateway check (`scripts/ci/flux-schema/assert-agent-gateway.py`)
-refuses one that would refuse a model the factory's tiers pin.
-
-The arguments are generated too. A tool in a profile may read
-`{name: <tool>, when: 'mcp.tool.arguments.<argument> not in ["<value>", ...]'}`, the one form the generator
-takes. It becomes a route-level `Require` on the listener's MCP route (`capabilities-mcp-<listener>`),
-because agentgateway 1.6's `mcpAuthorization` cannot read arguments. A call that carries an excluded
-value, compared ASCII case-insensitively, is refused 403 before it reaches the server. The tool stays listed,
-and a call without the argument reaches the server, which answers it. One rule exists today:
-`get_kubernetes_resources` never with `kind` `Secret`, `SecretList` (the client's list lookup resolves it to
-Secrets) or `secrets`, for every role that has the tool. It adds to the
-Flux MCP server's own RBAC, which grants no Secret. The harness's OpenHands SDK keeps its MCP session
-after such a 403 (since 1.55), so the run keeps its other tools.
-
-| Role | `public` | `internal` adds |
-|---|---|---|
-| implementer | documentation tools | Flux instance, API versions and metrics; every VictoriaMetrics read tool |
-| reviewer, tester, triager | documentation tools | also `get_kubernetes_resources`, `get_kubernetes_logs` and the VictoriaLogs query tools |
+The older Gateway, `agent-router`, still runs beside the model gateway with its MCP federation
+(`agent-mcp`: Flux, VictoriaMetrics and VictoriaLogs reads) and the capability profiles in
+`infrastructure/base/agent-gateway/profiles/`. No run calls it.
 
 ### Budgets
 
 ADR-0050's agent budgets, on a rate-limit server of their own so they never share a bucket with the
-human ones (`policy-budgets.yaml`, `ratelimit.yaml`, `kvstore.yaml`):
+human ones (`model-gateway/policy-budgets.yaml`, `ratelimit.yaml`, `kvstore.yaml`):
 
 | Budget | Bucket | Limit per day | Above the factory's |
 |---|---|---|---|
-| B1 | per run (the verified `sub`) | 5M reference tokens ($8.50) | dearest run cap, $6.80 |
+| B1 | per caller (the verified `sub`) | 5M reference tokens ($8.50) | dearest run cap, $6.80 |
 | B2 | the whole fleet | 41M reference tokens ($69.70) | daily budget plus four runs in flight |
 | B6 | Anthropic, on `internal` | 10M reference tokens ($17) | nothing: a provider cap |
 
 They are a backstop: the factory's run meter stays the exact cap, and the gateway never refuses a
-call the factory would admit. Each call is charged at the meter's own prices, so a cache read
-costs its cache rate; the CI gateway check holds the gateway's price expression and limits to the factory's
-values. They are **enforced** (`SHADOW_MODE: "false"` on the server): a call over
-budget gets a `429` whose body, `agent_budget_exhausted`, the harness logs
-([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)). The server is `envoyproxy/ratelimit` (`agent-ratelimit`) on the Valkey
-`KVStore` `xplane-agent-ratelimit`; if it is down the router fails open and `AgentRateLimitDown`
-fires. A per-replica backstop of 40M raw tokens per hour per `sub` always enforces, above the largest run
-the factory allows (34M tokens of Opus cache reads for $6.80), sized so that
-only a runaway the run meter failed to revoke reaches it.
-
-The token-exchange listener names each repository's audiences, at most eight per listener; adding
-a repository is described on the [agents overview]({{< relref "/docs/get-started/agent-factory.md#more-than-one-repository" >}}).
+call the factory would admit. Each call is charged at the meter's own prices, so a cache read costs
+its cache rate; the CI gateway check holds the gateway's price expression and limits to the factory's
+values. The planner's calls count in the broker's own B1 bucket and in B2. The budgets are
+**enforced** (`SHADOW_MODE: "false"` on the server): a call over budget gets a `429`, which the
+harness treats as the end of the run
+([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)).
+The server is `envoyproxy/ratelimit` (`agent-ratelimit`) on the Valkey `KVStore`
+`xplane-agent-ratelimit`; if it is down the gateway fails open and `AgentRateLimitDown` fires.
 
 ## What the two share, and what they keep apart
 

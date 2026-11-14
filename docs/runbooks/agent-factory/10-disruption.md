@@ -7,7 +7,7 @@ for Step 7. See [README.md](README.md) for `CLOUD`; run [00](README.md#runbook-0
 
 ## Prerequisites
 
-- The host runs its release pins: the composition reads run pods, the factory sets `resume.maxPerTask`.
+- The host runs its release pins: Maku's run-controller runs the runs (R3), the factory sets `resume.maxPerTask`.
 - No `AgentRun` is `Running` when Step 1's pool check is applied (it re-creates the pool's nodes).
 - A test issue on `Smana/cloud-native-ref` that a maintainer may label `factory/ready`.
 
@@ -16,17 +16,16 @@ for Step 7. See [README.md](README.md) for `CLOUD`; run [00](README.md#runbook-0
 ### Step 1 — what is deployed
 
 ```bash
-kubectl get configuration.pkg crossplane-configuration-gcp -o jsonpath='{.spec.package}{"\n"}'
-kubectl auth can-i --as=system:serviceaccount:crossplane-system:crossplane watch pods --all-namespaces
+kubectl get helmrelease -n agent-system room-broker -o jsonpath='{.spec.values.runController.enabled} {.spec.values.runController.image.tag}{"\n"}'
 gcloud container clusters describe gcp-0 --location europe-west4-a --format='value(currentMasterVersion)'
 gcloud container node-pools describe agents-gvisor --cluster gcp-0 --location europe-west4-a \
   --format='value(config.kubeletConfig.shutdownGracePeriodSeconds,config.kubeletConfig.shutdownGracePeriodCriticalPodsSeconds)'
 kubectl get cm -n agent-system agent-factory-config -o jsonpath='{.data.config\.yaml}' | grep -A1 '^resume:'
 ```
 
-Expected: the released crossplane-configuration package the host pins; `yes`; a version ≥ `1.35.0-gke.1171000`; `120	15`; `resume:` then `  maxPerTask: 2`.
+Expected: `true` and the run-controller's pinned tag; a version ≥ `1.35.0-gke.1171000`; `120	15`; `resume:` then `  maxPerTask: 2`.
 
-**What this proves:** the composition, Crossplane's read of run pods, the pool's window and the cap are live.
+**What this proves:** the run-controller, the pool's window and the cap are live. The run-controller reads its runs' pods and sets the same end reasons the Crossplane composition did (`Disrupted`, `PodLost`, `PodFailed`).
 
 ### Step 2 — start a factory task with uncommitted work
 
@@ -39,9 +38,9 @@ Then run `sleep 1200` in the terminal and wait for it to end.
 
 ```bash
 TASK=$(kubectl get task -n agent-system --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}'); echo "$TASK"
-until kubectl get agentrun -n agents -l agents.ogenki.io/task=$TASK -o name | grep -q .; do sleep 5; done
-RUN=$(kubectl get agentrun -n agents -l agents.ogenki.io/task=$TASK -o jsonpath='{.items[0].metadata.name}'); echo "$RUN"
-kubectl wait -n agents agentrun/$RUN --for=jsonpath='{.status.phase}'=Running --timeout=15m
+until kubectl get agentruns.maku.ogenki.io -n agents -l agents.ogenki.io/task=$TASK -o name | grep -q .; do sleep 5; done
+RUN=$(kubectl get agentruns.maku.ogenki.io -n agents -l agents.ogenki.io/task=$TASK -o jsonpath='{.items[0].metadata.name}'); echo "$RUN"
+kubectl wait -n agents agentruns.maku.ogenki.io/$RUN --for=jsonpath='{.status.phase}'=Running --timeout=15m
 ```
 
 Wait until the step log shows the `sleep 1200` action:
@@ -63,8 +62,8 @@ Expected: the pod ends `Failed Terminated TerminationByKubelet`. If `simulate-ma
 ### Step 4 — the run's end
 
 ```bash
-kubectl wait -n agents agentrun/$RUN --for=jsonpath='{.status.phase}'=Failed --timeout=5m
-kubectl get agentrun -n agents $RUN -o jsonpath='{.status.phase} {.status.reason}{"\n"}'
+kubectl wait -n agents agentruns.maku.ogenki.io/$RUN --for=jsonpath='{.status.phase}'=Failed --timeout=5m
+kubectl get agentruns.maku.ogenki.io -n agents $RUN -o jsonpath='{.status.phase} {.status.reason}{"\n"}'
 ```
 
 Expected: `Failed Disrupted`.
@@ -99,7 +98,7 @@ The transcript's tail in the room (`events` is the number the final read answere
 
 ```bash
 PSQL="kubectl exec -n agent-system xplane-rooms-cnpg-cluster-1 -c postgres -- psql -d rooms -tA -c"
-$PSQL "SELECT max(origin_seq) / 4 FROM events WHERE room_id = '$TASK' AND origin_client = 'agent:${RUN#xplane-run-}'"
+$PSQL "SELECT max(origin_seq) / 4 FROM events WHERE room_id = '$TASK' AND origin_client = 'agent:${RUN#run-}'"
 ```
 
 Expected: equal to the final read's `events`.
@@ -111,25 +110,25 @@ Expected: equal to the final read's `events`.
 ```bash
 gh issue view <issue> --repo Smana/cloud-native-ref --comments | grep 'resuming automatically'
 kubectl wait -n agent-system task/$TASK --for=jsonpath='{.status.resumes}'=1 --timeout=5m
-until RUN2=$(kubectl get agentrun -n agents -l agents.ogenki.io/task=$TASK --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}') && [ "$RUN2" != "$RUN" ]; do sleep 5; done
+until RUN2=$(kubectl get agentruns.maku.ogenki.io -n agents -l agents.ogenki.io/task=$TASK --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}') && [ "$RUN2" != "$RUN" ]; do sleep 5; done
 kubectl get task -n agent-system $TASK -o jsonpath='{.status.phase} {.status.resumes} {.status.runs[-1:].trigger}{"\n"}'
-kubectl get agentrun -n agents $RUN2 -o jsonpath='{.spec.branch} {.spec.roomRef}{"\n"}'
+kubectl get agentruns.maku.ogenki.io -n agents $RUN2 -o jsonpath='{.spec.branch} {.spec.roomRef}{"\n"}'
 ```
 
 Expected: `… the sandbox was lost (spot reclaim or eviction); resuming automatically (1/2).`; `Implementing 1 resume`;
 `agent/<TASK> <TASK>`. On the factory dashboard, *Automatic resumes by reason* shows `Disrupted` = 1; the run page of `$RUN`
-(`/d/agent-run/agent-run?var-run=${RUN#xplane-run-}`: the page takes the run id) lists `${RUN2#xplane-run-}` under *Runs of this task or room*.
+(`/d/agent-run/agent-run?var-run=${RUN#run-}`: the page takes the run id) lists `${RUN2#run-}` under *Runs of this task or room*.
 
 ### Step 6 — a plain delete reads PodLost and resumes; a third loss escalates
 
 ```bash
-kubectl wait -n agents agentrun/$RUN2 --for=jsonpath='{.status.phase}'=Running --timeout=15m
+kubectl wait -n agents agentruns.maku.ogenki.io/$RUN2 --for=jsonpath='{.status.phase}'=Running --timeout=15m
 kubectl delete pod -n agents $RUN2 --wait=false
-kubectl wait -n agents agentrun/$RUN2 --for=jsonpath='{.status.phase}'=Failed --timeout=5m
-kubectl get agentrun -n agents $RUN2 -o jsonpath='{.status.reason}{"\n"}'
+kubectl wait -n agents agentruns.maku.ogenki.io/$RUN2 --for=jsonpath='{.status.phase}'=Failed --timeout=5m
+kubectl get agentruns.maku.ogenki.io -n agents $RUN2 -o jsonpath='{.status.reason}{"\n"}'
 kubectl wait -n agent-system task/$TASK --for=jsonpath='{.status.resumes}'=2 --timeout=5m
-until RUN3=$(kubectl get agentrun -n agents -l agents.ogenki.io/task=$TASK --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}') && [ "$RUN3" != "$RUN2" ]; do sleep 5; done
-kubectl wait -n agents agentrun/$RUN3 --for=jsonpath='{.status.phase}'=Running --timeout=15m
+until RUN3=$(kubectl get agentruns.maku.ogenki.io -n agents -l agents.ogenki.io/task=$TASK --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}') && [ "$RUN3" != "$RUN2" ]; do sleep 5; done
+kubectl wait -n agents agentruns.maku.ogenki.io/$RUN3 --for=jsonpath='{.status.phase}'=Running --timeout=15m
 kubectl delete pod -n agents $RUN3 --wait=false
 kubectl wait -n agent-system task/$TASK --for=jsonpath='{.status.phase}'=Escalated --timeout=5m
 kubectl get task -n agent-system $TASK -o jsonpath='{.status.reason}{"\n"}'
@@ -168,6 +167,8 @@ Cleanup: `aws ec2 delete-tags --resources $IID --tags Key=agents.ogenki.io/fis-t
 experiment cannot pick this instance up if the interruption did not take it.
 
 ## Results
+
+The rounds below ran on the Crossplane `AgentRun` XR (`xplane-run-<id>`), before R3.
 
 ### aws-0, 2026-10-30 (finding F1)
 

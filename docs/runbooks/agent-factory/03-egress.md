@@ -1,10 +1,14 @@
 # 03 — Egress
 
-Proves that a run's `CiliumNetworkPolicy` and the DNS L7 rule enforce the default-deny-plus-allowlist
-egress model: allowed hosts (GitHub, the gateway) resolve and connect, everything else is refused at
-name resolution, and a random subdomain under a non-allowed domain is denied at the DNS proxy rather
-than merely dropped at L4. See [README.md](README.md) for prerequisites; run
-[00](README.md#runbook-00-one-time-cluster-setup) first.
+Proves the run's egress model: a default-deny `NetworkPolicy` per run, and Maku's egress proxy, which
+holds each run's HTTPS to the hosts of its `maku.ogenki.io/egress` annotation (GitHub and the run's
+egress profiles; the in-cluster model gateway is opened by the NetworkPolicy, not the proxy). An allowed host connects through the proxy, any other is refused by the
+proxy, and a direct connection that skips it is dropped. See [README.md](README.md) for
+prerequisites; run [00](README.md#runbook-00-one-time-cluster-setup) first.
+
+DNS stays open to the run in this mode (`networkPolicies.mode: kubernetes`): a name outside the
+allow-list still resolves, and DNS tunnelling is the residual risk. The Cilium DNS proxy checks of the
+rounds below belonged to the per-run `CiliumNetworkPolicy` the runs had before R3.
 
 ## Prerequisites
 
@@ -15,51 +19,55 @@ than merely dropped at L4. See [README.md](README.md) for prerequisites; run
 ### Step 1 — start a run
 
 ```bash
-RUN=$(task agent:run -- --role implementer --class public --task "Run 'sleep 900' in the terminal, then finish. Change nothing." | tail -1); echo "$RUN"
-kubectl wait -n agents agentrun/$RUN --for=jsonpath='{.status.phase}'=Running --timeout=15m
+ID=$(task agent:run -- --role implementer --class public --task "Run 'sleep 900' in the terminal, then finish. Change nothing." | tail -1); RUN=run-$ID; echo "$RUN"
+kubectl wait -n agents agentruns.maku.ogenki.io/$RUN --for=jsonpath='{.status.phase}'=Running --timeout=15m
 ```
 
-### Step 2 — allowed, denied and refused names
+### Step 2 — the run's allow-list and policy
+
+```bash
+kubectl get pod -n agents $RUN -o jsonpath='{.metadata.annotations.maku\.ogenki\.io/egress}{"\n"}' | tr ',' '\n'
+kubectl get networkpolicy -n agents -l agents.ogenki.io/run-id=$ID -o name
+kubectl exec -n agents $RUN -c harness -- env | grep '^HTTPS_PROXY='
+```
+
+Expected: `host:port` pairs on 443 for GitHub (`github.com`, `api.github.com` and its content hosts)
+and nothing else for a run with no egress profile; one NetworkPolicy for the run; the proxy's address
+in `HTTPS_PROXY` (`NO_PROXY` keeps in-cluster Services off the proxy).
+
+### Step 3 — allowed, refused and bypassed
 
 ```bash
 kubectl exec -n agents $RUN -c harness -- git ls-remote https://github.com/Smana/cloud-native-ref HEAD
 kubectl exec -n agents $RUN -c harness -- /usr/local/bin/python -c "import urllib.request; urllib.request.urlopen('https://example.com', timeout=5)" ; echo "exit=$?"
-kubectl exec -n agents $RUN -c harness -- /usr/local/bin/python -c "import socket, secrets; socket.getaddrinfo(secrets.token_hex(6)+'.example.org', 443)" ; echo "exit=$?"
-kubectl exec -n agents $RUN -c harness -- /usr/local/bin/python -c "import socket; print(socket.getaddrinfo('api.github.com', 443)[0][4])"
+kubectl exec -n agents $RUN -c harness -- /usr/local/bin/python -c "import socket; s=socket.create_connection(('example.com', 443), timeout=5)" ; echo "exit=$?"
 ```
 
-Expected: a `HEAD` SHA; `exit=1` for `example.com`; `exit=1` for the random `*.example.org` name
-(name resolution fails — it is refused, not merely unrouted); an IP tuple for `api.github.com` (Q4: a
-bare public name resolves even with `ndots:1`, which changes only the search-path variants).
+Expected: a `HEAD` SHA; `exit=1` with `Tunnel connection failed: 403 Forbidden` (the proxy refuses a
+host not on the run's allow-list); `exit=1` with a timeout (the NetworkPolicy drops a connection that
+skips the proxy).
 
-**What this proves:** SC-09 — allow, deny and refuse all behave as the design's egress profile
-promises.
+**What this proves:** SC-09 — allow and deny behave as the run's egress profile promises, and the
+proxy is the only way out.
 
-### Step 3 — Hubble verdicts confirm it is the DNS proxy, not chance (Q3)
+### Step 4 — the proxy's own record
 
 ```bash
-NODE=$(kubectl get pod -n agents $RUN -o jsonpath='{.spec.nodeName}')
-AGENT=$(kubectl get pods -n kube-system -l k8s-app=cilium --field-selector spec.nodeName=$NODE -o jsonpath='{.items[0].metadata.name}')
-kubectl exec -n kube-system $AGENT -- hubble observe --from-pod agents/$RUN --type l7 --protocol dns --last 30
-kubectl exec -n kube-system $AGENT -- hubble observe --from-pod agents/$RUN --verdict DROPPED --last 30
+kubectl logs -n agent-system deploy/egress-proxy --since=10m | grep -i "$ID\|example.com" | tail -5
 ```
 
-Expected: DNS entries show `github.com`/`api.github.com` FORWARDED and `example.com` /
-`*.example.org` REFUSED or DROPPED at the L7 DNS filter; the second command shows DROPPED TCP toward
-`example.com`'s IPs only if something got far enough to try — a clean setup shows the drop already
-happening at DNS, before any TCP attempt.
-
-**What this proves:** Q3 — the FQDN allowlist and the DNS L7 rule work correctly under gVisor and
-kube-proxy replacement (ENI IPAM on aws-0, kubernetes IPAM with native routing on gcp-0); a denied
-name never resolves, so nothing downstream ever reaches L4.
+Expected: a refusal for `example.com:443`, `not on the run's allow-list`. Not yet recorded on the
+run-controller: note the exact log format in the results.
 
 ### Cleanup
 
 ```bash
-kubectl delete agentrun -n agents $RUN --wait
+kubectl delete agentruns.maku.ogenki.io -n agents $RUN --wait
 ```
 
 ## Results
+
+The rounds below ran on the Crossplane `AgentRun` XR and its per-run `CiliumNetworkPolicy`, before R3.
 
 ### Round 7 — gcp-0, 2026-09-30 (`integration/agent-factory` @ `a2c645ba`)
 

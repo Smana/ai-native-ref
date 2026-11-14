@@ -6,7 +6,8 @@ description: The agents' Gateway (LLM, MCP and the octo-sts token-exchange liste
 lastVerified: 2026-10-15
 ---
 
-**Status**: Accepted
+**Status**: Accepted; partly superseded
+**Partly superseded** (2026-11-14): `agent-router` as the runs' Gateway. Since R3, runs and the broker's planner call the model gateway, `model-gateway` from Maku's `maku-gateway` chart, on agentgateway; the octo-sts listener is deleted. agentgateway, the budgets on our own `envoyproxy/ratelimit` and ai-gateway on Envoy Gateway stand.
 **Date**: 2026-10-01, amended 2026-10-15 (version rule, v1.6.0, aws-0)
 **Deciders**: Smana (Platform Owner)
 **Related Spec**: [Agent router on agentgateway — design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-01-agent-router-agentgateway-design.md)

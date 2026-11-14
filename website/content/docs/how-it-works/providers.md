@@ -21,9 +21,10 @@ is on the [status page]({{< relref "/docs/status.md#roadmap" >}}).
 
 {{< callout type="warning" >}}
 **Public data only.** Both are processors approved for public repositories and tasks, not
-for internal data. Internal tasks never get them, held three times: the gateway routes them only from
-its `public` listener, only the public [capability profiles]({{< relref "/docs/how-it-works/roles.md#profiles" >}})
-list their aliases, and the factory applies a class's choice to public tasks only.
+for internal data. Internal tasks never get them, held three times: the model gateway serves them only
+on its `public` listener, the `AgentRun` refuses an internal run that names one
+([what a run may call]({{< relref "/docs/how-it-works/roles.md#profiles" >}})), and the factory applies
+a class's choice to public tasks only.
 {{< /callout >}}
 
 ## Switch a class on

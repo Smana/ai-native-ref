@@ -167,8 +167,11 @@ Wait for RunLore's finding, publish the stub (`factory/publish`), and merge the 
   and logs "a generation is undecided; filing nothing for this re-detection". No second task and no second
   stub appear. A second stub during this check is a failure of that rule, not a new generation.
 - The internal triager's run names `runlore-kb_kb_search`. Runs live in the `agents` namespace
-  (`xplane-run-*`): read the triager's pod log (`kubectl -n agents logs <pod>`) for the `agent-run tools:` line,
+  (`run-*`): read the triager's pod log (`kubectl -n agents logs <pod>`) for the `agent-run tools:` line,
   or the run's transcript. This proves the tool was listed to the triager, not that it read an entry.
+  Since R3 a run's only MCP server is the broker's room tools: `runlore-kb` reached the triager through
+  `agent-router`'s federation, which runs no longer call, and the broker's knowledge tool
+  (`broker.roomTools.knowledge` in the `maku` chart) is not configured. Until it is, expect this check to fail.
 
 ## 4. Live 3: a second generation
 

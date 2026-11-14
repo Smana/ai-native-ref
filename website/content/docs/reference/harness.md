@@ -4,7 +4,7 @@ aliases:
   - /docs/platform/ai-platform/agents/tune/harness-reference/
 weight: 10
 description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its example value, what it does, its bounds, and whether it is on by default."
-lastVerified: 2026-10-31
+lastVerified: 2026-11-14
 ---
 
 Every knob of a run, layer by layer. How to use them is on
@@ -13,15 +13,14 @@ Every knob of a run, layer by layer. How to use them is on
 {{< cards >}}
   {{< card link="#tiers" title="Tiers" icon="adjustments" subtitle="USD cap, deadline and model per tier." >}}
   {{< card link="#templates" title="Templates and triage" icon="user-group" subtitle="Which roles run, and how a task gets its template." >}}
-  {{< card link="#caps" title="Caps, resume, suspend" icon="shield-check" subtitle="Concurrency, daily caps, resumes and suspension." >}}
+  {{< card link="#caps" title="Caps and resume" icon="shield-check" subtitle="Concurrency, daily caps and resumes." >}}
   {{< card link="#run-api" title="Run API" icon="terminal" subtitle="Flags of a run started by hand." >}}
-  {{< card link="#claim" title="AgentRun claim" icon="document-text" subtitle="The fields a run is created with." >}}
+  {{< card link="#claim" title="AgentRun" icon="document-text" subtitle="The fields a run is created with." >}}
   {{< card link="#harness" title="Harness" icon="cog" subtitle="The loop's settings, baked into the image." >}}
 {{< /cards >}}
 
-**Pins on `main`:** the harness and bridge on Maku `v0.32.3`, composed by crossplane-configuration
-`v0.9.32`; the factory and broker on `v0.38.0`. Values below are
-examples: the reference host's configuration.
+Values below are examples: the reference host's configuration. Which Maku release it pins is on the
+[status page]({{< relref "/docs/status.md" >}}).
 
 | Status | Meaning |
 |---|---|
@@ -45,7 +44,7 @@ task; every run of the task inherits it. {{< badge content="default" color="gree
 |---|---|---|
 | `model` | The logical model the run asks for. Every tier asks for `agent-default` today, so the tier changes caps, not the model | A logical name |
 | `runUSD` | The meter revokes the run at this cost (`BudgetExhausted`, limit `run-usd`). Cache reads are priced at their own rate | Positive; needs a `meter.prices` row |
-| `runTokens` | The claim's `budget.maxTokens`. Caps the run only when the meter cannot price it | 1 … 5 M |
+| `runTokens` | The run's `budget.maxTokens`. Caps the run only when the meter cannot price it | 1 … 5 M |
 | `taskUSD`, `taskTokens` | The whole task, every run and resume. A new run starts only if a whole run still fits | ≥ the run cap |
 | `runMinutes` | The pod's deadline. A kill at the deadline is `PodFailed` and never resumed | 1 … 480 |
 
@@ -87,7 +86,7 @@ The reviewer runs on **the other tier**: `frontier` for a `standard` or `light` 
 `standard` for a `frontier` one. The reviewer's tier's USD cap applies; its tokens and minutes stay the
 implementer's tier's. The tester keeps the implementer's tier.
 
-## Factory: caps, resume and suspend {#caps}
+## Factory: caps and resume {#caps}
 
 | Key | Value here | What it does |
 |---|---|---|
@@ -97,7 +96,6 @@ implementer's tier's. The tester keeps the implementer's tier.
 | `caps.maxTextBytes` | 14,336 | The longest task text accepted |
 | `caps.maxPendingMinutes` | 30 (5 … 480) | A run still `Pending` escalates as `run_unschedulable` |
 | `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="default" color="green" >}} |
-| `sandbox.suspend.enabled` | `true` (example) | An attended run waiting on an approval gives up its pod after 5 min. {{< badge content="default" color="green" >}} |
 | `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices` (the USD gauges since Maku v0.16.0). The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
 | `loops.<class>` | `default: {scope: off}`; `docs` (scoper, loop policy, search) and `scripts` (scoper, splitter) | The loop policy and the scope, off for every class without a row. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/operate/tune-a-run.md#loop-policy" >}}) |
 | `scoper.nudgeAt`, `scoper.maxToolCalls` | 25 and 40 (Maku's defaults; this repository sets no `scoper:` key) | The scoper's exploration bound: a nudge to wrap up at 25 tool calls, a stop at 40 with the end `budget_calls`; any end without a handoff leaves the implementer to run unscoped |
@@ -132,47 +130,47 @@ is fenced as trusted. Example (the reference host): on for `docs` and `scripts`.
 | `--profiles` | none | Egress profiles: `pypi`, `npm`, `golang`, `crates` |
 | `--minutes`, `--size` | refused | Fixed at 120 min and `small` |
 
-## AgentRun claim {#claim}
+## AgentRun {#claim}
 
-The XRD `agentruns.cloud.ogenki.io`
-([definition](https://github.com/Smana/crossplane-configuration/blob/main/apis/agentrun/definition.yaml)).
-Only `budget.maxTokens` can change on a live run. The factory always writes `size: small`.
+`agentruns.maku.ogenki.io`, installed by the `agent-factory-crds` release. A run is named
+`run-<id>`, the id being 8 characters of `[a-z2-7]`. Only the factory creates one, and only
+`budget.maxTokens` can change on a live run. The factory always writes `size: small`.
 
 | Field | Default | Effect |
 |---|---|---|
 | `role` | required | `implementer` writes and pushes; `reviewer` and `triager` read only; the tester writes tests the harness signs and pushes |
-| `dataClass` | required | `public`: Z.ai, GitHub egress. `internal`: Claude, read-only clone, no egress, cluster read tools, prompt caching |
-| `model` | `agent-default` | The harness's `MODEL` |
+| `dataClass` | required | `public`: Z.ai and the provider aliases, GitHub egress. `internal`: Claude, read-only clone, no egress profiles, prompt caching |
+| `model` | `agent-default` | The alias the run's model token names; an `internal` run never names a provider alias |
 | `budget.maxTokens` | 2 M (1 … 5 M) | The token cap when the run is not priced |
-| `budget.maxMinutes` | 120 (1 … 480) | The pod's deadline and the TTL of its tokens |
+| `budget.maxMinutes` | 120 (1 … 480) | The pod's deadline and the lifetime of its tokens |
 | `size` | `small` | `small` 1→2 CPU, 2→4 GiB; `medium` ×2; `large` ×4 |
 | `egress.profiles` | `[]` | Package registries on top of GitHub; refused on `internal` |
-| `roomRef` | — | Adds the maku-bridge sidecar (container `room-bridge`) and the room rules |
-| `suspendable` | — | `/workspace` on a PVC, so the run can be suspended |
+| `roomRef` | — | Adds the maku-bridge sidecar (container `room-bridge`), the room rules and the room tools |
 | `loop.checks` | — | Runs the repository's checks in the sandbox: `AGENT_CHECKS=1`, refused on `internal` |
 | `loop.search` | — | The `search` tool for an implementer: `AGENT_SEARCH=1`. Alone, no loop policy |
+| `loop.stallSteps`, `loop.continuations`, `loop.judgeModel` | — | The loop policy, handed to the harness as `AGENT_LOOP` |
 
-## Composition {#composition}
+## Run-controller {#composition}
 
-[`apis/agentrun/kcl/main.k`](https://github.com/Smana/crossplane-configuration/blob/main/apis/agentrun/kcl/main.k)
-turns the claim into the pod. Nothing here is set per run.
+Maku's run-controller, in the broker's `maku` chart (`infrastructure/base/room-broker/helmrelease.yaml`,
+`runController`), turns the `AgentRun` into the pod. Nothing here is set per run.
 
 | Setting | Value |
 |---|---|
-| Harness image | `ghcr.io/smana/maku-harness:v0.32.3@sha256:d6ec677262d10342dee4e8ba53af087e7d6f227502c0cc7c2ecfe4d6636c040e` (the release's image, composed by crossplane-configuration v0.9.32, where the composition pin lives): a harness change reaches runs only through the composition's digest, so the harness roles reach runs with that bump |
-| Environment | `MODEL`, `DATA_CLASS`, `ROLE`, `LLM_BASE_URL`, `MCP_URL`, `TASK_FILE`, `RULES_FILE`, tracing; `AGENT_CHECKS` and `AGENT_RUN_SECONDS` with `loop.checks`; `AGENT_SEARCH` with `loop.search`. `LLM_REASONING_EFFORT` is not set |
+| Harness image | `runController.images.harness`, the Maku release's image pinned by digest: a harness change reaches new runs with the chart's next pin |
+| Environment | `MODEL`, `DATA_CLASS`, `ROLE`, `LLM_BASE_URL` and `LLM_API_KEY_FILE` (the run's gateway token), `GIT_TOKEN_FILE`, `TASK_FILE`, `RULES_FILE`, tracing; `MCP_URL` with a room; `AGENT_CHECKS` and `AGENT_RUN_SECONDS` with `loop.checks`; `AGENT_SEARCH` with `loop.search`; `JUDGE_*` with a judge. `LLM_REASONING_EFFORT` is not set |
 | `rules.md` | One branch, one PR, never `.github/workflows/`, "a 429 means the budget is spent: stop". Each rule is also enforced outside the sandbox |
 | `task.md` | The task text: the biggest driver of a run's length |
-| Egress | `github.com` and its API, codeload, content and release-asset hosts, plus each profile's registries (`golang` includes `dl.google.com`) |
-| Grace period | 30 s, 45 s with a room: checkpoint, final read, stop, revoke |
-| Read-only MCP tools | Flux, VictoriaMetrics and VictoriaLogs reads and the `room_*` tools; any other needs an approval in a room |
+| Egress | Through the egress proxy only: `github.com` and its API, codeload, content and release-asset hosts, the model, plus each profile's registries (`golang` includes `dl.google.com`) |
+| Grace period | 30 s, longer with a room: checkpoint, final read, stop, revoke |
+| MCP tools | The `room_*` tools on the broker's `:8090`, for a run with a room; any write needs an approval in the room |
 
 ## Harness {#harness}
 
 Set in [`agent_run.py`](https://github.com/Smana/maku/blob/main/images/maku-harness/agent_run.py)
 and [`sitecustomize.py`](https://github.com/Smana/maku/blob/main/images/maku-harness/site/sitecustomize.py),
 or left at the [SDK v1.49.6 defaults](https://github.com/OpenHands/software-agent-sdk/tree/v1.49.6/openhands-sdk/openhands/sdk).
-None is a claim field.
+None is an `AgentRun` field.
 
 | Knob | Value | Effect | Status |
 |---|---|---|---|
@@ -183,7 +181,7 @@ None is a claim field.
 | Stuck detection | last 20 events | Ends the run `stuck` on 4 identical cycles, 3 repeated errors or 3 messages with no action | {{< badge content="default" color="green" >}} |
 | Condenser | 80 events, keep first 4 | Summarises history with the same model, on the run's budget | {{< badge content="default" color="green" >}} |
 | Event size | 30,000 chars | A huge output is truncated, not refused | {{< badge content="default" color="green" >}} |
-| Tools | terminal, file editor, task tracker, MCP | No browser; MCP tools filtered per role by the gateway | {{< badge content="default" color="green" >}} |
+| Tools | terminal, file editor, task tracker, MCP | No browser; the only MCP server is the room's | {{< badge content="default" color="green" >}} |
 | `search` | 40 iterations, 300k tokens, 300 s, 6 a run, effort `low`, 8,000 characters back | A read-only child (`grep`, `glob`, `read_file`, `list_directory`) on the run's token; its steps are the run's; ledger `/workspace/.agent-search.jsonl` | {{< badge content="experimental" color="yellow" >}} |
 | Prompt caching | on for `internal` | 85% of input from cache: $0.48 instead of $2.13 | {{< badge content="default" color="green" >}} |
 | `autotitle` | off | Saves a model call per title | {{< badge content="default" color="green" >}} |
@@ -196,5 +194,5 @@ None is a claim field.
 ```promql
 # One run's tokens by model and type, as the meter prices them
 sum by (gen_ai_request_model, gen_ai_token_type) (
-  max_over_time(gen_ai_client_token_usage_sum{ar_agent="system:serviceaccount:agents:xplane-run-<id>"}[1d]))
+  max_over_time(gen_ai_client_token_usage_sum{ar_agent="system:serviceaccount:agents:run-<id>"}[1d]))
 ```

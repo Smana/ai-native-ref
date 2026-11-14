@@ -56,10 +56,10 @@ says what works today, what does not yet, and what it costs.
 
 | Part | What it does |
 |---|---|
-| **Agent Factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory. The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts, RunLore and others); [Maku](https://github.com/Smana/maku) is one of them: the controller, rooms, harness and bridge, the Slack app and the `maku` CLI |
-| **Sandboxed runtime** | One gVisor pod per run, with a default-deny network policy, egress only to the hosts its profile allows, and a short-lived GitHub token scoped to its own branch |
-| **Rooms** | The append-only log of each task: watch, post, steer, approve, with approval deadlines and suspend while a person decides |
-| **Agent gateway** | Every model and tool call of a run goes through [agentgateway](https://agentgateway.dev): it checks the run's identity, enforces token budgets per run, fleet and provider, and routes to the model its tier names |
+| **Agent Factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory. The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, RunLore and others); [Maku](https://github.com/Smana/maku) is one of them: the controller, rooms, run-controller, harness and bridge, the Slack app and the `maku` CLI |
+| **Sandboxed runtime** | One gVisor pod per run from Maku's run-controller, with a default-deny network policy, egress only through a proxy to the hosts its profile allows, and a short-lived GitHub token the factory mints for that run |
+| **Rooms** | The append-only log of each task: watch, post, steer, approve, with approval deadlines |
+| **Model gateway** | Every model call of a run goes through [agentgateway](https://agentgateway.dev): it checks the run's identity, enforces token budgets per run, fleet and provider, and routes to the one model the run's token names |
 | **Merge gate** | A policy bot and a merger App: a change class merges alone only with green CI, the head pinned to the commit it decided on, a daily cap, and a revert breaker |
 | **Model serving** (off by default) | [vLLM](https://github.com/vllm-project/vllm) on L4 GPUs behind Envoy AI Gateway, one Crossplane claim per model, for OpenCode, Continue and OpenWebUI |
 | **Observability** | Traces, step logs, token and cost metrics, budget alerts, and fleet and per-run dashboards |
@@ -73,9 +73,8 @@ flowchart LR
   factory --> room["Room<br/>watch · steer · approve"]
   human(["Maintainer"]) <--> room
   run <--> room
-  run -->|"every call, per-run token"| gw["Agent gateway<br/>identity · budgets · routing"]
+  run -->|"every model call, per-run token"| gw["Model gateway<br/>identity · budgets · routing"]
   gw --> models["Models<br/>GLM, Claude"]
-  gw --> tools["MCP tools"]
   run --> pr["Pull request"] --> review["Reviewer agent"] --> gate{"Merge gate"}
   gate -->|"proven class, green CI,<br/>daily cap"| merged["Merged"]
   gate -->|"otherwise"| human
@@ -99,8 +98,8 @@ Sources and the full record: [status](https://airef.ogenki.io/docs/status/),
 ## Status and roadmap
 
 **v3 is released** ([v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0)). `main` runs
-Maku v0.38.0 for the broker, the factory and the Slack app (CRD group `maku.ogenki.io`), with the harness
-and bridge on v0.32.3 through crossplane-configuration v0.9.32. v3 aims at more accepted pull requests per dollar by shaping the task, not
+Maku v0.48.0 for every component (CRD group `maku.ogenki.io`): the broker and its run-controller, the
+harness and bridge, the factory, the model gateway and the Slack app. v3 aims at more accepted pull requests per dollar by shaping the task, not
 by changing the model. A scoper bounds each issue or asks its author; a test-first tester writes the
 contract; the implementer runs the repository's checks in the sandbox and asks a read-only search
 tool; a completion judge reads the result against its checks; a splitter proposes parts for a task

@@ -29,7 +29,7 @@ Dollar figures on this page are examples from the reference host, at the list pr
 | Piece | Built? | Source |
 |---|---|---|
 | Agent model per data class (`public` → Z.ai, `internal` → Anthropic) | Yes, on by default | [ADR-0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}) |
-| `tier-light`, `tier-standard`, `tier-frontier` served by the agent gateway | Yes. No factory tier asks for them: every tier names `agent-default` | `llm.yaml`, `anthropic.yaml`, factory values |
+| `tier-light`, `tier-standard`, `tier-frontier` served by the model gateway | Yes. No factory tier asks for them: every tier names `agent-default` | `model-gateway/helmrelease.yaml`, factory values |
 | `kimi-frontier`, `mistral-standard`, `mistral-light` on the `public` listener | Yes, public data only, selectable per class with `loops.<class>.models`, which no class sets by default | [Providers]({{< relref "/docs/how-it-works/providers.md" >}}) |
 | Triage classifier (`complexity-classifier`) | No. The URL is configured and nothing answers it, so every task falls back to `standard` with `classifier: static` | factory values, `Task` status |
 | 10% control group at `frontier` (`triage.controlPercent`) | Yes | `Task` status |
@@ -58,13 +58,13 @@ flowchart TB
     AR -->|"other xplane-*"| V["vLLM Service"]
     CAN --> V
   end
-  subgraph agent["Agent runs: agentgateway agent-router"]
+  subgraph agent["Agent runs: agentgateway model-gateway"]
     I["Issue labelled factory/ready"] --> T{"4 · Triage, once per task<br/>tier and template"}
     T --> R{"5 · Role<br/>reviewer takes the other tier"}
     R -->|"tiers.tier.model or reviewerModel"| N["Logical name<br/>agent-default, tier-*"]
     N --> D{"6 · Data class<br/>audience picks the listener"}
-    D -->|"public :8080"| AL1{"7 · modelAliases"}
-    D -->|"internal :8081"| AL2{"7 · modelAliases"}
+    D -->|"public :8080"| AL1{"7 · aliases"}
+    D -->|"internal :8081"| AL2{"7 · aliases"}
     AL1 --> ZAI2["Z.ai glm-5.3, flashx, flash"]
     AL2 --> ANT["Anthropic opus-5-5, sonnet-5-5, haiku-5-5"]
   end
@@ -78,7 +78,7 @@ flowchart TB
 | 4 | A task's tier and template | Factory triage | Once, in `Received` | The classifier's tier (static fallback today), the class, `controlPercent` | The `Factory`, `tooling/base/agent-factory/resources/factory.yaml` |
 | 5 | The model name a role asks for | The factory | Per run | Tier, role, template | same file: `tiers`, `templates.<name>.reviewerModel` |
 | 6 | Which provider may see the data | The run's token audience | Per run, fixed | `spec.dataClass` | the task (`investigate` forces `internal`) |
-| 7 | Which provider model a name means | `modelAliases` on the backend | Per request, static | The name | `infrastructure/base/agent-gateway/llm.yaml`, `infrastructure/base/agent-gateway/anthropic.yaml` |
+| 7 | Which provider model a name means | The alias's backend, which forces the model | Per request, static | The alias the run's token names | `aliases` in `infrastructure/base/agent-gateway/model-gateway/helmrelease.yaml` |
 
 Decisions 4–7 are pinned by design: every name maps to one model at weight 100, with no fallback
 and no canary, so nothing re-routes a run mid-trajectory. Escalation is a new run at another tier,
@@ -195,8 +195,8 @@ flowchart TB
   tpl -->|"solo, or the reviewer's tier"| model
 ```
 
-The aliases, identical on both Z.ai backends and mirrored on Anthropic's
-(`infrastructure/base/agent-gateway/llm.yaml`):
+The aliases, per listener of the model gateway
+(`aliases` in `infrastructure/base/agent-gateway/model-gateway/helmrelease.yaml`):
 
 | Name | `public` (Z.ai) | `internal` (Anthropic) |
 |---|---|---|
@@ -205,9 +205,8 @@ The aliases, identical on both Z.ai backends and mirrored on Anthropic's
 | `tier-frontier` | `glm-5.3` | `claude-opus-5-5` |
 | `agent-default` | `glm-5.3` | `claude-opus-5-5` |
 
-Any other name is refused 403 by the profile's model rule (`policy-capabilities.yaml`) before an
-upstream call; the transformation's 400 stays behind it. A run can still ask for any of the four names in its class: the budgets bound what
-that costs.
+A run reaches only the alias its token names: any other is refused 403 before an upstream call. The
+factory picks the alias, and the budgets bound what it costs.
 
 ### Why every tier still asks for `agent-default`
 
@@ -497,19 +496,20 @@ without a restart ([factory configuration]({{< relref "/docs/reference/factory-c
 ```yaml
 # tooling/base/agent-factory/resources/factory.yaml, spec
 tiers:
-  # tier-light is glm-5.3-flash on public, claude-haiku-5-5 on internal (llm.yaml, anthropic.yaml);
+  # tier-light is glm-5.3-flash on public, claude-haiku-5-5 on internal (model-gateway's aliases);
   # both are priced in meter.prices, so the USD caps keep working.
   light: {model: tier-light, runTokens: 300000, taskTokens: 600000, runMinutes: 20, runUSD: 0.51, taskUSD: 1.02}
 ```
 
 Do it with a measurement in place: run a cohort on the tier with fixed-tier arms, and compare accepted outcomes and USD per accepted outcome.
 
-**Change a provider model behind a name** (both Z.ai backends, and the gate's price row):
+**Change a provider model behind a name** (the alias, and its price row):
 
 ```yaml
-# infrastructure/base/agent-gateway/llm.yaml, on zai and zai-anthropic
-modelAliases:
-  tier-standard: glm-5.3-flashx   # a new model here needs its meter.prices row, or the CI gateway check fails
+# infrastructure/base/agent-gateway/model-gateway/helmrelease.yaml, values
+aliases:
+  public:
+    tier-standard: {provider: zai, model: glm-5.3-flashx}   # a new model needs its price row in modelCatalog and meter.prices
 ```
 
 In-flight runs see a mapping change on their next request. Use the factory's pause first when that

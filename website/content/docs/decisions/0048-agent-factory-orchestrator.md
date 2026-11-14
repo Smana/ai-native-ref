@@ -6,7 +6,8 @@ description: The dark factory's orchestrator is a small Go controller reconcilin
 lastVerified: 2026-10-01
 ---
 
-**Status**: Accepted
+**Status**: Accepted; partly superseded
+**Partly superseded** (2026-11-14): Kueue admission. Since R3, a `ResourceQuota` on the runs' namespace, from Maku's chart, bounds the runs. The custom Task controller stands.
 **Date**: 2026-09-27
 **Deciders**: Smana
 **Related Spec**: [SP3 dark factory](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md)

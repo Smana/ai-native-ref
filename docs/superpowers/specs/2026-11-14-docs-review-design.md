@@ -10,11 +10,18 @@ page moves.
 
 | Corpus | Today (words) | Target |
 |---|---|---|
-| Maku `README.md` + `docs/*.md` | 176,976 | about 132,000 |
-| of which guides (not reference) | about 118,000 | about 75,000 |
+| Maku `README.md` + `docs/*.md` | 176,976 | about 136,000 |
+| of which tutorial, how-to, explanation and operations pages | about 129,000 | about 46,000 |
+| of which reference (typed so by the ceilings table) | about 48,000 | about 86,000 |
 | ANR site (`website/content`) | 85,026 | about 63,500 |
 | ANR `README.md` | 2,064 | 900 |
 | ANR runbooks (`docs/runbooks/agent-factory/`) | 65,025 | unchanged, minus the README's "State" section |
+
+The Maku rows are sums of the target-pages table. Reference today is `api.md`, `event-envelope.md`,
+`room-log.md`, `upgrading.md` and the seven seam pages. The reference grows because the splits
+move tables out of guides: about 18,000 words from `factory.md`, 7,000 from `cli.md`, 5,500 from
+`security.md`, 4,500 from `slack.md`, 4,000 from `merge-policies.md`, 3,500 from `web-ui.md`. The
+remaining 4,000 are `docs/contributing/`; 6,578 leave for `docs/superpowers/`.
 
 ## The ownership rule (DOC1)
 
@@ -138,7 +145,7 @@ Readers: E evaluator, N new user, R repository onboarder, O operator, C contribu
 | `factory.md` | 36,455 | Triggers, a task's life, budgets, the kill switch | 4,000 | R |
 | `hardening.md`, `multi-repository.md` | — | Split from `factory.md` | 3,000, 1,500 | O, R |
 | `merge-policies.md` | 10,089 | Whole, defect fixes only, until release N+1; then dissolved into the two pages above and reference | — | — |
-| `reference/` | — | The CRDs, config, policy fields, gate reasons and settings from the splits; `api.md`, `event-envelope.md`, `room-log.md` and every command moved in | about 52,000 | C, O |
+| `reference/` | — | The CRDs, config, policy fields, gate reasons and settings from the splits; `api.md`, `event-envelope.md`, `room-log.md` and every command moved in | about 66,000 | C, O |
 | `cli.md` | 8,647 | How-to: install, configure, the daily commands | 1,500 | N |
 | `web-ui.md`, `slack.md`, `github-link.md` | 13,707 | Host wording out; `web-ui.md` and `slack.md` each a guide plus reference settings | 3 × 1,500 + reference | N, O |
 | `install.md` | 2,350 | One "from zero" order diagram; detail to the seam pages | 1,500 | O |

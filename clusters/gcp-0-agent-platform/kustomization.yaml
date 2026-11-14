@@ -21,6 +21,7 @@ resources:
   - infrastructure-room-broker-suspend.yaml
   - infrastructure-kueue.yaml
   - infrastructure-agents-headroom.yaml
+  - tooling-agent-factory-crds.yaml
   - tooling-agent-factory.yaml
   - tooling-agent-factory-resources.yaml
   - tooling-factory-slack-app.yaml

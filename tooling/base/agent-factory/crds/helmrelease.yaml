@@ -1,0 +1,21 @@
+# The CRDs as chart templates, which Helm upgrades (Helm never upgrades a chart's crds/). Deleting a
+# CRD deletes every object of its kind, so nothing here may ever delete one:
+# - keep: true renders helm.sh/resource-policy: keep on every CRD, so an uninstall, a failed
+#   install's cleanup or a pruned HelmRelease leaves them. Set here so a chart default cannot drop it.
+# - No remediation: a failed install or upgrade stays failed for a human, never uninstalls or rolls back.
+# - The release name and namespace are what each existing CRD must carry for Helm to adopt it
+#   (meta.helm.sh/release-name, meta.helm.sh/release-namespace): runbook 26.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: agent-factory-crds
+  namespace: agent-system
+spec:
+  interval: 30m
+  releaseName: agent-factory-crds
+  chartRef:
+    kind: OCIRepository
+    name: agent-factory-crds
+    namespace: agent-system
+  values:
+    keep: true

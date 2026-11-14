@@ -16,8 +16,8 @@ spec:
     kind: OCIRepository
     name: maku
     namespace: agent-system
-  # The Room CRD stays crd-rooms.yaml's, and the chart's maku.ogenki.io AgentRun CRD is for its own
-  # run-controller (off): Helm installs neither. No take-ownership: an object the cut-over left in
+  # The Room and AgentRun CRDs are agent-factory-crds' (crd-rooms.yaml hands Rooms over): this
+  # chart's crds/ copies are skipped, so Helm installs neither here and two releases never own one. No take-ownership: an object the cut-over left in
   # place fails the install by name instead of being adopted and then pruned by Flux.
   install:
     crds: Skip

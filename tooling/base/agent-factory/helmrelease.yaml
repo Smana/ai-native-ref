@@ -15,12 +15,14 @@ spec:
     kind: OCIRepository
     name: agent-factory
     namespace: agent-system
-  # The Task CRD ships in the chart's crds/, which Helm alone never upgrades.
+  # The chart's crds/ are skipped: agent-factory-crds installs and upgrades every maku.ogenki.io
+  # CRD (tooling/base/agent-factory/crds), and a second owner replacing them would strip its
+  # ownership metadata. Skip never deletes a CRD.
   install:
-    crds: Create
+    crds: Skip
     remediation: {retries: 3}
   upgrade:
-    crds: CreateReplace
+    crds: Skip
     remediation: {retries: 3, remediateLastFailure: true}
   valuesFrom:
     - kind: ConfigMap

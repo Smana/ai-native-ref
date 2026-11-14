@@ -24,8 +24,9 @@ no gVisor RuntimeClass child here (GP-9).
 | `kueue` | `infrastructure/gcp-0/kueue` | Kueue controller: admits sandbox pods by integration, pod-only, `agents` namespace only (SP3) |
 | `kueue-queues` | `infrastructure/base/kueue-queues` | ResourceFlavor, the `agents-factory`/`agents-interactive` ClusterQueues and their LocalQueues (SP3) |
 | `agents-headroom` | `infrastructure/base/karpenter-nodepools-agents/headroom` | One preemptible pod keeping a warm `agents-gvisor` node with the run images pulled. Off by default (`replicas: 0`); on, it holds one `e2-standard-8` up |
-| `agent-factory` | `tooling/gcp-0/agent-factory` | The factory: Task CRD and controller, issue intake, run meter (SP3) |
-| `agent-factory-resources` | `tooling/gcp-0/agent-factory/resources` | The factory's `Factory`, `Repository` and `MergePolicy` objects: its catalogue, repositories and merge policies, read live. No `dependsOn`: the CRDs come with the factory's chart, and the factory waits, not Ready, until these exist |
+| `agent-factory-crds` | `tooling/base/agent-factory/crds` | The six `maku.ogenki.io` CRDs (Rooms, AgentRuns, Tasks, Factories, Repositories, MergePolicies) from the `agent-factory-crds` chart, `helm.sh/resource-policy: keep`. Adopting existing CRDs: [runbook 26](../../docs/runbooks/agent-factory/26-crds-adoption.md) |
+| `agent-factory` | `tooling/gcp-0/agent-factory` | The factory: controller, issue intake, run meter (SP3) |
+| `agent-factory-resources` | `tooling/gcp-0/agent-factory/resources` | The factory's `Factory`, `Repository` and `MergePolicy` objects: its catalogue, repositories and merge policies, read live. After `agent-factory-crds`; the factory waits, not Ready, until these exist |
 | `tooling-factory-slack-app` | `tooling/gcp-0/agent-factory/slack-app` | `maku-slack`, the Slack App, with gcp-0's team and channels (runbooks 18, 22) |
 | `policy-bot` | `tooling/gcp-0/policy-bot` | The merge gate: policy-bot, its public hook and tailnet UI (SP3, ADR-0045) |
 | `agent-observability` | `observability/gcp-0/agent-platform` | VMRules, the Agents folder's dashboards (overview, fleet, factory, gateway, identity, room, run) and the agent trace collector |

@@ -1,0 +1,22 @@
+# The CRDs' signed chart. Beside its HelmRelease, as agentgateway-crds is: no other child reads it.
+# Same Maku release as agent-factory's chart (test-agent-factory-pins.py): bump both together.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: agent-factory-crds
+  namespace: agent-system
+spec:
+  interval: 12h
+  url: oci://ghcr.io/smana/charts/agent-factory-crds
+  # Flux pulls the digest (it wins over the tag). The tag stays for Renovate and for readers.
+  ref:
+    tag: "0.47.0"  # maku v0.47.0
+    digest: sha256:e9de07426c138a7623176e526f2d25534bcc4c23faa622ccb5d138cbae6871eb
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+      - issuer: "^https://token\\.actions\\.githubusercontent\\.com$"
+        subject: "^https://github\\.com/Smana/maku/\\.github/workflows/release\\.yaml@refs/tags/v.*$"

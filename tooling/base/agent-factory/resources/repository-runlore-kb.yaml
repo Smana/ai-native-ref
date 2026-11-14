@@ -15,7 +15,7 @@ spec:
   merge:
     requiredChecks: [validate, leak-scan]
     verifyChecks: [validate, leak-scan]
-    autoMergesPerDay: 5
+    maxPerDay: 5
     fixRuns: 1
     checkReruns: 0
     # K12: the knowledge base is public text with secret redaction at each tool output (RK13).

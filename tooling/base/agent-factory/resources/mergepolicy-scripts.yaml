@@ -1,7 +1,7 @@
 # A class definition (Maku reusable merge policies, B1): the object's name is the class name, and a
 # Repository binds it under spec.mergePolicies with its own mode and parameters. Read live; a
 # refused edit keeps the last accepted generation serving every consumer.
-# Run-only (Q7): bound off. TO4: the bench's variant turns testFirst on; it needs checks: true (R17).
+# Run-only (Q7): bound disabled. TO4: the bench's variant turns testFirst on; it needs checks: true (R17).
 apiVersion: maku.ogenki.io/v1alpha1
 kind: MergePolicy
 metadata:

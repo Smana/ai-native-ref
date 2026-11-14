@@ -72,7 +72,7 @@ flowchart TB
 | 7 | The commit's trailer names one of the task's runs | `foreign_trailer` |
 | 8 | The class's limits: allowed and protected files, modify-only, files and lines, diff shape, holdout checks, oracle | `file_not_allowed`, `file_protected`, `file_added_or_deleted`, `patch_too_large`, `class_mismatch`, `holdout_red`, `oracle_finding_open`, `oracle_unrequested` |
 | 9 | A live class: the breaker has not paused it | `class_paused` |
-| 10 | A live class: under `merge.autoMergesPerDay` and the class's `maxPerDay` | `auto_merge_cap` |
+| 10 | A live class: under `merge.maxPerDay` and the class's `maxPerDay` | `auto_merge_cap` |
 | 11 | The class is `live` | `shadow_would_arm`: the decision is posted, nothing merges |
 | 12 | Every push to the branch was the agents' App's | `human_commit_in_pr` |
 
@@ -88,7 +88,7 @@ Example (the reference host), from each repository's `Repository` merge rules, `
 | Setting | cloud-native-ref | ai-native-ref |
 |---|---|---|
 | `requiredChecks` | The 4 contexts of `main`'s protection | `validate`, `lint` |
-| <span id="caps"></span>`autoMergesPerDay` | 1 | 2 |
+| <span id="caps"></span>`maxPerDay` | 1 | 2 |
 | `fixRuns` | 2 | 1 |
 | `verifyFor` · `revertWindow` | 30 min · 168 h | 30 min · 168 h |
 | `approveToMerge` | `true` | `true` |

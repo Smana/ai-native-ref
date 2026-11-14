@@ -1,6 +1,15 @@
 {
   "Smana/ai-native-ref": {
-    "dashboards": {},
+    "dashboards": {
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
+      "maxPerDay": 5
+    },
     "dead-links": {
       "shadow": true,
       "allowedFiles": [
@@ -8,9 +17,13 @@
       ],
       "protectedFiles": [
         "^docs/(superpowers|specs)/",
-        "^website/content/docs/decisions/"
+        "^website/content/docs/decisions/",
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
       ],
       "modifyOnly": true,
+      "maxPatchFiles": 10,
       "maxModifiedLines": 20,
       "diffShape": "links-only",
       "holdoutChecks": [
@@ -28,22 +41,64 @@
       }
     },
     "docs": {
-      "checks": true
+      "checks": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
+      "maxPerDay": 5
     },
     "docs-links": {
       "shadow": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
       "holdoutChecks": [
         "validate"
-      ]
+      ],
+      "maxPerDay": 5
     },
     "revert": {
       "shadow": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
       "holdoutChecks": [
         "validate"
-      ]
+      ],
+      "maxPerDay": 5
     },
-    "scripts": {},
-    "tests": {}
+    "scripts": {
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
+      "maxPerDay": 5
+    },
+    "tests": {
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
+      "maxPerDay": 5
+    }
   },
   "Smana/cloud-native-ref": {
     "alert-rules": {
@@ -51,6 +106,14 @@
       "allowedFiles": [
         "^observability/.+\\.ya?ml$"
       ],
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
+      "maxPerDay": 5,
       "monitor": {
         "verification": {
           "within": "2h0m0s"
@@ -58,7 +121,16 @@
         "followUpWindow": "2h0m0s"
       }
     },
-    "dashboards": {},
+    "dashboards": {
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
+      "maxPerDay": 5
+    },
     "dead-links": {
       "shadow": true,
       "allowedFiles": [
@@ -66,9 +138,13 @@
       ],
       "protectedFiles": [
         "^docs/(superpowers|specs)/",
-        "^website/content/docs/decisions/"
+        "^website/content/docs/decisions/",
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
       ],
       "modifyOnly": true,
+      "maxPatchFiles": 10,
       "maxModifiedLines": 20,
       "diffShape": "links-only",
       "holdoutChecks": [
@@ -96,12 +172,16 @@
         "^flux/sources/helmrepo-zitadel\\.yaml$",
         "^infrastructure/base/crossplane/configuration-core/",
         "^flux/sources/gitrepo-gateway-api\\.yaml$",
-        "^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\\.yaml$"
+        "^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\\.yaml$",
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
       ],
       "modifyOnly": true,
       "maxPatchFiles": 3,
       "maxModifiedLines": 10,
       "diffShape": "semver-minor",
+      "maxPerDay": 5,
       "monitor": {
         "flux": {
           "source": "flux-system/flux-system",
@@ -132,7 +212,10 @@
         "^flux/sources/helmrepo-zitadel\\.yaml$",
         "^infrastructure/base/crossplane/configuration-core/",
         "^flux/sources/gitrepo-gateway-api\\.yaml$",
-        "^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\\.yaml$"
+        "^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\\.yaml$",
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
       ],
       "modifyOnly": true,
       "maxPatchFiles": 3,
@@ -159,50 +242,123 @@
       "releaseAgeCheck": "renovate/stability-days"
     },
     "docs": {
-      "checks": true
+      "checks": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
+      "maxPerDay": 5
     },
     "docs-links": {
       "live": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
       "holdoutChecks": [
         "Check the documentation links 🔗"
-      ]
+      ],
+      "maxPerDay": 5
     },
     "revert": {
       "live": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
       "holdoutChecks": [
         "Check the documentation links 🔗"
-      ]
+      ],
+      "maxPerDay": 5
     },
     "review": {},
-    "scripts": {},
-    "tests": {}
+    "scripts": {
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
+      "maxPerDay": 5
+    },
+    "tests": {
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
+      "maxPerDay": 5
+    }
   },
   "Smana/runlore": {
     "docs-links": {
       "shadow": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
       "holdoutChecks": [
         "build"
-      ]
+      ],
+      "maxPerDay": 5
     },
     "revert": {
       "shadow": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
       "holdoutChecks": [
         "build"
-      ]
+      ],
+      "maxPerDay": 5
     }
   },
   "Smana/runlore-kb": {
     "docs-links": {
       "shadow": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
       "holdoutChecks": [
         "validate"
-      ]
+      ],
+      "maxPerDay": 5
     },
     "kb-entries": {
       "shadow": true,
       "allowedFiles": [
         "^incidents/[^/]+\\.md$"
       ],
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
       "diffShape": "added-entry",
       "holdoutChecks": [
         "validate"
@@ -226,9 +382,17 @@
     },
     "revert": {
       "shadow": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 300,
       "holdoutChecks": [
         "validate"
-      ]
+      ],
+      "maxPerDay": 5
     }
   }
 }

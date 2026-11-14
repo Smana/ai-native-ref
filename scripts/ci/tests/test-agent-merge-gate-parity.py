@@ -14,6 +14,10 @@ independent second check policy-bot evaluates:
 A class with no rule may not be live. docs-links and revert declare none of the four: their fence
 is the policy's alone, as before the vocabulary. The host's .policy.yml is the composite's; this
 repository's is the working directory's (run-tests.sh runs this from .composite/).
+
+The classes are read without Maku's guardrail defaults (v0.50.0: `.github/`, `.policy.yml`, `CODEOWNERS`
+and the 10/300/5 caps on every class): those are the factory's fence on every class, not a class's
+declaration, so they have no `low-risk:` counterpart. The gate list already holds the first two.
 """
 import copy
 import json
@@ -76,7 +80,7 @@ def check(repo, classes, policy):
 
 sys.path.insert(0, str(HOST / "scripts/ci"))
 import factory_config  # noqa: E402  the values file with the Factory, Repository and MergePolicy objects over it
-config = factory_config.config(HOST)
+config = factory_config.config(HOST, defaults=False)
 fails = []
 for r in config["repositories"]:
     # A repository whose policy file is not in this tree has its fence checked by that repository's

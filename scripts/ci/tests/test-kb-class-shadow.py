@@ -40,7 +40,7 @@ m = kb["merge"]
 check("the merge block the factory's validation needs",
       kb["triggerLabel"] == "factory/ready" and m["requiredChecks"] == ["validate", "leak-scan"]
       and m["verifyChecks"] == ["validate", "leak-scan"]
-      and m["leakScanCheck"] == "leak-scan" and m["approveToMerge"] is True and m["autoMergesPerDay"] == 5
+      and m["leakScanCheck"] == "leak-scan" and m["approveToMerge"] is True and m["maxPerDay"] == 5
       and m["breaker"] == {"window": 10, "maxReverts": 1, "maxFollowUps": 1, "recoverAfter": 3})
 print(f"==> kb-entries shadow: {len(fails)} problem(s)")
 sys.exit(1 if fails else 0)

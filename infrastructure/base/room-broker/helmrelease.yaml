@@ -139,6 +139,21 @@ spec:
       roomTools:
         enabled: true
         auth: tokenreview
+        # RunLore's knowledge base for triager runs (Maku EX11), as config.yaml's roomTools.knowledge.
+        # The chart's NetworkPolicy opens the broker's egress to RunLore's pods on 8080; network-policy.yaml
+        # says the same, and RunLore's ingress admits room-broker (host contract H8).
+        knowledge:
+          url: http://runlore.runlore.svc.cluster.local:8080/mcp
+          tools: [kb_search, kb_get]
+          roles: [triager]
+          networkPolicy:
+            to:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: runlore
+                podSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: runlore
       # The planner's model call (v4 step 4, ANR follow-up 3): model-gateway's clients listener, with a
       # projected token per client (audience maku-gateway.client.planner, 3600 s, re-read at each call),
       # mounted at /var/run/secrets/maku/model-gateway. config.yaml's human.intake.plan names that URL and

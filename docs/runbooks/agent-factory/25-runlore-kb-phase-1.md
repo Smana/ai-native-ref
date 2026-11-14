@@ -166,12 +166,13 @@ Wait for RunLore's finding, publish the stub (`factory/publish`), and merge the 
 - Repeats of the alert inside this window file nothing. RunLore still investigates each repeat, which is spend,
   and logs "a generation is undecided; filing nothing for this re-detection". No second task and no second
   stub appear. A second stub during this check is a failure of that rule, not a new generation.
-- The internal triager's run names `runlore-kb_kb_search`. Runs live in the `agents` namespace
-  (`run-*`): read the triager's pod log (`kubectl -n agents logs <pod>`) for the `agent-run tools:` line,
-  or the run's transcript. This proves the tool was listed to the triager, not that it read an entry.
-  Since R3 a run's only MCP server is the broker's room tools: `runlore-kb` reached the triager through
-  `agent-router`'s federation, which runs no longer call, and the broker's knowledge tool
-  (`broker.roomTools.knowledge` in the `maku` chart) is not configured. Until it is, expect this check to fail.
+- The internal triager's run lists `kb_search` (`room-broker__kb_search` in the bridge's tool events).
+  Runs live in the `agents` namespace (`run-*`): read the triager's pod log (`kubectl -n agents logs <pod>`)
+  for the `agent-run tools:` line, or the run's transcript. Since R3 a run's only MCP server is the
+  broker's room tools, so the broker forwards `kb_search` and `kb_get` to RunLore's `/mcp`
+  (`roomTools.knowledge` in `infrastructure/*/room-broker/config.yaml`, triager runs only). A call shows on
+  `maku_rooms_knowledge_calls_total{tool="kb_search"}`; `outcome="ok"` proves the triager read the
+  knowledge base, `upstream_error` or `timeout` that RunLore or the broker's egress to it is down.
 
 ## 4. Live 3: a second generation
 

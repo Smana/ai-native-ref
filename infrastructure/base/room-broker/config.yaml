@@ -20,6 +20,14 @@ runIssuers:
 roomTools:
   enabled: true
   auth: tokenreview
+  # RunLore's knowledge base for runs (Maku EX11): :8090 forwards kb_search and kb_get to RunLore's
+  # read-only /mcp, for triager runs only (RunLore's investigate tasks). It replaces runlore-kb through
+  # agent-router's federation, which R3's runs no longer call. The HelmRelease's
+  # broker.roomTools.knowledge says the same and opens the egress: test-room-broker-knowledge.py.
+  knowledge:
+    url: http://runlore.runlore.svc.cluster.local:8080/mcp
+    tools: [kb_search, kb_get]
+    roles: [triager]
 # System callers present audience rooms-system (ruling P3).
 systemIssuer:
   issuer: ${oidc_issuer_url}

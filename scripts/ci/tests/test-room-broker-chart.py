@@ -70,9 +70,10 @@ for cloud in ("aws-0", "gcp-0"):
     config_vols = [v for v in pod["volumes"] if v.get("configMap")]
     image = release["spec"]["values"]["broker"]["image"]
     checks = {
-        "no Namespace, CNP, Certificate or RuntimeClass, and the run-controller's ConfigMap alone": not {
+        # The preflight's config (Maku v0.49.0, preflight on by default) is the other ConfigMap.
+        "no Namespace, CNP, Certificate or RuntimeClass, and the run-controller's and the preflight's ConfigMaps alone": not {
             k for k in kinds if k[0] in ("Namespace", "CiliumNetworkPolicy", "Certificate", "RuntimeClass")}
-            and sorted(k[1] for k in kinds if k[0] == "ConfigMap") == ["run-controller-config"],
+            and sorted(k[1] for k in kinds if k[0] == "ConfigMap") == ["room-broker-preflight", "run-controller-config"],
         "the run-controller and the egress proxy run": {("Deployment", "run-controller"),
                                                         ("Deployment", "egress-proxy")} <= kinds,
         "in agents, the three Roles and RoleBindings, the default-deny and the quota": sorted(

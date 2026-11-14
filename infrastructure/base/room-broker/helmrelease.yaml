@@ -17,9 +17,10 @@ spec:
     kind: OCIRepository
     name: maku
     namespace: agent-system
-  # The Room and AgentRun CRDs are agent-factory-crds' (crd-rooms.yaml hands Rooms over): this
-  # chart's crds/ copies are skipped, so Helm installs neither here and two releases never own one. No take-ownership: an object the cut-over left in
-  # place fails the install by name instead of being adopted and then pruned by Flux.
+  # The Room and AgentRun CRDs are agent-factory-crds' (crd-rooms.yaml hands Rooms over). Since Maku
+  # v0.49.0 this chart ships no crds/, so Skip is a no-op kept as a guard: two releases never own one.
+  # No take-ownership: an object the cut-over left in place fails the install by name instead of
+  # being adopted and then pruned by Flux.
   install:
     crds: Skip
     disableTakeOwnership: true
@@ -66,17 +67,17 @@ spec:
       namespaces: [agents]
     runController:
       enabled: true
-      # maku v0.48.0, by digest, as the broker's image.
+      # maku v0.49.0, by digest, as the broker's image.
       image:
         repository: ghcr.io/smana/maku-run-controller
-        tag: "v0.48.0@sha256:92d0f52f6119198ee54046e54a539de7cc5d65e50a47f027e0dc76125e01dc7d"
+        tag: "v0.49.0@sha256:d6fd8f965241d45f2f8fc788021a18a7a2a980e4c0450d94ec55f0714811f49d"
       images:
         harness:
           repository: ghcr.io/smana/maku-harness
-          tag: "v0.48.0@sha256:65c834e3b8d2fbc8f334e4a19f52491f1286edb6e05a8a716625de6faea59965"
+          tag: "v0.49.0@sha256:cd9035f26604edfef4085ee10b00eb113805f936a49767b3989ef6d271ddc059"
         bridge:
           repository: ghcr.io/smana/maku-bridge
-          tag: "v0.48.0@sha256:057c6755d2bfd00f8ffd3cf640f6a721d32c582380dc5affe475beb0fe5fd5d1"
+          tag: "v0.49.0@sha256:64aa50f9d229799027ff8e341a2a933721d25b57dbc88cfaa54a94faa1c1b867"
       # Runs call the model gateway (agent-gateway/model-gateway, the maku-gateway release) with their
       # own projected token: no provider key in agents. The aliases are that release's aliases.
       model:
@@ -88,9 +89,8 @@ spec:
             public: [agent-default, tier-light, tier-standard, tier-frontier, kimi-frontier, mistral-standard, mistral-light]
             internal: [agent-default, tier-light, tier-standard, tier-frontier]
       # Each run mounts its own <run>-git Secret, minted by the factory from the agents App
-      # (runTokens.perRun in the factory's values): no shared token Secret to read.
-      gitTokens: perRun
-      gitReadSecret: ""
+      # (runTokens.perRun in the factory's values): Maku v0.49.0 removed the shared token and its keys
+      # (gitTokens, gitReadSecret), so per-run is the only mode.
       # Each run's span, under its task's trace, to the collector's OTLP/HTTP port, which admits run pods.
       tracing:
         otlpEndpoint: http://agent-traces-collector.observability.svc.cluster.local:4318
@@ -100,9 +100,9 @@ spec:
     broker:
       image:
         repository: ghcr.io/smana/maku-broker
-        # maku v0.48.0, by digest. Move it with ocirepository.yaml (the chart), crd-rooms.yaml and
+        # maku v0.49.0, by digest. Move it with ocirepository.yaml (the chart), crd-rooms.yaml and
         # sqlinstance.yaml's atlasSchema.ref together.
-        tag: "v0.48.0@sha256:166e4128c64b3f7602cf841d38231b25f0c0dab71154b32f5a93d20303a4b394"
+        tag: "v0.49.0@sha256:203421eee0857590abee0ce1748d3ec91be7f61dd248695a6b32a3f0d3ad89ef"
       # Two (§9): the leader lease picks the controller, and every replica serves humans through the
       # LISTEN/NOTIFY hub (ruling AT). pdb.yaml keeps one through a drain.
       replicas: 2
@@ -117,8 +117,9 @@ spec:
       factoryURL: http://agent-factory.agent-system.svc.cluster.local:8082
       factoryInsecure: true
       # The composition's roles (step 5 follow-up 4). The owner's DSN turns on the migrate init
-      # container: its first run adopts the Atlas operator's ledger, and maku_rooms_schema_unverified
-      # drops to 0. Its Secret is the database owner's (xplane-rooms-cnpg-rooms, user rooms_owner).
+      # container: it adopts the Atlas operator's ledger and grants rooms_broker its read, which Maku
+      # v0.49.0's broker requires at start (an unreadable ledger is refused). Its Secret is the
+      # database owner's (xplane-rooms-cnpg-rooms, user rooms_owner).
       database:
         ownerSecret: xplane-rooms-cnpg-rooms  # pragma: allowlist secret
         brokerSecret: xplane-rooms-cnpg-role-rooms-broker  # pragma: allowlist secret
@@ -203,7 +204,7 @@ spec:
         - {name: webhook-slack-app, mountPath: /etc/room-broker/webhooks/slack-app, readOnly: true}
         - {name: webhook-runlore, mountPath: /etc/room-broker/webhooks/runlore, readOnly: true}
         - {name: github-link, mountPath: /etc/room-broker/github-link-client, readOnly: true}
-  # What v0.48.0's values cannot say. Each patch tests what it replaces, so a chart that moves it
+  # What v0.49.0's values cannot say. Each patch tests what it replaces, so a chart that moves it
   # fails the release instead of patching the wrong field.
   postRenderers:
     - kustomize:

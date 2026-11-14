@@ -20,6 +20,12 @@ spec:
             app.kubernetes.io/name: vmagent
       toPorts:
         - ports: [{port: "9090", protocol: TCP}]
+    - fromEndpoints:  # the room-broker release's preflight (Maku v0.49.0): GET /preflight, when run
+        - matchLabels:
+            io.kubernetes.pod.namespace: agent-system
+            app.kubernetes.io/name: preflight
+      toPorts:
+        - ports: [{port: "9090", protocol: TCP}]
     - fromEntities: [ingress]  # the tailnet gateway (Cilium's Gateway API identity)
       toPorts:
         - ports: [{port: "8082", protocol: TCP}]

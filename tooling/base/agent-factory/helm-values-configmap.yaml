@@ -14,13 +14,17 @@ data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
     image:
       repository: ghcr.io/smana/maku-factory
-      # maku v0.47.0, the chart's appVersion.
+      # maku v0.48.0, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
-      tag: "v0.47.0@sha256:e047adc2d59dcfe85646b0587d8cee5fadf0855109b3f27b74fa2729dac7f06f"
+      tag: "v0.48.0@sha256:ff345d5594a03c13f929f964b76d99de6402065d4bee6f8e1fd6da00dcde23f3"
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.
     monitor: {flux: {enabled: true}}
+    # The cluster's shared ClusterRoles (maku-factory-admin, maku-mergepolicy-editor, maku-viewer,
+    # agent-factory-flux-reader) are agent-factory-crds' since Maku v0.48.0 (D2): one set per cluster.
+    # Both releases rendering them fails the CRD chart's upgrade on Helm's ownership check.
+    clusterRoles: false
     # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
     # The GitHub Apps under the chart's apps.* keys (Maku v4 D12): githubSecret and mergerSecret go
     # in Maku's v4 step 8. The merger stays its own App, from the chart's agent-factory-merger

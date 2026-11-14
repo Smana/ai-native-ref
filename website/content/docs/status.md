@@ -13,10 +13,11 @@ names the clouds a capability was proven on, and links to the evidence: a runboo
 a design record.
 
 **Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0),
-released on 2026-10-31. **On `main`** (tag `v3.24.0`): Maku v0.48.0 for every component: the broker and
+released on 2026-10-31. **On `main`** (tag `v3.26.0`): Maku v0.49.0 for every component: the broker and
 its run-controller, the harness and bridge, the factory, the model gateway, the CRDs and the Slack app.
-**Next:**
-[v3.x releases](#v3x) of this platform, then [v4, anyone can run it](#v4).
+**Running now:** nothing. The reference host's GKE cluster was torn down on 2026-11-14; see
+[rebuilding the platform](#rebuild). **Next:** [v3.x releases](#v3x) of this platform; v4.0 is
+[deferred](#v4).
 
 The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, RunLore
 and others). [Maku](https://github.com/Smana/maku) is one of them: the factory controller, the rooms,
@@ -43,6 +44,7 @@ flowchart LR
     split["Splitter"]
     providers["Moonshot and Mistral, public data only"]
     human["Approve-to-merge, breaker recovery, drills"]
+    maku["Every component from Maku's releases,<br/>runs on Maku's run-controller"]
   end
   subgraph v3built["Experimental"]
     search["Search for agents"]
@@ -52,7 +54,7 @@ flowchart LR
     building["Being built: classes in your repository,<br/>plan then confirm, what needs you,<br/>push approval from Slack, run view,<br/>RunLore knowledge base, multi-repository,<br/>untrusted-input hardening"]
     next["Next: analytics, Gemini,<br/>review, verification, quality,<br/>scale, provenance, memory"]
   end
-  subgraph v4["Then v4: anyone can run it"]
+  subgraph v4["v4: anyone can run it (deferred)"]
     laptop["Built: the factory on a laptop"]
     prod["The production path"]
   end
@@ -61,6 +63,27 @@ flowchart LR
   end
   landed --> v3live --> v3built --> v3x --> v4 --> later
 ```
+
+## Not running now {#rebuild}
+
+The platform is not running. Every capability under Available was proven on a running cluster, last on the reference
+host's GKE cluster, which was torn down on 2026-11-14. Until a rebuild, nothing serves rooms, runs or
+merges.
+
+A rebuild needs two things:
+
+1. The host's bootstrap: [cloud-native-ref](https://github.com/Smana/cloud-native-ref) brings up the
+   cluster, Flux, OpenBao and the rest of what this platform runs on.
+2. This repository's pin: the host's `OCIRepository/ai-native-ref` names the release to apply
+   (example, the reference host: `v3.26.0`, with Maku v0.49.0).
+
+If OpenBao is not restored from a snapshot that holds it, write the `agents/github-link` key again: the factory
+App's client id and secret ([runbook 14, §5](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#5-owner-the-agents-keys-once-per-gcp-lineage)).
+Without it, `/link/github` answers 503, and since the GitHub link is the only way into a room, nobody
+gets in.
+
+These proofs wait for a rebuild: the [production path](#v4)'s installs on GKE and on kubeadm, a retest
+of Slack, RunLore's `kb_search` from a room, and the screencasts.
 
 ## Available {#landed}
 
@@ -72,10 +95,11 @@ it on with one value, per class or per platform.
 | Capability | What it does for you | Proven on | Evidence |
 |---|---|---|---|
 | The Agent Factory | A labelled issue becomes a reviewed pull request, built by agents in a gVisor sandbox under their own identity | EKS, GKE | [runbook 07](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/07-end-to-end.md), [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md) |
-| Runs on Maku's run-controller | Each run is a gVisor pod with its own model and git tokens, behind a NetworkPolicy and an egress proxy; the model gateway serves runs and the planner | GKE | [runtime]({{< relref "/docs/how-it-works/runtime.md" >}}), [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md) |
+| Runs on Maku's run-controller | Each run is a gVisor pod with its own model and git tokens, behind a NetworkPolicy and an egress proxy; Maku's model gateway serves runs and the broker's planner. Proven end to end: an issue went through triager, implementer and reviewer runs to a pull request, which the factory's merger merged once it was approved. No Kueue queue and no octo-sts token exchange sit in the path | GKE | [runtime]({{< relref "/docs/how-it-works/runtime.md" >}}), [issue #377](https://github.com/Smana/ai-native-ref/issues/377), [pull request #383](https://github.com/Smana/ai-native-ref/pull/383) |
+| Every component from Maku's releases | The room broker installs from Maku's chart, and the `maku.ogenki.io` CRDs and their shared ClusterRoles from the `agent-factory-crds` release | GKE | [runtime]({{< relref "/docs/how-it-works/runtime.md" >}}) |
 | Attended rooms | Follow, steer and approve a run live; an approval after its deadline is refused | EKS, GKE | [rooms]({{< relref "/docs/how-it-works/rooms.md" >}}) |
 | Private repositories | Room access follows each person's GitHub permission | GKE | [runbook 11](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md) |
-| GitHub account link | Each person links their GitHub account once at `/link/github` on the rooms host; the factory checks their repository permission through it, and the identity provider's reader stays the fallback for an account with no link | GKE | [runbook 14, §5](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#5-owner-the-agents-keys-once-per-gcp-lineage) |
+| GitHub account link | Each person links their GitHub account once at `/link/github` on the rooms host; the broker checks their repository permission through that link. It is the only path: the identity provider's reader is removed, so an account with no link gets no room access | GKE | [runbook 14, §5](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#5-owner-the-agents-keys-once-per-gcp-lineage) |
 | Several repositories | Repositories are served side by side; no room, branch or token crosses between them | GKE | [results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-second-repository-design.md#results) |
 | Internal work on Claude | Investigations run on Claude through the Anthropic API, read-only, with prompt caching | GKE | [ADR-0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}) |
 | agentgateway and model tiers | Every agent call is checked, metered and routed to the model its tier names | EKS, GKE | [ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}}) |
@@ -138,7 +162,7 @@ its offline proofs, a release, a live proof, then the switch-on. Each track gets
 | **Approve a push from Slack** | The most frequent approval in an attended room, "may this run push to its branch?", arrives as one card with Approve and Deny, bound to that run's branch, under the same four-eyes rule, room standing and repository permission the room page applies. Merging is unchanged: you review the current head on GitHub | On in the platform for the one served channel; waiting for its live proof |
 | **Slack: one proposal message, then a thread that answers** | A mention produces one message, edited in place as you reply. Confirm it and the thread goes on telling you how the work goes; ask it how it is going, what needs you or where the pull request is, and it answers | On for the one served channel; the proposal message works live, the thread's answers wait for their live proof |
 | **The animated run view** | The room page draws the task as a path: a node per run, named by its role and model, the planned steps lighting up as each run starts, and a replay when the task ends. Still to come: a timeline of every tool call, check, decision and cost, and two runs of the same task compared side by side | The path is built and in the platform, not yet proven end to end |
-| **RunLore's knowledge base, filled by the factory** | What an investigation learns about the running platform becomes a reviewed entry in the knowledge base, and the entries that are safe to merge go through a curated queue rather than waiting on you one by one | The loop is proven live: an incident became a fix, then a verified entry, and a replay recorded merged fixes on their entries ([runbook 25](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/25-runlore-kb-phase-1.md), [live 4](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-runlore-kb-live-4-2026-11-08.md)). Live 1 (a restart keeps the soak) and live 3 (a second generation) are not run. Off by default; `kb-entries` decides in shadow |
+| **RunLore's knowledge base, filled by the factory** | What an investigation learns about the running platform becomes a reviewed entry in the knowledge base, and the entries that are safe to merge go through a curated queue rather than waiting on you one by one | The loop is proven live: an incident became a fix, then a verified entry, and a replay recorded merged fixes on their entries ([runbook 25](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/25-runlore-kb-phase-1.md), [live 4](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-runlore-kb-live-4-2026-11-08.md)). Live 1 (a restart keeps the soak) and live 3 (a second generation) are not run. Off by default; `kb-entries` decides in shadow. An agent in a room can search the knowledge base (`kb_search`) through the broker's room tools: configured, not yet checked live |
 | **Multi-repository coordination** | One change across two repositories, confirmed once: a parent issue that records the change and never writes code, one ordinary task per repository with its own maintainer, branch, gate and pull request, a landed file as the dependency, and a read-only check that the two work together | Plan mode is on, on aws-0: it composes a validated plan across `Smana/ai-native-ref` and `Smana/runlore-kb` and files nothing. Execute refuses every filing until merge classes in your repository and untrusted-input hardening ship. The integration runtime (exact-commit worktrees, one typed result) is built and inert. Four alerts cover integration failures, lost authority, stalls and a recovery standing past 15 minutes ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-05-v4-multi-repo-coordination-design.md), [factory](https://github.com/Smana/maku/blob/main/docs/factory.md#multi-repository-coordination)) |
 | **Untrusted-input hardening** | For repositories where strangers file issues: the agent writes only through validated outputs, text from people outside the maintainers is filtered, outputs pass a threat check before they apply, and CI configuration, agent instructions and manifests stay out of the agent's reach. Scripted injection attacks against every role prove it, on a schedule like the merge-gate drills. **Needed for v4** | Stage H0 is built: the contracts, switched off, changing no behaviour. H1 to H5 (audit, non-code outputs enforced, push enforced, reads filtered, ready) are next ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-07-untrusted-input-hardening-design.md)) |
 | **The factory's settings as objects** | The factory, each repository and each merge policy are `Factory`, `Repository` and `MergePolicy` objects you apply with your GitOps tool. The factory reads them live, so an edit takes effect without a restart, and a bad edit is refused while the last good version keeps serving. `maku config migrate` converts an old settings file and `maku config validate` checks one before you apply it. The factory waits for a servable configuration instead of refusing to start, and the Settings page is hidden when the policy API is off | Served from these objects in the platform (Maku v0.41.2). Waiting for its live proof |
@@ -177,6 +201,9 @@ returns today's behaviour.
 
 ## v4: anyone can run it {#v4}
 
+**v4.0 is deferred**, with no date set. Five further specs are planned for the week of 2026-11-16;
+this page lists them once they are written.
+
 v3 made the factory land more accepted pull requests per dollar on the reference host. v4 makes it run
 **for anyone, outside the reference host**. It is written for a platform engineer who knows
 Kubernetes, Helm, GitOps and GitHub Apps and is new to agents. v4 ships when both stages below pass,
@@ -190,7 +217,8 @@ then is part of v4 ([roadmap](https://github.com/Smana/ai-native-ref/blob/main/d
 | **The production path** | Install on your own cluster from one Helm chart that Flux and Argo CD both consume. You bring your identity provider through OIDC, your secrets store and your GitOps tool; agentgateway and gVisor ship as required pieces. Each seam says what you lose if you leave it out. Proven on a plain k3s or kubeadm cluster with a smoke test, on public repositories; private repositories are documented | Not started |
 | **Upgrades you can plan for** | From v4, chart values and the install contract follow semantic versioning: a breaking change waits for a major release or comes with a migration note, and a nightly job upgrades the previous release | Not started |
 
-The laptop stage is built; the production path is the work left before v4.
+The laptop stage is built; the production path is the work left before v4, and its install proofs
+wait for a [rebuild](#rebuild).
 
 ## Planned {#later}
 
@@ -240,6 +268,7 @@ every other approval, and every merge, stays where it is.
 | Spend per identity | Not yet matched against the meter's ledger over a full day |
 | Mistral as an implementer | Not recommended: it can spend a run's whole budget on a small change |
 | Semantic Router metrics | No router series reach VictoriaMetrics, so its decisions cannot be read from metrics |
+| The room broker's database schema | Its `SQLInstance` still names Maku's migrations in an `atlasSchema` block. Drop that block from `infrastructure/base/room-broker/sqlinstance.yaml` before the first Maku release that adds a migration |
 | Serving on GKE | A new project's `GPUS_ALL_REGIONS` quota is 0: no GPU model schedules until Google raises it |
 
 ## On the road to a factory {#dark-factory}

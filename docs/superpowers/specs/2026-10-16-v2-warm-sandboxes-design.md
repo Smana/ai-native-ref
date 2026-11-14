@@ -310,7 +310,7 @@ sequenceDiagram
 ```
 
 **Switch on:** `spec.replicas: 1` in
-[`infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml`](../../../infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml)
+[`infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml`](https://github.com/Smana/ai-native-ref/blob/d9bc6b5e92177896a4c98f1086cad6543a931921/infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml)
 (shared by every cluster). `0` turns it back off.
 
 | Production option | Idle cost a month | Start time |

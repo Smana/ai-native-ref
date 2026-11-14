@@ -18,7 +18,7 @@ Slack app; the harness and bridge stay on v0.32.3, composed by crossplane-config
 [v3.x releases](#v3x) of this platform, then [v4, anyone can run it](#v4).
 
 The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts,
-RunLore, Kueue and others). [Maku](https://github.com/Smana/maku) is one of them: the factory
+RunLore and others). [Maku](https://github.com/Smana/maku) is one of them: the factory
 controller, the rooms, the harness and bridge, the Slack app and the `maku` CLI.
 
 ```mermaid
@@ -78,7 +78,6 @@ it on with one value, per class or per platform.
 | agentgateway and model tiers | Every agent call is checked, metered and routed to the model its tier names | EKS, GKE | [ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}}) |
 | Budgets enforced at the gateway | A call over its run, fleet or Anthropic budget is refused with `429 agent_budget_exhausted` | GKE | [runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets) |
 | Resume after a lost node | A run lost to a spot reclaim resumes from its branch on its own | EKS, GKE | [runbook 10](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/10-disruption.md) |
-| Warm sandboxes (opt-in) | A run starts in about 17 s instead of minutes; a run preempts the warm capacity, never the reverse | EKS, GKE | [design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results) |
 | Auto-merge of link fixes and their reverts | A link-only fix merges with no human, at most once a day; a revert demotes the class to human review | EKS, GKE | [runbook 12](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md) |
 | Approve-to-merge | A maintainer's approval of the current head is the merge, outside the auto-merge caps. An approved head no run reported waits as `head_unreported`, and the harness reports a head the agent pushed but left unreported | EKS | [results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-aws-0-2026-10-30.md) |
 | Regression breaker, drills and recovery | A regression pauses its class; a drill revert is not counted; three clean merges lift a pause | EKS | [results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-aws-0-2026-10-30.md) |

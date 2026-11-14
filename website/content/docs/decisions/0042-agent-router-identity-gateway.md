@@ -113,12 +113,15 @@ structural, using controllers the platform already runs.
 
 ## Implementation Notes
 
-`infrastructure/base/agent-router/`, `infrastructure/base/agent-runtime/identity-proxy-configmap.yaml`,
+`infrastructure/base/agent-router/`, the identity-proxy ConfigMap in `infrastructure/base/agent-runtime/`,
 Kyverno `agent-audience-reservation`. Secrets through `security/base/agent-secrets/` only.
 
 2026-10-16: the agent router runs on agentgateway (ADR-0053); the listeners and identity rules now live
 in `infrastructure/base/agent-gateway/gateway.yaml` and `policies-identity.yaml`, and Envoy's router
 was removed in #2429.
+
+2026-11-14: runs moved to Maku's run-controller (R3) and call the model gateway with their own token,
+so the identity proxy and its ConfigMap are gone.
 
 ---
 

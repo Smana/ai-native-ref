@@ -47,7 +47,6 @@ case "$*" in
     echo '{"data":{"public_domain_name":"gcp.example.io","identity_provider_url":"https://auth.gcp.example.io"}}' ;;
   "get configmap gke-gcp-0-vars -o jsonpath"*) printf 'https://auth.gcp.example.io' ;;
   "get deploy zitadel"*) printf 2 ;;
-  "get deploy agents-headroom"*) printf '%s' "${HEADROOM:-1}" ;;
   "get nodes -o json")
     gv='{"metadata":{"name":"gv-1","labels":{"cloud.google.com/gke-nodepool":"agents-gvisor","sandbox.gke.io/runtime":"gvisor"}},"status":{"conditions":[{"type":"Ready","status":"True"}]}}'
     [ "$B" = 1 ] && gv='{"metadata":{"name":"nap-1","labels":{"cloud.google.com/gke-nodepool":"nap-e2-standard-4-abc","sandbox.gke.io/runtime":"gvisor"}},"status":{"conditions":[{"type":"Ready","status":"True"}]}}'
@@ -60,8 +59,6 @@ case "$*" in
       \"status\":{\"conditions\":[{\"type\":\"Ready\",\"status\":\"True\"}],\"containerStatuses\":[{\"restartCount\":0}]}}]}" ;;
   "get pods -l app.kubernetes.io/name=zitadel"*) printf 'static-b\n' ;;
   "get pods -l app.kubernetes.io/name=room-broker"*) printf 'room-broker-0' ;;
-  "get pods -l app.kubernetes.io/name=agents-headroom"*)
-    printf 'agents-headroom-0\tRunning\t%s\n' "$([ "$B" = 1 ] && echo nap-1 || echo gv-1)" ;;
   "get ciliumnetworkpolicies.cilium.io agent-factory"*)
     echo '{"spec":{"egress":[{"toEntities":["all"]},{"toFQDNs":[{"matchName":"api.github.com"}],"toPorts":[{}]}]}}' ;;
   "get events -A"*)
@@ -117,11 +114,8 @@ for r in events orders.acme.cert-manager.io; do
   grep -q "^PASS  no Let's Encrypt 429" "$tmp/kfail" && fail "gcp-0-platform-gates.sh passes the 429 check when get $r fails"
 done
 
-# Headroom off (replicas 0, the default) is not a failure: no headroom pod, no gVisor node required.
-HEADROOM=0 BROKEN=0 bash "$V21" ctx >"$tmp/off" 2>&1 \
-  || { fail "gcp-0-v21-checks.sh fails with the headroom off"; sed 's/^/      /' "$tmp/off" >&2; }
-grep -q '^INFO  agents-headroom is off' "$tmp/off" || fail "gcp-0-v21-checks.sh does not report the headroom off"
-grep -q '0 required' "$tmp/off" || fail "gcp-0-v21-checks.sh requires a gVisor node with the headroom off"
+# By default no gVisor node is required: the pool scales from zero.
+grep -q '0 required' "$tmp/ok" || fail "gcp-0-v21-checks.sh requires a gVisor node by default"
 
 # $tmp/ok is gcp-0-v21-checks.sh's: the gauge, in exponent form, reads as 60s old.
 grep -qE "JWKS (59|60|61|62)s ago" "$tmp/ok" || fail "the broker's JWKS gauge age is misread"
@@ -134,7 +128,6 @@ expect "$tmp/gcp-0-platform-gates.sh.bad" "bootstrap is 'initdb', expected recov
 expect "$tmp/gcp-0-v21-checks.sh.bad" "shares static-b with ZITADEL"
 expect "$tmp/gcp-0-v21-checks.sh.bad" "gVisor nodes outside agents-gvisor"
 expect "$tmp/gcp-0-v21-checks.sh.bad" "scale-up failures"
-expect "$tmp/gcp-0-v21-checks.sh.bad" "agents-headroom-0 Running on nap-1"
 grep -q 'kubectl --context ctx cordon static-b' "$tmp/gcp-0-v21-checks.sh.bad" || fail "the co-location hint names no cordon command"
 
 bad_verbs=$(sort -u "$CALLS" | grep -vxE 'get|logs|port-forward')

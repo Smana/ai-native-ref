@@ -13,20 +13,6 @@ on gcp-0 Google manages `runsc`. See [README.md](README.md) for prerequisites an
 - No owner action specific to this runbook. Suspend and resume (the former Step 8) left the platform
   with the run-controller (R3, owner ruling Q10): no run is suspendable.
 
-## Headroom: off by default, on for production
-
-The warm-node headroom (`agents-headroom`, namespace `agent-system`) ships at `replicas: 0`: $0
-idle, and the first run on an empty pool starts cold (~1.5–3.5 min). A production platform turns
-it on for ~16 s starts at ~$126 a month per `e2-standard-8` spot node.
-
-| | |
-|---|---|
-| Switch on | `spec.replicas: 1` in [`headroom/deployment.yaml`](../../../infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml), shared by every cluster; `0` turns it off |
-| Check | `kubectl get pods -n agent-system -l app.kubernetes.io/name=agents-headroom -o wide`: one pod `Running` on an `agents-gvisor` node |
-| Options and costs | [Design: headroom off by default, on for production](../../superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#headroom-off-by-default-on-for-production) |
-
-With the headroom off, Step 2 measures the cold path every time.
-
 ## Steps
 
 ### Step 1 — confirm the platform is up

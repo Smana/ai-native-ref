@@ -11,8 +11,3 @@ tools:
   mcp-victorialogs:
     - documentation
   # TF2: the tester writes the contract and gives no verdict (capability profiles: the tester's drop room_verdict).
-  room-broker:
-    - room_read
-    - room_post
-    - room_progress
-    - room_handoff

@@ -8,12 +8,9 @@ Design: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md`.
 | Child Kustomization | Path | Holds |
 |---|---|---|
 | `agent-sandbox` | `infrastructure/base/agent-sandbox` | Sandbox CRD and controller in `agent-system` |
-| `kueue` | `infrastructure/aws-0/kueue` | Kueue controller (SP3). Admits no run since R3: the run-controller's pods carry no queue label; its CRDs are kept (`helm.sh/resource-policy: keep`) for its removal |
-| `kueue-queues` | `infrastructure/base/kueue-queues` | ResourceFlavor, ClusterQueues and LocalQueues (SP3). Unused since R3 |
 | `agents-nodepool` | `infrastructure/base/karpenter-nodepools-agents` | `agents-gvisor` NodePool + EC2NodeClass |
 | `runtimeclass-gvisor` | `infrastructure/base/runtimeclass-gvisor` | RuntimeClass `gvisor` → `runsc` |
-| `agents-headroom` | `infrastructure/base/karpenter-nodepools-agents/headroom` | Preemptible placeholder: one warm `agents-gvisor` node, run images pulled. Off by default (`replicas: 0`) |
-| `agent-runtime` | `infrastructure/base/agent-runtime` | identity-proxy ConfigMap, `agents` default deny |
+| `agent-runtime` | `infrastructure/base/agent-runtime` | `agents` default deny |
 | `agent-policies` | `security/base/agent-policies` | Kyverno: no secret import into `agents`, the reserved audiences, the kill switch, and the GC of finished `maku.ogenki.io` runs. The run pod's shape and the AgentRun's creator and patch limits are the `maku` chart's admission policies (R3) |
 | `agent-secrets` | `security/aws-0/agent-secrets` | `SecretStore agents-secrets` → the `agents` mount |
 | `agent-router` | `infrastructure/aws-0/agent-router` | The agents' provider keys (Z.ai, Anthropic) that agentgateway's backends read. Envoy's agent router was removed in phase H |

@@ -3,9 +3,8 @@ kind: Kustomization
 
 # Flat list of gcp-0's agent-platform children: aws-0's minus its node-pool
 # child and its gVisor RuntimeClass child (GKE Sandbox provides both, GCP
-# parity GP-9), plus kueue (ruling SB: FR-4 targets gcp-0, not aws-0). A
-# child that substitutes gke-gcp-0-vars points at a */gcp-0/* overlay
-# (assert-cloud-shape.py).
+# parity GP-9). A child that substitutes gke-gcp-0-vars points at a */gcp-0/*
+# overlay (assert-cloud-shape.py).
 resources:
   - infrastructure-agent-sandbox.yaml
   - infrastructure-agent-runtime.yaml
@@ -19,8 +18,6 @@ resources:
   - security-merge-gate-secrets.yaml
   - infrastructure-agent-mcp.yaml
   - infrastructure-room-broker.yaml
-  - infrastructure-kueue.yaml
-  - infrastructure-agents-headroom.yaml
   - tooling-agent-factory-crds.yaml
   - tooling-agent-factory.yaml
   - tooling-agent-factory-resources.yaml

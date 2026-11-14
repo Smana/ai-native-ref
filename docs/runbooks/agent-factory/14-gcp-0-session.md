@@ -46,7 +46,7 @@ Every fixed machine is E2. Regional `E2_CPUS` reads usage 0 while E2 runs: E2 co
 | E2 capacity in europe-west4 | vCPU |
 |---|---|
 | `static` pool, `e2-standard-4` ×2 (max 3) | 8 (12) |
-| `agents-gvisor`, `e2-standard-8` ×0–2, spot. The warm headroom, when on, keeps one up while the platform is live | 8 (16) |
+| `agents-gvisor`, `e2-standard-8` ×0–2, spot | 8 (16) |
 | OpenBao `e2-small` ×1 and the Tailscale router `e2-micro` ×1, outside GKE | 4 |
 | **Static total, both gVisor nodes up** | **≈ 28** |
 | NAP ComputeClasses (`general-purpose` e2/n2, `io` n2) and the upgrade surge (one `e2-standard-4`) | on top, up to the 48 cluster ceiling (`autoscaling_max_cpu_cores`) |
@@ -275,7 +275,7 @@ After an OpenBao restore, also re-check the policy-bot webhook secret ([README](
 ## 7. The v2.1 blockers, live
 
 ```bash
-scripts/ops/k8s/gcp-0-v21-checks.sh <kube-context>                   # after go-live: the headroom node, if on
+scripts/ops/k8s/gcp-0-v21-checks.sh <kube-context>                   # after go-live: the gVisor pool and its scale-up
 scripts/ops/k8s/gcp-0-v21-checks.sh <kube-context> --gvisor-nodes 2  # during a large run
 ```
 
@@ -293,7 +293,7 @@ fails a CNP that lacks it.
 |---|---|---|---|
 | 7.1 | The factory reaches the identity provider over GKE's network. Its CNP's IdP rule is a portless `toEntities: [all]`, as the broker's and rooms-proxy's are | The factory pod runs on a node with no ZITADEL pod; a co-located pod succeeds under any policy. Its log has `agent-factory starting`: the human verifier is eager, so that line follows the JWKS fetch, and a failed fetch exits with `initial JWKS fetch`. The live CNP carries the portless rule. The broker's `maku_rooms_authn_jwks_last_refresh_timestamp_seconds` for the IdP is under 6 h old, and neither `RoomAuthnJWKSStale` nor `RoomAuthnHumanIssuerNeverFetched` fires | Yes |
 | | | A `maku` call to the run-request API (`:8082`) is accepted | No: the owner's human token |
-| 7.2 | The E2 quota allows its nodes (sizing above). The factory sizes every run `small`, so a forced headroom preemption (a 5.6-vCPU stand-in for a `large` run) brings the second node | `agents-gvisor` holds the headroom pod at 1 node, then 2 for a `large` run. There is no `FailedScaleUp` or quota event, and no gVisor node outside `agents-gvisor` (the `nap-e2-standard-4` fallback). Events live about 1 h: run it right after the scale-up | Yes |
+| 7.2 | The E2 quota allows its nodes (sizing above). The factory sizes every run `small`; a `large` run brings the second node | `agents-gvisor` scales to 1 node for a run, then 2 for a `large` run. There is no `FailedScaleUp` or quota event, and no gVisor node outside `agents-gvisor` (the `nap-e2-standard-4` fallback). Events live about 1 h: run it right after the scale-up | Yes |
 
 ## 8. The full test: runbook 11 on gcp-0
 
@@ -305,7 +305,6 @@ Run [runbook 11](11-v1-validation.md) end to end, with `CLOUD=gcp`: its private 
 
 | Feature | Live check |
 |---|---|
-| Warm sandboxes | Headroom off by default ([runbook 01](01-runtime-sandbox.md#headroom-off-by-default-on-for-production)). When on, `kubectl get pods -n agent-system -l app.kubernetes.io/name=agents-headroom -o wide` runs on an `agents-gvisor` node. Then the start-time runs still owed ([design results](../../superpowers/specs/2026-10-16-v2-warm-sandboxes-design.md#results)), the one forcing a preemption, and the day of idle cost on GKE prices |
 | Per-person caps, shadow | [Runbook 04 Part C](04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week): start the shadow week on gcp-0 |
 | Gateway budgets, shadow + alerts | [Runbook 04 Part D](04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets): `AgentBudgetShadowOverrun` is evaluated, and the ratelimit server runs `SHADOW_MODE` |
 | The internal tier on Claude | One `--class internal` run is answered through agentgateway's Anthropic backend, which proves `agents/anthropic` |
@@ -324,7 +323,6 @@ feature gate off for the beta.
 - the cross-node JWKS fetch (7.1)
 - the quota once it is raised (7.2)
 - the scheduled OpenBao snapshot (F1)
-- the headroom pod being scheduled and preempted by GKE's autoscaler, whose PriorityClass cutoff is -10
 - the beta APIs (10)
 
 The seed's restore and the rehydrate's snapshot choice are proven live (steps 1–3); the items

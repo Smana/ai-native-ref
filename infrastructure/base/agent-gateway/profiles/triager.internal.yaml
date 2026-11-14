@@ -39,11 +39,6 @@ tools:
     - stream_ids
     - stream_field_names
     - stream_field_values
-  room-broker:
-    - room_read
-    - room_post
-    - room_progress
-    - room_handoff
   runlore-kb:
     - kb_search
     - kb_get

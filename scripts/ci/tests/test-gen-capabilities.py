@@ -128,7 +128,7 @@ def stray_dir(t):
 
 
 def valueless_target(d):
-    d["tools"]["room-broker"] = None
+    d["tools"]["runlore-kb"] = None
 
 
 def no_public(t):
@@ -158,9 +158,9 @@ with tree() as t:
     check("--write rebuilds both lists from the profiles alone, byte for byte",
           code == 0 and mcp(t).read_bytes() == (GW / "mcp.yaml").read_bytes(), out)
 check("an expression is one N7 alternative",
-      gen.expression("reviewer", "internal", "room-broker", ["room_read", "room_verdict"]) ==
-      '"agent-router.reviewer.internal" in jwt.aud && mcp.tool.target == "room-broker"'
-      ' && mcp.tool.name in ["room_read", "room_verdict"]')
+      gen.expression("triager", "internal", "runlore-kb", ["kb_search", "kb_get"]) ==
+      '"agent-router.triager.internal" in jwt.aud && mcp.tool.target == "runlore-kb"'
+      ' && mcp.tool.name in ["kb_search", "kb_get"]')
 with tree() as t:
     edit(t, "reviewer.internal.yaml", lambda d: d.update(tools=dict(reversed(list(d["tools"].items())))))
     code, out = run(t)
@@ -279,7 +279,7 @@ with tree() as t:
     check("the result is in sync", run(t)[0] == 0)
     policies = [d for d in yaml.safe_load_all(mcp(t).read_text()) if d and d["kind"] == "AgentgatewayPolicy"]
     exprs = [e for p in policies for e in p["spec"]["backend"]["mcp"]["authorization"]["policy"]["matchExpressions"]]
-    check("the written YAML parses back to the expressions", expr in exprs and len(exprs) == 33, str(len(exprs)))
+    check("the written YAML parses back to the expressions", expr in exprs and len(exprs) == 25, str(len(exprs)))
 
 print("lists the generator does not fully own")
 STRAY = "items the generator does not own (a comment or a multi-line item inside the list?)"
@@ -305,7 +305,7 @@ print("refused profiles")
 for name, change, needle in [
     ("egress waits for the ConfigMap", on("reviewer.internal.yaml", lambda d: d.update(egress=[])),
      "egress arrives with the agent-capability-profiles ConfigMap"),
-    ("readOnly waits for the ConfigMap", on("reviewer.internal.yaml", lambda d: d.update(readOnly=["room-broker/*"])),
+    ("readOnly waits for the ConfigMap", on("reviewer.internal.yaml", lambda d: d.update(readOnly=["runlore-kb/*"])),
      "readOnly arrives with the agent-capability-profiles ConfigMap"),
     ("an unknown key", on("reviewer.internal.yaml", lambda d: d.update(namespaces=["x"])), "unknown key namespaces"),
     ("a when of another form", on("reviewer.internal.yaml", when('mcp.tool.arguments.kind != "Pod"')), "when takes one form"),
@@ -336,12 +336,12 @@ for name, change, needle in [
     ("a listener with LLM routes and no Require to repeat", no_listener_require,
      "no Require authorization on the public listener to repeat"),
     ("an unknown target", on("triager.internal.yaml", renamed_target), "mcp-victoria-logs is not a target"),
-    ("a target with no tool", on("triager.internal.yaml", lambda d: d["tools"].update({"room-broker": []})),
-     "room-broker lists no tool"),
-    ("a tool listed twice", on("triager.internal.yaml", lambda d: d["tools"]["room-broker"].append("room_read")),
-     "room_read twice"),
-    ("not a tool name", on("triager.internal.yaml", lambda d: d["tools"]["room-broker"].append("room read")),
-     "'room read', which is not a tool name"),
+    ("a target with no tool", on("triager.internal.yaml", lambda d: d["tools"].update({"runlore-kb": []})),
+     "runlore-kb lists no tool"),
+    ("a tool listed twice", on("triager.internal.yaml", lambda d: d["tools"]["runlore-kb"].append("kb_get")),
+     "kb_get twice"),
+    ("not a tool name", on("triager.internal.yaml", lambda d: d["tools"]["runlore-kb"].append("kb get")),
+     "'kb get', which is not a tool name"),
     ("a role that disagrees with its file name", on("reviewer.public.yaml", lambda d: d.update(role="tester")),
      "reviewer.public.yaml: a profile is named <role>.<dataClass>.yaml"),
     ("an internal profile naming a provider alias (feature 15)",
@@ -355,7 +355,7 @@ for name, change, needle in [
     ("a subdirectory reads like a rule but grants nothing", stray_dir,
      "profiles/extra: only <role>.<dataClass>.yaml files are profiles"),
     ("a target with no value ends in the refusal, not a traceback",
-     on("triager.internal.yaml", valueless_target), "room-broker lists no tool"),
+     on("triager.internal.yaml", valueless_target), "runlore-kb lists no tool"),
     ("a class no listener serves", restricted, "reviewer.restricted.yaml: no MCP Allow policy"),
     ("a listener with no profile", no_public, "no profile of class public"),
     ("no profiles at all", lambda t: shutil.rmtree(t / gen.PROFILES), "profiles: no profile"),

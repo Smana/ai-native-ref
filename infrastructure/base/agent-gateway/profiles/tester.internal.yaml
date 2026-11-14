@@ -40,8 +40,3 @@ tools:
     - stream_field_names
     - stream_field_values
   # TF2: the tester writes the contract and gives no verdict (capability profiles: the tester's drop room_verdict).
-  room-broker:
-    - room_read
-    - room_post
-    - room_progress
-    - room_handoff

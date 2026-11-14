@@ -46,6 +46,9 @@ factoryInsecure: true
 # Humans, through oauth2-proxy (phase 2). Required by the broker. The ids are
 # files, never literals: gcp-0 mints a fresh ZITADEL every build (ruling AS-a).
 human:
+  # ZITADEL's token rules, said explicitly (Maku v4 step 5 ANR follow-up 1): the project id in every
+  # token's aud, the groups claim or the project roles, token use access. Unset is the same preset.
+  preset: zitadel
   issuer: ${identity_provider_url}
   jwksURL: ${identity_provider_url}/oauth/v2/keys
   clientIDFile: /etc/room-broker/oidc/client-id
@@ -68,6 +71,17 @@ human:
   access:
     readerFile: /etc/room-broker/zitadel-reader/reader.json
     ttl: 5m
+  # The GitHub account link (Maku docs/github-link.md, ANR follow-up 2): each human links their GitHub
+  # account once on /link/github, and the link is read before the ZITADEL reader above, which stays
+  # the fallback for an account with no link until every human has linked (follow-up 3 removes it).
+  # The factory App's OAuth client, its callback https://rooms.${private_domain_name}/link/github/callback,
+  # read at use from helmrelease.yaml's optional mount: until externalsecret-github-link.yaml syncs,
+  # the broker starts and /link/github answers 503. Not the chart's /etc/room-broker/github-link,
+  # whose files v0.48.0 requires at start (helmrelease.yaml says why).
+  githubLink:
+    clientIDFile: /etc/room-broker/github-link-client/client_id
+    clientSecretFile: /etc/room-broker/github-link-client/client_secret
+    activeWindow: 168h
   # The governed planner (v3.x conversational intake, ADR-0060): intake_plan and plan_check on /mcp, on. Its
   # candidate set is the write check human.access above carries and both tools live on /mcp, so it
   # needs human.mcp.enabled too. repositories is the allowlist a plan may ever name (CD5) and is

@@ -90,15 +90,20 @@ data:
       api:
         # Plaintext inside the mesh; 8443 is the broker's TLS listener (agent-platform#111).
         listen: ":8082"
+        # ZITADEL's token rules, as the broker's human.preset (Maku v4 step 5 ANR follow-up 1).
+        preset: zitadel
         humanIssuer: ${identity_provider_url}
         humanJWKS: ${identity_provider_url}/oauth/v2/keys
         clientIDFiles:
           - /etc/agent-factory-oidc/rooms-proxy-client-id
           - /etc/agent-factory-oidc/roomctl-client-id
-        # Resolves a human caller to their GitHub login (the broker's ZITADEL reader, mounted from
-        # externalsecret-zitadel-reader.yaml); write on the repository is then asked of GitHub.
-        # Without it every human run is refused 403 repository_permission.
+        # Resolves a human caller to their GitHub login: the broker's GitHub account links first
+        # (links: broker, GET /v1/links/github on broker.url as system:factory, ANR follow-up 2), else
+        # the ZITADEL reader, mounted from externalsecret-zitadel-reader.yaml, for an account with no
+        # link; write on the repository is then asked of GitHub. Without either every human run is
+        # refused 403 repository_permission. readerFile goes once every human has linked (follow-up 3).
         access:
+          links: broker
           readerFile: /etc/agent-factory-zitadel-reader/reader.json
           ttl: 5m
         # Sponsored principals (factory interfaces part 2), none declared (D4): a gcp-0 session declares

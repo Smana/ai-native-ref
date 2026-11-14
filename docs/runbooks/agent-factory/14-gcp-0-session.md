@@ -187,6 +187,9 @@ unset key
 bao kv put -mount=agents github-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem>
 bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem>
+# The GitHub account link (Maku docs/github-link.md): the factory App's client id and a client
+# secret from its settings page, whose callback URL is https://rooms.priv.gcp.ogenki.io/link/github/callback.
+bao kv put -mount=agents github-link client_id=<id> client_secret=-
 # factory-slack-app: one JSON document on stdin, runbook 22 §2
 # runlore-intake + platform/runlore/factory-intake: retired by feature 14's PR 7 (README action 4d)
 # Feature 14 (runbook 20): one webhook key, two mounts: the broker reads agents/, RunLore platform/.
@@ -197,7 +200,10 @@ unset KEY
 # runlore-factory-principal and agents-runlore-principal: zitadel-oidc-clients.sh sync --apply (host)
 ```
 
-Without `merger-app` the factory pod never starts. The planner needs no entry: it calls the model
+Without `merger-app` the factory pod never starts. Without `github-link` the broker still starts,
+and `/link/github` answers 503 until the ExternalSecret `room-broker-github-link` syncs; then each
+human opens `https://rooms.priv.gcp.ogenki.io/link/github` once and presses *Link GitHub*. Until
+every human has linked, the ZITADEL reader stays the fallback. The planner needs no entry: it calls the model
 gateway with the broker's own projected token (runbook 19, §2.3).
 
 `agents/factory-slack-app` is written by the owner from the Slack App's console (the bot token, the

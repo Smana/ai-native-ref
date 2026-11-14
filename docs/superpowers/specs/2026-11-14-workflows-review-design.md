@@ -375,3 +375,14 @@ after the builder check; each can be reversed.
 ## Open, for the owner
 
 Nothing blocks the plan.
+
+## Amendments found while planning
+
+Reading the code for the plans showed points the text above leaves wrong or implicit. The plans carry the corrected form; it wins over the text above.
+
+| Above | What the plans do instead | Why |
+|---|---|---|
+| The chart ships the three workflows | They are defaults of the factory's config, filled key by key and never overriding a platform's own entry; `maku install --print` writes them out | No Maku chart renders a `Factory` object |
+| `trio` is deleted | The triage matrix also stops returning `trio` at the `frontier` tier | Otherwise a frontier task names a template that no longer exists |
+| `maku repo add` reads the served repositories | A new factory route lists them | The existing catalog is per repository |
+| The measurement reads the two cohorts | Its queries filter on `source` | A treatment-cohort task that cannot run the treatment workflow keeps `source: floor` |

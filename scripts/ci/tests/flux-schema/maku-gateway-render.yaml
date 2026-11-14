@@ -1,0 +1,1993 @@
+# helm template model-gateway oci://ghcr.io/smana/charts/maku-gateway --version 0.47.0 with
+# infrastructure/base/agent-gateway/model-gateway/helmrelease.yaml's values, issuer https://issuer.example:
+# AG15's fixture (test-assert-agent-gateway.py). Re-render it with the chart pin.
+---
+# The prices agentgateway merges over its built-in catalog to price each response (the access log's
+# `cost`), from the factory's meter.prices rows: edit a price there.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-gateway-model-catalog
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+data:
+  catalog.json: |
+    {
+      "providers": {
+        "anthropic": {
+          "models": {
+            "claude-haiku-5-5": {
+              "rates": {
+                "cacheRead": "0.05",
+                "cacheWrite": "0.625",
+                "input": "0.50",
+                "output": "2.50"
+              }
+            },
+            "claude-opus-5-5": {
+              "rates": {
+                "cacheRead": "0.20",
+                "cacheWrite": "5.00",
+                "input": "4.00",
+                "output": "20.00"
+              }
+            },
+            "claude-sonnet-5-5": {
+              "rates": {
+                "cacheRead": "0.10",
+                "cacheWrite": "2.50",
+                "input": "2.00",
+                "output": "10.00"
+              }
+            }
+          }
+        },
+        "mistral": {
+          "models": {
+            "mistral-medium-2604": {
+              "rates": {
+                "cacheRead": "0.15",
+                "input": "1.50",
+                "output": "7.50"
+              }
+            },
+            "mistral-small-2603": {
+              "rates": {
+                "cacheRead": "0.015",
+                "input": "0.15",
+                "output": "0.60"
+              }
+            }
+          }
+        },
+        "moonshot": {
+          "models": {
+            "k3.1-pro": {
+              "rates": {
+                "cacheRead": "0.20",
+                "cacheWrite": "2.00",
+                "input": "2.00",
+                "output": "10.00"
+              }
+            }
+          }
+        },
+        "zai": {
+          "models": {
+            "glm-5.3": {
+              "rates": {
+                "cacheRead": "0.26",
+                "input": "1.40",
+                "output": "4.40"
+              }
+            },
+            "glm-5.3-flash": {
+              "rates": {
+                "cacheRead": "0.03",
+                "input": "0.15",
+                "output": "0.50"
+              }
+            },
+            "glm-5.3-flashx": {
+              "rates": {
+                "cacheRead": "0.075",
+                "input": "0.37",
+                "output": "1.25"
+              }
+            }
+          }
+        }
+      }
+    }
+
+---
+# agent-default on zai (zai): the model is forced to the alias whatever the
+# body says, then mapped to glm-5.3 (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-zai-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: zai-agent-default
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (the model catalog) and the series' provider label.
+        providerOverride: zai
+        formats:
+          - type: Completions
+            path: /api/paas/v4/chat/completions
+      host: api.z.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-zai-api-key
+        key: apiKey
+    tls:
+      sni: api.z.ai
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+      modelAliases:
+        agent-default: "glm-5.3"
+      transformations:
+        - field: model
+          expression: '"agent-default"'
+
+---
+# kimi-frontier on moonshot (moonshot): the model is forced to the alias whatever the
+# body says, then mapped to k3.1-pro (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-moonshot-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: moonshot-kimi-frontier
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (the model catalog) and the series' provider label.
+        providerOverride: moonshot
+        formats:
+          - type: Completions
+            path: /coding/v1/chat/completions
+      host: api.kimi.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-moonshot-api-key
+        key: apiKey
+    tls:
+      sni: api.kimi.ai
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+      modelAliases:
+        kimi-frontier: "k3.1-pro"
+      transformations:
+        - field: model
+          expression: '"kimi-frontier"'
+        # The moonshot preset: K3.1 Pro fixes temperature at 1, and the planner and the classifier send 0.
+        - field: temperature
+          expression: '1'
+        # The moonshot preset: K3.1 Pro fixes top_p.
+        - field: top_p
+          expression: 'null'
+
+---
+# mistral-light on mistral (mistral): the model is forced to the alias whatever the
+# body says, then mapped to mistral-small-2603 (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-mistral-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: mistral-mistral-light
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (the model catalog) and the series' provider label.
+        providerOverride: mistral
+        formats:
+          - type: Completions
+            path: /v1/chat/completions
+      host: api.mistral.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-mistral-api-key
+        key: apiKey
+    tls:
+      sni: api.mistral.ai
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+      modelAliases:
+        mistral-light: "mistral-small-2603"
+      transformations:
+        - field: model
+          expression: '"mistral-light"'
+        # The mistral preset: agentgateway 1.6 and 1.7 cannot parse the list content Mistral's reasoning answers with, a 502 (ANR live run uyqiqv6e), and the planner sends low.
+        - field: reasoning_effort
+          expression: '"none"'
+
+---
+# mistral-standard on mistral (mistral): the model is forced to the alias whatever the
+# body says, then mapped to mistral-medium-2604 (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-mistral-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: mistral-mistral-standard
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (the model catalog) and the series' provider label.
+        providerOverride: mistral
+        formats:
+          - type: Completions
+            path: /v1/chat/completions
+      host: api.mistral.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-mistral-api-key
+        key: apiKey
+    tls:
+      sni: api.mistral.ai
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+      modelAliases:
+        mistral-standard: "mistral-medium-2604"
+      transformations:
+        - field: model
+          expression: '"mistral-standard"'
+        # The mistral preset: agentgateway 1.6 and 1.7 cannot parse the list content Mistral's reasoning answers with, a 502 (ANR live run uyqiqv6e), and the planner sends low.
+        - field: reasoning_effort
+          expression: '"none"'
+
+---
+# tier-frontier on zai (zai): the model is forced to the alias whatever the
+# body says, then mapped to glm-5.3 (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-zai-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: zai-tier-frontier
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (the model catalog) and the series' provider label.
+        providerOverride: zai
+        formats:
+          - type: Completions
+            path: /api/paas/v4/chat/completions
+      host: api.z.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-zai-api-key
+        key: apiKey
+    tls:
+      sni: api.z.ai
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+      modelAliases:
+        tier-frontier: "glm-5.3"
+      transformations:
+        - field: model
+          expression: '"tier-frontier"'
+
+---
+# tier-light on zai (zai): the model is forced to the alias whatever the
+# body says, then mapped to glm-5.3-flash (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-zai-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: zai-tier-light
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (the model catalog) and the series' provider label.
+        providerOverride: zai
+        formats:
+          - type: Completions
+            path: /api/paas/v4/chat/completions
+      host: api.z.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-zai-api-key
+        key: apiKey
+    tls:
+      sni: api.z.ai
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+      modelAliases:
+        tier-light: "glm-5.3-flash"
+      transformations:
+        - field: model
+          expression: '"tier-light"'
+
+---
+# tier-standard on zai (zai): the model is forced to the alias whatever the
+# body says, then mapped to glm-5.3-flashx (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-zai-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: zai-tier-standard
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (the model catalog) and the series' provider label.
+        providerOverride: zai
+        formats:
+          - type: Completions
+            path: /api/paas/v4/chat/completions
+      host: api.z.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-zai-api-key
+        key: apiKey
+    tls:
+      sni: api.z.ai
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+      modelAliases:
+        tier-standard: "glm-5.3-flashx"
+      transformations:
+        - field: model
+          expression: '"tier-standard"'
+
+---
+# agent-default on anthropic (anthropic): the model is forced to the alias whatever the
+# body says, then mapped to claude-opus-5-5 (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-anthropic-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: anthropic-agent-default
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      anthropic: {}
+  policies:
+    auth:
+      secretRef:
+        name: agents-anthropic-api-key
+        key: apiKey
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+        /v1/messages: Messages
+      modelAliases:
+        agent-default: "claude-opus-5-5"
+      transformations:
+        - field: model
+          expression: '"agent-default"'
+
+---
+# tier-frontier on anthropic (anthropic): the model is forced to the alias whatever the
+# body says, then mapped to claude-opus-5-5 (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-anthropic-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: anthropic-tier-frontier
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      anthropic: {}
+  policies:
+    auth:
+      secretRef:
+        name: agents-anthropic-api-key
+        key: apiKey
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+        /v1/messages: Messages
+      modelAliases:
+        tier-frontier: "claude-opus-5-5"
+      transformations:
+        - field: model
+          expression: '"tier-frontier"'
+
+---
+# tier-light on anthropic (anthropic): the model is forced to the alias whatever the
+# body says, then mapped to claude-haiku-5-5 (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-anthropic-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: anthropic-tier-light
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      anthropic: {}
+  policies:
+    auth:
+      secretRef:
+        name: agents-anthropic-api-key
+        key: apiKey
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+        /v1/messages: Messages
+      modelAliases:
+        tier-light: "claude-haiku-5-5"
+      transformations:
+        - field: model
+          expression: '"tier-light"'
+
+---
+# tier-standard on anthropic (anthropic): the model is forced to the alias whatever the
+# body says, then mapped to claude-sonnet-5-5 (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-anthropic-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: anthropic-tier-standard
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      anthropic: {}
+  policies:
+    auth:
+      secretRef:
+        name: agents-anthropic-api-key
+        key: apiKey
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+        /v1/messages: Messages
+      modelAliases:
+        tier-standard: "claude-sonnet-5-5"
+      transformations:
+        - field: model
+          expression: '"tier-standard"'
+
+---
+# tier-frontier on zai (zai): the model is forced to the alias whatever the
+# body says, then mapped to glm-5.3 (GW5): a caller holds no other alias's audience, so it
+# cannot reach another model. The key is read from Secret agents-zai-api-key by reference (D14).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: zai-planner
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  ai:
+    provider:
+      custom:
+        # The catalog key (the model catalog) and the series' provider label.
+        providerOverride: zai
+        formats:
+          - type: Completions
+            path: /api/paas/v4/chat/completions
+      host: api.z.ai
+      port: 443
+  policies:
+    auth:
+      secretRef:
+        name: agents-zai-api-key
+        key: apiKey
+    tls:
+      sni: api.z.ai
+    ai:
+      # Typed routes: the harness, the planner and the classifier speak Chat Completions.
+      routes:
+        /v1/chat/completions: Completions
+      modelAliases:
+        tier-frontier: "glm-5.3"
+      transformations:
+        - field: model
+          expression: '"tier-frontier"'
+
+---
+# The generated proxy has no pod seccomp profile, no liveness probe, no limits and a LoadBalancer
+# Service by default; these fields are strategic-merge overlays on what the controller renders (its
+# container is already non-root, read-only, capabilities dropped). As cnref's parameters.yaml.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayParameters
+metadata:
+  name: model-gateway
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  # A controller pin change does not re-render the proxy until the Gateway is touched: bump this with
+  # the controller, then check the pod's digest.
+  image:
+    registry: cr.agentgateway.dev
+    repository: agentgateway
+    tag: "v1.6.0"
+    digest: sha256:9d3e6044ddcdc0878b1787f77bd401252b95e22684203fb5e874c4c42d2ed90c
+  logging:
+    format: json
+  # The overlay that prices each response (the access log's `cost`), merged over the built-in catalog.
+  modelCatalog:
+    sources:
+      - configMap:
+          name: model-gateway-model-catalog
+  # The default (10s/60s) cut a 200s stream; min 10 / max 660 held it through the deletion of every
+  # proxy pod (cnref PoC N1). 660 = the 600s request timeout + 60s; the controller sets
+  # terminationGracePeriodSeconds from max.
+  shutdown:
+    min: 10
+    max: 660
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  deployment:
+    spec:
+      replicas: 2
+      template:
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: topology.kubernetes.io/zone
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  gateway.networking.k8s.io/gateway-name: model-gateway
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  gateway.networking.k8s.io/gateway-name: model-gateway
+          containers:
+            - name: agentgateway
+              securityContext:
+                seccompProfile:
+                  type: RuntimeDefault
+              livenessProbe:
+                httpGet:
+                  path: /healthz/ready
+                  port: 15021
+                periodSeconds: 10
+                failureThreshold: 6
+  service:
+    spec:
+      # Runs and the broker reach it in-cluster; a LoadBalancer would give their boundary a cloud address.
+      type: ClusterIP
+  # A drain never takes every in-flight completion. One replica gets no PDB: it would block every drain.
+  podDisruptionBudget:
+    spec:
+      minAvailable: 1
+
+---
+# The identity headers are dropped before routing, so no route or backend sees a forged one, even
+# where a listener's `set` does not run.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: model-gateway-strip-identity-headers
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    -
+      group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+  traffic:
+    phase: PreRouting
+    transformation:
+      request:
+        remove:
+          - x-ar-agent
+          - x-ar-human
+          - x-ai-gateway-client-id
+          - agent-session-id
+
+---
+# Listener public: the caller's projected ServiceAccount token, verified offline against this
+# cluster's issuer, must carry `exp` and `sub` (a sub-less token would share one rate-limit bucket),
+# the subject below, and an audience starting "maku-gateway.public."; each route then
+# requires its own audience. Audiences are checked in CEL, not in the provider's audience
+# list, which agentgateway caps at eight. The token is removed before any backend (preserveToken
+# off), and x-ar-agent is REPLACED with the verified sub.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: model-gateway-listener-public
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    -
+      group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: public
+  traffic:
+    jwtAuthentication:
+      mode: Strict
+      providers:
+        - issuer: https://issuer.example
+          jwks:
+            remote:
+              url: https://issuer.example/jwks
+          validation:
+            requiredClaims:
+              - exp
+              - sub
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+          - 'jwt.aud.exists(a, a.startsWith("maku-gateway.public."))'
+    transformation:
+      request:
+        set:
+          - name: x-ar-agent
+            value: jwt.sub
+      # The gateway's own 429 (a budget a later step adds) comes with an empty body, which the
+      # harness would log as a bare RateLimitError: name the cause. Only the gateway's own 429 lacks
+      # a content-type; a provider's keeps its body. No response.body read: streams stay unbuffered.
+      response:
+        body: >-
+          response.code == 429 && !("content-type" in response.headers)
+          ? {"error": {"type": "rate_limit_error", "code": "gateway_budget_exhausted",
+          "message": "the model gateway refused this call: a gateway budget is spent (limit "
+          + default(response.headers["x-ratelimit-limit"], "unknown") + ", resets in "
+          + default(response.headers["x-ratelimit-reset"], "unknown") + " s). Not retryable."}}
+          : null
+    # A long completion must not time out.
+    timeouts:
+      request: 600s
+
+---
+# Listener internal: the caller's projected ServiceAccount token, verified offline against this
+# cluster's issuer, must carry `exp` and `sub` (a sub-less token would share one rate-limit bucket),
+# the subject below, and an audience starting "maku-gateway.internal."; each route then
+# requires its own audience. Audiences are checked in CEL, not in the provider's audience
+# list, which agentgateway caps at eight. The token is removed before any backend (preserveToken
+# off), and x-ar-agent is REPLACED with the verified sub.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: model-gateway-listener-internal
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    -
+      group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: internal
+  traffic:
+    jwtAuthentication:
+      mode: Strict
+      providers:
+        - issuer: https://issuer.example
+          jwks:
+            remote:
+              url: https://issuer.example/jwks
+          validation:
+            requiredClaims:
+              - exp
+              - sub
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+          - 'jwt.aud.exists(a, a.startsWith("maku-gateway.internal."))'
+    transformation:
+      request:
+        set:
+          - name: x-ar-agent
+            value: jwt.sub
+      # The gateway's own 429 (a budget a later step adds) comes with an empty body, which the
+      # harness would log as a bare RateLimitError: name the cause. Only the gateway's own 429 lacks
+      # a content-type; a provider's keeps its body. No response.body read: streams stay unbuffered.
+      response:
+        body: >-
+          response.code == 429 && !("content-type" in response.headers)
+          ? {"error": {"type": "rate_limit_error", "code": "gateway_budget_exhausted",
+          "message": "the model gateway refused this call: a gateway budget is spent (limit "
+          + default(response.headers["x-ratelimit-limit"], "unknown") + ", resets in "
+          + default(response.headers["x-ratelimit-reset"], "unknown") + " s). Not retryable."}}
+          : null
+    # A long completion must not time out.
+    timeouts:
+      request: 600s
+
+---
+# Listener clients: the caller's projected ServiceAccount token, verified offline against this
+# cluster's issuer, must carry `exp` and `sub` (a sub-less token would share one rate-limit bucket),
+# the subject below, and an audience starting "maku-gateway.client."; each route then
+# requires its own audience. Audiences are checked in CEL, not in the provider's audience
+# list, which agentgateway caps at eight. The token is removed before any backend (preserveToken
+# off), and x-ar-agent is REPLACED with the verified sub.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: model-gateway-listener-clients
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    -
+      group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: clients
+  traffic:
+    jwtAuthentication:
+      mode: Strict
+      providers:
+        - issuer: https://issuer.example
+          jwks:
+            remote:
+              url: https://issuer.example/jwks
+          validation:
+            requiredClaims:
+              - exp
+              - sub
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - 'jwt.sub == "system:serviceaccount:agent-system:room-broker"'
+          - 'jwt.aud.exists(a, a.startsWith("maku-gateway.client."))'
+    transformation:
+      request:
+        set:
+          - name: x-ar-agent
+            value: jwt.sub
+      # The gateway's own 429 (a budget a later step adds) comes with an empty body, which the
+      # harness would log as a bare RateLimitError: name the cause. Only the gateway's own 429 lacks
+      # a content-type; a provider's keeps its body. No response.body read: streams stay unbuffered.
+      response:
+        body: >-
+          response.code == 429 && !("content-type" in response.headers)
+          ? {"error": {"type": "rate_limit_error", "code": "gateway_budget_exhausted",
+          "message": "the model gateway refused this call: a gateway budget is spent (limit "
+          + default(response.headers["x-ratelimit-limit"], "unknown") + ", resets in "
+          + default(response.headers["x-ratelimit-reset"], "unknown") + " s). Not retryable."}}
+          : null
+    # The callers' own deadlines (20 s planner, 5 s classifier) are shorter.
+    timeouts:
+      request: 60s
+
+---
+# One frontend policy per Gateway: two would leave the merge to the controller.
+# Buffer: 8Mi, as cnref's agent-router (agentgateway's 2 MiB default cuts long agent contexts).
+# Telemetry: every identity label is the verified sub, under the names the factory's meter and the
+# dashboards read (ar_agent on metrics, x_ar_agent on the access log), with the priced cost.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: model-gateway-frontend
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    -
+      group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+  frontend:
+    http:
+      maxBufferSize: 8Mi
+    accessLog:
+      attributes:
+        add:
+          - name: x_ar_agent
+            expression: jwt.sub
+          # The request's priced cost in USD (empty when the catalog has no exact row).
+          - name: cost
+            expression: flatten(llm.cost)
+    metrics:
+      attributes:
+        add:
+          - name: ar_agent
+            expression: jwt.sub
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-public-agent-default
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-public-agent-default
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.public.agent-default" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-public-kimi-frontier
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-public-kimi-frontier
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.public.kimi-frontier" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-public-mistral-light
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-public-mistral-light
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.public.mistral-light" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-public-mistral-standard
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-public-mistral-standard
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.public.mistral-standard" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-public-tier-frontier
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-public-tier-frontier
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.public.tier-frontier" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-public-tier-light
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-public-tier-light
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.public.tier-light" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-public-tier-standard
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-public-tier-standard
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.public.tier-standard" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-internal-agent-default
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-internal-agent-default
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.internal.agent-default" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-internal-tier-frontier
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-internal-tier-frontier
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.internal.tier-frontier" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-internal-tier-light
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-internal-tier-light
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.internal.tier-light" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-internal-tier-standard
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-internal-tier-standard
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.internal.tier-standard" in jwt.aud'
+          - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+
+---
+# The pin (GW5): the listener admits any audience of its class; this route admits only its own.
+# A caller that rewrites its path to another alias holds no token for it: 403. The listener's
+# subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-clients-planner
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-clients-planner
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - '"maku-gateway.client.planner" in jwt.aud'
+          - 'jwt.sub == "system:serviceaccount:agent-system:room-broker"'
+
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-public-list
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-public-list
+  traffic:
+    directResponse:
+      status: 404
+      body: '{"error":"model listing is not served on the model gateway"}'
+
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: maku-models-internal-list
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: maku-models-internal-list
+  traffic:
+    directResponse:
+      status: 404
+      body: '{"error":"model listing is not served on the model gateway"}'
+
+---
+# The same in Cilium's terms, with each provider by FQDN through Cilium's DNS proxy.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: model-gateway
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  endpointSelector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: model-gateway
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: agents
+          matchExpressions:
+            - {key: agents.ogenki.io/run-id, operator: Exists}
+      toPorts:
+        - ports:
+            - {port: "8080", protocol: TCP}
+            - {port: "8081", protocol: TCP}
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: agent-system
+            app.kubernetes.io/name: room-broker
+      toPorts:
+        - ports:
+            - {port: "8082", protocol: TCP}
+    # metrics.allowFrom's NetworkPolicy peers as Cilium endpoint selectors: namespace labels under
+    # io.cilium.k8s.namespace.labels, pod labels as they are. A peer without a namespaceSelector is in
+    # the release namespace; an empty namespaceSelector ({}) is every namespace, which a namespaced
+    # Cilium policy states with an Exists on the namespace label (a bare selector means its own).
+    - fromEndpoints:
+        -
+          matchLabels:
+            k8s:app.kubernetes.io/name: vmagent
+            k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name: observability
+      toPorts:
+        - ports:
+            - {port: "15020", protocol: TCP}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: ANY}
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: agentgateway-system
+            app.kubernetes.io/instance: agentgateway
+            app.kubernetes.io/name: agentgateway
+      toPorts:
+        - ports:
+            - {port: "9978", protocol: TCP}
+    - toFQDNs:
+        - matchName: api.z.ai
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+    - toFQDNs:
+        - matchName: api.kimi.ai
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+    - toFQDNs:
+        - matchName: api.mistral.ai
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+    - toFQDNs:
+        - matchName: api.anthropic.com
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+
+---
+# The model gateway (D7). One listener per data class, as on cnref's agent-router: an internal run's
+# token never reaches a public-only provider, because that provider's routes attach to `public` only.
+# `clients` serves the broker's planner and classifier. Routes attach from this namespace only.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: model-gateway
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  gatewayClassName: agentgateway
+  listeners:
+    - name: public
+      protocol: HTTP
+      port: 8080
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: internal
+      protocol: HTTP
+      port: 8081
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: clients
+      protocol: HTTP
+      port: 8082
+      allowedRoutes:
+        namespaces:
+          from: Same
+  infrastructure:
+    parametersRef:
+      group: agentgateway.dev
+      kind: AgentgatewayParameters
+      name: model-gateway
+
+---
+# /m/agent-default on public: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/agent-default/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-public-agent-default
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: public
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/agent-default/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: zai-agent-default
+
+---
+# /m/kimi-frontier on public: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/kimi-frontier/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-public-kimi-frontier
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: public
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/kimi-frontier/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: moonshot-kimi-frontier
+
+---
+# /m/mistral-light on public: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/mistral-light/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-public-mistral-light
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: public
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/mistral-light/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: mistral-mistral-light
+
+---
+# /m/mistral-standard on public: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/mistral-standard/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-public-mistral-standard
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: public
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/mistral-standard/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: mistral-mistral-standard
+
+---
+# /m/tier-frontier on public: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/tier-frontier/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-public-tier-frontier
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: public
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/tier-frontier/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: zai-tier-frontier
+
+---
+# /m/tier-light on public: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/tier-light/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-public-tier-light
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: public
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/tier-light/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: zai-tier-light
+
+---
+# /m/tier-standard on public: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/tier-standard/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-public-tier-standard
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: public
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/tier-standard/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: zai-tier-standard
+
+---
+# /m/agent-default on internal: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/agent-default/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-internal-agent-default
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: internal
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/agent-default/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic-agent-default
+    - matches:
+        - path:
+            type: Exact
+            value: /m/agent-default/v1/messages
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/messages
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic-agent-default
+
+---
+# /m/tier-frontier on internal: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/tier-frontier/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-internal-tier-frontier
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: internal
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/tier-frontier/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic-tier-frontier
+    - matches:
+        - path:
+            type: Exact
+            value: /m/tier-frontier/v1/messages
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/messages
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic-tier-frontier
+
+---
+# /m/tier-light on internal: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/tier-light/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-internal-tier-light
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: internal
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/tier-light/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic-tier-light
+    - matches:
+        - path:
+            type: Exact
+            value: /m/tier-light/v1/messages
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/messages
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic-tier-light
+
+---
+# /m/tier-standard on internal: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/m/tier-standard/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-internal-tier-standard
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: internal
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/tier-standard/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic-tier-standard
+    - matches:
+        - path:
+            type: Exact
+            value: /m/tier-standard/v1/messages
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/messages
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic-tier-standard
+
+---
+# /clients/planner on clients: a caller's base URL is
+# http://model-gateway.<namespace>.svc:<port>/clients/planner/v1; each path is matched exactly and
+# rewritten to the backend's typed route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-clients-planner
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: clients
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /clients/planner/v1/chat/completions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /v1/chat/completions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: zai-planner
+
+---
+# A model listing is answered 404 after the listener's token check, as cnref's agent-router answers
+# it: every harness works with that. The Exact match outranks each alias's prefix.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-public-list
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: public
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/agent-default/v1/models
+        - path:
+            type: Exact
+            value: /m/kimi-frontier/v1/models
+        - path:
+            type: Exact
+            value: /m/mistral-light/v1/models
+        - path:
+            type: Exact
+            value: /m/mistral-standard/v1/models
+        - path:
+            type: Exact
+            value: /m/tier-frontier/v1/models
+        - path:
+            type: Exact
+            value: /m/tier-light/v1/models
+        - path:
+            type: Exact
+            value: /m/tier-standard/v1/models
+      # Never reached: the policy below answers first.
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: zai-agent-default
+
+---
+# A model listing is answered 404 after the listener's token check, as cnref's agent-router answers
+# it: every harness works with that. The Exact match outranks each alias's prefix.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: maku-models-internal-list
+  labels:
+    app.kubernetes.io/name: maku-gateway
+    app.kubernetes.io/instance: model-gateway
+    app.kubernetes.io/part-of: maku
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "v0.47.0"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+      sectionName: internal
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /m/agent-default/v1/models
+        - path:
+            type: Exact
+            value: /m/tier-frontier/v1/models
+        - path:
+            type: Exact
+            value: /m/tier-light/v1/models
+        - path:
+            type: Exact
+            value: /m/tier-standard/v1/models
+      # Never reached: the policy below answers first.
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: anthropic-agent-default

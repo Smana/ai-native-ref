@@ -1,0 +1,50 @@
+# B1, B2 and B6 on the model gateway, as agent-router charges them (../policy-budgets.yaml):
+# the chart renders no rate limit (Maku docs/gateway.md, "The 429s"). Same server, domain and
+# descriptors, so a run, the fleet and Anthropic each keep ONE bucket across both Gateways. The cost is
+# agent-router's string, which gate AG8 regenerates from meter.prices for every rateLimit.global. The
+# chart's listener policies already name a gateway 429 (code gateway_budget_exhausted).
+#
+# Gateway-scoped, as on agent-router: a listener-scoped rateLimit would share its target with the
+# chart's listener policy, a merge agent-router never ran. So the clients listener is charged too:
+# the planner, once follow-up 3 sends it here, counts in its broker's B1 bucket and in B2.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: model-gateway-token-budgets
+  namespace: agent-gateway
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: model-gateway
+  traffic:
+    rateLimit:
+      global:
+        backendRef:
+          name: agent-ratelimit
+          port: 8081
+        domain: agent-router
+        failureMode: FailOpen
+        descriptors:
+          - entries:
+              - name: agent
+                expression: jwt.sub
+            unit: Tokens
+            cost: '{"claude-haiku-5-5": [0.5, 0.05, 0.625, 2.5], "claude-opus-5-5": [4.0, 0.2, 5.0, 20.0], "claude-sonnet-5-5": [2.0, 0.1, 2.5, 10.0], "glm-5.3": [1.4, 0.26, 1.4, 4.4], "glm-5.3-flash": [0.15, 0.03, 0.15, 0.5], "glm-5.3-flashx": [0.37, 0.075, 0.37, 1.25], "k3.1-pro": [2.0, 0.2, 2.0, 10.0], "mistral-medium-2604": [1.5, 0.15, 1.5, 7.5], "mistral-small-2603": [0.15, 0.015, 0.15, 0.6]}.with(p, llm.requestModel in p ? p[llm.requestModel].with(r, uint(((double(default(llm.inputTokens, 0)) - double(default(llm.cachedInputTokens, 0)) - double(default(llm.cacheCreationInputTokens, 0))) * r[0] + double(default(llm.cachedInputTokens, 0)) * r[1] + double(default(llm.cacheCreationInputTokens, 0)) * r[2] + double(default(llm.outputTokens, 0)) * r[3]) / 1.7)) : uint(llm.totalTokens))'
+          - entries:
+              - name: fleet
+                expression: '"agents"'
+            unit: Tokens
+            cost: '{"claude-haiku-5-5": [0.5, 0.05, 0.625, 2.5], "claude-opus-5-5": [4.0, 0.2, 5.0, 20.0], "claude-sonnet-5-5": [2.0, 0.1, 2.5, 10.0], "glm-5.3": [1.4, 0.26, 1.4, 4.4], "glm-5.3-flash": [0.15, 0.03, 0.15, 0.5], "glm-5.3-flashx": [0.37, 0.075, 0.37, 1.25], "k3.1-pro": [2.0, 0.2, 2.0, 10.0], "mistral-medium-2604": [1.5, 0.15, 1.5, 7.5], "mistral-small-2603": [0.15, 0.015, 0.15, 0.6]}.with(p, llm.requestModel in p ? p[llm.requestModel].with(r, uint(((double(default(llm.inputTokens, 0)) - double(default(llm.cachedInputTokens, 0)) - double(default(llm.cacheCreationInputTokens, 0))) * r[0] + double(default(llm.cachedInputTokens, 0)) * r[1] + double(default(llm.cacheCreationInputTokens, 0)) * r[2] + double(default(llm.outputTokens, 0)) * r[3]) / 1.7)) : uint(llm.totalTokens))'
+          # B6: an internal audience is maku-gateway.internal.<alias>, and the chart serves Anthropic on
+          # `internal` only (its dataClasses). `aud` is always present: every listener checks it.
+          - entries:
+              - name: provider
+                expression: 'jwt.aud.exists(a, a.startsWith("maku-gateway.internal.")) ? "anthropic" : "none"'
+            unit: Tokens
+            cost: '{"claude-haiku-5-5": [0.5, 0.05, 0.625, 2.5], "claude-opus-5-5": [4.0, 0.2, 5.0, 20.0], "claude-sonnet-5-5": [2.0, 0.1, 2.5, 10.0], "glm-5.3": [1.4, 0.26, 1.4, 4.4], "glm-5.3-flash": [0.15, 0.03, 0.15, 0.5], "glm-5.3-flashx": [0.37, 0.075, 0.37, 1.25], "k3.1-pro": [2.0, 0.2, 2.0, 10.0], "mistral-medium-2604": [1.5, 0.15, 1.5, 7.5], "mistral-small-2603": [0.15, 0.015, 0.15, 0.6]}.with(p, llm.requestModel in p ? p[llm.requestModel].with(r, uint(((double(default(llm.inputTokens, 0)) - double(default(llm.cachedInputTokens, 0)) - double(default(llm.cacheCreationInputTokens, 0))) * r[0] + double(default(llm.cachedInputTokens, 0)) * r[1] + double(default(llm.cacheCreationInputTokens, 0)) * r[2] + double(default(llm.outputTokens, 0)) * r[3]) / 1.7)) : uint(llm.totalTokens))'
+      # OD-8's backstop, as on agent-router: per proxy replica and verified sub, raw tokens.
+      local:
+        - tokens: 40000000
+          unit: Hours
+          key: jwt.sub

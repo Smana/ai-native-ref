@@ -1,0 +1,30 @@
+# What the chart's CiliumNetworkPolicy (model-gateway) leaves out, added beside it: Cilium allow
+# rules add up, so neither policy widens the other. agent-gateway's default-deny
+# (../network-policy.yaml) covers these pods too.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: model-gateway-overlay
+  namespace: agent-gateway
+spec:
+  endpointSelector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: model-gateway
+  ingress:
+    # Kubelet probes on 15021: the chart counts on node traffic being allowed, which this cluster's
+    # Cilium does not do (agent-router's data plane admits the host on the same port).
+    - fromEntities:
+        - host
+      toPorts:
+        - ports:
+            - port: "15021"
+              protocol: TCP
+  egress:
+    # Budget checks (policy-budgets.yaml), on agent-router's rate-limit server. Fail open.
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: agent-ratelimit
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP

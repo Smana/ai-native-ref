@@ -173,9 +173,13 @@ spec:
     matchLabels:
       app.kubernetes.io/name: agent-ratelimit
   ingress:
+    # Both Gateways' proxies: model-gateway's budgets (model-gateway/policy-budgets.yaml) share
+    # agent-router's buckets.
     - fromEndpoints:
         - matchLabels:
             gateway.networking.k8s.io/gateway-name: agent-router
+        - matchLabels:
+            gateway.networking.k8s.io/gateway-name: model-gateway
       toPorts:
         - ports:
             - port: "8081"

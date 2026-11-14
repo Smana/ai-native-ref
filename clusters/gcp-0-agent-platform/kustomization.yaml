@@ -14,6 +14,7 @@ resources:
   - infrastructure-agent-router.yaml
   - infrastructure-agentgateway.yaml
   - infrastructure-agent-gateway.yaml
+  - infrastructure-model-gateway.yaml
   - security-octo-sts.yaml
   - security-merge-gate-secrets.yaml
   - infrastructure-agent-mcp.yaml

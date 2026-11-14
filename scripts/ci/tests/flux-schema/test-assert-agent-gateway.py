@@ -253,7 +253,7 @@ got = gate.run(compliant(REAL))
 check("compliant agent-gateway/agent-router passes", got == [], f"got {got}")
 got = gate.run(compliant(REAL) + compliant(POC))
 check("the PoC beside the real Gateway passes", got == [], f"got {got}")
-check("fifteen checks", len(gate.CHECKS) == 15, f"got {len(gate.CHECKS)}")
+check("sixteen checks", len(gate.CHECKS) == 16, f"got {len(gate.CHECKS)}")
 
 print("AG1 gateway")
 expect("no Gateway fails", lambda o: o.remove(find(o, "Gateway", "agent-router")), "AG1")
@@ -892,6 +892,96 @@ expect("the single-value form fails", lambda o: arg_expr(o, argument(R, "public"
     'in ["secret", "secretlist"])', '== "secret")')), "AG6", "not one argument rule")
 expect("an empty value set fails", lambda o: arg_expr(o, argument(R, "public", "")), "AG6", "not one argument rule")
 
+print("AG15 the maku-gateway chart's Gateway")
+CHART_RENDER = [d for d in yaml.safe_load_all((HERE / "maku-gateway-render.yaml").read_text()) if d]
+B6_CHART = 'jwt.aud.exists(a, a.startsWith("maku-gateway.internal.")) ? "anthropic" : "none"'
+# The chart's prices are the real meter.prices; the world's are PRICES, so price what the chart serves.
+CHART_PRICES = {**PRICES, "glm-5.3-flashx": {"input": 0.37, "cacheRead": 0.075, "output": 1.25, **ZAI_PAGE},
+                "claude-sonnet-5-5": {"input": 2, "cacheRead": 0.1, "cacheWrite": 2.5, "output": 10, **CLAUDE_PAGE}}
+
+
+def charted_world():
+    """The real agent router, with the chart's render beside it as Flux applies it: its HelmRelease, and
+    ANR's budgets overlay."""
+    objs = compliant() + copy.deepcopy(CHART_RENDER)
+    cost = gate.billable_cost(CHART_PRICES)
+    for o in objs:
+        if o["kind"] == "ConfigMap" and o["metadata"]["name"] == gate.FACTORY_VALUES:
+            values = yaml.safe_load(o["data"]["values.yaml"])
+            values["config"]["meter"]["prices"] = CHART_PRICES
+            o["data"]["values.yaml"] = yaml.safe_dump(values)
+        if o["kind"] == "AgentgatewayPolicy" and o["metadata"]["name"] == "token-budgets":
+            for d in o["spec"]["traffic"]["rateLimit"]["global"]["descriptors"]:
+                d["cost"] = cost
+    objs.append({"apiVersion": "helm.toolkit.fluxcd.io/v2", "kind": "HelmRelease",
+                 "metadata": {"namespace": "agent-gateway", "name": "model-gateway"},
+                 "spec": {"releaseName": "model-gateway", "chartRef": {"kind": "OCIRepository", "name": "maku-gateway"}}})
+    objs.append(obj("AgentgatewayPolicy", "agent-gateway", "model-gateway-token-budgets", {
+        "targetRefs": [{"group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "model-gateway"}],
+        "traffic": {"rateLimit": {
+            "global": {"backendRef": {"name": "agent-ratelimit", "port": 8081}, "domain": "agent-router",
+                       "failureMode": "FailOpen", "descriptors": [
+                           {"entries": [{"name": "agent", "expression": "jwt.sub"}], "unit": "Tokens", "cost": cost},
+                           {"entries": [{"name": "fleet", "expression": '"agents"'}], "unit": "Tokens", "cost": cost},
+                           {"entries": [{"name": "provider", "expression": B6_CHART}], "unit": "Tokens", "cost": cost}]},
+            "local": [{"tokens": 40000000, "unit": "Hours", "key": "jwt.sub"}]}}}))
+    return objs
+
+
+def expect_chart(name, mutate, code, needle=""):
+    objs = charted_world()
+    mutate(objs)
+    v = gate.run(objs)
+    check(name, any(x.startswith(code) and needle in x for x in v), f"got {v}")
+
+
+v = gate.run(charted_world())
+check("the chart's render beside the agent router passes, budgets included", v == [], f"got {v}")
+v = gate.run([o for o in charted_world() if o["kind"] != "HelmRelease"])
+check("without its HelmRelease the chart's objects have no namespace, and fail AG1",
+      any(x.startswith("AG1") and "no entry in PROFILES" in x for x in v), f"got {v}")
+
+
+def listener(objs, name):
+    return find(objs, "AgentgatewayPolicy", f"model-gateway-listener-{name}")["spec"]["traffic"]
+
+
+expect_chart("a listener that drops its audience prefix fails",
+             lambda o: listener(o, "public")["authorization"]["policy"]["matchExpressions"].pop(), "AG15", "Require exactly")
+expect_chart("a run listener that admits the broker fails", lambda o: listener(o, "internal")["authorization"]["policy"]
+             .update({"matchExpressions": ['jwt.sub == "system:serviceaccount:agent-system:room-broker"',
+                                           'jwt.aud.exists(a, a.startsWith("maku-gateway.internal."))']}), "AG15", "Require exactly")
+expect_chart("a listener that forwards the token fails",
+             lambda o: listener(o, "clients")["jwtAuthentication"].update({"preserveToken": True}), "AG15", "forwards")
+expect_chart("a listener on another issuer fails",
+             lambda o: listener(o, "clients")["jwtAuthentication"]["providers"][0].update({"issuer": "https://other.example"}),
+             "AG15", "one https:// issuer")
+expect_chart("a route that admits another class's audience fails", lambda o: find(
+    o, "AgentgatewayPolicy", "maku-models-public-tier-light")["spec"]["traffic"]["authorization"]["policy"]
+    .update({"matchExpressions": ['"maku-gateway.internal.tier-light" in jwt.aud',
+                                  'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")']}), "AG15", "own maku-gateway.public.")
+expect_chart("a route with no audience Require fails", lambda o: o.remove(
+    find(o, "AgentgatewayPolicy", "maku-models-internal-tier-frontier")), "AG15", "own maku-gateway.internal.")
+expect_chart("Kimi Code reached from internal fails", lambda o: find(o, "HTTPRoute", "maku-models-internal-tier-light")
+             ["spec"]["rules"][0]["backendRefs"][0].update({"name": "moonshot-kimi-frontier"}), "AG15", "reaches Moonshot from internal")
+expect_chart("Anthropic reached from public fails", lambda o: find(o, "HTTPRoute", "maku-models-public-tier-light")
+             ["spec"]["rules"][0]["backendRefs"][0].update({"name": "anthropic-tier-light"}), "AG15", "reaches Anthropic from public")
+expect_chart("a backend with a second alias fails", lambda o: find(o, "AgentgatewayBackend", "zai-tier-light")
+             ["spec"]["policies"]["ai"]["modelAliases"].update({"tier-frontier": "glm-5.3"}), "AG15", "one alias")
+expect_chart("a backend that keeps the body's model fails", lambda o: find(o, "AgentgatewayBackend", "zai-planner")
+             ["spec"]["policies"]["ai"]["transformations"].pop(0), "AG15", "forcing that alias")
+expect_chart("the strip gone from the chart's Gateway fails", lambda o: o.remove(
+    find(o, "AgentgatewayPolicy", "model-gateway-strip-identity-headers")), "AG3", "model-gateway")
+expect_chart("the chart's proxy without a PDB fails", lambda o: find(o, "AgentgatewayParameters", "model-gateway")
+             ["spec"].pop("podDisruptionBudget"), "AG9", "PodDisruptionBudget")
+expect_chart("budgets at another price fail", lambda o: find(o, "AgentgatewayPolicy", "model-gateway-token-budgets")
+             ["spec"]["traffic"]["rateLimit"]["global"]["descriptors"][0].update({"cost": "1"}), "AG8", "meter.prices")
+expect_chart("a budget keyed on a claim no listener requires fails", lambda o: find(
+    o, "AgentgatewayPolicy", "model-gateway-token-budgets")["spec"]["traffic"]["rateLimit"]["global"]["descriptors"][0]
+    ["entries"][0].update({"expression": "jwt.email"}), "AG8", "email")
+expect_chart("a priced row missing for a chart model fails", lambda o: find(o, "AgentgatewayBackend", "zai-tier-light")
+             ["spec"]["policies"]["ai"]["modelAliases"].update({"tier-light": "glm-9"}), "AG10", "glm-9")
+
 print("main")
 with tempfile.TemporaryDirectory() as d:
     # base and both clusters render the same objects: one world per cluster, so no double count.
@@ -900,7 +990,7 @@ with tempfile.TemporaryDirectory() as d:
         pathlib.Path(d, name).write_text(yaml.safe_dump_all(compliant()))
     code, out = run_main(d)
     check("main exits 0 on per-cluster duplicates", code == 0, out)
-    check("main prints 15 checks", "assert-agent-gateway: 15 checks, 0 violations" in out, out)
+    check("main prints 16 checks", "assert-agent-gateway: 16 checks, 0 violations" in out, out)
     pathlib.Path(d, "overlay-infrastructure-gcp-0-agent-gateway.yaml").write_text(
         yaml.safe_dump_all([o for o in compliant() if o["kind"] != "Gateway"]))
     code, out = run_main(d)

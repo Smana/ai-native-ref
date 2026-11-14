@@ -1,0 +1,44 @@
+---
+# The model gateway from Maku's maku-gateway chart (v4 step 4, ANR follow-up 1), beside agent-router:
+# nothing routes through it until runs move to it (follow-up 2). Its own child, so suspending or
+# removing it leaves agent-router untouched.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: model-gateway
+  namespace: flux-system
+spec:
+  prune: true
+  interval: 5m0s
+  retryInterval: 30s
+  timeout: 5m0s
+  path: ./infrastructure/aws-0/agent-gateway/model-gateway
+  sourceRef:
+    kind: OCIRepository
+    name: ai-native-ref
+  postBuild:
+    substituteFrom:
+      - kind: ConfigMap
+        name: eks-aws-0-vars
+  # agentgateway: the controller and its CRDs. agent-secrets and agent-router: External Secrets and agent-system's
+  # provider keys, which provider-keys.yaml copies. agent-gateway: the namespace's default-deny and
+  # the rate-limit server the budgets call.
+  dependsOn:
+    - name: agentgateway
+    - name: agent-secrets
+    - name: agent-router
+    - name: agent-gateway
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: model-gateway
+      namespace: agent-gateway
+    - apiVersion: gateway.networking.k8s.io/v1
+      kind: Gateway
+      name: model-gateway
+      namespace: agent-gateway
+  healthCheckExprs:
+    - apiVersion: gateway.networking.k8s.io/v1
+      kind: Gateway
+      current: status.conditions.filter(c, c.type == 'Programmed').all(c, c.status == 'True')
+      failed: status.conditions.filter(c, c.type == 'Programmed').all(c, c.status == 'False')

@@ -166,8 +166,6 @@ spec:
           secret: {secretName: room-broker-factory-app, optional: true, defaultMode: 0440}  # pragma: allowlist secret
         - name: roomctl
           secret: {secretName: room-broker-roomctl, optional: true}  # pragma: allowlist secret
-        - name: zitadel-reader
-          secret: {secretName: room-broker-zitadel-reader, optional: true, defaultMode: 0440}  # pragma: allowlist secret
         - name: sponsored
           secret: {secretName: room-broker-sponsored, optional: true, defaultMode: 0440}  # pragma: allowlist secret
         - name: webhook-slack-app
@@ -186,7 +184,6 @@ spec:
         - {name: oidc, mountPath: /etc/room-broker/oidc, readOnly: true}
         - {name: factory-app, mountPath: /var/run/secrets/factory-app, readOnly: true}
         - {name: roomctl, mountPath: /etc/room-broker/roomctl, readOnly: true}
-        - {name: zitadel-reader, mountPath: /etc/room-broker/zitadel-reader, readOnly: true}
         - {name: sponsored, mountPath: /etc/room-broker/sponsored, readOnly: true}
         - {name: webhook-slack-app, mountPath: /etc/room-broker/webhooks/slack-app, readOnly: true}
         - {name: webhook-runlore, mountPath: /etc/room-broker/webhooks/runlore, readOnly: true}

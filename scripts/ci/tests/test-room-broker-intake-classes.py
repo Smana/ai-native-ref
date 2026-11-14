@@ -263,7 +263,7 @@ else:
         # Both tools live on /mcp, and the candidate set is the GitHub write check human.access
         # carries: enabled without either is a switch that reads as on and refuses every call.
         access = human.get("access")
-        check(isinstance(access, dict) and bool(access.get("readerFile")),
+        check(isinstance(access, dict),
               f"{cloud}: human.access is declared: the planner's candidate set is its write check")
         if plan.get("enabled") is True:
             check((human.get("mcp") or {}).get("enabled") is True,

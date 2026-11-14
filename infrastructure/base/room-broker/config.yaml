@@ -60,14 +60,13 @@ human:
       url: https://grafana.${private_domain_name}/d/agent-room/agent-room?var-room={room}
     - label: Run
       url: https://grafana.${private_domain_name}/d/agent-run/agent-run?var-run={run}
-  # D7: room access is read from GitHub-link ZITADEL grants. v0.7.x's strict decoder
-  # refuses this key, so it only ever lands with the v0.8.0 pin.
+  # D7: room access is the caller's GitHub login, read from the GitHub account link below, then
+  # write on the repository asked of GitHub. An account with no link has no access.
   access:
-    readerFile: /etc/room-broker/zitadel-reader/reader.json
     ttl: 5m
-  # The GitHub account link (Maku docs/github-link.md, ANR follow-up 2): each human links their GitHub
-  # account once on /link/github, and the link is read before the ZITADEL reader above, which stays
-  # the fallback for an account with no link until every human has linked (follow-up 3 removes it).
+  # The GitHub account link (Maku docs/github-link.md): each human links their GitHub account once
+  # on /link/github; it is the only source of a login (Maku v0.48.0 accepts human.access without
+  # readerFile once human.githubLink is set).
   # The factory App's OAuth client, its callback https://rooms.${private_domain_name}/link/github/callback,
   # read at use from helmrelease.yaml's optional mount: until externalsecret-github-link.yaml syncs,
   # the broker starts and /link/github answers 503. Not the chart's /etc/room-broker/github-link,

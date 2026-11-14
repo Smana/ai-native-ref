@@ -9,7 +9,6 @@ resources:
   - externalsecret-merger.yaml
   - externalsecret-agents-app.yaml
   - externalsecret-oidc.yaml
-  - externalsecret-zitadel-reader.yaml
   - httproute.yaml
   - network-policy.yaml
   - vmservicescrape.yaml

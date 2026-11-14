@@ -46,8 +46,8 @@ spec:
     # The run's sandbox: GKE Sandbox's RuntimeClass on gcp-0, runtimeclass-gvisor's on aws-0.
     sandbox:
       runtimeClassName: gvisor
-    # Kueue's two ClusterQueues together (16 + 8 CPU, 64 + 32Gi, 4 + 4 runs), now that it admits no
-    # run: one run is one pod. Limits leave a small run's 2.15 CPU and 4.1Gi room eight times over.
+    # The size of the two ClusterQueues Kueue had before R3 (16 + 8 CPU, 64 + 32Gi, 4 + 4 runs): one
+    # run is one pod. Limits leave a small run's 2.15 CPU and 4.1Gi room eight times over.
     runsQuota:
       hard:
         pods: "8"

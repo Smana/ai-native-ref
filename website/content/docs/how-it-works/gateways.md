@@ -18,7 +18,7 @@ it and what it costs is on [Model routing and cost]({{< relref "/docs/how-it-wor
 | **Callers** | Humans and coding clients: OpenCode, Continue, OpenWebUI, the nightly Promptfoo eval | Agent runs, through each run's identity-proxy sidecar |
 | **Identity** | An API key per client, from AWS Secrets Manager | A projected token per run (JWT), verified on every call |
 | **Model choice** | Named by the client, or picked from the prompt by the Semantic Router (`model: MoM`) | An alias, mapped statically to one backend; nothing selects per request |
-| **Also carries** | — | MCP tool calls, the room tools, and the token exchange (`sts`) with octo-sts |
+| **Also carries** | — | MCP tool calls, and the token exchange (`sts`) with octo-sts |
 | **Software** | Envoy Gateway + Envoy AI Gateway (Agent Router) `1.1.0` | [agentgateway](https://agentgateway.dev/docs/) `v1.6.0` ([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})) |
 
 ![The two gateways side by side. Top: humans and coding clients reach ai-gateway over the tailnet with an API key; the Semantic Router may pick the model, and the request lands on a vLLM model in the serving fleet. Bottom: an agent run's identity-proxy sidecar, beside the maku-harness, attaches the run's own token; the agent gateway verifies it, meters the run's tokens and routes the model alias to a frontier provider (Z.ai GLM, Moonshot Kimi and Mistral for public data only, Claude for internal data), the MCP tools, or octo-sts for a GitHub token. Both gateways write access logs and gen_ai metrics to the Victoria stack](/images/diagrams/ai-platform-2.svg)
@@ -204,7 +204,7 @@ flowchart LR
   LP -->|"/mcp"| M["agent-mcp<br/>MCP federation"]
   LI -->|"/mcp"| M
   LS -->|"/sts/exchange"| O["octo-sts"]
-  M --> T["flux-operator-mcp · mcp-victoriametrics<br/>mcp-victorialogs · room-broker"]
+  M --> T["flux-operator-mcp · mcp-victoriametrics<br/>mcp-victorialogs · runlore-kb"]
   agw -.->|"B1, B2, B6 enforced"| RL["agent-ratelimit"] --> V[("Valkey<br/>xplane-agent-ratelimit")]
 ```
 
@@ -212,7 +212,7 @@ flowchart LR
 
 | Listener | Port | Audiences | Routes |
 |---|---|---|---|
-| `public` | 8080 | `agent-router.<role>.public` | `/v1` and `/anthropic` to Z.ai, and `/v1` to Moonshot or Mistral when the run's pinned alias names one ([providers]({{< relref "/docs/how-it-works/providers.md" >}}), public data only); `/v1/models` answers a 404 body, not a model list; `/mcp` with documentation and room tools |
+| `public` | 8080 | `agent-router.<role>.public` | `/v1` and `/anthropic` to Z.ai, and `/v1` to Moonshot or Mistral when the run's pinned alias names one ([providers]({{< relref "/docs/how-it-works/providers.md" >}}), public data only); `/v1/models` answers a 404 body, not a model list; `/mcp` with documentation tools |
 | `internal` | 8081 | `agent-router.<role>.internal` | `/mcp` with cluster, metric and log reads per role; the model route to Claude through the Anthropic API (Bedrock or Vertex optional per cloud; ADR-0054) and a read-only GitHub route for clones of either repository ([ai-native-ref#11](https://github.com/Smana/ai-native-ref/pull/11)) |
 | `sts` | 8082 | `octo-sts/<owner>/<repo>/<role>` (example (the reference host): `octo-sts/Smana/{cloud-native-ref,ai-native-ref}/<role>`) | `/sts/exchange` to octo-sts, with the bearer forwarded (`preserveToken`) |
 
@@ -232,13 +232,13 @@ signal: `x_ar_agent` in the access log, `ar_agent` on metrics, `agent.principal`
 
 ### MCP federation
 
-One `AgentgatewayBackend`, `agent-mcp` (`mcp.yaml`), federates the four servers with stateless
+One `AgentgatewayBackend`, `agent-mcp` (`mcp.yaml`), federates the in-cluster servers with stateless
 sessions and names every tool `<target>_<tool>`: `flux-operator-mcp_search_flux_docs`,
-`mcp-victoriametrics_query`, `room-broker_room_read`. Each listener's route carries an `Allow` list,
+`mcp-victoriametrics_query`. Each listener's route carries an `Allow` list,
 one expression per role and target, so a role sees only its tools in `tools/list` and a denied call
 answers `Unknown tool`. A target that fails is dropped from the list rather than failing the session
-(`failureMode: FailOpen`). No run bearer reaches a server; the room-broker gets its own key in
-`x-room-mcp-key`.
+(`failureMode: FailOpen`). No run bearer reaches a server. The room tools are not here: a run
+calls the broker's `:8090` directly with its own token, which the broker checks with a TokenReview.
 
 The lists are generated. One profile per role and data class in
 `infrastructure/base/agent-gateway/profiles/` names its tools, `scripts/ci/gen-capabilities.py` with `--write`
@@ -272,8 +272,8 @@ after such a 403 (since 1.55), so the run keeps its other tools.
 
 | Role | `public` | `internal` adds |
 |---|---|---|
-| implementer | documentation tools; `room_read`, `room_post`, `room_progress`, `room_handoff` | Flux instance, API versions and metrics; every VictoriaMetrics read tool |
-| reviewer, tester, triager | documentation tools; their `room_*` tools (`room_verdict` for reviewer and tester) | also `get_kubernetes_resources`, `get_kubernetes_logs` and the VictoriaLogs query tools |
+| implementer | documentation tools | Flux instance, API versions and metrics; every VictoriaMetrics read tool |
+| reviewer, tester, triager | documentation tools | also `get_kubernetes_resources`, `get_kubernetes_logs` and the VictoriaLogs query tools |
 
 ### Budgets
 

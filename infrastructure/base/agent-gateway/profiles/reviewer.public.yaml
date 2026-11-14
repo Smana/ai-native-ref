@@ -10,8 +10,3 @@ tools:
     - documentation
   mcp-victorialogs:
     - documentation
-  room-broker:
-    - room_read
-    - room_post
-    - room_progress
-    - room_verdict

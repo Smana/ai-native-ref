@@ -56,7 +56,7 @@ says what works today, what does not yet, and what it costs.
 
 | Part | What it does |
 |---|---|
-| **Agent Factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory. The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts, RunLore, Kueue and others); [Maku](https://github.com/Smana/maku) is one of them: the controller, rooms, harness and bridge, the Slack app and the `maku` CLI |
+| **Agent Factory** | A labelled issue becomes a task. Agents in roles (implementer, reviewer, tester, triager) work it on one `agent/**` branch and open a pull request. The factory narrates each step on the issue, meters every run, and serves several repositories, each fenced to one factory. The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts, RunLore and others); [Maku](https://github.com/Smana/maku) is one of them: the controller, rooms, harness and bridge, the Slack app and the `maku` CLI |
 | **Sandboxed runtime** | One gVisor pod per run, with a default-deny network policy, egress only to the hosts its profile allows, and a short-lived GitHub token scoped to its own branch |
 | **Rooms** | The append-only log of each task: watch, post, steer, approve, with approval deadlines and suspend while a person decides |
 | **Agent gateway** | Every model and tool call of a run goes through [agentgateway](https://agentgateway.dev): it checks the run's identity, enforces token budgets per run, fleet and provider, and routes to the model its tier names |

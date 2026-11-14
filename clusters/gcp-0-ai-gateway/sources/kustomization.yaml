@@ -12,5 +12,4 @@ resources:
   - ../../../flux/sources/ocirepo-envoy-gateway.yaml
   - ../../../flux/sources/ocirepo-flux-operator-mcp.yaml
   - ../../../flux/sources/ocirepo-inferencepool.yaml
-  - ../../../flux/sources/ocirepo-kueue.yaml
   - ../../../flux/sources/ocirepo-vllm-semantic-router.yaml

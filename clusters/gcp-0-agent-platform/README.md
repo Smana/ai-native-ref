@@ -10,7 +10,7 @@ no gVisor RuntimeClass child here (GP-9).
 | Child Kustomization | Path | Holds |
 |---|---|---|
 | `agent-sandbox` | `infrastructure/base/agent-sandbox` | Sandbox CRD and controller in `agent-system` |
-| `agent-runtime` | `infrastructure/base/agent-runtime` | identity-proxy ConfigMap, `agents` default deny |
+| `agent-runtime` | `infrastructure/base/agent-runtime` | `agents` default deny |
 | `agent-policies` | `security/base/agent-policies` | Kyverno: no secret import into `agents`, the reserved audiences, the kill switch, and the GC of finished `maku.ogenki.io` runs. The run pod's shape and the AgentRun's creator and patch limits are the `maku` chart's admission policies (R3) |
 | `agent-secrets` | `security/gcp-0/agent-secrets` | `SecretStore agents-secrets` -> the `agents` mount |
 | `agent-router` | `infrastructure/gcp-0/agent-router` | The agents' provider keys (Z.ai, Anthropic) that agentgateway's backends read. Envoy's agent router was removed in phase H |
@@ -21,9 +21,6 @@ no gVisor RuntimeClass child here (GP-9).
 | `merge-gate-secrets` | `security/gcp-0/merge-gate-secrets` | `SecretStore merge-gate-secrets` -> the `merge-gate` mount, policy-bot's App secret (SP3 R44) |
 | `agent-mcp` | `infrastructure/gcp-0/agent-mcp` | Flux, VictoriaMetrics and VictoriaLogs MCP servers |
 | `room-broker` | `infrastructure/gcp-0/room-broker` | Room CRD (`rooms.maku.ogenki.io`), broker, room log (CNPG), retention, oauth2-proxy, and since R3 the run-controller: it runs each `maku.ogenki.io` AgentRun as a gVisor pod in `agents`, with the egress proxy, a NetworkPolicy per run, the runs quota and the run-pod admission policy. After `agent-factory-crds` |
-| `kueue` | `infrastructure/gcp-0/kueue` | Kueue controller: admits sandbox pods by integration, pod-only, `agents` namespace only (SP3). Admits no run since R3: the run-controller's pods carry no queue label; its CRDs are kept (`helm.sh/resource-policy: keep`) for its removal |
-| `kueue-queues` | `infrastructure/base/kueue-queues` | ResourceFlavor, the `agents-factory`/`agents-interactive` ClusterQueues and their LocalQueues (SP3). Unused since R3 |
-| `agents-headroom` | `infrastructure/base/karpenter-nodepools-agents/headroom` | One preemptible pod keeping a warm `agents-gvisor` node with the run images pulled. Off by default (`replicas: 0`); on, it holds one `e2-standard-8` up |
 | `agent-factory-crds` | `tooling/base/agent-factory/crds` | The six `maku.ogenki.io` CRDs (Rooms, AgentRuns, Tasks, Factories, Repositories, MergePolicies) from the `agent-factory-crds` chart, `helm.sh/resource-policy: keep`. Adopting existing CRDs: [runbook 26](../../docs/runbooks/agent-factory/26-crds-adoption.md). Before `agent-policies`, `room-broker` and the factory |
 | `agent-factory` | `tooling/gcp-0/agent-factory` | The factory: controller, issue intake, run meter (SP3) |
 | `agent-factory-resources` | `tooling/gcp-0/agent-factory/resources` | The factory's `Factory`, `Repository` and `MergePolicy` objects: its catalogue, repositories and merge policies, read live. After `agent-factory-crds`; the factory waits, not Ready, until these exist |

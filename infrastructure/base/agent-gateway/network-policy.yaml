@@ -108,7 +108,7 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # The five MCP targets (mcp.yaml).
+    # The MCP targets (mcp.yaml).
     - toEndpoints:
         - matchLabels:
             io.kubernetes.pod.namespace: agent-system
@@ -127,14 +127,6 @@ spec:
       toPorts:
         - ports:
             - port: "8081"
-              protocol: TCP
-    - toEndpoints:
-        - matchLabels:
-            io.kubernetes.pod.namespace: agent-system
-            app.kubernetes.io/name: room-broker
-      toPorts:
-        - ports:
-            - port: "8090"
               protocol: TCP
     # RunLore's knowledge MCP (runlore-kb, RK12): read-only public text, no token (K10).
     - toEndpoints:

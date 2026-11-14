@@ -27,9 +27,3 @@ tools:
     - metric_statistics
   mcp-victorialogs:
     - documentation
-  room-broker:
-    - room_read
-    - room_post
-    - room_progress
-    - room_handoff
-    - room_judge

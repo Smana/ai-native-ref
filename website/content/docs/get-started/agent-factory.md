@@ -26,7 +26,7 @@ open a pull request, and the factory narrates each step on the issue. Humans ste
 joining the agents' room. Only policy-defined low-risk changes merge themselves; everything else
 merges on a maintainer's approval.
 
-The Agent Factory is a bundle of open-source tools: Maku, agentgateway, OpenHands, gVisor, octo-sts, RunLore, Kueue and others. [Maku](https://github.com/Smana/maku) is one component of it: the factory controller, the rooms, the harness and bridge, the Slack app and the `maku` CLI.
+The Agent Factory is a bundle of open-source tools: Maku, agentgateway, OpenHands, gVisor, octo-sts, RunLore and others. [Maku](https://github.com/Smana/maku) is one component of it: the factory controller, the rooms, the harness and bridge, the Slack app and the `maku` CLI.
 
 Which alternatives were considered, and why these choices? See
 [Alternatives considered]({{< relref "/docs/how-it-works/alternatives.md" >}}).

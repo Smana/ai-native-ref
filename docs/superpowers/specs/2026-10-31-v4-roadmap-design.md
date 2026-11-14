@@ -93,6 +93,8 @@ then is in v4.0 too; whatever has not continues as v4.x.
 
 **Status, 2026-11-11.** Stage 1 is built in Maku: #347, #350, #352, #356, #362, #363 and #366 (v0.35 to v0.37), with `task demo`, the `charts/agent-factory` umbrella chart and `docs/quickstart.md`. Its go test is still open: the nightly kind job green with its secrets, and an outside person's friction log (V20). Stage 2 is not started.
 
+**Status, 2026-11-12.** Unchanged for both stages. A live check on the reference host proved the factory's settings as objects (the live edit, the refusal that keeps the last good version, the restore from Git), which the production path relies on, and the maintainer-approval merge. Maku is at v0.43.0, with v0.44.0 coming.
+
 1 comes before 2: the laptop is the demo profile of the chart the production path ships, so stage 1 builds that chart and stage 2 adds its production values.
 
 ## v3.x: what ships before v4.0 {#v3x}

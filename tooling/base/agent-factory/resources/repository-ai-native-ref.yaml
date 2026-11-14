@@ -30,7 +30,7 @@ spec:
     # ci.yaml runs both on push to main too; TruffleHog is a step of `lint`.
     requiredChecks: [validate, lint]
     verifyChecks: [validate, lint]
-    autoMergesPerDay: 2
+    maxPerDay: 2
     fixRuns: 1
     checkReruns: 0  # a cancelled check goes to a human
     leakScanCheck: lint
@@ -38,10 +38,10 @@ spec:
     # No testFirst here (TO4): the tests live under the gate path scripts/ci/.
     - {name: docs-links, mode: shadow, holdoutChecks: [validate]}
     - {name: revert, mode: shadow, holdoutChecks: [validate]}
-    - {name: docs, mode: "off"}
-    - {name: tests, mode: "off"}
-    - {name: dashboards, mode: "off"}
-    - {name: scripts, mode: "off"}
+    - {name: docs, mode: disabled}
+    - {name: tests, mode: disabled}
+    - {name: dashboards, mode: disabled}
+    - {name: scripts, mode: disabled}
     # Shadow (MC14, runbook 15 §6): its detector is this repository's dead-links.yaml and its rule
     # `low-risk: dead-links` in .policy.yml (test-agent-merge-gate-parity.py holds the two).
     - name: dead-links

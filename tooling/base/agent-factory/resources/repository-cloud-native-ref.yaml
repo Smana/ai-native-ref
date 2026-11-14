@@ -58,7 +58,7 @@ spec:
       - "Check the shell scripts 💻"
       - "Check the documentation links 🔗"
     contractCheck: "Test contract 🧪"  # required on a task with a contract (TF8, row 2b); report-only otherwise
-    autoMergesPerDay: 1  # one unattended merge a day across live classes; shadow decisions are not counted
+    maxPerDay: 1  # one unattended merge a day across live classes; shadow decisions are not counted
     fixRuns: 2
     # Re-runs of a cancelled required check per task (agent-platform #86); 0 hands it to a
     # human. Above 0 the merger App needs actions: write.
@@ -71,11 +71,11 @@ spec:
     # with it, or an auto-merge waits on a human to merge its own revert (D5).
     - {name: docs-links, mode: live, holdoutChecks: ["Check the documentation links 🔗"]}
     - {name: revert, mode: live, holdoutChecks: ["Check the documentation links 🔗"]}
-    - {name: docs, mode: "off"}
-    - {name: tests, mode: "off"}
-    - {name: dashboards, mode: "off"}
-    - {name: scripts, mode: "off"}
-    - {name: review, mode: "off"}
+    - {name: docs, mode: disabled}
+    - {name: tests, mode: disabled}
+    - {name: dashboards, mode: disabled}
+    - {name: scripts, mode: disabled}
+    - {name: review, mode: disabled}
     - {name: alert-rules, mode: shadow, allowedFiles: ['^observability/.+\.ya?ml$']}
     # Shadow since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed. Its fence
     # repeats the host's `low-risk: docs-links` rule, which approves its pull requests until

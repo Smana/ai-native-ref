@@ -16,7 +16,7 @@ spec:
     # the merge and its verification wait on.
     requiredChecks: [build]
     verifyChecks: [build]
-    autoMergesPerDay: 5
+    maxPerDay: 5
     fixRuns: 1
     checkReruns: 0
     # The factory's validation (R42) wants a leak check in both lists above. RunLore has no

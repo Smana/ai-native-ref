@@ -2,7 +2,7 @@
 title: "11. Configure merge policies"
 linkTitle: "11. Merge policies"
 weight: 11
-description: "Which merge-policy switches this platform turns on, where each part of a policy lives, how to change a class by hand or in the Settings editor, and how to promote a shadow class to live."
+description: "Which merge-policy stage this platform runs, where each part of a policy lives, how to change a class by hand or in the Settings editor, and how to promote a shadow class to live."
 ---
 
 By the end of this chapter you will know where a repository's merge policy lives on this platform,
@@ -19,20 +19,27 @@ how that model is set up here.
 
 ## How this platform is configured {#configuration}
 
-Six switches under `policyManagement` roll merge policies out, one stage at a time. Example (the
-reference host): the factory's switches are in `tooling/base/agent-factory/helm-values-configmap.yaml`,
-the broker's in `infrastructure/<cluster>/room-broker/config.yaml`:
+One setting rolls merge policies out: `policyManagement.stage`, at `manage` on the factory and on the
+broker. Example (the reference host): the factory's is in `tooling/base/agent-factory/helm-values-configmap.yaml`,
+the broker's in `infrastructure/<cluster>/room-broker/config.yaml`. At `manage`:
 
-| Switch | Set | What it means for you |
-|---|---|---|
-| `read` | on | The factory compares your repository's file with the central classes |
-| `simulation` | on | `maku policy diff` and `maku policy simulate` work, and the editor shows its fixture replay |
-| `dualEvaluation` | on | Every merge is decided again under your file, and the record notes whether both agree |
-| `promotion` | on, factory and broker | The Settings pages, promotion evidence and promotion requests are served |
-| `repositoryAuthority` | off | The central config decides every merge: your file changes no decision |
-| `approvalMemory` | off | No saved grants: a file in a live class's `requiresApproval` list always asks a maintainer |
+| What runs | What it means for you |
+|---|---|
+| The comparison | The factory compares your repository's file with the central classes |
+| The offline verbs | `maku policy diff` and `maku policy simulate` work, and the editor shows its fixture replay |
+| Dual evaluation | Every merge is decided again under your file, and the record notes whether both agree |
+| The Settings pages | Promotion evidence and promotion requests are served |
+| Approval grants | Consulted; no class here declares `requiresApproval`, so none is asked for |
 
-The central config sets no `mergeGuardrails`, so promotion needs the default 20 decisions.
+The central config decides every merge: no repository sets `classAuthority: repository`, so your file
+changes no decision.
+
+The central config sets no `mergeGuardrails`, so Maku's defaults hold every class: `.github/`,
+`.policy.yml` and `CODEOWNERS` are never merged unattended, and a class allows at most 10 files,
+300 changed lines and 5 merges a day. A class above one of these is refused as `GuardrailMismatch`.
+
+A `factory/hold` label on a pull request hands it to a maintainer before any class is read; removing
+the label returns it to the gate.
 
 ## Where policy lives {#where}
 
@@ -120,18 +127,19 @@ A repository with no `classes` yet starts from the starter file in Maku's
 
 Two rules every file with classes meets:
 
-- It declares `docs-links` and `revert`. `mode: off` is allowed; a file's first class in the editor
-  brings both as `off`.
-- Every `live` or `shadow` class written by the agents declares `allowedFiles`. Without it, any path of
-  the repository would be in the class.
+- It declares `docs-links` and `revert`. `mode: disabled` is allowed (`off` still reads as `disabled`).
+- Every `live` or `shadow` class declares `allowedFiles` or a `diffShape` (`docs-links` and `revert`
+  carry theirs). Without either, any path of the repository would be in the class, and the factory
+  refuses it as `Unbounded`.
 
 ## Promote shadow to live {#promote}
 
 A shadow class goes live on its evidence. The class's row on its repository's Settings page shows it.
 
-1. Collect the evidence: at least 20 `shadow_would_arm` decisions you merged unchanged, no bad outcome,
-   and one `factory/drill` revert of one of its pull requests.
-2. Below 20, request an exception: a lower minimum and a justification of 20 to 2,000 characters. An
+1. Collect the evidence: at least 20 `shadow_would_arm` decisions you merged unchanged (5 for a policy
+   at `evidence: low`; none is here), no bad outcome, and one merged `factory/drill` revert in the
+   repository.
+2. Below the minimum, request an exception: a lower minimum and a justification of 20 to 2,000 characters. An
    operator in the broker's `policyManagement.operators` approves or refuses it once; an approved one
    lasts 14 days. Example (the reference host): the operator is `Smana`.
 3. Click **Promote to live**. The page shows the file with that class's `mode:` line set to `live`,

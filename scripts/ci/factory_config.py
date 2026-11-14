@@ -80,12 +80,26 @@ def objects(root=ROOT):
 FILL_ONCE = ("allowedFiles", "companionFiles", "requiredLabel")
 ADDITIVE = ("holdoutChecks", "protectedFiles")
 CAPS = ("maxPatchFiles", "maxModifiedLines", "maxPerDay")
+# Maku's MergeGuardrails.WithDefaults (v0.50.0, MR7): what caps a bound class when the Factory sets no
+# guardrail, and the paths no auto-merge touches whatever the Factory says.
+DEFAULT_CAPS = {"maxPatchFiles": 10, "maxModifiedLines": 300, "maxPerDay": 5}
+DEFAULT_PROTECTED = [r"^\.github/", r"^\.policy\.yml$", r"^CODEOWNERS$"]
 
 
-def resolve(policy, binding, merge, guardrails=None):
+def guardrails_with_defaults(g):
+    """The guardrails in force: every unset cap at its default, the default protected paths first."""
+    g = dict(g or {})
+    g["protectedFiles"] = DEFAULT_PROTECTED + [p for p in g.get("protectedFiles") or [] if p not in DEFAULT_PROTECTED]
+    for k, v in DEFAULT_CAPS.items():
+        g[k] = g.get(k) or v
+    return g
+
+
+def resolve(policy, binding, merge, guardrails=None, name=None, defaults=True):
     """The class a binding resolves to (B4, B14): the policy's meaning, the binding's mode, each
     fill-once parameter from where it is set, the additive lists unioned, the lower cap, the
-    repository's Flux source, then the guardrails."""
+    repository's Flux source, then the guardrails (with their defaults, Maku v0.50.0). A binding's
+    allowedFiles over a policy's narrows it (narrowedFiles: a path must match both)."""
     cl = {k: v for k, v in (policy or {}).items() if k != "requires"}
     cl = yaml.safe_load(yaml.safe_dump(cl))  # a deep copy: consumers never share a list
     mode = binding.get("mode")
@@ -95,7 +109,10 @@ def resolve(policy, binding, merge, guardrails=None):
         cl["shadow"] = True
     for k in FILL_ONCE:
         if binding.get(k):
-            cl[k] = binding[k]
+            if k == "allowedFiles" and cl.get(k):
+                cl["narrowedFiles"] = binding[k]
+            else:
+                cl[k] = binding[k]
     if binding.get("oracleWorkflow") and cl.get("oracle") is not None:
         cl["oracle"] = {**cl["oracle"], "workflow": binding["oracleWorkflow"]}
     for k in ADDITIVE:
@@ -113,7 +130,9 @@ def resolve(policy, binding, merge, guardrails=None):
     flux = (cl.get("monitor") or {}).get("flux")
     if flux is not None and merge.get("fluxSource"):
         flux["source"] = merge["fluxSource"]
-    g = guardrails or {}
+    if name == "review":
+        return cl  # Maku caps no review class: it merges nothing (R30), so no guardrail is given to it
+    g = guardrails_with_defaults(guardrails) if defaults else (guardrails or {})
     for k, into in (("protectedFiles", "protectedFiles"), ("mandatoryChecks", "holdoutChecks")):
         items = list(cl.get(into) or [])
         items += [x for x in g.get(k) or [] if x not in items]
@@ -130,8 +149,9 @@ def merge_settings(defaults, merge):
     return {**(defaults or {}), **(merge or {})}
 
 
-def assemble(cfg, objs):
-    """cfg with objs laid over it, as resources.Assemble merges them (nothing refused, nothing validated)."""
+def assemble(cfg, objs, defaults=True):
+    """cfg with objs laid over it, as resources.Assemble merges them (nothing refused, nothing validated).
+    defaults=False leaves out Maku's guardrail defaults: each class as its policy and binding declare it."""
     m = {k: v for k, v in cfg.items()}
     for f in (o for o in objs if o["kind"] == "Factory"):
         for k in CATALOGUE:
@@ -154,16 +174,16 @@ def assemble(cfg, objs):
             # Bound (B2, B3): the Repository's own merge over the defaults, and each binding resolved.
             # Maku v0.48.0 removed the per-repository MergePolicy: a binding is the only shape.
             entry["merge"] = merge_settings(m.get("mergeDefaults"), r["spec"].get("merge"))
-            entry["classes"] = {b["name"]: resolve(classes.get(b["name"]), b, entry["merge"], m.get("mergeGuardrails"))
+            entry["classes"] = {b["name"]: resolve(classes.get(b["name"]), b, entry["merge"], m.get("mergeGuardrails"), b["name"], defaults)
                                 for b in r["spec"].get("mergePolicies") or [] if b["name"] in classes}
         listed.append(entry)
     m["repositories"] = listed
     return m
 
 
-def config(root=ROOT, cloud=None):
+def config(root=ROOT, cloud=None, defaults=True):
     """The factory's config as it reads it: the file's `config:` with the objects laid over it."""
-    return assemble(values(root, cloud)["config"], objects(root))
+    return assemble(values(root, cloud)["config"], objects(root), defaults)
 
 
 def substitute(text, cloud):

@@ -10,6 +10,8 @@ implementer role — and that the backing
 gateway's `Allow` lists permit. See [README.md](README.md) for prerequisites; run
 [00](README.md#runbook-00-one-time-cluster-setup) first.
 
+> **Since R3 (#376), this runbook describes the pre-R3 path.** Runs created by Maku's run-controller call the room tools on `room-broker:8090` directly, authenticated by TokenReview (`roomTools.auth: tokenreview` in `infrastructure/base/room-broker/helmrelease.yaml`), and do not reach agentgateway's MCP federation, `flux-operator-mcp` or the VictoriaMetrics/VictoriaLogs MCPs.
+
 ## Prerequisites
 
 - Runbook 00 done. No owner action.

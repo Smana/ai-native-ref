@@ -28,7 +28,6 @@ VALUES_NAME = "agent-factory-helm-values"
 CATALOGUE = ("control", "defaults", "tiers", "templates", "caps", "budgets", "facts", "brief", "resume",
              "scoper", "loops", "harnessProfiles", "mergeGuardrails", "evaluation", "mergeDefaults")
 REPOSITORY_KEYS = ("maintainers", "triggerLabel", "checks", "schedules", "classAuthority")
-POLICY_KEYS = ("classes", "merge")
 # The Flux variables these files read, as placeholders the factory's parser accepts.
 PLACEHOLDERS = {"private_domain_name": "priv.example.test", "identity_provider_url": "https://auth.example.test"}
 
@@ -145,8 +144,7 @@ def assemble(cfg, objs):
             else:
                 m[k] = v
     mps = [o for o in objs if o["kind"] == "MergePolicy"]
-    policies = {o["spec"]["repositoryRef"]: o for o in mps if "repositoryRef" in o["spec"]}
-    classes = {o["metadata"]["name"]: o["spec"] for o in mps if "repositoryRef" not in o["spec"]}
+    classes = {o["metadata"]["name"]: o["spec"] for o in mps}
     repos = sorted((o for o in objs if o["kind"] == "Repository"), key=lambda o: o["metadata"]["name"])
     listed = list(m.get("repositories") or [])
     for r in repos:
@@ -154,12 +152,10 @@ def assemble(cfg, objs):
         entry.update({k: r["spec"][k] for k in REPOSITORY_KEYS if k in r["spec"]})
         if "merge" in r["spec"] or "mergePolicies" in r["spec"]:
             # Bound (B2, B3): the Repository's own merge over the defaults, and each binding resolved.
+            # Maku v0.48.0 removed the per-repository MergePolicy: a binding is the only shape.
             entry["merge"] = merge_settings(m.get("mergeDefaults"), r["spec"].get("merge"))
             entry["classes"] = {b["name"]: resolve(classes.get(b["name"]), b, entry["merge"], m.get("mergeGuardrails"))
                                 for b in r["spec"].get("mergePolicies") or [] if b["name"] in classes}
-        else:
-            p = policies.get(r["metadata"]["name"], {}).get("spec", {})
-            entry.update({k: p[k] for k in POLICY_KEYS if k in p})
         listed.append(entry)
     m["repositories"] = listed
     return m

@@ -61,6 +61,11 @@ if not crds_source["spec"].get("verify"):
 crds_hr = yaml.safe_load((crds_dir / "helmrelease.yaml").read_text())["spec"]
 if (crds_hr.get("values") or {}).get("keep") is not True:
     problems.append("HelmRelease agent-factory-crds: values.keep is not true (helm.sh/resource-policy: keep)")
+# One owner for the shared ClusterRoles (Maku v0.48.0, D2): two releases rendering them fails Helm's ownership check.
+if (crds_hr.get("values") or {}).get("clusterRoles", True) is not True:
+    problems.append("HelmRelease agent-factory-crds: values.clusterRoles is not true; it owns the shared ClusterRoles")
+if yaml.safe_load(cm["data"]["values.yaml"]).get("clusterRoles", True) is not False:
+    problems.append("agent-factory values: clusterRoles is not false; agent-factory-crds owns the shared ClusterRoles")
 for phase in ("install", "upgrade"):
     if (crds_hr.get(phase) or {}).get("remediation"):
         problems.append(f"HelmRelease agent-factory-crds: {phase}.remediation set; a remediation must never uninstall or roll back the CRDs")

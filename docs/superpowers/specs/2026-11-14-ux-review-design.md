@@ -115,7 +115,7 @@ listed and answers the same fixed line as Slack (UX9).
 
 **`start`.** The relay asks the broker to re-validate the stored plan, then builds the form from
 the broker's answer. The form shows the issue, the budget and the workflow (see the
-[workflows review](2026-11-14-workflows-review-design.md)). The workflow is an optional field
+workflows review (`2026-11-14-workflows-review-design.md`, branch `docs/review-workflows`)). The workflow is an optional field
 pre-filled with the default; changing it re-validates the plan, as the Slack select does today.
 The form says nothing about the merge (UX14). "File" defaults to no, as today. "Start now"
 defaults to yes and appears when the person may start work there: the planner serves the
@@ -250,7 +250,7 @@ end.
 
 The two gate sentences are "Merged automatically by policy `<name>`" and "Waits for a human:
 `<reason>`". Naming the policy in the decision is a Maku change owned by the
-[merge policies review](2026-11-14-merge-policies-review-design.md); this spec owns where it is
+merge policies review (`2026-11-14-merge-policies-review-design.md`, branch `docs/review-merge-policies`); this spec owns where it is
 shown. A task that waits for a human merge carries the gate part on its "needs you" line.
 `status` in a thread gains the spend and the gate part.
 
@@ -394,7 +394,7 @@ running agent. A setting the person filing a task must fill in.
 | Broker: `handoff`, `task`, `inbox`; the stored plans and their expiry; `human.mcp.start` | Broker values: `sessionStart` removed from base and the per-cloud copies |
 | Relay: `start`, `wait`, `answer`; the list and `--advanced`; the aliases, then the removals | Slack values: `notify` dropped (take the default), `intentActions: [stop, retry]`, then the answer switch |
 | `maku setup` as the whole setup; `/.well-known/maku`; server name `maku` | Site: `use/coding-clients.md`, `use/slack.md` and the guide's cheat sheet reduced to this platform's values, linking to Maku |
-| Slack App: moved to the new tools; the workflow select; buttons and phrases for stop and retry; the answer confirm; the end line edited in place; the notification default; the draft grammar removed | The vocabulary applied to the site (the [docs review](2026-11-14-docs-review-design.md) carries it) |
+| Slack App: moved to the new tools; the workflow select; buttons and phrases for stop and retry; the answer confirm; the end line edited in place; the notification default; the draft grammar removed | The vocabulary applied to the site (the docs review (`2026-11-14-docs-review-design.md`, branch `docs/review-docs`) carries it) |
 | Broker and factory: the stop and retry routes (SI6, SI23) and the new answer route | A live session on aws-0 proving stop, retry and answer, recorded in the runbooks |
 | Docs: `cli.md`, `slack.md` and the tool reference in the new words | |
 

@@ -414,7 +414,7 @@
 - Test: `internal/slackapp/endline_test.go`, `internal/humanapi/tasktool_test.go`
 
 **Interfaces:**
-- Consumes: the decision that names its policy, delivered by the merge policies plan (the [merge policies review](../specs/2026-11-14-merge-policies-review-design.md) owns that change). Do not start this task before it has merged.
+- Consumes: the decision that names its policy, delivered by the merge policies plan (the merge policies review (`2026-11-14-merge-policies-review-design.md`, branch `docs/review-merge-policies`) owns that change). Do not start this task before it has merged.
 
 - [ ] **Step 1: Write the failing tests.** `TestGatePartNamesPolicy`: a class decision for policy `docs` renders `merged automatically by policy docs`; a hold renders `waits for a human: touches a protected file`. `TestTaskMergeRowNamesPolicy`: the `Merge` row reads `Waits for a human: policy docs is in shadow here`. `TestNeedsYouCarriesGatePart`: a task waiting for a human merge shows the gate part on its "needs you" line.
 - [ ] **Step 2: Run** the two packages' tests. Expected: FAIL.

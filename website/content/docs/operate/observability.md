@@ -18,7 +18,7 @@ flowchart LR
   end
   subgraph agents["Agents"]
     RUN["Agent run<br/>OTLP spans, step log"]
-    AGW["agentgateway agent-router<br/>access log, gen_ai_* :15020"]
+    AGW["agentgateway model-gateway<br/>access log, gen_ai_* :15020"]
     KSM["kube-state-metrics<br/>AgentRun state"]
   end
   VM[("VictoriaMetrics")]
@@ -131,7 +131,8 @@ tokens to the payer. The panels are held by `test-agent-identity-dashboard` and
 ### The agent gateway's signals
 
 agentgateway ([gateways]({{< relref "/docs/how-it-works/gateways.md#the-agent-gateway-agent-runs" >}}))
-emits under its own names. The scrape (`infrastructure/base/agent-gateway/vmpodscrape.yaml`) renames
+emits under its own names. The scrape (`infrastructure/base/agent-gateway/vmpodscrape.yaml`, one
+endpoint for `model-gateway`, which runs call, and one for `agent-router`) renames
 only the families the run meter, the budget alerts and the run page read, so they keep the `gen_ai_*`
 contract:
 
@@ -150,7 +151,7 @@ at the input rate.
 Access logs are JSON with no `msg`, so LogsQL selects by pod labels and `log.*` fields:
 
 ```logsql
-kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"agent-router"
+kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"model-gateway"
   | unpack_json | log.x_ar_agent:"system:serviceaccount:agents:<run>"
 ```
 

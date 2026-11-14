@@ -1,16 +1,19 @@
-# Agent Factory runbooks — aws-0
+# Agent Factory runbooks
 
-Live procedures for the Agent Factory on the test cluster `aws-0` (`gcp-0` until 2026-10-29). Every command is copy-paste, and
+Live procedures for the Agent Factory on the test clusters `gcp-0` and `aws-0`. Every command is copy-paste, and
 every step names its expected output. A **room** is the per-task workspace the room broker serves at
 `https://rooms.<domain>/r/<id>`: one shared log of messages, handoffs and notes for one factory task.
 
 ## State
 
-The factory is live on aws-0 since 2026-10-30. `main` pins Maku v0.38.0 for the broker, the factory and the
-Slack App; the harness and bridge stay v0.32.3, composed by crossplane-configuration v0.9.32 (CRD group
-`maku.ogenki.io`). gcp-0 was torn down on 2026-10-29; its
-session, [runbook 14](14-gcp-0-session.md), is historical. The merge gate's human path was proven on aws-0
-on 2026-10-30 and 31: [results](results-aws-0-2026-10-30.md). A fresh bootstrap starts with
+The factory runs on gcp-0 (the ownership fence names `gcp-0`); aws-0's children stay in the source for a
+rebuild. `main` pins Maku v0.48.0 for every component (CRD group `maku.ogenki.io`, from the
+`agent-factory-crds` release). Since R3 (2026-11-14) runs are `maku.ogenki.io` AgentRuns named `run-<id>`
+in `agents`, run by Maku's run-controller in the `room-broker` release: gVisor pods behind a
+NetworkPolicy and the egress proxy, a runs quota (no Kueue), a git token the factory mints per run (no
+octo-sts) and model calls through `model-gateway` (no identity-proxy). The gcp-0 session is
+[runbook 14](14-gcp-0-session.md). The merge gate's human path was proven on aws-0 on 2026-10-30 and 31:
+[results](results-aws-0-2026-10-30.md). A fresh bootstrap starts with
 [Runbook 00](#runbook-00-one-time-cluster-setup).
 
 | What | In the source today |
@@ -30,9 +33,7 @@ The runbooks keep their intended expectation for each, with a "Known issue" note
 
 | Bug | What you see | Runbook |
 |---|---|---|
-| F12 | A deleted pod of a run with a `roomRef` is re-created within ~1 s, the run stays `Running`, and the harness re-runs the task | 01 Step 7 |
 | F15 | A run refused the room's lease still executes its task, unmirrored, on the room's branch | rooms only, no step here |
-| F16 | Each MCP call through `agent-router` opens its own root trace instead of joining the run's | 08 Step 8 |
 | [maku#279](https://github.com/Smana/maku/issues/279) | A task's status cost freezes before the run's final settle | 04 Part F |
 | [maku#280](https://github.com/Smana/maku/issues/280) | A budget-exhausted run's ledger misses its last spend | 04 Part G |
 | [maku#304](https://github.com/Smana/maku/issues/304) | Residuals of the approval binding: the push record can lag, the run-end time, the reason's name; the base branch is never read | [results](results-aws-0-2026-10-30.md) (F4) |
@@ -55,9 +56,9 @@ Grouped by purpose; the number is the order they were written in.
 
 | Runbook | Proves (SC / Q / R) | Needs an owner action? | Est. time |
 |---|---|---|---|
-| [01-runtime-sandbox.md](01-runtime-sandbox.md) | SC-01, SC-02, SC-03, SC-08, Q1, R7 | No | ~20 min |
-| [02-identity-tokens.md](02-identity-tokens.md) | R2 (token TTL), Q8, SC-05, SC-07 | Yes — 1 | ~30 min |
-| [03-egress.md](03-egress.md) | SC-09, Q3, Q4 | No | ~15 min |
+| [01-runtime-sandbox.md](01-runtime-sandbox.md) | SC-01, SC-02, SC-03, SC-08, Q1, R7, on the run-controller | No | ~20 min |
+| [02-identity-tokens.md](02-identity-tokens.md) | Retired: runs no longer call `agent-router` or carry an identity-proxy (R3) | — | — |
+| [03-egress.md](03-egress.md) | SC-09: the run's NetworkPolicy and the egress proxy | No | ~15 min |
 | [04-gateway-secrets-budgets.md](04-gateway-secrets-budgets.md) | SC-10, SC-17 (listener half), SP4 frontier route + budgets | Yes — 1, 2 | ~20 min |
 | [05-github-octo-sts.md](05-github-octo-sts.md) | Retired: octo-sts is deleted, the factory mints run tokens (R3) | — | — |
 | [06-mcp.md](06-mcp.md) | SC-12, SC-17 (MCP half) | Yes — 1 | ~15 min |
@@ -109,8 +110,8 @@ exit codes) are already closed by the phase-0 spike and by CI — no live step a
 Every runbook starts from the root of a `cloud-native-ref` checkout, the host, with `CLOUD` set: the
 CA paths under `opentofu/` and `task agent:run` are the host's. The probe and check scripts live
 here, so `AI_NATIVE_REF_DIR` names an `ai-native-ref` checkout; the host's `task agent:run` calls
-`$AI_NATIVE_REF_DIR/scripts/ops/k8s/agent-run.sh` with the host's CA. aws-0 is the target; the
-gcp variants are kept for a gcp-0 rebuild. When a run's sandbox is lost mid-run (spot reclaim,
+`$AI_NATIVE_REF_DIR/scripts/ops/k8s/agent-run.sh` with the host's CA. gcp-0 is the live target; the
+aws variants are kept for an aws-0 rebuild. When a run's sandbox is lost mid-run (spot reclaim,
 eviction, node loss), [runbook 10](10-disruption.md) covers how the factory checkpoints and resumes it.
 
 ```bash
@@ -172,12 +173,12 @@ Expected: `refs/heads/main`; both `Ready=True`, `Suspended=False`.
 
 | # | Action | Unblocks | Command |
 |---|---|---|---|
-| 1 | OpenBao policy `agents-secrets` + JWT role `agents-secrets` on `jwt/<cluster>` — applied by the `opentofu/$CLOUD/openbao/management` stack | `agent-secrets` → `agent-router` → `agent-mcp`, `octo-sts` (runbooks 02, 04–07) | see below |
+| 1 | OpenBao policy `agents-secrets` + JWT role `agents-secrets` on `jwt/<cluster>` — applied by the `opentofu/$CLOUD/openbao/management` stack | `agent-secrets` → `agent-router`, `model-gateway`, `agent-factory` (runbooks 04, 07) | see below |
 | 2 | The agents' Z.ai key | runbook 04 (frontier route), 07 | `bao kv put -mount=agents zai api_key=-` (key on stdin, never as an argument) |
 | 2b | The agents' Anthropic key, read by the ExternalSecret `agents-anthropic-api-key` | the internal tier on Claude (agentgateway's Anthropic backend) | `bao kv put -mount=agents anthropic api_key=-` |
 | 2c | The agents' own Kimi Code and Mistral keys (feature 15), each capped on its console: Mistral's spend cap (pay-as-you-go, $20; billing active first), and Kimi Code's flat-rate plan as its cap. Moonshot processes in China and Mistral in the EU, so both serve public data only | the selectable `kimi-frontier`, `mistral-standard`, `mistral-light` aliases, switched on per class with `loops.<class>.models` | `bao kv put -mount=agents moonshot api_key=-` and `bao kv put -mount=agents mistral api_key=-` |
-| 3 | Branch ruleset, **before** the App exists | runbook 05 | `task ops:github:agent-branch-ruleset -- Smana/cloud-native-ref` |
-| 4 | GitHub App `ogenki-agents` on `Smana`, installed on `Smana/cloud-native-ref` only | runbook 05, 07 | `bao kv put -mount=agents github-app app_id=<id> private_key=@<pem file>` |
+| 3 | Branch ruleset, **before** the App exists | the agents' App confined to `agent/**` | `task ops:github:agent-branch-ruleset -- Smana/cloud-native-ref` |
+| 4 | GitHub App `ogenki-agents` on `Smana`, installed on `Smana/cloud-native-ref` only; the factory mints each run's token from it (`agent-factory-agents-app`) | runbook 07 | `bao kv put -mount=agents github-app app_id=<id> private_key=@<pem file>` |
 | 4b | The `factory-app` GitHub App key, read by SP3's ExternalSecret `agent-factory-github` | the `agent-factory` Kustomization | `bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem file>` |
 | 4c | The merger App `ogenki-agent-merger` key, read by the ExternalSecret `agent-factory-merger`. The App: Contents write, Checks read, Statuses read, Pull requests write, Metadata read, webhook off, installed on `Smana/cloud-native-ref` only (R16) | the `agent-factory` Deployment, which mounts it non-optionally | `bao kv put -mount=agents merger-app app_id=<id> private_key=@<pem file>` |
 | 4d | Retired by feature 14's PR 7: the RunLore intake token (`runlore-intake`, `platform/runlore/factory-intake`) is no longer read; RunLore is a standard client ([runbook 20](20-runlore-agent-to-agent.md)). Delete both paths where they remain | — | — |
@@ -208,13 +209,13 @@ After actions 2 and 4, force the ExternalSecrets to re-read rather than waiting 
 
 ```bash
 kubectl annotate externalsecret -n agent-system --all force-sync=$(date +%s) --overwrite
-flux get kustomizations -n flux-system | grep -E '^(agent-router|agent-mcp|octo-sts|agent-factory)[[:space:]]'
+flux get kustomizations -n flux-system | grep -E '^(agent-router|model-gateway|room-broker|agent-factory)[[:space:]]'
 ```
 
 Expected: all four `Ready=True`.
 
-Runs use the harness released by Maku, pinned by digest in the crossplane-configuration release the
-host runs ([runbook 07 Step 1](07-end-to-end.md#step-1--confirm-the-harness-pin)). A harness pre-release for a live gate
+Runs use the harness released by Maku, pinned by digest in the `room-broker` release's
+`runController.images` ([runbook 07 Step 1](07-end-to-end.md#step-1--confirm-the-harness-pin)). A harness pre-release for a live gate
 is a pre-release `v*` tag on Maku (its `release.yaml`; tags are admin-only under the
 release-tags ruleset) or the `-pr<N>.<sha8>` image its `ci.yaml` pushes for same-repo PRs;
 cloud-native-ref verifies only signatures from `release.yaml@refs/tags/v…`.
@@ -227,8 +228,7 @@ value, then re-push a pull request: deliveries answer `200` and the status reads
 ### Cleanup and teardown
 
 ```bash
-kubectl delete agentruns -n agents --all --wait
-kubectl delete -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml --ignore-not-found
+kubectl delete agentruns.maku.ogenki.io -n agents --all --wait
 ```
 
 To take the agent platform down while keeping the cluster, revert the go-live commit on
@@ -261,8 +261,8 @@ name, purpose and expected outcome; reword a drill's text before it runs again.
 | 5. Splitter (`scripts`) | `split: {…}` | [splitter](../../superpowers/specs/2026-10-23-splitter-design.md) |
 | 6. Test-first tester (`scripts`) | `testFirst: true` | [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) |
 
-Before layer 1: the pins carry Maku v0.23.2 and crossplane-configuration v0.9.20 or later
-(`spec.loop` with `search`, `checks` and `judgeModel`), and `scripts/ops/k8s/gcp-0-platform-gates.sh`
+Before layer 1: the run-controller's `AgentRun` carries `spec.loop` (`search`, `checks`,
+`stallSteps`, `continuations`, `judgeModel`), as every `maku.ogenki.io` release does, and `scripts/ops/k8s/gcp-0-platform-gates.sh`
 passes. Read a task with `kubectl -n agent-system get task <name> -o yaml`.
 
 ### Layer 1: the scoper
@@ -293,13 +293,11 @@ Text: `~/.cache/v3/drills/drill-b.md`, on the operator's machine, never in a rep
 
 ### Layer 2: the loop policy
 
-Prerequisites: layer 1's proofs passed (the judge reads the scope's checks) and the capability profiles'
-sidecar ([#103](https://github.com/Smana/ai-native-ref/pull/103)) is live: a command in the
-sandbox that posts to the identity proxy's `/judge/v1` reaches the judge alias. Without the sidecar the
-judge call is refused (403 or 404) and silently skipped: the run ends as `finished`, as with no judge, and
-no error shows. Drills D and E run only after #103 is live; drill C (the stall rule) does not need it.
+Prerequisites: layer 1's proofs passed (the judge reads the scope's checks). Since R3 the run-controller
+gives a run with a judge a second model token for the judge's alias (`JUDGE_API_KEY_FILE`), and refuses to
+start a run whose judge alias its listener does not serve; the identity proxy's `/judge/v1` is gone.
 The row reads `docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}`.
-The factory copies it into every implementer claim of the class: `kubectl -n agent-system get task <name> -o
+The factory copies it into every implementer run of the class: `kubectl -n agent-system get task <name> -o
 jsonpath='{.spec.loop}'` shows `stallSteps`, `continuations` and `judgeModel`.
 
 | # | Do | Expected reading |
@@ -334,14 +332,14 @@ Text: `~/.cache/v3/drills/drill-e.md`, on the operator's machine, never in a rep
 
 Both repositories carry `docs: {checks: true}` (egress `[pypi]` on cloud-native-ref, `[golang, pypi]`
 on ai-native-ref). Prerequisites: each repository's `.github/agent-checks.yaml` is on its default branch
-(`gh api repos/<repo>/contents/.github/agent-checks.yaml`), the cluster's `AgentRun` XRD has
-`spec.loop.checks` (crossplane-configuration v0.9.20 or later), and `internal` runs never get it: the XRD
-refuses the combination, and the factory sets it on public implementer and reviewer claims only. Watch the
-egress during every step: `hubble observe --namespace agent-system --verdict DROPPED`.
+(`gh api repos/<repo>/contents/.github/agent-checks.yaml`), and `internal` runs never get
+`spec.loop.checks`: the `AgentRun` refuses the combination, and the factory sets it on public implementer
+and reviewer runs only. Watch the egress during every step: the egress proxy's refusals
+(`kubectl logs -n agent-system deploy/egress-proxy`) and `hubble observe --namespace agents --verdict DROPPED`.
 
 | # | Do | Expected reading |
 |---|---|---|
-| 1 | File drill issue F on ai-native-ref, label it as in layer 1 | The implementer's claim has `spec.loop.checks` true (`kubectl -n agent-system get agentrun -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.checks}'`), the toolchain installs through the CNP, and `hubble` shows no DROPPED flow to a declared host |
+| 1 | File drill issue F on ai-native-ref, label it as in layer 1 | The implementer's run has `spec.loop.checks` true (`kubectl -n agents get agentruns.maku.ogenki.io -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.checks}'`), the toolchain installs through the egress proxy, and the proxy refuses no declared host |
 | 2 | Read the run's checks note in the room | Each step of ai-native-ref's `agent-checks.yaml` ends `pass` or `skip`; the result matches offline proof 4's on `main` |
 | 3 | The same for drill issue G on cloud-native-ref | The same, with the host's steps (`overlay`, `suites`, `shellcheck`, `links`, `pre-commit`) |
 | 4 | Read each drill's first pushed head | The seeded defect was reported before the push; the first head's CI is green; `status.fixRuns` is 0 on the task (`kubectl -n agent-system get task <name> -o jsonpath='{.status.fixRuns}'`) |
@@ -371,7 +369,7 @@ layers 1 and 2 passed, so a difference between the arms is the tool's alone.
 
 | # | Do | Expected reading |
 |---|---|---|
-| 1 | File drill issues H1 to H3 below, label each as in layer 1 | The task has `spec.search: true`, every implementer claim `spec.loop.search: true` (`kubectl -n agent-system get agentrun -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.search}'`), the run calls the search tool at least once, the gateway's log shows the child's calls under the run's identity |
+| 1 | File drill issues H1 to H3 below, label each as in layer 1 | The task has `spec.search: true`, every implementer run `spec.loop.search: true` (`kubectl -n agents get agentruns.maku.ogenki.io -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.search}'`), the run calls the search tool at least once, the gateway's log shows the child's calls under the run's identity |
 | 2 | Read the ledger of each run | The child's tokens are inside the run's; `budget` and `error` outcomes are under a quarter of the calls |
 | 3 | Paired gate (SQ5a): flip `search` to `false` in a commit, file the same three issues again as new issues, then flip it back | Acceptance not lower over the pairs; steps per run (children included) and cost per accepted PR not higher with search on |
 

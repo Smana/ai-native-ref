@@ -73,18 +73,17 @@ for public work and Claude Opus 5.5 for internal work; the judge uses their ligh
 
 ## What each role may call {#profiles}
 
-For platform owners. Each role has one capability profile per data class, in
-`infrastructure/base/agent-gateway/profiles/<role>.<public|internal>.yaml`. They compile into the
-gateway's rules.
+For platform owners. A run calls one model and, with a room, the room's tools:
 
-| A profile declares | Enforced by |
+| What a run may call | Enforced by |
 |---|---|
-| `models`: the aliases the role may name. Only public profiles list the [providers]({{< relref "/docs/how-it-works/providers.md" >}}) | The gateway answers 403 to any other alias; the factory refuses an internal run that names a public-only alias |
-| `tools`: the MCP tools and arguments it may use. The reviewer cannot read the implementer's transcript; no tool reads a Secret | The gateway, before the call reaches the MCP server |
-| One model per run | The identity proxy pins every call, the judge's too, to the run's alias |
+| One model: the alias its token names | The model gateway serves the run that alias only, on its data class's listener, and forces the model; a judge gets a token of its own for its alias |
+| No public-only alias on internal work | The `AgentRun` refuses an `internal` run that names a [provider]({{< relref "/docs/how-it-works/providers.md" >}}) alias |
+| The `room_*` tools, for a run with a room | The broker checks the run's token and each tool's roles; the reviewer cannot read the implementer's transcript |
 
-To change what a role may call, edit its profile, run `scripts/ci/gen-capabilities.py` with `--write`, and let
-`task check` prove the compiled rules match.
+The capability profiles in `infrastructure/base/agent-gateway/profiles/<role>.<public|internal>.yaml`
+still compile into the rules of `agent-router`, the older Gateway beside the model gateway. No run
+calls it.
 
 ## A task's life {#lifecycle}
 

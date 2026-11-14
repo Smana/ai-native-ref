@@ -13,6 +13,13 @@ cache-read share alerts and the offline proofs behind them. **Part F** is the li
 factory's daily caps in dollars, on the first day they run. See [README.md](README.md)
 for prerequisites; run [00](README.md#runbook-00-one-time-cluster-setup) first.
 
+Since R3 runs and the broker's planner call the model gateway, `model-gateway` in `agent-gateway`
+(Maku's `maku-gateway` chart, `infrastructure/base/agent-gateway/model-gateway/`), not `agent-router`.
+Its budgets B1, B2 and B6 use the same `agent-ratelimit` server, domain and buckets
+(`model-gateway/policy-budgets.yaml`), so Part A Step 5 and Part D Steps 1 to 3 read both Gateways at
+once. The steps that probe `agent-router` with the `agent-probe` pod (Part A Step 4, Part D Step 4)
+test a Gateway no run calls: they are retired below.
+
 ## Prerequisites
 
 - Runbook 00 done.
@@ -27,12 +34,12 @@ for prerequisites; run [00](README.md#runbook-00-one-time-cluster-setup) first.
 ### Step 1 — confirm the store synced
 
 ```bash
-flux get kustomizations -n flux-system | grep -E '^(agent-secrets|agent-router)[[:space:]]'
+flux get kustomizations -n flux-system | grep -E '^(agent-secrets|agent-router|model-gateway)[[:space:]]'
 kubectl get secretstore -n agent-system agents-secrets -o jsonpath='{.status.conditions[0].status}{"\n"}'
 kubectl get externalsecret -n agent-system agents-zai-api-key -o jsonpath='{.status.conditions[0].reason}{"\n"}'
 ```
 
-Expected: both `Ready=True`; `True`; `SecretSynced` (needs owner action 2).
+Expected: all three `Ready=True`; `True`; `SecretSynced` (needs owner action 2).
 
 ### Step 2 — the gateway-name label exists (both data-plane CNPs depend on it)
 
@@ -43,11 +50,12 @@ Gateway's `owning-gateway-name` for `ai-gateway`.
 
 ```bash
 kubectl get pods -n agent-gateway -l gateway.networking.k8s.io/gateway-name=agent-router -o name
+kubectl get pods -n agent-gateway -l gateway.networking.k8s.io/gateway-name=model-gateway -o name
 kubectl get pods -n envoy-gateway-system -l gateway.envoyproxy.io/owning-gateway-name=ai-gateway -o name
 ```
 
-Expected: two `agent-router` pods (`replicas: 2` in `infrastructure/base/agent-gateway/parameters.yaml`)
-and one `ai-gateway` pod. If either is empty, **stop** — the data-plane CNP for that Gateway selects
+Expected: two `agent-router` pods (`replicas: 2` in `infrastructure/base/agent-gateway/parameters.yaml`),
+at least one `model-gateway` pod, and one `ai-gateway` pod. If either is empty, **stop** — the data-plane CNP for that Gateway selects
 no proxy pod, Cilium then allows everything on the unselected side, and every 401/403 check in this
 session is meaningless until it's fixed.
 
@@ -57,7 +65,7 @@ session is meaningless until it's fixed.
 > the owner runs this half, never an agent.
 
 ```bash
-kubectl get secrets -n agents -o name | grep -vx secret/room-broker-ca | wc -l
+kubectl get secrets -n agents -o name | grep -Ev '^secret/run-[a-z2-7]{8}-git$' | wc -l
 kubectl apply --dry-run=server -f - <<'YAML'
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -77,16 +85,22 @@ bao token capabilities "$T" apps/data/anything
 bao token revoke "$T"
 ```
 
-Expected: `0` secrets in `agents` besides `room-broker-ca`; the `ExternalSecret` denied by
-`agents-no-secret-import` (`namespace agents holds no secret: External Secrets objects are refused,
-but for the room-broker-ca certificate`); `read`, `deny`, `deny`, `deny`.
+Expected: `0` secrets in `agents` besides the runs' own git tokens (`run-<id>-git`, minted by the
+factory); the `ExternalSecret` denied by `agents-no-secret-import` (`namespace agents holds no secret:
+External Secrets objects are refused (SP1 S9)`); `read`, `deny`, `deny`, `deny`.
 
-**What this proves:** SC-10 — namespace `agents` holds no Secret but the room broker's CA
-certificate (the one ExternalSecret the policy admits by name), cannot import another, and the
+**What this proves:** SC-10 — namespace `agents` holds no Secret but each run's own git token,
+cannot import another, and the
 namespaced `agents-secrets` OpenBao role is scoped to exactly `agents/*` (never the old
 `platform/agents/*` path, never `platform/llm/*`, never any other mount).
 
 ### Step 4 — SC-17, listener half: `internal` cannot reach Z.ai
+
+> **Retired for runs (2026-11-14).** This step probes `agent-router`, which no run calls since R3. On
+> the model gateway, Z.ai, Moonshot and Mistral are declared `dataClasses: [public]` and Anthropic
+> `[internal]` (`model-gateway/helmrelease.yaml`, held by `test-model-gateway-values`), so the
+> `internal` listener has no Z.ai route. Kept as the record; a live probe of the model gateway is not
+> written yet.
 
 ```bash
 kubectl apply -f "$AI_NATIVE_REF_DIR"/scripts/ops/k8s/agent-probe.yaml
@@ -365,6 +379,12 @@ restarts and the router fails open for those seconds. Roll back with the same li
 
 ### Step 4 — prove a refusal live
 
+> **Retired for runs (2026-11-14).** The probe below calls `agent-router`, which no run calls since R3,
+> and the model gateway admits only `run-*` subjects and the broker, so the probe cannot reach it. The
+> buckets are shared, so the next live proof is a real run given a 1-token bucket for its `sub` the
+> same way. On the model gateway the refusal's body carries the chart's code,
+> `gateway_budget_exhausted`; not yet recorded live.
+
 With the flag `false`, give the probe a 1-token bucket of its own, call twice, put the config back.
 A descriptor with a `value` wins over the key-only one for that `sub`.
 
@@ -399,7 +419,7 @@ back on the way to Anthropic ([cache design](../../superpowers/specs/2026-10-21-
 | Alert | Means | Do |
 |---|---|---|
 | `AgentCacheReadZero` (critical) | An internal run read nothing after 100k input tokens | Read the run's log for `prompt cache NOT applied`. None: the gateway stopped converting the marker, or the harness or SDK stopped sending it. If `test-agent-gateway-cache-wire` passes on the deployed digest, the gateway converts: look at the last harness pin change. A run whose steps are all more than 5 minutes apart also reads nothing (the cache lives 5 minutes). Stop a long run: `kubectl annotate agentrun -n agents <name> agents.ogenki.io/revoked=budget-run` |
-| `AgentCacheReadShareLow` | Under 60% over 15 minutes, with 200k input in the window | One window after a condensation or a resume is expected. If it stays low, read the run's MCP tool lists: a federated target that fails is dropped from the list and re-added, and each change rewrites the cache |
+| `AgentCacheReadShareLow` | Under 60% over 15 minutes, with 200k input in the window | One window after a condensation or a resume is expected. If it stays low, look for a tool list that changes between steps: each change rewrites the cache |
 | `AgentCacheMarkerMissing` | The harness could not patch the SDK | Roll the harness pin back; the patch in Maku's `sitecustomize.py` needs the SDK's new method |
 | `AgentMeterInputExcludesCache` | The meter read a model's `input` below its cache tokens: a gateway or the provider stopped counting cache tokens inside `input`. The meter prices such a run right; the run's *Cost (USD)* panel and `AnthropicFleetNearCap` under-count it, down to a negative figure, and the cache-read share can read above 100% | Run `test-agent-gateway-cache-wire` against the deployed agentgateway digest: a failure on the streamed reply is the gateway. If it passes, read one reply's `usage` from the provider of the model the alert names. Until it is fixed, read money from `maku_factory_run_cost_usd` |
 
@@ -411,7 +431,7 @@ reply.
 
 Live, at the next platform session: the share panel on the agent-gateway dashboard reads above 60%
 for internal runs and neither alert fires. The drill (a run that sends no marker, through an
-`agents.ogenki.io/cache-drill` annotation) waits for the loop-policy composition release.
+`agents.ogenki.io/cache-drill` annotation) waits for a harness release that reads it.
 
 ## Part F — daily caps in dollars, the switch day
 
@@ -526,7 +546,9 @@ Which side is high decides the first suspect:
 | A run through Envoy | Left out of the alert by design (XC7); counted in the factory dashboard's *Runs outside the cross-check* | The router the run's gateway series belong to |
 | Scrape loss | Gateway below ledger, a gap in `agentgateway_gen_ai_client_cost_usd_total` for the run's proxy pod | `up{namespace="agent-gateway"}` over the run's window; a proxy pod that died takes its last scrape with it |
 
-The access log's `cost` attribute traces one request: `kubectl logs -n agent-gateway -l gateway.networking.k8s.io/gateway-name=agent-router | grep <run id>`.
+The access log's `cost` attribute traces one request: `kubectl logs -n agent-gateway -l gateway.networking.k8s.io/gateway-name=model-gateway | grep <run id>`.
+The model gateway prices from its own catalog, `modelCatalog.prices` in `model-gateway/helmrelease.yaml`,
+which `test-model-gateway-values` holds to `meter.prices`; `agent-model-catalog` is `agent-router`'s.
 
 Offline, `test-agent-cost-crosscheck-alerts` evaluates the rule and both alerts on synthetic series: an
 agreeing run, 1.5 % off, a 0.005 USD gap on a 0.20 USD run, a run still spending, an Envoy run, gateway

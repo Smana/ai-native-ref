@@ -5,7 +5,7 @@ aliases:
 linkTitle: Status
 weight: 60
 description: "The one place state lives: what is available, what is experimental, what is planned, and the known limitations."
-lastVerified: 2026-11-11
+lastVerified: 2026-11-14
 ---
 
 The one place the platform's state lives. Every other page describes the design. Each line here
@@ -13,13 +13,14 @@ names the clouds a capability was proven on, and links to the evidence: a runboo
 a design record.
 
 **Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0),
-released on 2026-10-31. **On `main`** (tag `v3.8.0`): Maku v0.41.1 for the broker, the factory and the
-Slack app; the harness and bridge stay on v0.32.3, composed by crossplane-configuration v0.9.32. **Next:**
+released on 2026-10-31. **On `main`** (tag `v3.24.0`): Maku v0.48.0 for every component: the broker and
+its run-controller, the harness and bridge, the factory, the model gateway, the CRDs and the Slack app.
+**Next:**
 [v3.x releases](#v3x) of this platform, then [v4, anyone can run it](#v4).
 
-The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts,
-RunLore and others). [Maku](https://github.com/Smana/maku) is one of them: the factory
-controller, the rooms, the harness and bridge, the Slack app and the `maku` CLI.
+The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, RunLore
+and others). [Maku](https://github.com/Smana/maku) is one of them: the factory controller, the rooms,
+the run-controller, the harness and bridge, the model gateway's chart, the Slack app and the `maku` CLI.
 
 ```mermaid
 flowchart LR
@@ -37,7 +38,7 @@ flowchart LR
     tester["Test-first tester"]
     slack["Slack intake"]
     runlore["RunLore agent to agent"]
-    profiles["Capability profiles, cache alerts, spend per identity"]
+    profiles["One model per run, cache alerts, spend per identity"]
     local["The factory from your coding agent"]
     split["Splitter"]
     providers["Moonshot and Mistral, public data only"]
@@ -71,8 +72,10 @@ it on with one value, per class or per platform.
 | Capability | What it does for you | Proven on | Evidence |
 |---|---|---|---|
 | The Agent Factory | A labelled issue becomes a reviewed pull request, built by agents in a gVisor sandbox under their own identity | EKS, GKE | [runbook 07](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/07-end-to-end.md), [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md) |
+| Runs on Maku's run-controller | Each run is a gVisor pod with its own model and git tokens, behind a NetworkPolicy and an egress proxy; the model gateway serves runs and the planner | GKE | [runtime]({{< relref "/docs/how-it-works/runtime.md" >}}), [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md) |
 | Attended rooms | Follow, steer and approve a run live; an approval after its deadline is refused | EKS, GKE | [rooms]({{< relref "/docs/how-it-works/rooms.md" >}}) |
 | Private repositories | Room access follows each person's GitHub permission | GKE | [runbook 11](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md) |
+| GitHub account link | Each person links their GitHub account once at `/link/github` on the rooms host; the factory checks their repository permission through it, and the identity provider's reader stays the fallback for an account with no link | GKE | [runbook 14, §5](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#5-owner-the-agents-keys-once-per-gcp-lineage) |
 | Several repositories | Repositories are served side by side; no room, branch or token crosses between them | GKE | [results](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-16-v2-second-repository-design.md#results) |
 | Internal work on Claude | Investigations run on Claude through the Anthropic API, read-only, with prompt caching | GKE | [ADR-0054]({{< relref "/docs/decisions/0054-agent-model-providers-anthropic-direct.md" >}}) |
 | agentgateway and model tiers | Every agent call is checked, metered and routed to the model its tier names | EKS, GKE | [ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}}) |
@@ -89,7 +92,7 @@ it on with one value, per class or per platform.
 | Slack intake | A mention drafts the issue; a maintainer's ✅ files it and starts the task. The proposal message that replaces the draft is a [v3.x track](#v3x) | GKE | [runbook 22](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md) |
 | The factory from your coding agent | Claude Code and OpenCode hand off, file, wait on (`room_wait`) and check out (`room_checkout`) a task through the `maku` CLI and its MCP server; starting a task from your session is opt-in | EKS, GKE | [runbook 19](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/19-factory-from-your-agent.md) |
 | RunLore agent to agent (opt-in) | An alert becomes an investigation, a fix pull request, and a verdict after the merge | GKE | [runbook 20](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/20-runlore-agent-to-agent.md) |
-| Capability profiles | Each role and data class has a model allow-list; every run is pinned to one model | GKE | [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#feature-15-providers-a-smoke-through-the-gateway) |
+| One model per run | The model gateway serves each run only the alias its token names, on its data class's listener | GKE | [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#feature-15-providers-a-smoke-through-the-gateway) |
 | Moonshot and Mistral (opt-in) | Kimi and Mistral models for **public data only**, selectable per class | GKE | [providers]({{< relref "/docs/how-it-works/providers.md" >}}) |
 | Cache alerts | Alerts on the share of input read from cache | GKE | [runbook 04, Part E](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share) |
 | Spend per identity | One dashboard per person and per sponsored principal, and cost by role | GKE | [runbook 04, Part G](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-g--the-cost-cross-check) |
@@ -200,7 +203,6 @@ The laptop stage is built; the production path is the work left before v4.
 | Webhook subscribers registered through an API | When subscribers outgrow a reviewed list |
 | Finer permissions: an external policy decision point; a token per backend | When a policy outgrows the compiled gateway rules |
 | Substrate as the sandbox runtime. A spike passed; it is not adopted now ([why]({{< relref "/docs/how-it-works/alternatives.md#reconsidering-substrate-not-now-deliberately-open" >}})) | When a measured runtime problem meets the [ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}}) triggers |
-| The warm pool: pre-warmed sandboxes handed to a run | After a decision on the binder's token-minting authority, unless agent-sandbox's warm pools replace it |
 
 Not planned: public work on Claude, a doc-writer or standalone architect agent, parallel writers on
 one branch, switching models in the middle of a run

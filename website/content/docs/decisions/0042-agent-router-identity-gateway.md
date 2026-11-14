@@ -8,6 +8,7 @@ lastVerified: 2026-09-26
 
 **Status**: Partly superseded by [ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})
 **Partly superseded**: Option 1 (Agent Router on Envoy Gateway) and its rejection of Option 2, for the agent router only. The audiences, listeners, Kyverno reservation and in-pod identity-proxy stand.
+**Partly superseded** (2026-11-14): the in-pod identity-proxy and the `agent-router.<role>.<class>` audiences for runs. Since R3, a run calls the model gateway (`maku-gateway` chart) with its own projected token, audience `maku-gateway.<class>.<alias>`.
 **Date**: 2026-09-26
 **Deciders**: Smana (Platform Owner)
 **Related Spec**: [SP1 — Agent runtime & identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md)

@@ -28,7 +28,7 @@ whole $2.55 on 319 `grep` steps and pushed nothing.
   {{< card link="#recipes" title="Reviews cost too much" icon="currency-dollar" subtitle="Fewer rounds, solo for mechanical classes, or a smaller reviewer." >}}
   {{< card link="#debug" title="A run loops or fails" icon="refresh" subtitle="Read its end state, its step mix, then its room." >}}
   {{< card link="/docs/how-it-works/routing-and-cost/#agent-routing" title="Use another model" icon="chip" subtitle="Change the tier's model and add its price row." >}}
-  {{< card link="/docs/reference/harness/" title="Every setting" icon="adjustments" subtitle="Tiers, templates, caps, claim, composition, harness." >}}
+  {{< card link="/docs/reference/harness/" title="Every setting" icon="adjustments" subtitle="Tiers, templates, caps, the AgentRun, the run-controller, harness." >}}
 {{< /cards >}}
 
 ## The five levers {#levers}
@@ -51,7 +51,7 @@ sequenceDiagram
   autonumber
   participant AR as agent-run
   participant AS as agent-server
-  participant LLM as agent-router
+  participant LLM as model-gateway
   participant GH as GitHub
   AR->>AS: start, wait until ready
   AR->>GH: clone the branch
@@ -93,18 +93,18 @@ it is created; only its token cap can be raised while it runs.
 
 ```mermaid
 flowchart TB
-  subgraph decide["Config and claim"]
+  subgraph decide["Config and run"]
     direction LR
     F["Factory config<br/>tiers · templates · caps"]:::cfg --> T["Triage<br/>tier + template"]:::cfg
     API["Run API<br/>task agent:run"]:::cfg --> C
-    T --> C["AgentRun claim<br/>role · model · budget"]:::claim
+    T --> C["AgentRun<br/>role · model · budget"]:::claim
   end
   subgraph run["The run"]
     direction LR
-    K["Composition<br/>pod · env · egress"]:::claim --> H["Harness image<br/>loop settings"]:::run
-    H -- every call --> G["Gateway<br/>models · MCP · budgets"]:::gw
+    K["Run-controller<br/>pod · env · egress"]:::claim --> H["Harness image<br/>loop settings"]:::run
+    H -- every model call --> G["Model gateway<br/>models · budgets"]:::gw
   end
-  decide -->|"the claim composes"| run
+  decide -->|"the run-controller renders"| run
   classDef cfg fill:#6366f1,stroke:#4f46e5,color:#fff
   classDef claim fill:#059669,stroke:#047857,color:#fff
   classDef run fill:#f59e0b,stroke:#d97706,color:#111
@@ -115,8 +115,8 @@ flowchart TB
 |---|---|---|
 | Factory config | ai-native-ref | New runs, once Flux applies the release |
 | Run API | `task agent:run` flags | That run only |
-| Claim and composition | crossplane-configuration | Runs created after the package upgrade |
-| Harness image | Maku | Runs created after its digest reaches the composition |
+| `AgentRun` and run-controller | Maku, pinned in ai-native-ref | Runs created after the chart upgrade |
+| Harness image | Maku | Runs created after its digest reaches the run-controller's values |
 | Gateway | ai-native-ref | Every call, running runs included |
 
 ## Trade-offs {#trade-offs}
@@ -134,7 +134,7 @@ flowchart TB
 ## Measuring a change {#measuring}
 
 Change one lever, run the same kind of task, compare. A run's id is the 8 characters after
-`xplane-run-`.
+`run-`.
 
 {{< tabs >}}
 {{< tab name="Dashboard" icon="chart-bar" >}}
@@ -152,8 +152,8 @@ On the `agent-run` dashboard:
 {{< tab name="LogsQL" icon="document-text" >}}
 ```logsql
 # The step log, then the tool mix
-kubernetes.pod_name:"xplane-run-<id>" AND kubernetes.container_name:"harness" AND _msg:~"^agent-run"
-kubernetes.pod_name:"xplane-run-<id>" AND kubernetes.container_name:"harness" AND _msg:~"^agent-run step "
+kubernetes.pod_name:"run-<id>" AND kubernetes.container_name:"harness" AND _msg:~"^agent-run"
+kubernetes.pod_name:"run-<id>" AND kubernetes.container_name:"harness" AND _msg:~"^agent-run step "
   | extract "agent-run step <n>: <tool> |" | stats by (tool) count() steps
 ```
 {{< /tab >}}
@@ -268,7 +268,7 @@ flowchart TB
   classDef fix fill:#059669,stroke:#047857,color:#fff
 ```
 
-1. `kubectl get agentrun -n agents xplane-run-<id>`: phase and reason.
+1. `kubectl get agentruns.maku.ogenki.io -n agents run-<id>`: phase and reason.
 2. The step log's last 30 lines: repeating, or changing?
 3. The tool mix (the LogsQL tab above): 95% `terminal` and no commit is searching, not working.
 4. The room transcript for the model's reasoning; the trace for timings.
@@ -296,11 +296,10 @@ without them, runs with no loop policy. Example (the reference host): **`docs` a
 | `continuations` | 2 | 0 … 5 |
 | `judge` | `tier-light` | one of the four model aliases, or `none` for no judge |
 
-The factory copies the row into the claim as `spec.loop`, on every implementer claim of the task:
+The factory copies the row into the run as `spec.loop`, on every implementer run of the task:
 the first run, revisions, CI fixes, retries and resumes. Reviewers, testers and triagers never carry
-it. The composition (crossplane-configuration v0.9.18) hands it to `agent-run` as `AGENT_LOOP`, a
-JSON object with `stallSteps`, `continuations` and `judgeModel`. A cluster whose composition is older
-refuses the claim, and the task escalates with `loop_unsupported`.
+it. The run-controller hands it to `agent-run` as `AGENT_LOOP`, a JSON object with `stallSteps`,
+`continuations` and `judgeModel`, and gives a judge its own model token for its alias.
 
 **The three ends.** `met` is not an end: the run finishes and the task goes to the next role.
 
@@ -368,10 +367,10 @@ which does not switch the loop policy on.
 
 | Wanted | What it takes |
 |---|---|
-| Per-task reasoning effort, iterations, condenser | A harness change reading new env vars, set by the composition |
+| Per-task reasoning effort, iterations, condenser | A harness change reading new env vars, set by the run-controller |
 | A bigger sandbox for a factory run | A factory change: it always writes `size: small` |
 | A tier picked by task difficulty | The complexity classifier, not deployed: every task is `standard` |
-| A different harness | A new profile in the composition |
+| A different harness | A new harness in Maku's run-controller |
 
 Related: [Harness reference]({{< relref "/docs/reference/harness.md" >}}) ·
 [Factory]({{< relref "/docs/how-it-works/factory.md" >}}) ·

@@ -11,7 +11,7 @@ See [README.md](README.md) for `CLOUD`.
 ## 0. Preconditions
 
 - [ ] The factory and broker run F3's release: `kubectl -n agent-system get deploy agent-factory -o jsonpath='{..image}'`.
-- [ ] A run's harness is F1's: start any run and read `kubectl -n agents get pod xplane-run-<id> -o jsonpath='{.spec.containers[?(@.name=="harness")].image}'`.
+- [ ] A run's harness is F1's: start any run and read `kubectl -n agents get pod run-<id> -o jsonpath='{.spec.containers[?(@.name=="harness")].image}'`.
 - [ ] The host's tester trust policy is `contents: write`: `gh api repos/Smana/cloud-native-ref/contents/.github/chainguard/agent-tester.sts.yaml --jq .content | base64 -d | grep 'contents: write'`.
 - [ ] The factory logged no config warning since its start: `kubectl -n agent-system logs deploy/agent-factory | grep -c 'config warning'` → `0`.
 - [ ] A session commit on ai-native-ref switches the host's `scripts` to `{checks: true, testFirst: true}`

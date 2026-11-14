@@ -8,7 +8,7 @@ prerequisites.
 
 | App | Key at | Held by (ExternalSecret, namespace) | A stolen key can |
 |---|---|---|---|
-| `ogenki-agents` | `agents/github-app` | octo-sts (`octo-sts-github-app`, `agent-system`) | push `agent/**`, open and comment on PRs |
+| `ogenki-agents` | `agents/github-app` | the factory, which mints each run's token (`agent-factory-agents-app`, `agent-system`) | push `agent/**`, open and comment on PRs |
 | `ogenki-agent-factory` | `agents/factory-app` | the factory (`agent-factory-github`) and the broker (SP2 P31), `agent-system` | comment, label and edit issues and PRs |
 | `ogenki-agent-merger` | `agents/merger-app` | the factory only (`agent-factory-merger`, `agent-system`) | merge any PR with 8 green checks and `policy-bot: main` `success`, and push `revert-*` and `agent/**` (R16) |
 | `ogenki-merge-gate` | `merge-gate/policy-bot` | policy-bot (`policy-bot`, `merge-gate`) | post `policy-bot: main` `success` on any PR, so the gate stops meaning anything once `agent-merge-gate` is applied |

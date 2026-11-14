@@ -6,7 +6,8 @@ description: Accepted. kagent 1.0 and Agent Substrate improve isolation, identit
 lastVerified: 2026-11-11
 ---
 
-**Status**: Accepted
+**Status**: Accepted; partly superseded
+**Partly superseded** (2026-11-14): agent-sandbox as the runtime. Since R3, Maku's run-controller runs each run as its own gVisor pod. Deferring kagent and Agent Substrate stands.
 **Date**: 2026-11-11
 **Deciders**: Smana (Platform Owner)
 **Related**: [ADR-0041]({{< relref "/docs/decisions/0041-agent-sandbox-gvisor-al2023.md" >}}), [ADR-0044]({{< relref "/docs/decisions/0044-room-session-protocol.md" >}}), [ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}}), [kagent evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-04-kagent-evaluation-research.md)

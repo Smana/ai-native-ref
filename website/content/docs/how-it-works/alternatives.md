@@ -60,7 +60,7 @@ flowchart TB
   end
   subgraph L1["Runtime: isolation, lifecycle, identity"]
     direction LR
-    F1["agent-sandbox + gVisor<br/>(chosen)"] ~~~ S1["Agent Substrate (google/ax;<br/>kagent uses its fork)"]
+    F1["run-controller + gVisor<br/>(chosen)"] ~~~ S1["Agent Substrate (google/ax;<br/>kagent uses its fork)"]
   end
   L5 --> L4 --> L3 --> L2 --> L1
 ```
@@ -69,12 +69,12 @@ flowchart TB
 
 | Layer | Chosen | Alternatives considered | Why |
 |---|---|---|---|
-| **Runtime** | [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) + [gVisor](https://gvisor.dev), one pod per run | Agent Substrate (with google/ax or kagent), Kata/Firecracker, OpenHands Enterprise, Coder, E2B/Daytona | Open source; runs on EKS and GKE, on spot nodes; each run gets its own ServiceAccount and Cilium policy, so the constitution's rules apply per run. Kata/Firecracker needs bare-metal hosts or nested virtualisation: the smallest AWS metal host has 128 vCPU, about $1.5/h spot or $5.4/h on demand ([Vantage](https://instances.vantage.sh/aws/ec2/c6i.metal)), against a few cents an hour for a run's spot node. An agent step mostly waits on the model (about 11 s a reply), so gVisor's system-call overhead does not show |
+| **Runtime** | Maku's run-controller + [gVisor](https://gvisor.dev), one pod per run | Agent Substrate (with google/ax or kagent), Kata/Firecracker, OpenHands Enterprise, Coder, E2B/Daytona | Open source; runs on EKS and GKE, on spot nodes; each run gets its own ServiceAccount and network policy, so the constitution's rules apply per run. Kata/Firecracker needs bare-metal hosts or nested virtualisation: the smallest AWS metal host has 128 vCPU, about $1.5/h spot or $5.4/h on demand ([Vantage](https://instances.vantage.sh/aws/ec2/c6i.metal)), against a few cents an hour for a run's spot node. An agent step mostly waits on the model (about 11 s a reply), so gVisor's system-call overhead does not show |
 | **Harness** | [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server | Headless Claude Code, kagent's harnesses, ax's Antigravity agent, [DeepSeek Harness](#dsh-superagent-prototype) | Open source, headless (an HTTP API), works with any OpenAI-compatible model, supports MCP. Claude Code is proprietary; Antigravity is Gemini-only; DeepSeek Harness has no HTTP API, no stable release, and uploads session logs unless you opt out |
 | **Gateway** | [agentgateway](https://agentgateway.dev) | Agent Router 1.1 on Envoy Gateway, [otari](#otari), [agentmesh](#agentmesh) | See [gateways]({{< relref "/docs/how-it-works/gateways.md" >}}). otari has no MCP federation, token exchange, listener per data class or OpenTelemetry export, and no Kubernetes packaging: watched. agentmesh is a network between agents, not a gateway: its own guide puts agentgateway in front of it |
 | **Gateway guardrails** | The gateways' own guard hooks with open classifiers: agentgateway's `promptGuard` and MCP guardrails, the Semantic Router's jailbreak classifier, LlamaGuard on vLLM | [Google Model Armor](#google-model-armor), NeMo Guardrails, Guardrails AI, LlamaFirewall, ShieldGemma, llm-guard | A filter, not a boundary: a guard earns a block only from the injection drills, and the boundaries stay per-run identity, capability profiles, egress policy and the merge gate. Model Armor is a SaaS in the data path, inline on Google infrastructure only. Where this stands: [status]({{< relref "/docs/status.md#v3x" >}}) |
 | **Rooms** | A log we own: maku-broker on PostgreSQL | OpenHands shared conversations, ACP, A2A through a gateway, Valkey Streams, NATS JetStream, ax or Substrate as the session layer, kagent sessions | Two different questions. **Protocols** (OpenHands shared conversations, ACP, A2A, ax or Substrate, kagent sessions): none records who said what among several people and agents, or who may approve. **Brokers** (Valkey Streams, NATS JetStream): an event is written to Postgres first, which fixes its place in the log, then announced with `LISTEN/NOTIFY`. At a few events per second a second stateful system adds nothing, and delivering live before the write would let watchers see events the audit log never records |
-| **Factory** | A small custom controller; a runs quota on the namespace in place of [Kueue](https://kueue.sigs.k8s.io/docs/overview/) since R3 | Argo Workflows, Tekton, Temporal, a Crossplane `Task` composition, gh-aw, OpenAI's Symphony specification ([below](#openai-symphony)), DeepSeek's dsh-superagent ([below](#dsh-superagent-prototype)) | The factory's state lives in Kubernetes objects and GitHub. Waiting hours on CI or a review is a periodic re-check of that state, so a restart loses nothing. Budgets and the kill switch are domain logic any engine would still need. Argo has no budget concept and a Crossplane composition has no timers. Temporal suits workflows whose state lives in code, and is the one to watch ([below](#temporal)) |
+| **Factory** | A small custom controller; a runs quota on the namespace rather than [Kueue](https://kueue.sigs.k8s.io/docs/overview/) | Argo Workflows, Tekton, Temporal, a Crossplane `Task` composition, gh-aw, OpenAI's Symphony specification ([below](#openai-symphony)), DeepSeek's dsh-superagent ([below](#dsh-superagent-prototype)) | The factory's state lives in Kubernetes objects and GitHub. Waiting hours on CI or a review is a periodic re-check of that state, so a restart loses nothing. Budgets and the kill switch are domain logic any engine would still need. Argo has no budget concept and a Crossplane composition has no timers. Temporal suits workflows whose state lives in code, and is the one to watch ([below](#temporal)) |
 | **Merge gate** | [policy-bot](https://github.com/palantir/policy-bot) behind a repository ruleset | Required reviews, rulesets alone, a custom check, Prow/tide, Mergify, Kodiak | The policy lives in the repository and is reviewable, and the right to merge sits with one dedicated App |
 
 The full records are in the programme's design documents, listed under [Sources](#sources).
@@ -87,8 +87,8 @@ The full records are in the programme's design documents, listed under [Sources]
 | Postgres `LISTEN/NOTIFY` for room fan-out | NATS JetStream, for fan-out only: the log stays in Postgres and is written first | Notification latency or database load shows on the room dashboards, or rooms need many broker replicas |
 | gVisor | Kata or Firecracker microVMs | Concurrency reaches about 20 sandboxes, enough to fill a metal host; a gVisor incompatibility blocks a class of task; or nested virtualisation becomes available on our node types |
 | agentgateway (agents), Envoy AI Gateway (people) | [otari](#otari) | It ships declarative Kubernetes packaging, OpenTelemetry gen_ai export, per-run identity without a key per run and MCP federation (agents); or generic OIDC sign-in and prompt-based model choice (people) |
-| agent-sandbox, one pod per run | [Agent Substrate](#agent-substrate) | See [Reconsidering Substrate](#reconsidering-substrate-not-now-deliberately-open) |
-| One cold pod per run, held or ended while it waits | agent-sandbox's own `SandboxWarmPool` and `operatingMode: Suspended`, in the pinned v1.0.5; the composition suspends only finished runs | Now: a run starts in about 90 s on a fresh node ([v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)). A claim that sets `env` or volume templates bypasses the warm pool |
+| One pod per run | [Agent Substrate](#agent-substrate) | See [Reconsidering Substrate](#reconsidering-substrate-not-now-deliberately-open) |
+| One cold pod per run, ended when it ends | Pre-warmed pods handed to a run | A run's start time, about 90 s on a fresh node, becomes the bottleneck ([v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)) |
 | agentgateway alone, every agent on one cluster | [agentmesh](#agentmesh) behind agentgateway, for calls between agents on different clusters | Runs on one cluster must call agents on another; and agentmesh ships declarative policy, per-tool standing grants and end-to-end revocation of delegations |
 | OpenHands agent-server | [DeepSeek Harness](#dsh-superagent-prototype) | A stable release with a deprecation policy, an HTTP server API, container images, and session-log upload off by default |
 | Open classifiers behind the gateways' guard hooks | [Google Model Armor](#google-model-armor), through agentgateway's `googleModelArmor` guard, on the public listener only | An adopter on GKE needs its compliance record for public data, or no open classifier reaches a usable detection rate in the injection drills |
@@ -372,15 +372,15 @@ proactive intake, a mandate on each task, and task stages that name who the task
 ## Would rebuilding on kagent + Substrate be simpler?
 
 The 1.0 releases make this a stronger challenge, but the comparison starts with what the current
-runtime already does. agent-sandbox supplies PVC-backed attended suspend/resume, and the factory
-recovers interrupted work from its branch and room log. Warm-pool adoption remains a separate track.
+runtime already does. Maku's run-controller runs each run as one gVisor pod, and the factory
+recovers interrupted work from its branch and room log.
 
 | Current limitation | What Substrate could add |
 |---|---|
 | A replacement Pod reconstructs the agent around its workspace | Restore process memory and root state on another worker |
 | Cold starts and image pulls dominate some runs | Start from a golden snapshot |
 | A fork starts a fresh run | Carry a runtime snapshot into the fork |
-| The identity proxy keeps credentials outside the sandbox | Inject credentials at an external egress gateway |
+| Each run holds its own short-lived tokens; the gateway holds the provider keys | Inject credentials at an external egress gateway |
 
 A spike verified OpenHands cross-node continuation and fast golden starts, but not the complete
 factory, current releases, EKS or Spot loss
@@ -394,7 +394,7 @@ factory, current releases, EKS or Spot loss
 - For kagent, **an OSS authorization boundary and an OpenHands BYO adapter**.
 
 **Net:** both options add moving parts without removing the platform's differentiating controls.
-ADR-0062 keeps agent-sandbox + gVisor + OpenHands and approves neither a migration nor a proof of
+ADR-0062 keeps gVisor + OpenHands and approves neither a migration nor a proof of
 concept. Direct Substrate remains the cleaner candidate if a measured runtime need emerges.
 
 ## Reconsidering Substrate: not now, deliberately open

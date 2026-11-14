@@ -1,44 +1,49 @@
 # 01 — Runtime and sandbox
 
 Proves that an `AgentRun` boots a gVisor-sandboxed pod on the dedicated `agents-gvisor` pool (a GKE
-Sandbox node pool on gcp-0, a Karpenter pool on aws-0), that admission control rejects a malformed
-pod or claim before it can run, that the harness has no Kubernetes API access, and that a lost pod
+Sandbox node pool on gcp-0, a Karpenter pool on aws-0), that admission control rejects a pod or a run
+not created by its one creator, that the harness has no Kubernetes API access, and that a lost pod
 fails its run closed (R7). On aws-0 it also proves the pinned `runsc` release is installed correctly;
 on gcp-0 Google manages `runsc`. See [README.md](README.md) for prerequisites and `CLOUD`; run
 [00](README.md#runbook-00-one-time-cluster-setup) first.
 
+Runs are `maku.ogenki.io` AgentRuns named `run-<id>` in `agents`, rendered by Maku's run-controller in
+the `room-broker` release (R3). `task agent:run` prints the 8-character id; the AgentRun, its
+ServiceAccount and its pod are all `run-<id>`. The commands name the resource in full,
+`agentruns.maku.ogenki.io`: a cluster that still serves the Crossplane `AgentRun` XRD would make the
+short name ambiguous.
+
 ## Prerequisites
 
 - Runbook 00's first check passes (`main` tracked, both umbrellas `Ready`).
-- No owner action specific to this runbook. Suspend and resume (the former Step 8) left the platform
-  with the run-controller (R3, owner ruling Q10): no run is suspendable.
+- No owner action specific to this runbook. No run is suspendable (owner ruling Q10).
 
 ## Steps
 
 ### Step 1 — confirm the platform is up
 
 ```bash
-KS='agent-platform|agent-sandbox|agent-runtime|agent-policies'
+KS='agent-platform|agent-runtime|agent-policies|agent-factory-crds|room-broker'
 [ "$CLOUD" = aws ] && KS="$KS|agents-nodepool|runtimeclass-gvisor"   # GKE provides both on gcp-0
 flux get kustomizations -n flux-system | grep -E "^($KS)[[:space:]]"
 kubectl get runtimeclass gvisor -o jsonpath='{.handler}{"\n"}'
-kubectl get xrd agentruns.cloud.ogenki.io -o jsonpath='{.status.conditions[?(@.type=="Established")].status}{"\n"}'
-kubectl auth can-i --as=system:serviceaccount:crossplane-system:crossplane create sandboxes.agents.x-k8s.io -n agents
+kubectl get crd agentruns.maku.ogenki.io -o jsonpath='{.status.conditions[?(@.type=="Established")].status}{"\n"}'
+kubectl get deploy -n agent-system -o name | grep -E 'run-controller|egress-proxy'
+kubectl get resourcequota -n agents
 ```
 
-Expected: every listed Kustomization `Ready=True` (4 on gcp-0, 6 on aws-0); `gvisor`
-on gcp-0 or `runsc` on aws-0; `True`; `yes`.
+Expected: every listed Kustomization `Ready=True` (5 on gcp-0, 7 on aws-0); `gvisor` on gcp-0 or
+`runsc` on aws-0; `True`; the run-controller and egress-proxy Deployments; the runs quota.
 
-**What this proves:** the umbrella and its children reconciled, the `AgentRun` XRD is installed, and
-Crossplane's aggregate ClusterRole (`agent-sandbox:aggregate-to-crossplane`) actually grants it
-`Sandbox` writes.
+**What this proves:** the umbrella and its children reconciled, the `AgentRun` CRD is installed, and
+the run-controller, its egress proxy and the runs quota are in place.
 
 ### Step 2 — start a run and time the node (Q1)
 
 ```bash
 T0=$(date +%s)
-RUN=$(task agent:run -- --role implementer --class public --task "Run 'sleep 900' in the terminal, then finish. Change nothing." | tail -1); echo "$RUN"
-kubectl wait -n agents agentrun/$RUN --for=jsonpath='{.status.phase}'=Running --timeout=15m
+ID=$(task agent:run -- --role implementer --class public --task "Run 'sleep 900' in the terminal, then finish. Change nothing." | tail -1); RUN=run-$ID; echo "$RUN"
+kubectl wait -n agents agentruns.maku.ogenki.io/$RUN --for=jsonpath='{.status.phase}'=Running --timeout=15m
 NODE=$(kubectl get pod -n agents $RUN -o jsonpath='{.spec.nodeName}')
 kubectl get node "$NODE" -o jsonpath='{range .status.conditions[?(@.type=="Ready")]}{.lastTransitionTime}{"\n"}{end}'
 kubectl get pod -n agents $RUN -o jsonpath='{.status.startTime}{"\n"}'
@@ -66,7 +71,8 @@ kubectl exec -n agents $RUN -c harness -- grep Seccomp /proc/self/status
 
 Expected: `gvisor <node>`; `gvisor`; a `Starting gVisor...` banner line; `Seccomp: 0` (`oci-seccomp`
 is deliberately off — gVisor does not honour `errnoRet`, so `RuntimeDefault` would block every
-glibc ≥ 2.34 thread start; see gvisor#14688).
+glibc ≥ 2.34 thread start; see gvisor#14688). The run pod policy refuses `kubectl debug`; `kubectl
+exec` is not an ephemeral container and still works.
 
 **What this proves:** SC-01.
 
@@ -96,23 +102,25 @@ kubectl exec -n agents $RUN -c harness -- ls /var/run/secrets/kubernetes.io ; ec
 kubectl exec -n agents $RUN -c harness -- /usr/local/bin/python -c "import urllib.request; urllib.request.urlopen('https://kubernetes.default.svc', timeout=5)" ; echo "exit=$?"
 ```
 
-Expected: `No such file or directory`, `exit=2`; a connection/name-resolution or timeout error,
-`exit=1` — `automountServiceAccountToken: false` on the composed ServiceAccount and no `kube-apiserver`
-egress in the run's CNP.
+Expected: `No such file or directory`, `exit=2`; a connection or timeout error, `exit=1` —
+`automountServiceAccountToken: false` on the run's ServiceAccount and pod, and no API server egress in
+the run's NetworkPolicy.
 
 **What this proves:** SC-08.
 
-### Step 6 — SC-03: admission rejects a bad pod and a bad claim
+### Step 6 — SC-03: admission rejects a pod and a run from anyone but their creator
 
-Both test pods below carry a full restricted `securityContext` on purpose — PSS `restricted` runs
-before Kyverno and would otherwise deny them first, proving nothing about `agents-pod-shape`.
+Maku's ValidatingAdmissionPolicies admit a pod in `agents` only from the run-controller, and an
+`AgentRun` only from the factory. Both dry runs below are made as you, so both are refused, whatever
+their shape.
 
 ```bash
-kubectl apply --dry-run=server -n agents -f - <<'YAML' 2>&1 | grep -c 'every pod in agents runs under RuntimeClass gvisor'
+kubectl apply --dry-run=server -n agents -f - <<'YAML' 2>&1 | grep -c 'only the run-controller'
 apiVersion: v1
 kind: Pod
-metadata: {name: sc03-runc}
+metadata: {name: sc03-pod}
 spec:
+  runtimeClassName: gvisor
   automountServiceAccountToken: false
   securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
   containers:
@@ -120,96 +128,62 @@ spec:
       image: busybox
       securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
 YAML
-kubectl apply --dry-run=server -n agents -f - <<'YAML' 2>&1 | grep -c 'a pod in agents never mounts a Kubernetes API token'
-apiVersion: v1
-kind: Pod
-metadata: {name: sc03-token}
-spec:
-  runtimeClassName: gvisor
-  automountServiceAccountToken: true
-  securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
-  containers:
-    - name: c
-      image: busybox
-      securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+kubectl apply --dry-run=server -f - <<'YAML' 2>&1 | grep -c 'only the factory creates AgentRuns'
+apiVersion: maku.ogenki.io/v1alpha1
+kind: AgentRun
+metadata: {name: run-7f3cq2xz, namespace: agents}
+spec: {role: implementer, repository: Smana/cloud-native-ref, principal: "human:1", dataClass: public, task: {text: x}}
+YAML
+kubectl apply --dry-run=server -f - <<'YAML' 2>&1 | grep -c "should match '^agent/"
+apiVersion: maku.ogenki.io/v1alpha1
+kind: AgentRun
+metadata: {name: run-7f3cq2xz, namespace: agents}
+spec: {role: implementer, repository: Smana/cloud-native-ref, principal: "human:1", dataClass: public, branch: main, task: {text: x}}
 YAML
 ```
 
-Expected: `1` and `1` (each pod denied by `agents-pod-shape` with its own message). If a `0` prints,
-re-run without the `grep` and read which admission control actually denied it.
-
-Write `/tmp/agentrun-bad.yaml` (Write tool, not a heredoc):
-
-```yaml
-apiVersion: cloud.ogenki.io/v1alpha1
-kind: AgentRun
-metadata: {name: xplane-run-7f3cq2xz, namespace: agents}
-spec: {role: implementer, repository: Smana/cloud-native-ref, principal: "human:1", dataClass: public, branch: main, task: {text: x}}
----
-apiVersion: cloud.ogenki.io/v1alpha1
-kind: AgentRun
-metadata: {name: run-1, namespace: agents}
-spec: {role: implementer, repository: Smana/cloud-native-ref, principal: "human:1", dataClass: public, task: {text: x}}
-```
-
-```bash
-kubectl apply --dry-run=server -f /tmp/agentrun-bad.yaml
-```
-
-Expected: both claims denied — the first for `spec.branch: main` (must start with `agent/`, an XRD
-OpenAPI `pattern` constraint, not CEL — the error reads `spec.branch in body should match
-'^agent/[a-z0-9][a-z0-9._/-]{0,100}$'`), the second for its name (must match
-`^xplane-run-[a-z2-7]{8}$` — the XRD's own CEL rule fires first and reads exactly `an AgentRun is
-named xplane-run-<runId>, runId being 8 characters of [a-z2-7]`; the `agentrun-admission` Kyverno
-policy carries the identical message as a second layer, but the CRD-level CEL check rejects the
-object before any webhook runs, so Kyverno's copy is never the one you actually see here). Record
-each denial message.
+Expected: `1`, `1` and `1`. The third run is refused by the CRD's schema (`spec.branch` must start
+with `agent/`) before any admission policy runs. If a `0` prints, re-run without the `grep` and read
+which control denied it. Not yet recorded on the run-controller.
 
 **What this proves:** SC-03.
 
 ### Step 7 — R7: a lost pod ends the run, and a new run resumes its branch
 
-A lost pod (spot interruption, eviction, `kubectl delete`) ends its run as `Failed`. It does not come
-back. The Sandbox controller does try to recreate it, but first the pod passes through phase `Failed`.
-agent-sandbox v1.0.3 then reports `Finished=PodFailed`, the same as for a crash. The composition
-latches `Failed` and withholds the run's ServiceAccount, so the recreate is refused. That is the
-fail-closed design. Recovery is a new run on the same branch.
+A lost pod (spot interruption, eviction, `kubectl delete`) ends its run as `Failed`, reason
+`PodLost`. The run-controller never re-creates a run's pod (`restartPolicy: Never`); recovery is a new
+run on the same branch.
 
 ```bash
-BRANCH=$(kubectl get agentrun -n agents $RUN -o jsonpath='{.status.branch}'); echo "$BRANCH"
+BRANCH=$(kubectl get agentruns.maku.ogenki.io -n agents $RUN -o jsonpath='{.status.branch}'); echo "$BRANCH"
 kubectl delete pod -n agents $RUN --wait=true
-kubectl wait -n agents agentrun/$RUN --for=jsonpath='{.status.phase}'=Failed --timeout=2m
-kubectl get agentrun -n agents $RUN -o jsonpath='{.status.phase} {.status.reason}{"\n"}'
-kubectl get sa -n agents $RUN 2>&1 | tail -1
-RUN2=$(task agent:run -- --role implementer --class public --branch "$BRANCH" --task "Run 'sleep 600' in the terminal, then finish. Change nothing." | tail -1)
-kubectl wait -n agents agentrun/$RUN2 --for=jsonpath='{.status.phase}'=Running --timeout=15m
-kubectl get agentrun -n agents $RUN2 -o jsonpath='{.status.branch}{"\n"}'
+kubectl wait -n agents agentruns.maku.ogenki.io/$RUN --for=jsonpath='{.status.phase}'=Failed --timeout=2m
+kubectl get agentruns.maku.ogenki.io -n agents $RUN -o jsonpath='{.status.phase} {.status.reason}{"\n"}'
+kubectl get pod -n agents $RUN 2>&1 | tail -1
+ID2=$(task agent:run -- --role implementer --class public --branch "$BRANCH" --task "Run 'sleep 600' in the terminal, then finish. Change nothing." | tail -1); RUN2=run-$ID2
+kubectl wait -n agents agentruns.maku.ogenki.io/$RUN2 --for=jsonpath='{.status.phase}'=Running --timeout=15m
+kubectl get agentruns.maku.ogenki.io -n agents $RUN2 -o jsonpath='{.status.branch}{"\n"}'
 ```
 
 Expected:
-- `Failed PodLost` (a plain delete leaves no `DisruptionTarget`; the composition sees the pod deleted);
-- `Error from server (NotFound)` for the old run's ServiceAccount;
+- `Failed PodLost`;
+- `Error from server (NotFound)` for the old pod, a minute later still;
 - the new run `Running` on the same `$BRANCH`.
-
-The controller's `serviceaccount "xplane-run-<id>" not found` log line is the withheld ServiceAccount
-refusing the recreate, not an error.
-
-> Known issue (F12): a deleted pod of a run with a `roomRef` can come back within ~1 s while the run
-> stays `Running`, and the harness re-runs the task; the `kubectl wait … Failed` then times out. A run
-> without a `roomRef` passes. Delete the run rather than waiting it out, and record the step as FAIL (F12).
 
 **What this proves:** R7 as built. A lost pod fails closed, and `agent-run --branch` resumes the work; a factory run resumes on its own ([10](10-disruption.md)).
 
 ### Cleanup
 
 ```bash
-kubectl delete agentrun -n agents $RUN $RUN2 --wait
-kubectl get sa,cm,cnp,sandbox,pod,usages.protection.crossplane.io -n agents -l agents.ogenki.io/run-id=${RUN#xplane-run-}
+kubectl delete agentruns.maku.ogenki.io -n agents $RUN $RUN2 --wait
+kubectl get sa,cm,secret,networkpolicy,pod -n agents -o name | grep -E "run-($ID|$ID2)"
 ```
 
-Expected: `No resources found` (this doubles as an early look at SC-14, fully proven in runbook 07).
+Expected: nothing (this doubles as an early look at SC-14, fully proven in runbook 07).
 
 ## Results
+
+The rounds below ran on the Crossplane `AgentRun` XR (`xplane-run-<id>`), before R3.
 
 ### Round 7 — gcp-0, 2026-09-30 (`integration/agent-factory` @ `a2c645ba`)
 

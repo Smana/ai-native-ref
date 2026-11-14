@@ -2,11 +2,10 @@
 
 The capstone: a real implementer run, on a real issue, opens a real PR within budget (SC-04); a
 long-running read-only run's tokens survive without a single 401 across most of an hour (SC-06);
-revoking a run by annotation drives it to `BudgetExhausted` with correct status projection rules
-(SC-13); and after deletion nothing tagged with the run's id survives anywhere in the cluster
+revoking a run by annotation drives it to `BudgetExhausted` (SC-13); and after deletion nothing tagged with the run's id survives anywhere in the cluster
 (SC-14). This is the longest runbook — budget close to two hours, most of it waiting. See
 [README.md](README.md) for prerequisites; run [00](README.md#runbook-00-one-time-cluster-setup) and
-ideally 01–06 first (they de-risk the pieces this one composes).
+ideally 01, 03 and 04 first (they de-risk the pieces this one composes).
 
 ## Prerequisites
 
@@ -14,47 +13,51 @@ ideally 01–06 first (they de-risk the pieces this one composes).
 - Owner actions 1–4 (OpenBao policy and role, Z.ai key, ruleset, GitHub App).
 - **Owner action 5**: a trivial issue URL ready, exported as `ISSUE_URL`.
 
+Runs are `maku.ogenki.io` AgentRuns named `run-<id>` (R3): `task agent:run` prints the id, and the
+commands below name the resource in full, `agentruns.maku.ogenki.io`.
+
 ## Step 1 — confirm the harness pin
 
 ```bash
-kubectl get composition xagentruns.cloud.ogenki.io -o yaml | grep -o 'ghcr.io/smana/agent-harness:[^@"]*' | sort -u
+kubectl get helmrelease -n agent-system room-broker -o jsonpath='{.spec.values.runController.images.harness.tag}{"\n"}'
 ```
 
-Expected: one line, `ghcr.io/smana/agent-harness:v<x.y.z>`: the harness of a Maku release, pinned by
-digest in the crossplane-configuration release the host runs.
+Expected: one line, `v<x.y.z>@sha256:…`: the harness of the Maku release the broker's chart runs,
+pinned by digest in `infrastructure/base/room-broker/helmrelease.yaml`.
 
 ## Step 2 — SC-04: an implementer run ends in a PR within 30 minutes
 
 ```bash
-RUN=$(task agent:run -- --role implementer --class public --task-url "$ISSUE_URL" | tail -1); echo "$RUN"
+ID=$(task agent:run -- --role implementer --class public --task-url "$ISSUE_URL" | tail -1); RUN=run-$ID; echo "$RUN"
 date -u +%FT%TZ
-kubectl wait -n agents agentrun/$RUN --for=jsonpath='{.status.phase}'=Succeeded --timeout=30m
-kubectl get agentrun -n agents $RUN -o jsonpath='{.status.startedAt} {.status.finishedAt} {.status.branch}{"\n"}'
-BRANCH=$(kubectl get agentrun -n agents $RUN -o jsonpath='{.status.branch}')
+kubectl wait -n agents agentruns.maku.ogenki.io/$RUN --for=jsonpath='{.status.phase}'=Succeeded --timeout=30m
+kubectl get agentruns.maku.ogenki.io -n agents $RUN -o jsonpath='{.status.startedAt} {.status.finishedAt} {.status.branch}{"\n"}'
+BRANCH=$(kubectl get agentruns.maku.ogenki.io -n agents $RUN -o jsonpath='{.status.branch}')
 gh pr list --repo Smana/cloud-native-ref --head "$BRANCH" --json number,author,headRefName
 PR=$(gh pr list --repo Smana/cloud-native-ref --head "$BRANCH" --json number --jq '.[0].number')
-gh pr view --repo Smana/cloud-native-ref "$PR" --json commits --jq '.commits[].messageBody' | grep -c "Agent-Run: ${RUN#xplane-run-}"
+gh pr view --repo Smana/cloud-native-ref "$PR" --json commits --jq '.commits[].messageBody' | grep -c "Agent-Run: $ID"
 ```
 
 Expected: `Succeeded` within 30 minutes of the printed start; one PR from `agent/<runId>` whose
-author login is `app/ogenki-agents`; at least one commit carrying `Agent-Run: <runId>`. (Only SP3's
-factory sets `spec.branch` to `agent/<taskId>`; `task agent:run --task-url` leaves the composition's
-default.)
+author login is `app/ogenki-agents`; at least one commit carrying `Agent-Run: <runId>`. (Only the
+factory sets `spec.branch` to `agent/<taskId>`; `task agent:run --task-url` leaves the
+run-controller's default, `agent/<runId>`.)
 
-If it fails: read `kubectl logs -n agents $RUN -c harness` and the `agent-router` access log for the
-run's `x_ar_agent` (same LogsQL pattern as runbook 02, Part A Step 2) before changing anything.
+If it fails: read `kubectl logs -n agents $RUN -c harness` and the model gateway's access log for the
+run (`gateway-name:"model-gateway"`, `log.x_ar_agent:"system:serviceaccount:agents:$RUN"`) before
+changing anything.
 
-**What this proves:** SC-04 — the whole chain (Sandbox → identity-proxy → agent-router → GLM-5.3 →
-octo-sts → PR) works, unattended, inside the time budget.
+**What this proves:** SC-04 — the whole chain (run-controller → gVisor pod → model gateway → GLM-5.3,
+and the factory's per-run git token → PR) works, unattended, inside the time budget.
 
 Keep this PR open — it's the owner's to review, not to merge or close as part of this session.
 
 ## Step 3 — SC-06: a long run gets no 401s across its lifetime
 
 ```bash
-LONG=$(task agent:run -- --role implementer --class public \
-  --task "Read every Markdown file under docs/superpowers/specs one at a time, and run 'sleep 110' in the terminal between two files. For each, list the relative links it contains. Stop after 45 minutes. Do not change, commit or push anything. Finish with the full list." | tail -1)
-kubectl wait -n agents agentrun/$LONG --for=jsonpath='{.status.phase}'=Running --timeout=15m
+LID=$(task agent:run -- --role implementer --class public \
+  --task "Read every Markdown file under docs/superpowers/specs one at a time, and run 'sleep 110' in the terminal between two files. For each, list the relative links it contains. Stop after 45 minutes. Do not change, commit or push anything. Finish with the full list." | tail -1); LONG=run-$LID
+kubectl wait -n agents agentruns.maku.ogenki.io/$LONG --for=jsonpath='{.status.phase}'=Running --timeout=15m
 ```
 
 The factory sizes the run: a run started with `task agent:run` belongs to no task, carries no
@@ -69,68 +72,55 @@ Q="rate(gen_ai_client_token_usage_sum{ar_agent=\"system:serviceaccount:agents:$L
 ENC=$(python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))" "$Q")
 kubectl get --raw "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy/api/v1/query?query=$ENC" | jq .
 curl -sS --cacert opentofu/$CLOUD/openbao/management/.tls/ca.pem https://vl.priv.$CLOUD.ogenki.io/select/logsql/query --data-urlencode \
-  "query=kubernetes.pod_namespace:\"agent-gateway\" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:\"agent-router\" _time:1h | unpack_json | log.x_ar_agent:\"system:serviceaccount:agents:$LONG\" | stats by (log.http.status) count() n"
+  "query=kubernetes.pod_namespace:\"agent-gateway\" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:\"model-gateway\" _time:1h | unpack_json | log.x_ar_agent:\"system:serviceaccount:agents:$LONG\" | stats by (log.http.status) count() n"
 ```
 
 Expected: the VM query confirms the run is actually making calls; the LogsQL result shows no `401`
-bucket for this run's `x_ar_agent` at any point in its lifetime. Its tokens live until its 120-minute
-deadline (R2, runbook 02) — nothing has to rotate, and a rotated token would not reach the proxy
-under gVisor anyway. The `sleep 110` pacing keeps the run making calls for most of the session; a
-run that finishes early still counts, so record its actual duration.
+bucket for this run at any point in its lifetime. Its model token lives until its 120-minute
+deadline (`budget.maxMinutes`): nothing has to rotate. The `sleep 110` pacing keeps the run making
+calls for most of the session; a run that finishes early still counts, so record its actual duration.
 
 ```bash
-kubectl delete agentrun -n agents $LONG --wait
+kubectl delete agentruns.maku.ogenki.io -n agents $LONG --wait
 ```
 
-**What this proves:** SC-06 — the R2 token-lifetime fix holds up over a realistic run length, not
-just the short probes in runbook 02.
+**What this proves:** SC-06 — a run's token lasts a realistic run length.
 
-## Step 4 — SC-13: revocation by annotation, and status-projection guards
+## Step 4 — SC-13: revocation by annotation
 
-SP3's run meter writes `agents.ogenki.io/usage-tokens` every 30 s once a run has made a model call,
-and the composition never lowers `status.usage.tokens`. So the valid case annotates a value above the
-meter's reading.
+The run meter revokes a run at its cap by annotating it `agents.ogenki.io/revoked=<reason>`; the
+run-controller ends a run whose reason is a budget reason as `BudgetExhausted`, and one marked
+`manual` as `Revoked`. The `AgentRun` carries no `status.usage`, so the projection guards the
+Crossplane XR had (a malformed `usage-tokens` never reaching status) are retired with it.
 
 ```bash
-B=$(task agent:run -- --role implementer --class public --task "Run 'sleep 600' in the terminal, then finish. Change nothing." | tail -1)
-kubectl wait -n agents agentrun/$B --for=jsonpath='{.status.phase}'=Running --timeout=15m
-sleep 60   # one meter interval after the first model call
-U=$(kubectl get agentrun -n agents $B -o jsonpath='{.status.usage.tokens}'); echo "meter: ${U:-none}"
-kubectl annotate agentrun -n agents $B --overwrite agents.ogenki.io/usage-tokens=-5
-sleep 30; kubectl get agentrun -n agents $B -o jsonpath='{.status.usage.tokens}{"\n"}'
-HIGH=$(( ${U:-0} + 100000 ))
-kubectl annotate agentrun -n agents $B --overwrite agents.ogenki.io/usage-tokens=$HIGH
-sleep 30; kubectl get agentrun -n agents $B -o jsonpath='{.status.usage.tokens}'; echo " (want $HIGH)"
-T0=$(date +%s); kubectl annotate agentrun -n agents $B agents.ogenki.io/revoked=budget-run
-kubectl wait -n agents agentrun/$B --for=jsonpath='{.status.phase}'=BudgetExhausted --timeout=2m
+BID=$(task agent:run -- --role implementer --class public --task "Run 'sleep 600' in the terminal, then finish. Change nothing." | tail -1); B=run-$BID
+kubectl wait -n agents agentruns.maku.ogenki.io/$B --for=jsonpath='{.status.phase}'=Running --timeout=15m
+T0=$(date +%s); kubectl annotate agentruns.maku.ogenki.io -n agents $B agents.ogenki.io/revoked=budget-run
+kubectl wait -n agents agentruns.maku.ogenki.io/$B --for=jsonpath='{.status.phase}'=BudgetExhausted --timeout=2m
 until ! kubectl get pod -n agents $B >/dev/null 2>&1; do sleep 2; done; echo "BudgetExhausted, pod gone after $(( $(date +%s) - T0 )) s"
 ```
 
-Expected:
-- After `-5`: still `$U` (empty if the meter had not written yet), never `-5`. A malformed value is
-  rejected, never projected.
-- After `$HIGH`: exactly `$HIGH`, and it stays there after the meter's next, lower write. If you read
-  the meter's value instead, the meter overwrote the annotation before Crossplane reconciled: re-run
-  those two lines.
-- `BudgetExhausted` reached, with the pod gone ≤ 60 s after the `revoked=budget-run` annotation.
+Expected: `BudgetExhausted` reached, with the pod gone ≤ 60 s after the `revoked=budget-run`
+annotation. Not yet recorded on the run-controller.
 
-**What this proves:** SC-13 — malformed usage values never reach status, valid ones do, and the
-revocation path SP3's run meter drives at a run's cap actually tears the run down.
+**What this proves:** SC-13 — the revocation path the run meter drives at a run's cap tears the run
+down.
 
 ## Step 5 — SC-14: nothing left after deletion
 
 ```bash
-kubectl delete agentrun -n agents $B --wait
+kubectl delete agentruns.maku.ogenki.io -n agents $B --wait
 for r in $LONG $B; do
-  echo "== ${r#xplane-run-} =="
-  kubectl get sa,cm,cnp,sandbox,pod,usages.protection.crossplane.io -A -l agents.ogenki.io/run-id=${r#xplane-run-}
+  echo "== $r =="
+  kubectl get sa,cm,secret,networkpolicy,pod -n agents -o name | grep -E "^[a-z]+/$r(-|$)"
 done
 ```
 
-Expected: `No resources found` for both run ids.
+Expected: no line under either run.
 
-**What this proves:** SC-14 — deletion is complete: no ServiceAccount, ConfigMap, CNP, Sandbox, pod
-or `Usage` outlives its `AgentRun`.
+**What this proves:** SC-14 — deletion is complete: no ServiceAccount, ConfigMap, git token Secret,
+NetworkPolicy or pod outlives its `AgentRun`.
 
 ## Cleanup
 
@@ -138,6 +128,8 @@ Nothing further — every run this runbook created is already deleted except `$R
 which stays open for owner review.
 
 ## Results
+
+The rounds below ran on the Crossplane `AgentRun` XR (`xplane-run-<id>`), before R3.
 
 > Every round below predates phase H (#2429): gateway lines were read on Envoy's agent-router
 > (`log.response_code`).

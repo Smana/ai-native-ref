@@ -4,7 +4,7 @@ aliases:
   - /docs/platform/ai-platform/agents/alternatives/
 weight: 100
 description: "Work in progress. The alternatives considered for each layer of the agent platform, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
-lastVerified: 2026-11-11
+lastVerified: 2026-11-15
 ---
 
 {{< callout type="warning" >}}
@@ -56,7 +56,7 @@ flowchart TB
   end
   subgraph L2["Harness: the agent loop"]
     direction LR
-    F2["OpenHands<br/>(chosen)"] ~~~ A2["ax: Antigravity,<br/>Gemini only"] ~~~ K2["kagent: Claude Code,<br/>Codex, own ADKs"]
+    F2["OpenHands<br/>(chosen)"] ~~~ O2C["OpenCode<br/>(evaluated)"] ~~~ A2["ax: Antigravity,<br/>Gemini only"] ~~~ K2["kagent: Claude Code,<br/>Codex, own ADKs"]
   end
   subgraph L1["Runtime: isolation, lifecycle, identity"]
     direction LR
@@ -70,7 +70,7 @@ flowchart TB
 | Layer | Chosen | Alternatives considered | Why |
 |---|---|---|---|
 | **Runtime** | Maku's run-controller + [gVisor](https://gvisor.dev), one pod per run | Agent Substrate (with google/ax or kagent), Kata/Firecracker, OpenHands Enterprise, Coder, E2B/Daytona | Open source; runs on EKS and GKE, on spot nodes; each run gets its own ServiceAccount and network policy, so the constitution's rules apply per run. Kata/Firecracker needs bare-metal hosts or nested virtualisation: the smallest AWS metal host has 128 vCPU, about $1.5/h spot or $5.4/h on demand ([Vantage](https://instances.vantage.sh/aws/ec2/c6i.metal)), against a few cents an hour for a run's spot node. An agent step mostly waits on the model (about 11 s a reply), so gVisor's system-call overhead does not show |
-| **Harness** | [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server | Headless Claude Code, kagent's harnesses, ax's Antigravity agent, [DeepSeek Harness](#dsh-superagent-prototype) | Open source, headless (an HTTP API), works with any OpenAI-compatible model, supports MCP. Claude Code is proprietary; Antigravity is Gemini-only; DeepSeek Harness has no HTTP API, no stable release, and uploads session logs unless you opt out |
+| **Harness** | [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server | [OpenCode](#opencode), headless Claude Code, kagent's harnesses, ax's Antigravity agent, [DeepSeek Harness](#dsh-superagent-prototype) | Open source, headless (an HTTP API), works with any OpenAI-compatible model, supports MCP. OpenCode's upstream image is lighter, but it needs a Maku-owned loop guard and room, provider, and recovery adapters. Claude Code is proprietary; Antigravity is Gemini-only; DeepSeek Harness has no HTTP API, no stable release, and uploads session logs unless you opt out |
 | **Gateway** | [agentgateway](https://agentgateway.dev) | Agent Router 1.1 on Envoy Gateway, [otari](#otari), [agentmesh](#agentmesh) | See [gateways]({{< relref "/docs/how-it-works/gateways.md" >}}). otari has no MCP federation, token exchange, listener per data class or OpenTelemetry export, and no Kubernetes packaging: watched. agentmesh is a network between agents, not a gateway: its own guide puts agentgateway in front of it |
 | **Gateway guardrails** | The gateways' own guard hooks with open classifiers: agentgateway's `promptGuard` and MCP guardrails, the Semantic Router's jailbreak classifier, LlamaGuard on vLLM | [Google Model Armor](#google-model-armor), NeMo Guardrails, Guardrails AI, LlamaFirewall, ShieldGemma, llm-guard | A filter, not a boundary: a guard earns a block only from the injection drills, and the boundaries stay per-run identity, capability profiles, egress policy and the merge gate. Model Armor is a SaaS in the data path, inline on Google infrastructure only. Where this stands: [status]({{< relref "/docs/status.md#v3x" >}}) |
 | **Rooms** | A log we own: maku-broker on PostgreSQL | OpenHands shared conversations, ACP, A2A through a gateway, Valkey Streams, NATS JetStream, ax or Substrate as the session layer, kagent sessions | Two different questions. **Protocols** (OpenHands shared conversations, ACP, A2A, ax or Substrate, kagent sessions): none records who said what among several people and agents, or who may approve. **Brokers** (Valkey Streams, NATS JetStream): an event is written to Postgres first, which fixes its place in the log, then announced with `LISTEN/NOTIFY`. At a few events per second a second stateful system adds nothing, and delivering live before the write would let watchers see events the audit log never records |
@@ -90,6 +90,7 @@ The full records are in the programme's design documents, listed under [Sources]
 | One pod per run | [Agent Substrate](#agent-substrate) | See [Reconsidering Substrate](#reconsidering-substrate-not-now-deliberately-open) |
 | One cold pod per run, ended when it ends | Pre-warmed pods handed to a run | A run's start time, about 90 s on a fresh node, becomes the bottleneck ([v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)) |
 | agentgateway alone, every agent on one cluster | [agentmesh](#agentmesh) behind agentgateway, for calls between agents on different clusters | Runs on one cluster must call agents on another; and agentmesh ships declarative policy, per-tool standing grants and end-to-end revocation of delegations |
+| OpenHands agent-server | [OpenCode](#opencode) | Its Maku adapters preserve rooms, approvals, provider/cache behavior, and recovery, and a measured comparison shows no meaningful quality regression plus at least 15% lower cost per merged PR or median task duration |
 | OpenHands agent-server | [DeepSeek Harness](#dsh-superagent-prototype) | A stable release with a deprecation policy, an HTTP server API, container images, and session-log upload off by default |
 | Open classifiers behind the gateways' guard hooks | [Google Model Armor](#google-model-armor), through agentgateway's `googleModelArmor` guard, on the public listener only | An adopter on GKE needs its compliance record for public data, or no open classifier reaches a usable detection rate in the injection drills |
 
@@ -173,6 +174,37 @@ BYO gRPC agents, Actor JWTs, default-deny egress, checkpoints and automatic turn
 [ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}}). Direct
 Substrate is the cleaner candidate if a measured runtime problem emerges because kagent's main
 runtime benefits already come from Substrate.
+
+### OpenCode
+
+*Checked in November 2026 at `a6b15d33` (v2.3.0). Full evidence and the comparison's decision rule:
+[research and design](https://github.com/Smana/ai-native-ref/pull/404).*
+
+**What it is.** An MIT-licensed coding agent distributed as a native binary. Its headless server exposes
+an HTTP/SSE API, and its agent definitions can restrict tools and permissions by role.
+
+**What it would bring.** A much smaller upstream image and a faster server start than the current
+OpenHands image in a local comparison. OpenAI-compatible provider configuration, structured tool and
+token events, repository instructions and skills, and declarative role permissions. Sharing the same
+engine locally is optional, not a requirement.
+
+**What adoption must prove.**
+
+| Gap | Why it matters |
+|---|---|
+| No equivalent of OpenHands' stuck detector | Maku must detect repeated cycles and end the run `stuck`, rather than wait for its budget or deadline |
+| CLI JSON is not Maku's room protocol | The adapter must preserve replay, idempotency, steering, approvals, and final reads |
+| Tool permissions are not a trust boundary | Shell commands can bypass edit restrictions, so per-run identity, egress, safe outputs, and merge controls stay |
+| Provider behavior differs | Reasoning effort, prompt caching, retries, compaction, and token accounting need evidence for every provider family |
+| Sessions and shell processes differ | PVC restoration, interruption, checkpointing, process cleanup, and credential revocation need parity tests |
+| Native telemetry includes new fields and logs | Maku must keep traces metadata-only and correlated without exporting unreviewed content |
+
+Maku would still own the run-controller, gVisor isolation, rooms, budgets, completion judge, and merge
+controls. OpenCode would replace only the inner agent loop, not those components.
+
+**Reconsider** under the [measured conditions above](#what-would-make-us-reconsider). The design's
+comparison uses identical models and workflows and records an OpenHands rescue separately from the
+original OpenCode failure. A smaller image or faster start alone does not justify replacement.
 
 ### Temporal
 
@@ -423,6 +455,7 @@ planes add. The full evidence and triggers are in the
 
 - [Agent Factory v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md):
   build-or-adopt per layer, Symphony, agent-sandbox's suspend and warm pools
+- [OpenCode as a second harness: research](https://github.com/Smana/ai-native-ref/pull/404) and [design](https://github.com/Smana/ai-native-ref/pull/404)
 - [otari evaluation](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-20-otari-evaluation-research.md)
 - [agentmesh evaluation](https://github.com/Smana/ai-native-ref/blob/8f8363d73fdf0120429746e05edc588e9733eb18/docs/superpowers/specs/2026-11-04-agentmesh-evaluation-research.md)
 - [Model Armor and its open-source equivalents](https://github.com/Smana/ai-native-ref/blob/8f8363d73fdf0120429746e05edc588e9733eb18/docs/superpowers/specs/2026-11-04-model-armor-oss-equivalents-research.md)

@@ -164,5 +164,6 @@ It holds `params.makuVersion` in `website/hugo.yaml` equal to the image tag in
 `tooling/base/agent-factory/helm-values-configmap.yaml`, `activeCluster` on `status.md` equal to
 `factory` in `.github/agent-factory.yaml`, refuses "Agent Factory" unless it matches
 `Agent Factory v[0-3]` (outside `decisions/`), refuses Maku version literals or versioned Maku URLs
-outside `status.md` and `decisions/`, and checks rule 9's body word ceilings on every page that
-declares `diataxis:` (`--report` prints every page's body word count).
+outside `status.md` and `decisions/`, refuses raw `github.com/Smana/maku/(blob|tree)/` links in page
+sources outside `decisions/` (requiring the `maku` shortcode instead), and checks rule 9's body word
+ceilings on every page that declares `diataxis:` (`--report` prints every page's body word count).

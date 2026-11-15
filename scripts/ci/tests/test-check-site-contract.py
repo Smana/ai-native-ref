@@ -150,6 +150,30 @@ page("decisions/0001.md", "The Agent Factory, Maku v0.30.0\n")
 out = run()
 check("status.md allows maku version and decisions/ allows both", STATE["code"] == 0, out)
 
+print("raw maku link rule")
+page("use/x.md", "[cli](https://github.com/Smana/maku/blob/main/docs/cli.md)\n")
+out = run()
+check("raw maku blob link fails", "use/x.md:1: raw maku link" in out and STATE["code"] == 1, out)
+
+page("use/x.md", "[dir](https://github.com/Smana/maku/tree/main/docs/reference)\n")
+out = run()
+check("raw maku tree link fails", "use/x.md:1: raw maku link" in out and STATE["code"] == 1, out)
+
+page("status.md", "[guide](https://github.com/Smana/maku/blob/main/docs/merge-policies.md)\n")
+out = run()
+check("raw maku blob link on status.md also fails", "status.md:1: raw maku link" in out and STATE["code"] == 1, out)
+
+page(
+    "use/x.md",
+    '[a]({{< maku "docs/cli.md" >}}) [b](https://github.com/Smana/maku/releases/tag/v0.47.0) [c](https://github.com/Smana/maku/issues/51) [d](https://github.com/Smana/maku/pull/42)\n',
+)
+out = run()
+check("shortcode, release, issue and pull links pass raw maku link", "raw maku link" not in out, out)
+
+page("decisions/0001.md", "[old](https://github.com/Smana/maku/blob/main/docs/cli.md)\n")
+out = run()
+check("decisions/ is exempt from raw maku link", STATE["code"] == 0, out)
+
 print("word ceilings by diataxis page type")
 page("operate/x.md", "word " * 1300, front="diataxis: how-to")
 out = run()

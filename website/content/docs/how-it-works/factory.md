@@ -9,8 +9,10 @@ lastVerified: 2026-10-31
 
 The factory is the controller that turns a labelled issue into runs, narrates progress on the issue,
 meters each run's tokens and owns the kill switch. It is the only component that creates runs, so
-every run has a task and a budget. This page describes the design; what runs today is on the
-[status page]({{< relref "/docs/status.md#landed" >}}).
+every run has a task and a budget. <span id="one-repository-at-first"></span>It serves every
+repository listed on the [status page]({{< relref "/docs/status.md#class-modes" >}}), with one
+`Repository` object and per-run GitHub tokens scoped to each repository. This page describes the
+design; what runs today is on the [status page]({{< relref "/docs/status.md#landed" >}}).
 
 ![The factory, from issue to merge. Work comes in three ways: a maintainer labels a GitHub issue factory/ready, a maintainer's Confirm or check mark on a Slack proposal files one through maku-slack, or RunLore posts an investigate task. Intake snapshots it, and triage picks the task's workflow, tier and budget. The Task controller, maku-factory, runs the workflow as sequential agent runs in one room, bounded by a ResourceQuota and guarded by a ValidatingAdmissionPolicy: a scoper that bounds the task or asks its author, a tester whose failing test is the contract, the implementer, the only writer, with a read-only search helper, a completion judge that says met, not yet or impossible, and a reviewer; a splitter turns a hard issue into sub-issues. The implementer opens a PR; a maintainer's "Request changes" review becomes a new run on the same branch. The merge gate, maku/merge-gate and a separate merger App, merges only diff-matched policies with green CI: link fixes and their reverts merge with no human, while deps-patch and docs run in shadow; every other PR waits for a human. The run meter revokes a run at its token cap, and the kill switch, a stop ConfigMap or a label on a pinned control issue, pauses intake and stops every task](/images/diagrams/ai-platform-5.svg)
 

@@ -2,7 +2,8 @@
 # requires: python3 kustomize helm
 """The room broker's config copies stay base's but for the session and Slack switches: gcp-0's copy
 differs in webhooks, human.mcp, human.slackLink, human.intake and human.slackDecide alone, and aws-0's
-in the same keys plus coordination (plan mode only). No copy declares suspend, which this platform
+in the same keys plus human.slackStop, human.slackRetry, human.slackAnswer and coordination (plan mode
+only). No copy declares suspend, which this platform
 does not run (owner ruling Q10, R3). The broker's own RBAC (the maku chart's, as its postRenderer
 leaves it) reads and deletes runs, never patches or updates one."""
 import pathlib
@@ -36,10 +37,10 @@ checks["no copy declares suspend"] = all("suspend" not in c for c in (config, gc
 
 def minus_switches(cfg):
     """The config without the keys a session may declare: webhooks, human.mcp, human.slackLink,
-    human.intake and human.slackDecide."""
+    human.intake and the Slack routes (human.slackDecide, human.slackStop, human.slackRetry, human.slackAnswer)."""
     out = {k: v for k, v in cfg.items() if k != "webhooks"}
     out["human"] = {k: v for k, v in out["human"].items()
-                    if k not in ("mcp", "slackLink", "intake", "slackDecide")}
+                    if k not in ("mcp", "slackLink", "intake", "slackDecide", "slackStop", "slackRetry", "slackAnswer")}
     return out
 
 

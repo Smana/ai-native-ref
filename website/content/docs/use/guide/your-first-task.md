@@ -128,12 +128,12 @@ maku doctor            # every line should read ok
 **2. Hand it off.** You are in the middle of other work and spot the bug. Tell your agent:
 
 ```text
-/factory handoff test-storage-dashboard.py finds no dashboard when the
+/maku handoff test-storage-dashboard.py finds no dashboard when the
 repo is checked out under .claude/: it matches SKIP against the absolute path
 ```
 
-**3. Read the draft.** Your agent reads the code, then writes the issue in the template's three
-sections and has the factory check it (`issue_draft`). Example (the reference host), issue #2759 in
+**3. Read the plan.** Your agent calls `handoff`, which stores the plan on the broker and shows you the
+issue, the workflow and the budget. Example (the reference host), issue #2759 in
 `Smana/cloud-native-ref`:
 
 ```markdown
@@ -155,13 +155,11 @@ test finds the same dashboards from any checkout location.
 and the same test from the normal checkout still exits 0.
 ```
 
-The check answers `canStart: true` when you may start the factory on that repository.
+**4. Confirm, then start it.** Your agent calls `start`, which re-validates the stored plan and asks you
+to confirm in a form (**File: yes**, **Start now: yes**, pre-set when the planner serves the repository).
+The issue is filed with your own `gh`, as you, and labelled `factory/ready`.
 
-**4. Confirm, then start it.** Your agent calls `issue_file`, which asks you to confirm in a form.
-Answer **file: yes**, and **start: yes** if the form offers it: the issue is filed with your own `gh`,
-as you, and labelled `factory/ready`.
-
-When your agent cannot show forms, `issue_file` hands back one command instead. Run it yourself, then
+When your agent cannot show forms, `start` hands back one command instead. Run it yourself, then
 add the label:
 
 ```bash
@@ -173,9 +171,9 @@ gh issue edit <number> --repo owner/repo --add-label factory/ready
 
 Your agent never applies the label on its own: starting the factory is your decision.
 
-**5. Let your agent follow it.** Once the task starts, your agent runs `room_wait` in the background
-and tells you when the room needs you, opens a pull request or ends. You keep working. Example (the
-reference host), what it reports when the pull request is ready:
+**5. Let your agent follow it.** Once the task starts, your agent runs `wait` in the background
+and tells you when the task needs you, opens a pull request or ends. You keep working. Example (the
+reference host), what `task` reports when the pull request is ready:
 
 ```markdown
 ### gmmrmund · #2759 ci(tests): test-storage-dashboard finds no dashboard …

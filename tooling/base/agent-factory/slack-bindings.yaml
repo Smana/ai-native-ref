@@ -14,7 +14,6 @@ channels:
     # A forge.push wait is drawn as a card with Approve and Deny (Maku docs/slack.md); the broker's
     # human.slackDecide (each cloud's copy) is the authority that answers a press.
     approvals: true
-    # CD11: a run starting is not news. The App's default is webhook.Notify(), the nine a person is
-    # told about, and this list is what the broker subscribes to (the union across channels).
-    notify: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.verdict_posted,
-             room.merged, room.reverted, room.budget_reached, room.ended, room.approval_closed]
+    # Stop, retry and answer in a task's thread (UX6): honoured only where the broker serves the route
+    # (human.slackStop, human.slackRetry, human.slackAnswer; aws-0 first, gcp-0 at its next turn).
+    intentActions: [stop, retry, answer]

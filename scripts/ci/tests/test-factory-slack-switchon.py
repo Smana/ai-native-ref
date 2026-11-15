@@ -32,9 +32,31 @@ except ImportError:
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 MARKER = "OWNER-FILL"
 CLOUDS = ("aws-0", "gcp-0")
+INTENT_ACTION_ROUTES = (("stop", "slackStop"), ("retry", "slackRetry"), ("answer", "slackAnswer"))
+# aws-0 takes the intentActions switch-on first (runbook 27); gcp-0 follows at its next turn.
+INTENT_ACTION_CLOUDS = ("aws-0",)
 FILES = ["tooling/base/agent-factory/slack-bindings.yaml"] + [
     f"tooling/{c}/agent-factory/helm-values-sponsored.yaml" for c in CLOUDS]
 checks = {}
+
+
+def test_intent_actions_need_their_broker_route(cloud, broker, app_channels, principal_name, team_id, *, require_routes=True):
+    """For each cloud whose Slack App config lists stop, retry or answer in a channel's intentActions,
+    that cloud's broker config must carry human.slackStop, human.slackRetry or human.slackAnswer naming
+    the same principal and teamID as human.slackDecide. A cloud with the route and no channel listing
+    the action passes."""
+    out = {}
+    decide = broker["human"].get("slackDecide")
+    want = {"principal": principal_name, "teamID": team_id}
+    for action, route_key in INTENT_ACTION_ROUTES:
+        route = broker["human"].get(route_key)
+        out[f"{cloud}: human.{route_key}, when set, names the same principal and teamID as human.slackDecide"] = (
+            route is None or (route == want and (decide is None or route == decide)))
+        if require_routes:
+            listed = any(action in (c.get("intentActions") or []) for c in app_channels.values())
+            out[f"{cloud}: a channel listing {action} in intentActions has human.{route_key} on the broker"] = (
+                not listed or (route is not None and route == want and (decide is None or route == decide)))
+    return out
 
 
 def load(rel):
@@ -97,11 +119,14 @@ def check_cloud(cloud):
     checks[f"{cloud}: every channel's approvals, when set, is a bool"] = all(
         isinstance(c.get("approvals", False), bool) for c in app["channels"].values())
     draws_cards = any(c.get("approvals") for c in app["channels"].values())
-    checks[f"{cloud}: a channel drawing cards has room.approval_closed in the broker's webhook list"] = not draws_cards or (
-        hook is not None and "room.approval_closed" in hook["events"])
+    checks[f"{cloud}: a channel drawing cards has room.waiting_for_human in the broker's webhook list"] = not draws_cards or (
+        hook is not None and "room.waiting_for_human" in hook["events"])
     # The broker's switch is the authority and must be on before any card offers a button (Maku
     # docs/slack.md): without it the decide route is a 404 and every press says the factory is unreachable.
     checks[f"{cloud}: a channel drawing cards has human.slackDecide on the broker"] = not draws_cards or decide is not None
+    checks.update(test_intent_actions_need_their_broker_route(
+        cloud, broker, app["channels"], principal["name"], app["teamID"],
+        require_routes=(cloud in INTENT_ACTION_CLOUDS)))
 
     # the cluster applies the App, from its own cloud's directory, after the siblings it calls
     cluster = ROOT / f"clusters/{cloud}-agent-platform"

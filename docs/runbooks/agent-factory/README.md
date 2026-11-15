@@ -63,6 +63,7 @@ Grouped by purpose; the number is the order they were written in.
 | [21-test-first-tester.md](21-test-first-tester.md) | The tester's contract on a seeded `scripts` issue, the hook and row 2c that hold it, a renamed holdout | Yes — F1 to F5 live and the owner's go | ~2 h |
 | [22-slack.md](22-slack.md) | Slack, configure: the App from its manifest, the keys, the machine user, the Request URL, a channel's binding (one declaration, three generated files), who may file, one mention end to end. Users: the [user guide](../../../website/content/docs/use/guide/_index.md) | Yes — the Slack console, OpenBao, the ZITADEL sync | ~1 h |
 | [27-six-tools-and-slack-acts.md](27-six-tools-and-slack-acts.md) | Six tools (`handoff`, `start`, `inbox`, `task`, `wait`, `answer`), `maku setup <client>`, the four default Slack transitions and one end line edited in place, and `stop`, `retry` and `answer` from a Slack thread on `aws-0` (L1–L17) | Yes — the owner's go for the `slackStop`, `slackRetry` and `slackAnswer` switch-ons | ~2 h |
+| [27-workflow-comparison.md](27-workflow-comparison.md) | Workflow comparison 1 (`standard` vs `careful` on `Smana/ai-native-ref`, WF9): 30% `treatment: careful` overlay on `aws-0`, 40-task cohort and decision rule ([results](results-workflow-comparison-1.md)) | No (overlay in git; remove after 40 tasks) | 40 tasks |
 
 **Media**
 

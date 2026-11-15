@@ -1,0 +1,12 @@
+# Comparison 1 (workflows review WF8, runbook 27): 30% of default tasks on aws-0 (controlPercent: 70)
+# run careful, so the scoper, completion judge and search tool are measured against standard
+# on real work. Remove this patch when the 40-task cohort ends.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: Factory
+metadata:
+  name: ${cluster_name}
+  namespace: agent-system
+spec:
+  evaluation:
+    controlPercent: 70
+    treatment: careful

@@ -6,6 +6,7 @@ kind: Kustomization
 resources:
   - infrastructure-agent-sandbox.yaml
   - infrastructure-agents-nodepool.yaml
+  - infrastructure-agents-headroom.yaml
   - infrastructure-runtimeclass-gvisor.yaml
   - infrastructure-agent-runtime.yaml
   - security-agent-policies.yaml

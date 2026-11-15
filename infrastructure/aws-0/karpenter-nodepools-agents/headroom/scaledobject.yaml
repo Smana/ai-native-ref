@@ -1,0 +1,17 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: agents-headroom
+  namespace: agent-system
+spec:
+  scaleTargetRef:
+    name: agents-headroom
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  triggers:
+    - type: cron
+      metadata:
+        timezone: Europe/Paris
+        start: "0 8 * * 1-5"
+        end: "0 19 * * 1-5"
+        desiredReplicas: "1"

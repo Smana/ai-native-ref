@@ -9,6 +9,7 @@ Design: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md`.
 |---|---|---|
 | `agent-sandbox` | `infrastructure/base/agent-sandbox` | Sandbox CRD and controller in `agent-system` |
 | `agents-nodepool` | `infrastructure/base/karpenter-nodepools-agents` | `agents-gvisor` NodePool + EC2NodeClass |
+| `agents-headroom` | `infrastructure/aws-0/karpenter-nodepools-agents/headroom` | KEDA scales one low-priority gVisor placeholder on weekdays, 08:00–19:00 Europe/Paris, with the run-controller's harness and bridge images pre-pulled; the base and gcp-0 stay at zero. After `infrastructure` (KEDA), the node pool and RuntimeClass |
 | `runtimeclass-gvisor` | `infrastructure/base/runtimeclass-gvisor` | RuntimeClass `gvisor` → `runsc` |
 | `agent-runtime` | `infrastructure/base/agent-runtime` | `agents` default deny |
 | `agent-policies` | `security/base/agent-policies` | Kyverno: no secret import into `agents`, the reserved audiences, the kill switch, and the GC of finished `maku.ogenki.io` runs. The run pod's shape and the AgentRun's creator and patch limits are the `maku` chart's admission policies (R3) |

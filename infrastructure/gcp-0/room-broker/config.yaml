@@ -1,5 +1,5 @@
 # gcp-0's copy of ../../base/room-broker/config.yaml, plus human.mcp.sponsored,
-# human.slackLink and human.slackDecide (runbook 18) and webhooks (runbook 18): the overlay's generator replaces the base
+# human.slackLink, human.slackDecide and sessionStart (runbooks 18, 19) and webhooks (runbook 18): the overlay's generator replaces the base
 # file, since a ConfigMap key is one string no patch can extend.
 # test-room-broker-config-parity.py fails when it differs from base in anything but those.
 # The broker's one config file (agent-platform internal/config), Flux-substituted.
@@ -91,14 +91,13 @@ human:
   # The governed planner (v3.x conversational intake, ADR-0060): intake_plan and plan_check on /mcp,
   # on here and in aws-0's copy, off in base's. Its candidate set is the write check human.access
   # above carries and both tools live on /mcp, so it needs human.mcp.enabled too (on, below).
-  # repositories is the allowlist a plan may ever name (CD5); classes is the roles and the money every
-  # plan gets, never the model's
-  # choice (CD17). The model call goes to agent-gateway/model-gateway's clients
+  # It reads the served repositories and their workflows from the factory's GET /v1/catalog (WF12,
+  # factoryURL above). The model call goes to agent-gateway/model-gateway's clients
   # listener (:8082), whose route forces tier-frontier to Z.ai glm-5.3, with the projected token
   # helmrelease.yaml's broker.modelGateway mounts (audience maku-gateway.client.planner): no static key.
   intake:
     plan:
-      enabled: true             # on here and in aws-0's copy (ADR-0060), for the repository below
+      enabled: true             # on here and in aws-0's copy (ADR-0060)
       url: http://model-gateway.agent-gateway.svc.cluster.local:8082/clients/planner/v1
       model: tier-frontier
       apiKeyFile: /var/run/secrets/maku/model-gateway/planner
@@ -106,20 +105,16 @@ human:
       reasoningEffort: low       # glm-5.3 always reasons: at its default a plan needs over 20 s (Maku #372)
       dailyPlans: 50
       fallback: "off"
-      repositories: [Smana/ai-native-ref, Smana/runlore-kb, Smana/runlore, Smana/cloud-native-ref]      # the public repositories this boundary may plan for
-      classes:
-        docs-links: {roles: [scoper, implementer, reviewer], ceilingUSD: 2.00, source: "class:docs-links.taskUSD"}
-        # docs and scripts are the ai-native-ref classes a plan may suggest (Factory loops: scoper on both,
-        # pair template). docs is priced like docs-links; scripts at the standard tier's taskUSD.
-        docs: {roles: [scoper, implementer, reviewer], ceilingUSD: 2.00, source: "class:docs.taskUSD"}
-        scripts: {roles: [scoper, implementer, reviewer], ceilingUSD: 5.10, source: "class:scripts.taskUSD"}
-        review: {roles: [implementer, reviewer], ceilingUSD: 2.00, source: "class:review.taskUSD"}  # cloud-native-ref declares it; the pair template
   # needs/v1 (CD21, CD28): one list, read by /api/needs and by the CLI. Read-only, so it ships on.
   needs:
     enabled: true
-  # The developer's MCP server (maku mcp, ADR-0059): start is offered by default wherever the planner serves the repository; sponsored declares the Slack App (runbook 18).
+  # The developer's MCP server (base's copy says why). sessionStart is a session switch: a live
+  # session lists the one repository runbook 19 (or the showcase, runbook 23) starts from, and empties
+  # it after; sponsored declares the Slack App (runbook 18): the same name as the factory's
+  # api.sponsored entry (helm-values-sponsored.yaml), and the client id its whole-Secret mount holds.
   mcp:
     enabled: true
+    sessionStart: []
     sponsored:
       - name: slack-app
         clientIDFile: /etc/room-broker/sponsored/slack-app-client-id
@@ -146,7 +141,7 @@ webhooks:
   - name: slack-app
     network: cluster
     url: http://factory-slack-app.agent-system.svc.cluster.local:8081/webhooks
-    events: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.ended, room.merged, room.reverted]
+    events: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended, room.approval_closed]
     secretFile: /etc/room-broker/webhooks/slack-app/signing-key
     repositories: [Smana/ai-native-ref, Smana/cloud-native-ref, Smana/runlore, Smana/runlore-kb]
     # One more than before room.approval_closed: a subscriber the emitter disabled stays disabled until

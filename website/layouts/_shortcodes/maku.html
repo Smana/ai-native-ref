@@ -1,0 +1,6 @@
+{{- /* Builds a GitHub blob URL into Smana/maku at params.makuVersion. */ -}}
+{{- $ver := site.Params.makuVersion -}}
+{{- if not $ver -}}{{- errorf "maku shortcode: params.makuVersion is not set in hugo.yaml (%s)" .Position -}}{{- end -}}
+{{- $target := strings.TrimPrefix "/" (.Get 0 | default "") -}}
+{{- if not $target -}}{{- errorf "maku shortcode: missing path argument (%s)" .Position -}}{{- end -}}
+{{- printf "https://github.com/Smana/maku/blob/%s/%s" $ver $target -}}

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Keeps the site's pages free of session history (docs/docs-style.md, rule 18).
 
-A page on airef.ogenki.io is written for someone who was not there: no cluster names, no session
+A page on airef.ogenki.io (and README.md) is written for someone who was not there: no cluster names, no session
 dates, no "proven live", no people's handles and no proof IDs. This fails on any of them in
-website/content/docs/**/*.md, except where such text belongs. The exceptions are structural,
+README.md and website/content/docs/**/*.md, except where such text belongs. The exceptions are structural,
 by where the text sits, never a list of lines:
 
 - the status page (status.md) and the decision records (decisions/);
@@ -122,13 +122,19 @@ def main(argv):
     root = pathlib.Path(argv[1] if len(argv) > 1 else pathlib.Path(__file__).resolve().parents[2])
     docs = root / DOCS
     count = 0
-    for page in sorted(docs.rglob("*.md")):
-        rel = page.relative_to(docs).as_posix()
-        if rel in RECORDS or rel.startswith(RECORDS):
-            continue
-        for n, rule, hit in scan(page.read_text(encoding="utf-8")):
-            print(f"{DOCS / rel}:{n}\t{rule}\t{hit}")
+    readme = root / "README.md"
+    if readme.is_file():
+        for n, rule, hit in scan(readme.read_text(encoding="utf-8")):
+            print(f"README.md:{n}\t{rule}\t{hit}")
             count += 1
+    if docs.is_dir():
+        for page in sorted(docs.rglob("*.md")):
+            rel = page.relative_to(docs).as_posix()
+            if rel in RECORDS or rel.startswith(RECORDS):
+                continue
+            for n, rule, hit in scan(page.read_text(encoding="utf-8")):
+                print(f"{DOCS / rel}:{n}\t{rule}\t{hit}")
+                count += 1
     if count:
         print(f"\n==> {count} finding(s): the site carries session history. Rewrite the sentence for a reader")
         print("    who was not there, move it to the status page, or label it as an example")

@@ -89,7 +89,7 @@ calls it.
 
 You see a task's phase in its room (the task's live log), with the `maku status <room>` command and in
 `kubectl get tasks`. The diagram keeps
-the main path; Maku's [full diagram](https://github.com/Smana/maku/blob/v0.38.0/docs/factory.md#a-tasks-life)
+the main path; Maku's [full diagram]({{< maku "docs/factory.md#a-tasks-life" >}})
 has every transition.
 
 ```mermaid

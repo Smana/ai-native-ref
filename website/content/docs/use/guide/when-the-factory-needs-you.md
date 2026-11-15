@@ -36,7 +36,7 @@ The same rule keeps your coding agent and `maku` read-only: neither approves, la
 agent on your machine can never approve its own work.
 
 {{< callout type="info" >}}
-From Maku v0.40.0, every need in the room's **Needs you** panel is a card that ends in its action: a
+Every need in the room's **Needs you** panel is a card that ends in its action: a
 button for the room's own decisions, a link marked ↗ for GitHub's, with a line that says why the room
 has no button for it.
 {{< /callout >}}

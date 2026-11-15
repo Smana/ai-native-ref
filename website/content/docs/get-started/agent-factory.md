@@ -5,7 +5,7 @@ aliases:
 linkTitle: The Agent Factory
 weight: 10
 description: "The Agent Factory: autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes end to end."
-lastVerified: 2026-10-31
+lastVerified: 2026-11-15
 ---
 
 {{< callout type="info" >}}
@@ -26,32 +26,11 @@ open a pull request, and the factory narrates each step on the issue. Humans ste
 joining the agents' room. Only policy-defined low-risk changes merge themselves; everything else
 merges on a maintainer's approval.
 
-The Agent Factory is a bundle of open-source tools: Maku, agentgateway, OpenHands, gVisor, RunLore and others. [Maku](https://github.com/Smana/maku) is one component of it: the factory controller, the rooms, the harness and bridge, the Slack app and the `maku` CLI.
+The Agent Factory is a bundle of open-source tools: Maku, agentgateway, OpenHands, gVisor, RunLore and others. [Maku](https://github.com/Smana/maku) is one component of it: the factory controller, the rooms, the run-controller, the harness and bridge, the model gateway's chart, the Slack app and the `maku` CLI.
 
-Which alternatives were considered, and why these choices? See
-[Alternatives considered]({{< relref "/docs/how-it-works/alternatives.md" >}}).
-
-## New here? The ideas in two minutes
-
-| Term | In plain words |
-|---|---|
-| **Agent** | A language model in a loop: it reads a task, runs tools (shell, git, file edits, queries), looks at the result and decides the next step, until the task is done or its budget runs out |
-| **Harness** | The program that runs that loop inside the sandbox. Here it is [OpenHands](https://github.com/OpenHands/software-agent-sdk), wrapped by a small `agent-run` entrypoint that clones the repository, starts the conversation and prints a step log |
-| **Run** | One agent, one role, one task, one branch, with a deadline. Declared as an `AgentRun` object in Kubernetes |
-| **Role** | What a run is allowed to do. An *implementer* pushes to its own `agent/<id>` branch and opens a PR; a *tester* writes failing tests, which the harness signs and pushes; a *reviewer* or *triager* only reads and reports to the room, which posts a reviewer's verdict on the PR |
-| **Sandbox** | The pod a run lives in, isolated by [gVisor](https://gvisor.dev/docs/) (a user-space kernel), with no long-lived credential and a network policy that denies everything not named |
-| **Run identity** | Tokens issued for that run only. Every call to a model or a room tool carries one, and the factory mints the run its own short-lived GitHub token, so every action is attributed to the run that made it |
-| **Model gateway** | The gateway every model call of a run goes through, an [agentgateway](https://agentgateway.dev) Gateway (ADR-0053): it checks the run's token, meters its tokens and routes to the one model the token names |
-| **Room** | A shared, append-only log of a task: what each agent did, what humans said, the handoffs between roles. Humans watch it live, post into it, steer the running agent and approve its actions |
-| **Factory** | The controller that turns a labelled issue into runs, narrates progress on the issue, meters each run's tokens and owns the kill switch |
-| **Merge gate** | The rule that decides which agent PRs may merge themselves: only low-risk classes, only with green CI. Any other PR merges on a maintainer's approval of its current head |
-| **Class** | A kind of change the factory recognises, such as "link fixes only". Roles and auto-merge are switched on per class |
-| **Live, shadow** | A live class merges by itself when every check holds; a shadow class is decided and recorded, but a human merges |
-| **Tier** | A run's size: its model, deadline and token budget ([tiers]({{< relref "/docs/reference/harness.md#tiers" >}})) |
-| **Template** | Which roles a task runs, for example `solo` (the implementer) or `pair` (the implementer and a reviewer) ([templates]({{< relref "/docs/reference/harness.md#templates" >}})) |
-| **Hand-off** | The factory stops and asks a human for one action, in one comment on the issue |
-| **Breaker** | Pauses a live class after a revert or a regression, until enough clean merges follow |
-| **Drill** | A revert made on purpose to test the revert path, labelled so the breaker does not count it |
+<span id="new-here-the-ideas-in-two-minutes"></span>New to rooms, runs, classes and the merge gate?
+Maku's [glossary]({{< maku "docs/concepts.md#glossary" >}}) defines each term. Which alternatives were
+considered, and why these choices: [Alternatives considered]({{< relref "/docs/how-it-works/alternatives.md" >}}).
 
 The agent in the loop is not a trusted component. Every control sits **outside the sandbox**:
 - network policy;
@@ -63,7 +42,7 @@ The agent in the loop is not a trusted component. Every control sits **outside t
 
 ## Architecture
 
-### At a glance
+<span id="at-a-glance"></span><span id="in-detail"></span>
 
 One task, end to end. A maintainer labels an issue; the factory starts a sandboxed agent run and
 opens a room; every model call the agent makes goes through the gateway under the run's own identity;
@@ -73,17 +52,6 @@ the agent pushes an `agent/**` branch and opens a PR; a human review decides the
 ![The Agent Factory at a glance: one task, end to end. A maintainer labels a GitHub issue. The factory controller, maku-factory, turns the issue into a task, starts an agent run and opens a room on maku-broker. The run is a gVisor sandbox holding the coding agent, OpenHands. The maintainer watches and steers through the room, which exchanges events and steering with the run. Every model call the agent makes goes through the model gateway, agentgateway, with per-run identity and budgets, to the models (Z.ai GLM, Kimi and Mistral for public work, Claude for internal work). With a GitHub token the factory minted for the run, limited to agent/** branches, the agent pushes a branch and opens a PR on GitHub, where the maintainer's review decides the merge. Traces, logs and metrics go to the Victoria stack and Grafana](/images/diagrams/agent-factory-overview.svg)
 
 *Source: [`docs/architecture/agent-factory-overview.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/agent-factory-overview.drawio).*
-
-### In detail
-
-The diagram below shows the **target** architecture, the whole programme once built. Its legend
-marks how far each box had got; where it and the status page disagree, the
-[status page]({{< relref "/docs/status.md" >}}) wins.
-
-<!-- TODO: redraw agent-factory.drawio: the picture still shows Kueue, the Crossplane composition, the Envoy identity proxy, the agent-router MCP federation and octo-sts. -->
-![The Agent Factory's target architecture. Triggers: a GitHub repository (the factory/ready and factory/stop labels; a PR review asking for changes), RunLore as an agent-to-agent client through POST /v1/tasks and signed webhooks, with its fix verdict, the task agent:run CLI, a developer in a browser who can also approve an agent action, the maku CLI, and a Slack thread where maku-slack drafts an issue and a maintainer's check mark files it. The factory controller, maku-factory, turns a labelled issue into a task: intake and narration from a fixed template, then the Task controller, which starts one implementer per task, opens a room and runs the run meter, with a kill switch beside it. Around it: the reviewer pair and the revise flow, the run roles (scoper, tester with its test contract, implementer with search, completion judge, reviewer and splitter) switched on per class. The merge gate (policy-bot and a merger App) merges link fixes and their reverts, and judges other classes in shadow; the kill switch is the stop ConfigMap, the factory/stop label or a label on the control issue. Rooms: a web UI behind oauth2-proxy and ZITADEL SSO, maku-broker and its append-only CNPG log, with steering, room tools, verdicts, approval cards and forks from the web view or maku fork. The runtime: Maku's run-controller turns an AgentRun into a NetworkPolicy, projected tokens, the run's own git token Secret and a gVisor pod holding the maku-bridge sidecar and the maku-harness running OpenHands, on a GKE Sandbox pool on GKE or a Karpenter AL2023 pool on EKS; HTTPS leaves through the egress proxy. The harness sends every model call with a per-run token to the model gateway (Gateway model-gateway in namespace agent-gateway, listeners public :8080, internal :8081 and clients :8082 for the broker's planner), which routes to Z.ai GLM-5.3, Moonshot Kimi K3.1 Pro and Mistral Medium and Small for public data only, and the Anthropic API direct for internal data, with gateway-held keys. The run calls the broker's room_* tools on :8090 with its own token. The factory mints each run a token for the agents' GitHub App, confined by rulesets to agent/** branches and no tags. The agent-ratelimit server enforces the budgets B1 per run, B2 fleet and B6 Anthropic on Valkey, refusing with a 429; model tiers follow the data class. The maku-bridge streams events to the broker over TLS with a room token, and the broker posts verdicts on the PR. Spans go through the agent-traces-collector to VictoriaTraces, step logs to VictoriaLogs, and access logs, gen_ai metrics and AgentRun state to VictoriaMetrics, all shown on the agent-run and agent-fleet Grafana dashboards. The same manifests deploy to GKE and EKS](/images/diagrams/agent-factory.svg)
-
-*Source: [`docs/architecture/agent-factory.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/agent-factory.drawio).*
 
 ## The parts
 
@@ -109,19 +77,22 @@ providers.
 
 ## More than one repository
 
-The factory can serve several repositories. Nothing in it is tied to one repository: the agents'
-App and the rulesets live in the repository they protect, and every run's GitHub token names its
-repository. Adding another needs:
+<span id="one-repository-at-first"></span>
+
+The factory serves the repositories listed on the
+[status page]({{< relref "/docs/status.md#class-modes" >}}). Nothing in it is tied to one repository:
+the agents' App and the rulesets live in the repository they protect, and every run's GitHub token
+names its repository. Adding another needs:
 
 1. The agents' GitHub App installed on it, and the factory's App for narration.
 2. The `agent/**` branch ruleset and the tag ruleset applied to it.
-3. A `Repository` object for it in the factory's resources, with its classes and merge policy.
+3. A `Repository` object in `tooling/base/agent-factory/resources/`, binding the classes it uses.
 
 Runs are per repository: a task never spans two.
 
 ## Design documents
 
-- [Programme design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md): the contracts between the sub-projects, and the owner decisions.
+- [System design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-factory-design.md): the contracts between the sub-projects, and the owner decisions.
 - [Runtime and identity](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md) · [Rooms](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-collaboration-rooms-design.md) · [Factory](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-agent-dark-factory-design.md) · [Model routing and budgets](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md) · [Observability](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-27-agent-observability-design.md)
 - [User guide]({{< relref "/docs/use/guide/_index.md" >}}): what a developer does with it.
 - [Status]({{< relref "/docs/status.md#landed" >}}): what has landed, what is left, and the roadmap.

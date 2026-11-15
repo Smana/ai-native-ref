@@ -1,0 +1,2 @@
+{{- /* Prints params.makuVersion from hugo.yaml, held equal to the chart tag by check-site-contract.py. */ -}}
+{{- with site.Params.makuVersion -}}{{ . }}{{- else -}}{{- errorf "maku-version shortcode: params.makuVersion is not set in hugo.yaml (%s)" .Position -}}{{- end -}}

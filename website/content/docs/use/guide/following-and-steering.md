@@ -82,7 +82,7 @@ flowchart LR
 *A room after the hand-off: the NEXT box says why it waits, and **Needs you** names your one move.*
 
 {{< callout type="info" >}}
-From Maku v0.40.0 the header groups its facts into four clusters (run, cost, links, who), the status
+The header groups its facts into four clusters (run, cost, links, who), the status
 line is a tinted pill, and every need in **Needs you** ends in a card with its one action.
 {{< /callout >}}
 

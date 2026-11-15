@@ -8,11 +8,12 @@ Each step points to the runbook that holds its detail. Results go in that runboo
 cluster-level evidence goes in a `results-gcp-0-<date>.md`, as in
 [the 2026-09-30 round](results-gcp-0-2026-09-30.md).
 
-gcp-0 runs the factory again since 2026-11-11 (the ownership fence names `gcp-0`), on Maku v0.48.0. Since R3
-(2026-11-14) runs are Maku's run-controller's (`run-<id>` AgentRuns, gVisor, NetworkPolicies and the egress
-proxy, per-run git tokens from the factory, model calls through `model-gateway`): no Kueue, octo-sts or
-identity-proxy. A rebuild is fresh, on a Maku release at least v0.32.0 (CRD group `maku.ogenki.io`): no
-cluster may still run v0.30.x Rooms, or Flux prunes `rooms.agents.ogenki.io` and every Room under it.
+On 2026-10-29 the factory moved off `gcp-0` for a phase of work on `aws-0`, then returned to `gcp-0` on
+2026-11-11 to prove Maku's runtime; which cluster is active now and which Maku release `main` pins live on
+the [status page](https://airef.ogenki.io/docs/status/#clusters). Runs are Maku's run-controller's
+(`run-<id>` AgentRuns, gVisor, NetworkPolicies and the egress proxy, per-run git tokens from the factory,
+model calls through `model-gateway`): no Kueue, octo-sts or identity-proxy. A rebuild is fresh, on CRD group
+`maku.ogenki.io`: no cluster may still run `rooms.agents.ogenki.io` Rooms, or Flux prunes them.
 Steps 1 and 6 are already on cloud-native-ref's `main`; check they still are.
 
 ```mermaid

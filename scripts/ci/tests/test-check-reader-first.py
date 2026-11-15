@@ -32,13 +32,17 @@ def rules(text):
     return [rule for _, rule, _ in gate.scan(text)]
 
 
-def run(pages):
+def run(pages, root_files=None):
     """main() over a tree holding these pages: (exit code, output)."""
     with tempfile.TemporaryDirectory() as tmp:
         for rel, text in pages.items():
             page = pathlib.Path(tmp, "website/content/docs", rel)
             page.parent.mkdir(parents=True, exist_ok=True)
             page.write_text(text, encoding="utf-8")
+        for rel, text in (root_files or {}).items():
+            f = pathlib.Path(tmp, rel)
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(text, encoding="utf-8")
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             code = gate.main(["check-reader-first.py", tmp])
@@ -112,6 +116,11 @@ check("the link text is read", rules("[v1 review, 2026-10-12](https://example.co
 check("a repository path in backticks is not read",
       rules("The paths are under `clusters/aws-0/flux/` and `infrastructure/gcp-0/x.yaml`.\n") == [])
 check("a handle in inline code is literal text", rules("Mention `@factory link` in the channel.\n") == [])
+
+print("the repository README")
+code, out = run({}, {"README.md": "# X\n\nThe factory runs on aws-0 since 2026-10-30.\n"})
+check("README.md is scanned",
+      code == 1 and "README.md:3\tcluster name\taws-0" in out and "README.md:3\tdate\t2026-10-30" in out, out)
 
 print()
 if FAILURES:

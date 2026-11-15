@@ -51,7 +51,8 @@ while the factory runs.
 
 After a restart, an object that is still invalid is not served. A factory with nothing to serve, no
 repository among the file and the objects, waits at startup: its pods run and answer their probes but
-are not Ready, and it starts serving as soon as the objects exist (Maku v0.41.1 and later). So the
+are not Ready, and it starts serving as soon as the objects exist (the version this platform pins is
+on the [status page]({{< relref "/docs/status.md" >}})). So the
 objects and the factory can be applied in either order, and a refused edit is fixed, or reverted,
 before the next rollout.
 

@@ -1,43 +1,12 @@
 # Agent Factory runbooks
 
-Live procedures for the Agent Factory on the test clusters `gcp-0` and `aws-0`. Every command is copy-paste, and
-every step names its expected output. A **room** is the per-task workspace the room broker serves at
-`https://rooms.<domain>/r/<id>`: one shared log of messages, handoffs and notes for one factory task.
+Live procedures for the Agent Factory. Every command is copy-paste, and every step names its expected
+output. A **room** is the per-task workspace the room broker serves at `https://rooms.<domain>/r/<id>`:
+one shared log of messages, handoffs and notes for one factory task.
 
-## State
-
-The factory runs on gcp-0 (the ownership fence names `gcp-0`); aws-0's children stay in the source for a
-rebuild. `main` pins Maku v0.48.0 for every component (CRD group `maku.ogenki.io`, from the
-`agent-factory-crds` release). Since R3 (2026-11-14) runs are `maku.ogenki.io` AgentRuns named `run-<id>`
-in `agents`, run by Maku's run-controller in the `room-broker` release: gVisor pods behind a
-NetworkPolicy and the egress proxy, a runs quota (no Kueue), a git token the factory mints per run (no
-octo-sts) and model calls through `model-gateway` (no identity-proxy). The gcp-0 session is
-[runbook 14](14-gcp-0-session.md). The merge gate's human path was proven on aws-0 on 2026-10-30 and 31:
-[results](results-aws-0-2026-10-30.md). A fresh bootstrap starts with
+Current state, the pinned Maku version and which cluster is active live on the
+[status page](https://airef.ogenki.io/docs/status/#clusters). A fresh bootstrap starts with
 [Runbook 00](#runbook-00-one-time-cluster-setup).
-
-| What | In the source today |
-|---|---|
-| Live auto-merge | cloud-native-ref's `docs-links` (Markdown link fixes) and `revert`, `autoMergesPerDay: 1` ([12](12-live-auto-merge-drill.md)) |
-| Shadow | `alert-rules` on cloud-native-ref (RunLore's fixes, [25](25-runlore-kb-phase-1.md)), `dead-links` on both repositories ([15](15-dead-links.md)), `deps-patch` ([16](16-deps-patch.md)); `deps-minor` observed only; every class of ai-native-ref and of runlore-kb, `kb-entries` among them ([25](25-runlore-kb-phase-1.md)) |
-| Intake | The planner on both clouds' brokers for ai-native-ref and runlore-kb; the Slack App with proposals on for one channel ([22](22-slack.md)); coordination `mode: plan` on aws-0 only, which composes a plan across those two repositories and files nothing |
-| Budgets | Gateway budgets refuse (`SHADOW_MODE: "false"`, [04 Part D](04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)); the fleet's and each person's day are counted, never refused (`enforcePrincipal: false`, [04 Part C](04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week)) |
-| Session switches, off after each live session | `testFirst` on `scripts` ([21](21-test-first-tester.md)), RunLore ([20](20-runlore-agent-to-agent.md); its two halves are the host's three places and `aws-0`'s `runlore` webhook subscriber, [25](25-runlore-kb-phase-1.md)), the `docs` row's provider `models`, `human.mcp.sessionStart` ([19](19-factory-from-your-agent.md)) |
-
-`maku setup <client>` installs the factory MCP server and the `factory-handoff` skill for a coding
-agent client (`claude`, `opencode`, ...): [runbook 19](19-factory-from-your-agent.md).
-
-### Known issues
-
-The runbooks keep their intended expectation for each, with a "Known issue" note at the step.
-
-| Bug | What you see | Runbook |
-|---|---|---|
-| F15 | A run refused the room's lease still executes its task, unmirrored, on the room's branch | rooms only, no step here |
-| [maku#279](https://github.com/Smana/maku/issues/279) | A task's status cost freezes before the run's final settle | 04 Part F |
-| [maku#280](https://github.com/Smana/maku/issues/280) | A budget-exhausted run's ledger misses its last spend | 04 Part G |
-| [maku#304](https://github.com/Smana/maku/issues/304) | Residuals of the approval binding: the push record can lag, the run-end time, the reason's name; the base branch is never read | [results](results-aws-0-2026-10-30.md) (F4) |
-| F6 | While cloud-native-ref pins a pre-release ai-native-ref (`-prN`), `ai-overlay --from-git` refuses it: maku's `harness-checks` and the host's `test-ai-overlay-from-git` went red. Fixed by cnref #2691 (the host's test skips the tree half on a pre-release pin) and [maku#305](https://github.com/Smana/maku/pull/305) (`harness-checks` turns a step that fails on the repository's `main` into a warning, red only for a harness fault) | [results](results-aws-0-2026-10-30.md) |
 
 ## What each runbook proves
 

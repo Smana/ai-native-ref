@@ -1,8 +1,9 @@
 # gcp-0 agent platform (opt-in)
 
 Children of the `agent-platform` umbrella (`../gcp-0/agent-platform.yaml`). The host's go-live
-commit un-suspends it, with `ai-gateway` and the source, and names gcp-0 as the factory. gcp-0 ran
-the factory until its teardown on 2026-10-29; this is what the next bootstrap applies.
+commit un-suspends it, with `ai-gateway` and the source, and names `gcp-0` in the ownership fence.
+`gcp-0` runs the factory in alternation with the other cluster; the
+[status page](https://airef.ogenki.io/docs/status/#clusters) names the active one.
 GCP parity with `aws-0-agent-platform/`: the sandbox pool is OpenTofu (`gke/init` `sandbox.tf`,
 `agents-gvisor`) and GKE ships the `gvisor` RuntimeClass itself, so there is no node-pool child and
 no gVisor RuntimeClass child here (GP-9).

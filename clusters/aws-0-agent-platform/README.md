@@ -1,8 +1,8 @@
 # aws-0 agent platform
 
 Children of the `agent-platform` umbrella (`../aws-0/agent-platform.yaml`), released on aws-0
-(`suspend: false`). aws-0 ran the factory until its teardown on 2026-10-16; the ownership fence
-names `gcp-0`.
+(`suspend: false`). `aws-0` runs the factory in alternation with the other cluster; the
+[status page](https://airef.ogenki.io/docs/status/#clusters) names the active one.
 Design: `docs/superpowers/specs/2026-09-23-agent-runtime-identity-design.md`.
 
 | Child Kustomization | Path | Holds |

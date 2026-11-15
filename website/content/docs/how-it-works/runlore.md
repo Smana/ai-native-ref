@@ -5,6 +5,7 @@ aliases:
 weight: 60
 description: "Agent to agent: RunLore hands an incident to the factory, follows the fix, and checks after the merge that the alert is gone."
 lastVerified: 2026-10-29
+diataxis: explanation
 ---
 
 [RunLore](https://github.com/Smana/runlore) investigates alerts. With the factory it works agent to

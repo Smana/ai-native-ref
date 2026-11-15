@@ -5,7 +5,7 @@ aliases:
   - /docs/platform/ai-platform/
 linkTitle: Get started
 weight: 10
-description: "Self-hosted model serving and the Agent Factory, which puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
+description: "Self-hosted model serving and Maku, which puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
 lastVerified: 2026-10-29
 ---
 
@@ -20,7 +20,7 @@ What runs today, what is experimental and what comes next live on one page:
 
 ## How the parts fit
 
-<!-- TODO: redraw ai-platform.drawio page 1: the picture still shows MCP tools and octo-sts behind the agent gateway. -->
+<!-- TODO: redraw ai-platform.drawio page 1: the picture still shows MCP tools and octo-sts behind the model gateway. -->
 ![The AI Platform in one view. On the serving side, developers and coding clients send OpenAI-compatible requests over the tailnet to ai-gateway (Envoy AI Gateway with an API key and the Semantic Router), which routes them to vLLM models declared as InferenceService claims, on L4 GPUs and scaled by KEDA. On the agents side, a maintainer labels a GitHub issue; the factory controller, maku-factory, turns it into a task, starts an agent run in a gVisor sandbox and opens a room on maku-broker that the maintainer watches and steers. Every model call the agent makes goes through the model gateway with a per-run identity, to frontier models (Z.ai GLM and Claude, with Kimi and Mistral for public work only); with a GitHub token the factory minted for the run, the agent pushes a branch and opens a PR. Both halves send traces, logs and metrics to the Victoria stack and Grafana](/images/diagrams/ai-platform-1.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 1.*
@@ -28,7 +28,7 @@ What runs today, what is experimental and what comes next live on one page:
 | Part | What it does | Page |
 |---|---|---|
 | **Serving** | vLLM, one Crossplane `InferenceService` claim per model, on Karpenter L4 GPUs, scaled by KEDA | [Serving]({{< relref "/docs/how-it-works/serving/_index.md" >}}) |
-| **Gateways** | `ai-gateway` for humans and coding clients; the agent gateway for agent runs, with a per-run identity | [Gateways]({{< relref "/docs/how-it-works/gateways.md" >}}) |
+| **Gateways** | `ai-gateway` for humans and coding clients; the model gateway for agent runs, with a per-run identity | [Gateways]({{< relref "/docs/how-it-works/gateways.md" >}}) |
 | **Routing and cost** | Every routing decision, the knobs that tune it, the meter's prices, caching and budgets | [Model routing and cost]({{< relref "/docs/how-it-works/routing-and-cost.md" >}}) |
 | **Coding clients** | OpenCode, Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, Continue and OpenWebUI pointed at `ai-gateway`, and the hand-off to the factory | [Coding clients]({{< relref "/docs/use/coding-clients.md" >}}) |
 | **Agents** | The factory, rooms and the sandboxed runtime | [Agents]({{< relref "/docs/get-started/agent-factory.md" >}}) |
@@ -62,7 +62,7 @@ than a missing feature.
   {{< card link="/docs/how-it-works/serving/" title="Serving" icon="server" subtitle="Turning the opt-in serving platform on, what it deploys, and its security posture." >}}
   {{< card link="/docs/reference/inference-service/" title="The InferenceService claim" icon="document-text" subtitle="One model, one YAML file — a complete claim with its reasoning intact, what it renders, and every field it accepts." >}}
   {{< card link="/docs/how-it-works/serving/autoscaling-and-gpu/" title="Autoscaling & GPUs" icon="chip" subtitle="Three KEDA triggers on leading vLLM signals, the scale-to-zero deadlock, the gpu-l4 NodePool and S3 Files weights." >}}
-  {{< card link="/docs/how-it-works/gateways/" title="Gateways" icon="switch-horizontal" subtitle="ai-gateway for humans and coding clients, the agent gateway for agent runs: identity, routing and what they share." >}}
+  {{< card link="/docs/how-it-works/gateways/" title="Gateways" icon="switch-horizontal" subtitle="ai-gateway for humans and coding clients, the model gateway for agent runs: identity, routing and what they share." >}}
   {{< card link="/docs/how-it-works/routing-and-cost/" title="Model routing and cost" icon="currency-dollar" subtitle="Where each request is routed, how to tune quality, cost and latency, what a run costs, and when self-hosting pays." >}}
   {{< card link="/docs/use/coding-clients/" title="Coding clients" icon="terminal" subtitle="Connecting OpenCode, Claude Code, Codex, Continue and more to the gateway, and handing work to the factory: authentication, model IDs, troubleshooting." >}}
   {{< card link="/docs/get-started/agent-factory/" title="Agents" icon="beaker" subtitle="Autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes." >}}

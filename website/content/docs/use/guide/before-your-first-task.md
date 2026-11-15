@@ -3,6 +3,7 @@ title: "2. Before your first task"
 linkTitle: "2. Before your first task"
 weight: 2
 description: "The five things you need before you hand the factory a task, and who gives you each one."
+diataxis: chapter
 ---
 
 By the end of this chapter you will have what you need, and know whom to ask for each piece.

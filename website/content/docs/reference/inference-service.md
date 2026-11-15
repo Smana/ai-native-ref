@@ -5,6 +5,7 @@ aliases:
 weight: 20
 description: One model, one YAML file — the complete claim, what it renders, and every field it accepts.
 lastVerified: 2026-08-30
+diataxis: reference
 ---
 
 A model on this platform is one file. No Deployment, no Service, no HPA, no

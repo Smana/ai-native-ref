@@ -3,6 +3,7 @@ title: "9. Work across repositories"
 linkTitle: "9. Across repositories"
 weight: 9
 description: "Plan one change that spans two repositories: what a coordination plan holds, how it would run, and what plan mode does."
+diataxis: chapter
 ---
 
 By the end of this chapter you will know how the factory treats one change across two repositories, and

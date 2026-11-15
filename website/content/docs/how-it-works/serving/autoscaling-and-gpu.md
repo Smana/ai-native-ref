@@ -5,6 +5,7 @@ aliases:
 weight: 10
 description: Three KEDA triggers on leading vLLM signals, why minReplicas is never zero, and the GPU and storage foundation underneath.
 lastVerified: 2026-10-20
+diataxis: explanation
 ---
 
 Scaling a GPU workload is not scaling a web service. A cold start is 30–90

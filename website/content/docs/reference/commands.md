@@ -4,7 +4,7 @@ weight: 15
 description: "Every maku command, the setup options, what each coding agent supports, the room states, how a run ends, and starting a run by hand."
 ---
 
-Look-up tables for the Agent Factory's commands. The [user guide]({{< relref "/docs/use/guide/_index.md" >}})
+Look-up tables for Maku's commands. The [user guide]({{< relref "/docs/use/guide/_index.md" >}})
 shows how to use them; the [cheat sheet]({{< relref "/docs/use/guide/cheat-sheet.md" >}}) lists the labels
 and comment commands.
 

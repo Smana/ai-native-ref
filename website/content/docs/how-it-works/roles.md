@@ -4,6 +4,7 @@ linkTitle: Roles
 weight: 10
 description: "Who does what in a task: the scoper, tester, implementer, judge and reviewer, the two GitHub Apps beside them, and a task's life from label to merge."
 lastVerified: 2026-10-31
+diataxis: explanation
 ---
 
 A task is a series of agent runs on one `agent/<task>` branch. Each run has one **role**, and the role

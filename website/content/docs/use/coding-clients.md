@@ -12,7 +12,7 @@ A coding client can use the platform in two ways, and they are independent:
 | Integration | What it gives you | How you connect |
 |---|---|---|
 | **Models** through the `ai-gateway` | The platform's models in your client's chat, edits and completions | A base URL and an API key in the client's own config |
-| **Hand-offs** to the Agent Factory | File an issue, follow its run and bring its branch back without leaving the session | `maku setup <client>` |
+| **Hand-offs** to the factory | File an issue, follow its run and bring its branch back without leaving the session | `maku setup <client>` |
 
 Each snippet is checked against its client's configuration reference, linked next to it, not run
 against a live endpoint. [What needs a live run](#verifying-the-connection) is listed at the end of

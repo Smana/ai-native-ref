@@ -128,7 +128,7 @@ Every figure is in UTC, the ledger's day. The sources are the factory's per-paye
 tokens to the payer. The panels are held by `test-agent-identity-dashboard` and
 `test-agent-identity-queries`.
 
-### The agent gateway's signals
+### The model gateway's signals {#the-agent-gateways-signals}
 
 agentgateway ([gateways]({{< relref "/docs/how-it-works/gateways.md#the-agent-gateway-agent-runs" >}}))
 emits under its own names. The scrape (`infrastructure/base/agent-gateway/vmpodscrape.yaml`, one
@@ -158,7 +158,7 @@ kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.netwo
 Useful fields: `log.http.status`, `log.http.path`, `log.reason`, `log.route`, `log.x_ar_agent`,
 `log.mcp.method.name`, `log.gen_ai.tool.name`.
 
-Alerts in `observability/base/agent-platform/vmrule.yaml`, read on the **Agent gateway** dashboard
+Alerts in `observability/base/agent-platform/vmrule.yaml`, read on the model gateway dashboard
 (`uid: agent-gateway`):
 
 | Alert | Fires when |

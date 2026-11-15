@@ -6,7 +6,7 @@ using the platform, who was not at any of our sessions.
 
 `task docs` runs [`scripts/ci/check-reader-first.py`](../scripts/ci/check-reader-first.py) and
 [`scripts/ci/check-site-contract.py`](../scripts/ci/check-site-contract.py), which enforce rules 1,
-4 and 5 and hold the site's pins (see [The gate](#the-gate)).
+4, 5, 9 and 18 and hold the site's pins (see [The gate](#the-gate)).
 
 ## The rules
 
@@ -23,8 +23,9 @@ proof or plan IDs (N6, AM4, F11, SP4 R13, AG8, OD-6), run IDs or people's handle
 - Good: "You approve the pull request, and the merge gate merges it."
 
 **3. One [Diátaxis](https://diataxis.fr/) type per page.** Tutorial (learn by doing), how-to (reach
-a goal), reference (look something up), explanation (understand why). When a section wants
-another type, link to a page of that type.
+a goal), reference (look something up), explanation (understand why), plus book chapters (`chapter`)
+and short `values` pages that state this platform's settings and link Maku's reference. When a
+section wants another type, link to a page of that type.
 
 - Bad: a "How it works" page that ends with a table of every Helm value.
 - Good: the explanation ends with one sentence, "Every setting is in the harness reference", linked.
@@ -70,9 +71,10 @@ when the labelled paragraph ends with ":". An `<!-- example -->` line covers the
 - Bad: "The base URL is `https://llm.priv.aws.ogenki.io/v1`."
 - Good: "Example (the reference host): `https://llm.priv.aws.ogenki.io/v1`."
 
-**9. One idea per paragraph, at most four sentences.** Split a sentence over 35 words. A book
-chapter runs 300 to 600 words, a how-to under 1,200, an explanation under 1,500. A longer reference
-has a table of contents and anchors.
+**9. One idea per paragraph, at most four sentences.** Split a sentence over 35 words. A values page
+stays under 500 words, a book chapter runs 300 to 600 words, a tutorial or how-to under 1,200, an
+explanation under 1,500. A longer reference has a table of contents and anchors. A page declares its
+type in `diataxis:`; the gate reads it.
 
 - Bad: one paragraph covering the label, the review and the merge.
 - Good: three paragraphs, one each.
@@ -133,11 +135,12 @@ shape, and fold a long chain into subgraphs, so the diagram reads at the page's 
 - Bad: `flowchart LR` with nine nodes in one row, rendered as a thin strip.
 - Good: `flowchart TB` with three subgraphs of three nodes each.
 
-**18. Agent Factory is the product; Maku is its controller.** Name Maku only when you mean that
-project's components (`maku-factory`, the broker, the `maku` CLI).
+**18. Maku is the product.** Name a component (the factory, a room, the model gateway) when you
+mean that part; `agent-router` appears in manifests and paths only. "Agent Factory" survives only in
+the release names `Agent Factory v1` to `v3`.
 
-- Bad: "Maku opened a pull request for your issue."
-- Good: "The Agent Factory opened a pull request for your issue."
+- Bad: "The Agent Factory opened a pull request for your issue."
+- Good: "Maku opened a pull request for your issue."
 
 ## The gate
 
@@ -158,5 +161,8 @@ off the site (rule 6), or label it as an example (rule 8). Do not add an allowli
 
 [`scripts/ci/check-site-contract.py`](../scripts/ci/check-site-contract.py) also runs in `task docs`.
 It holds `params.makuVersion` in `website/hugo.yaml` equal to the image tag in
-`tooling/base/agent-factory/helm-values-configmap.yaml`, and `activeCluster` on `status.md` equal to
-`factory` in `.github/agent-factory.yaml`.
+`tooling/base/agent-factory/helm-values-configmap.yaml`, `activeCluster` on `status.md` equal to
+`factory` in `.github/agent-factory.yaml`, refuses "Agent Factory" unless it matches
+`Agent Factory v[0-3]` (outside `decisions/`), refuses Maku version literals or versioned Maku URLs
+outside `status.md` and `decisions/`, and checks rule 9's body word ceilings on every page that
+declares `diataxis:` (`--report` prints every page's body word count).

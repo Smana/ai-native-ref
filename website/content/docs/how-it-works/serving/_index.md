@@ -5,6 +5,7 @@ aliases:
 weight: 90
 description: An OpenAI-compatible vLLM serving platform behind Envoy AI Gateway, declared one model per Crossplane claim — off by default until three independent gates are all released.
 lastVerified: 2026-08-30
+diataxis: explanation
 ---
 
 An OpenAI-compatible inference platform on EKS: vLLM on L4 spot GPUs, fronted
@@ -67,7 +68,7 @@ The umbrella aggregates **5** child Flux Kustomizations under
 
 The gateway layer these children attach to (Envoy Gateway, the Envoy AI Gateway, the Semantic
 Router and the `ai-gateway` Gateway) is a separate umbrella, `ai-gateway`, under
-`clusters/aws-0-ai-gateway/`. It is CPU only and released by default, since the Agent Factory
+`clusters/aws-0-ai-gateway/`. It is CPU only and released by default, since the factory
 needs it; `llm-platform` depends on it.
 
 That directory is a **sibling** of `clusters/aws-0/`, not a child, on
@@ -81,7 +82,7 @@ Example (the reference host): its GKE cluster is `gcp-0`. GKE has **no OpenTofu 
 rather than an OpenTofu stack, so there is no `TM_LLM_PLATFORM_ENABLED`.
 The two Kubernetes gates match EKS's: `clusters/gcp-0/ai-gateway.yaml`,
 then `clusters/gcp-0/llm-platform.yaml`, which depends on it. The first
-is released (`spec.suspend: false`, for the Agent Factory); the second
+is released (`spec.suspend: false`, for the factory); the second
 ships `spec.suspend: true`. Weights are served from a GCS bucket over the Cloud
 Storage FUSE CSI driver instead of an S3 Files POSIX mount — see
 [ADR-0021]({{< relref "/docs/decisions/0021-gcs-fuse-for-model-weights-on-gcp.md" >}})

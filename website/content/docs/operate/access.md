@@ -1,7 +1,8 @@
 ---
 title: Access
 weight: 5
-description: "Give a person access to the Agent Factory: the platform's CA, the SSO groups, the GitHub link, who sees a room, and what a 403 means."
+description: "Give a person access to Maku on this host: the platform's CA, the SSO groups, the GitHub link, who sees a room, and what a 403 means."
+diataxis: how-to
 ---
 
 What an admin sets up so a person can follow and steer factory tasks. The user's side is

@@ -109,9 +109,9 @@ git commit -am "docs(runbooks): the lot 1 baseline on aws-0"
 ### Task 3: the warm node on aws-0, weekdays 08:00 to 19:00 Europe/Paris (CP4)
 
 **Files:**
-- Create: `infrastructure/aws-0/agents-headroom/kustomization.yaml`, `infrastructure/aws-0/agents-headroom/scaledobject.yaml`
-- Modify: `clusters/aws-0-agent-platform/infrastructure-agents-headroom.yaml` (`path`, `dependsOn`)
-- Modify: `infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml` (the three images and the comment above them)
+- Create: `infrastructure/aws-0/karpenter-nodepools-agents/headroom/kustomization.yaml`, `infrastructure/aws-0/karpenter-nodepools-agents/headroom/scaledobject.yaml`
+- Create: `clusters/aws-0-agent-platform/infrastructure-agents-headroom.yaml` (`path`, `dependsOn`); PR #384 removed the old child
+- Create: `infrastructure/base/karpenter-nodepools-agents/headroom/deployment.yaml` (the two R3 images and the comment above them); PR #384 removed the XR-era workload
 - Create: `scripts/ci/tests/test-agents-headroom-schedule.py`
 - Modify: `website/content/docs/operate/tune-a-run.md` (:223, the cold-start row), `clusters/aws-0-agent-platform/README.md`
 - Test: `scripts/ci/tests/test-agents-headroom-schedule.py`, `task validate`
@@ -124,7 +124,7 @@ git commit -am "docs(runbooks): the lot 1 baseline on aws-0"
 It renders both paths with `kustomize build` and asserts:
 
 ```python
-aws = render("infrastructure/aws-0/agents-headroom")
+aws = render("infrastructure/aws-0/karpenter-nodepools-agents/headroom")
 gcp = render("infrastructure/base/karpenter-nodepools-agents/headroom")
 
 so = one(aws, "ScaledObject", "agents-headroom")
@@ -146,11 +146,11 @@ assert headroom_images(aws) == run_images()
 - [ ] **Step 2: Run it and see it fail**
 
 Run: `python3 scripts/ci/tests/test-agents-headroom-schedule.py`
-Expected: FAIL, `infrastructure/aws-0/agents-headroom` does not exist.
+Expected: FAIL, `infrastructure/aws-0/karpenter-nodepools-agents/headroom` does not exist.
 
 - [ ] **Step 3: Write the overlay**
 
-`kustomization.yaml` takes the base headroom directory as its resource, adds `scaledobject.yaml`, and removes `/spec/replicas` from the Deployment with a JSON 6902 patch. The Flux child for aws-0 points at the overlay and adds `dependsOn: [{name: infrastructure}]` (KEDA, `HOST-CONTRACT.md` H2). In the base Deployment, bring the three images to the pins `run_images()` reads, and replace the comment's cost and cluster with a link to the spec.
+`kustomization.yaml` takes the base headroom directory as its resource, adds `scaledobject.yaml`, and removes `/spec/replicas` from the Deployment with a JSON 6902 patch. The Flux child for aws-0 points at the overlay and adds `dependsOn: [{name: infrastructure}]` (KEDA, `HOST-CONTRACT.md` H2). In the base Deployment, bring the two images to the pins `run_images()` reads, and replace the comment's cost and cluster with a link to the spec.
 
 - [ ] **Step 4: Run the gates**
 

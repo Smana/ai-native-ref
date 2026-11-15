@@ -1,0 +1,103 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agents-headroom
+  namespace: agent-system
+automountServiceAccountToken: false
+---
+# Cache and costs CP4: one low-priority pod on the gVisor pool keeps a node up with
+# the R3 run images pulled. A run preempts it; Karpenter then brings up the next warm
+# node. The harness and bridge pins are the run-controller's in
+# infrastructure/base/room-broker/helmrelease.yaml: bump them together.
+# Off by default here. aws-0's overlay schedules one replica on weekdays, about $38 a
+# month; gcp-0 inherits zero. Rollback is to remove the overlay, leaving this zero.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agents-headroom
+  namespace: agent-system
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agents-headroom
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agents-headroom
+    spec:
+      priorityClassName: agents-headroom
+      runtimeClassName: gvisor
+      serviceAccountName: agents-headroom
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 5
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      # The admission answerer lets the bridge's gate finish without a room. Both init
+      # containers use the run images, so the kubelet pre-pulls what an R3 run pulls.
+      initContainers:
+        - name: harness-admission
+          image: ghcr.io/smana/maku-harness:v0.51.0@sha256:00e7af4a00929914dd9a0616b07dedaf194805c39ae3e34dc31d8c38dc386d37
+          restartPolicy: Always
+          command: ["tini", "--", "python3", "-c"]
+          args:
+            - |
+              from http.server import BaseHTTPRequestHandler, HTTPServer
+              class Answer(BaseHTTPRequestHandler):
+                  def do_GET(self):
+                      self.send_response(200)
+                      self.end_headers()
+                  def log_message(self, *args):
+                      pass
+              HTTPServer(("0.0.0.0", 8085), Answer).serve_forever()
+          ports:
+            - {name: health, containerPort: 8085, protocol: TCP}
+          startupProbe:
+            httpGet: {path: /admission, port: health}
+            periodSeconds: 1
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /admission, port: health}
+            periodSeconds: 30
+          livenessProbe:
+            httpGet: {path: /admission, port: health}
+            periodSeconds: 30
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 50m, memory: 64Mi}
+          securityContext: &container-security
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+        - name: room-bridge
+          image: ghcr.io/smana/maku-bridge:v0.51.0@sha256:daf185efc10f15c3757e561841963ec7a3dac6037f53b6ed6cdc5c3f4726d12a
+          args: ["gate"]
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 50m, memory: 32Mi}
+          securityContext: *container-security
+      containers:
+        - name: harness
+          image: ghcr.io/smana/maku-harness:v0.51.0@sha256:00e7af4a00929914dd9a0616b07dedaf194805c39ae3e34dc31d8c38dc386d37
+          command: ["tini", "--", "sleep", "infinity"]
+          readinessProbe:
+            exec: {command: ["true"]}
+            periodSeconds: 60
+          livenessProbe:
+            exec: {command: ["true"]}
+            periodSeconds: 60
+          # A small run's harness reservation, so the node keeps room for one.
+          resources:
+            requests: {cpu: "1", memory: 2Gi, ephemeral-storage: 1Gi}
+            limits: {cpu: "1", memory: 2Gi, ephemeral-storage: 1Gi}
+          securityContext: *container-security

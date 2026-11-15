@@ -220,7 +220,7 @@ for $2.65.
 | You see | Do this |
 |---|---|
 | The same refused action for minutes, in a room | Read the bridge's refusal; approve it, or fork with more egress |
-| Pod `Pending` 15 min, then `run_unschedulable` | No gVisor node yet: wait 1.5–3.5 min |
+| Pod `Pending` 15 min, then `run_unschedulable` | No gVisor node yet: wait 1.5–3.5 min. Where the weekday headroom schedule is enabled, one node stays warm from 08:00 to 19:00 Europe/Paris; outside that window the first run pays the cold start |
 | An internal run costs as much as a public one | Prompt caching is off: the harness logs `prompt cache NOT applied` at start, and `AgentCacheReadZero` fires once the run passes 100k input tokens |
 
 ## Recipes {#recipes}

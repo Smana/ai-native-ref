@@ -12,7 +12,6 @@ One `AgentRun` object becomes a fully isolated, fully attributed run. The agent 
 trusted, so every control on this page sits outside the sandbox. This page describes the design;
 what runs today is on the [status page]({{< relref "/docs/status.md#landed" >}}).
 
-<!-- TODO: redraw ai-platform.drawio page 3 for the run-controller: the picture still shows the Crossplane composition, the Envoy identity proxy and octo-sts. -->
 ![The agent runtime. The factory creates an AgentRun, and Maku's run-controller renders its ServiceAccount, task ConfigMap, NetworkPolicy and one gVisor pod. Inside it, the maku-harness runs OpenHands with the run's own model-gateway token, and the maku-bridge sidecar holds the room token for maku-broker. The harness reaches GitHub through the egress proxy, with a git token the factory minted for that run](/images/diagrams/ai-platform-3.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 3.*

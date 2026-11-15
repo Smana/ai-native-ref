@@ -20,7 +20,6 @@ What runs today, what is experimental and what comes next live on one page:
 
 ## How the parts fit
 
-<!-- TODO: redraw ai-platform.drawio page 1: the picture still shows MCP tools and octo-sts behind the model gateway. -->
 ![The AI Platform in one view. On the serving side, developers and coding clients send OpenAI-compatible requests over the tailnet to ai-gateway (Envoy AI Gateway with an API key and the Semantic Router), which routes them to vLLM models declared as InferenceService claims, on L4 GPUs and scaled by KEDA. On the agents side, a maintainer labels a GitHub issue; the factory controller, maku-factory, turns it into a task, starts an agent run in a gVisor sandbox and opens a room on maku-broker that the maintainer watches and steers. Every model call the agent makes goes through the model gateway with a per-run identity, to frontier models (Z.ai GLM and Claude, with Kimi and Mistral for public work only); with a GitHub token the factory minted for the run, the agent pushes a branch and opens a PR. Both halves send traces, logs and metrics to the Victoria stack and Grafana](/images/diagrams/ai-platform-1.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 1.*

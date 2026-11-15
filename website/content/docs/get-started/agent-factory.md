@@ -48,7 +48,6 @@ One task, end to end. A maintainer labels an issue; the factory starts a sandbox
 opens a room; every model call the agent makes goes through the gateway under the run's own identity;
 the agent pushes an `agent/**` branch and opens a PR; a human review decides the merge.
 
-<!-- TODO: redraw agent-factory-overview.drawio: the picture still shows the MCP tools and octo-sts behind the model gateway. -->
 ![Maku at a glance: one task, end to end. A maintainer labels a GitHub issue. The factory controller, maku-factory, turns the issue into a task, starts an agent run and opens a room on maku-broker. The run is a gVisor sandbox holding the coding agent, OpenHands. The maintainer watches and steers through the room, which exchanges events and steering with the run. Every model call the agent makes goes through the model gateway, agentgateway, with per-run identity and budgets, to the models (Z.ai GLM, Kimi and Mistral for public work, Claude for internal work). With a GitHub token the factory minted for the run, limited to agent/** branches, the agent pushes a branch and opens a PR on GitHub, where the maintainer's review decides the merge. Traces, logs and metrics go to the Victoria stack and Grafana](/images/diagrams/agent-factory-overview.svg)
 
 *Source: [`docs/architecture/agent-factory-overview.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/agent-factory-overview.drawio).*

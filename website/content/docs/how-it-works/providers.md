@@ -59,3 +59,24 @@ The agents' own keys, in OpenBao: `bao kv put -mount=agents moonshot api_key=-` 
 `bao kv put -mount=agents mistral api_key=-`. Set a spend cap for each key on its provider's console.
 A smoke test through the gateway is in
 [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#feature-15-providers-a-smoke-through-the-gateway).
+
+## Why self-host at all {#why-self-host-at-all}
+
+A hosted API is cheaper, faster to adopt, and better at the frontier. The self-hosted serving layer on
+this platform exists for the things a hosted API cannot give you:
+
+- **Prompts never leave the tailnet.** Every request path here is private — there is no public
+  endpoint, and no third party sees the code being completed. That is the whole reason the coding fleet
+  exists.
+- **The model is pinned to a commit.** `model.revision` is a HuggingFace commit SHA, so the model
+  behind an endpoint cannot change under you. A hosted endpoint's weights move when the provider
+  decides.
+- **Latency is a scheduling problem, not a queue you do not control.** Tab-completion needs sub-200 ms;
+  that is achievable when the replica is yours and always warm, and not negotiable with a shared API.
+- **It is a real workload for the platform to carry.** GPUs, spot reclaim, saturation-based
+  autoscaling, a shared RWX filesystem and an ext_proc-filtered gateway exercise parts of this platform
+  that a stateless web app never touches.
+
+And the honest side of the ledger: there is **no scale-to-zero** — see
+[Autoscaling & GPUs]({{< relref "/docs/how-it-works/serving/autoscaling-and-gpu.md" >}}) for the
+four-GPU cost floor that implies, and why it is a deadlock rather than a missing feature.

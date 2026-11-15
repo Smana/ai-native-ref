@@ -1,16 +1,17 @@
 ---
-title: AI Platform
+title: Get started
 aliases:
   - /docs/platform/
   - /docs/platform/ai-platform/
 linkTitle: Get started
 weight: 10
-description: "Self-hosted model serving and Maku, which puts models to work: vLLM behind Envoy AI Gateway, and sandboxed coding agents under their own identity."
-lastVerified: 2026-10-29
+description: "Three steps from zero to a merged pull request: run Maku on a laptop, deploy this platform on the host cluster, and hand the factory your first task."
+lastVerified: 2026-11-15
+diataxis: tutorial
 ---
 
 Two halves, one platform. **Serving** runs open-weights models on the cluster's own GPUs behind an
-OpenAI-compatible gateway. **Agents** put models to work: a labelled issue becomes a sandboxed agent
+OpenAI-compatible gateway. **Maku** puts models to work: a labelled issue becomes a sandboxed agent
 run that opens a pull request, under its own identity and in a room humans can watch and steer.
 
 {{< callout type="warning" >}}
@@ -18,57 +19,38 @@ What runs today, what is experimental and what comes next live on one page:
 [Status and roadmap]({{< relref "/docs/status.md" >}}). Every other page describes the design.
 {{< /callout >}}
 
-## How the parts fit
-
 ![The AI Platform in one view. On the serving side, developers and coding clients send OpenAI-compatible requests over the tailnet to ai-gateway (Envoy AI Gateway with an API key and the Semantic Router), which routes them to vLLM models declared as InferenceService claims, on L4 GPUs and scaled by KEDA. On the agents side, a maintainer labels a GitHub issue; the factory controller, maku-factory, turns it into a task, starts an agent run in a gVisor sandbox and opens a room on maku-broker that the maintainer watches and steers. Every model call the agent makes goes through the model gateway with a per-run identity, to frontier models (Z.ai GLM and Claude, with Kimi and Mistral for public work only); with a GitHub token the factory minted for the run, the agent pushes a branch and opens a PR. Both halves send traces, logs and metrics to the Victoria stack and Grafana](/images/diagrams/ai-platform-1.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 1.*
 
-| Part | What it does | Page |
-|---|---|---|
-| **Serving** | vLLM, one Crossplane `InferenceService` claim per model, on Karpenter L4 GPUs, scaled by KEDA | [Serving]({{< relref "/docs/how-it-works/serving/_index.md" >}}) |
-| **Gateways** | `ai-gateway` for humans and coding clients; the model gateway for agent runs, with a per-run identity | [Gateways]({{< relref "/docs/how-it-works/gateways.md" >}}) |
-| **Routing and cost** | Every routing decision, the knobs that tune it, the meter's prices, caching and budgets | [Model routing and cost]({{< relref "/docs/how-it-works/routing-and-cost.md" >}}) |
-| **Coding clients** | OpenCode, Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, Continue and OpenWebUI pointed at `ai-gateway`, and the hand-off to the factory | [Coding clients]({{< relref "/docs/use/coding-clients.md" >}}) |
-| **Agents** | The factory, rooms and the sandboxed runtime | [Agents]({{< relref "/docs/get-started/agent-factory.md" >}}) |
-| **Observability** | vLLM, KEDA and gateway metrics; per-run traces, step logs and dashboards | [Observability]({{< relref "/docs/operate/observability.md" >}}) |
+## Three steps to a running factory {#path}
 
-## Why self-host at all
+```mermaid
+flowchart LR
+  s1["1 · Try it on a laptop<br/>Maku quickstart · 15 min"] --> s2["2 · Deploy on the host<br/>Host contract + Maku install"]
+  s2 --> s3["3 · Hand over a first task<br/>Slack · coding agent · GitHub issue"]
+```
 
-A hosted API is cheaper, faster to adopt, and better at the frontier. This
-platform exists for the things a hosted API cannot give you:
+1. **Try it on a laptop.** Follow Maku's [quickstart]({{< maku "docs/quickstart.md" >}}) to run the
+   full loop on kind or k3d in about 15 minutes: one command asks for your model endpoint and key,
+   creates a demo GitHub App and a repository from a template, watches the agents open a pull request
+   in a room, and lets the merge gate decide it.
+2. **Deploy it on the host.** On a Cloud Native Reference cluster, resume the umbrella Kustomizations
+   (`ai-gateway`, `agent-platform`, and optionally `llm-platform`) as described in the
+   [host contract]({{< relref "/docs/reference/host-contract.md#turning-the-umbrellas-on" >}}). To
+   install Maku on your own Kubernetes cluster with your own identity provider, secrets store and
+   GitOps tool, follow Maku's [install guide]({{< maku "docs/install.md" >}}) and
+   [repository onboarding guide]({{< maku "docs/onboard-a-repository.md" >}}).
+3. **Hand over a first task.** Once the factory is running, walk through
+   [Get started in five minutes]({{< relref "/docs/use/guide/your-first-task.md" >}}) in the user
+   guide to file one small fix from Slack, your coding agent or a GitHub issue, watch the room, and
+   approve the pull request.
 
-- **Prompts never leave the tailnet.** Every request path here is private —
-  there is no public endpoint, and no third party sees the code being
-  completed. That is the whole reason the coding fleet exists.
-- **The model is pinned to a commit.** `model.revision` is a HuggingFace
-  commit SHA, so the model behind an endpoint cannot change under you. A
-  hosted endpoint's weights move when the provider decides.
-- **Latency is a scheduling problem, not a queue you do not control.**
-  Tab-completion needs sub-200 ms; that is achievable when the replica is
-  yours and always warm, and not negotiable with a shared API.
-- **It is a real workload for the platform to carry.** GPUs, spot reclaim,
-  saturation-based autoscaling, a shared RWX filesystem and an
-  ext_proc-filtered gateway exercise parts of this platform that a stateless
-  web app never touches.
-
-And the honest side of the ledger: there is **no scale-to-zero** — see
-[Autoscaling & GPUs]({{< relref "/docs/how-it-works/serving/autoscaling-and-gpu.md" >}})
-for the four-GPU cost floor that implies, and why it is a deadlock rather
-than a missing feature.
+## Next steps {#next-steps}
 
 {{< cards >}}
-  {{< card link="/docs/how-it-works/serving/" title="Serving" icon="server" subtitle="Turning the opt-in serving platform on, what it deploys, and its security posture." >}}
-  {{< card link="/docs/reference/inference-service/" title="The InferenceService claim" icon="document-text" subtitle="One model, one YAML file — a complete claim with its reasoning intact, what it renders, and every field it accepts." >}}
-  {{< card link="/docs/how-it-works/serving/autoscaling-and-gpu/" title="Autoscaling & GPUs" icon="chip" subtitle="Three KEDA triggers on leading vLLM signals, the scale-to-zero deadlock, the gpu-l4 NodePool and S3 Files weights." >}}
-  {{< card link="/docs/how-it-works/gateways/" title="Gateways" icon="switch-horizontal" subtitle="ai-gateway for humans and coding clients, the model gateway for agent runs: identity, routing and what they share." >}}
-  {{< card link="/docs/how-it-works/routing-and-cost/" title="Model routing and cost" icon="currency-dollar" subtitle="Where each request is routed, how to tune quality, cost and latency, what a run costs, and when self-hosting pays." >}}
-  {{< card link="/docs/use/coding-clients/" title="Coding clients" icon="terminal" subtitle="Connecting OpenCode, Claude Code, Codex, Continue and more to the gateway, and handing work to the factory: authentication, model IDs, troubleshooting." >}}
-  {{< card link="/docs/get-started/agent-factory/" title="Agents" icon="beaker" subtitle="Autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes." >}}
-  {{< card link="/docs/how-it-works/runtime/" title="Agent runtime" icon="shield-check" subtitle="The gVisor sandbox, per-run identity and tokens, network policy and the rulesets that confine every run." >}}
-  {{< card link="/docs/how-it-works/rooms/" title="Rooms" icon="chat-alt-2" subtitle="The append-only log of a task: live view, steering, room tools and approvals." >}}
-  {{< card link="/docs/how-it-works/factory/" title="Factory" icon="cog" subtitle="From a labelled issue to a merged PR: intake, triage, teams, revise, the merge gate and the kill switch." >}}
-  {{< card link="/docs/use/guide/" title="Agents user guide" icon="book-open" subtitle="How a developer gives work to agents, follows it, steers it and stops it." >}}
-  {{< card link="/docs/operate/observability/" title="Observability" icon="chart-bar" subtitle="Serving metrics and alerts, and per-run traces, step logs, gen_ai metrics and dashboards." >}}
-  {{< card link="/docs/status/" title="Status and roadmap" icon="map" subtitle="The one place state lives: what is available, what is experimental, and what is planned." >}}
+  {{< card link="/docs/use/guide/" title="User guide" icon="book-open" subtitle="How a developer gives work to agents, follows it, steers it and stops it." >}}
+  {{< card link="/docs/how-it-works/" title="How it works" icon="cog" subtitle="The parts of the platform: roles, the merge gate, the factory, rooms, the runtime, providers, gateways and serving." >}}
+  {{< card link="/docs/operate/" title="Operate" icon="chart-bar" subtitle="Day-2 operations, auto-merge safety, harness tuning and observability." >}}
+  {{< card link="/docs/status/" title="Status and roadmap" icon="map" subtitle="The one place state lives: the pinned Maku version, the active cluster, and what is available." >}}
 {{< /cards >}}

@@ -40,6 +40,13 @@ data:
     # the factory's create, patch and delete on Secrets there to those it labels and the run owns.
     runTokens: {enabled: true, perRun: true}
     brokerCASecret: openbao-ca
+    # The chart's four-policy catalog (merge policies review MR1, MR2): docs-links, revert and docs
+    # come from the chart with maku.ogenki.io/catalog: "true"; deps-patch stays in resources/ so it
+    # keeps its six protectedFiles and its monitor.flux.
+    mergePolicies:
+      catalog:
+        enabled: true
+        exclude: [deps-patch]
     config:
       # The ownership fence (agent-platform v0.14.0): a repository is acted on only while its
       # .github/agent-factory.yaml names this factory, so aws-0 and gcp-0 never take the same issue.
@@ -60,7 +67,7 @@ data:
       # approval grants, which no policy here asks for (no requiresApproval). The central config stays
       # the only merge authority: no repository sets classAuthority: repository.
       policyManagement: {stage: manage}
-      # The catalogue (harnessProfiles, control, defaults, triage, tiers, templates, caps, facts,
+      # The catalogue (workflows, control, defaults, triage, tiers, templates, caps, facts,
       # brief, budgets, resume, loops, meter.prices) is the Factory, and the repositories with their
       # classes and merge rules are the Repository and MergePolicy objects, in resources/ beside this
       # file (Maku factory resources): the factory reads them live. What stays here is plumbing and the

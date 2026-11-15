@@ -4,7 +4,8 @@ Factory, Repository and MergePolicy objects laid over it (Maku factory resources
 
 The file (tooling/base/agent-factory/helm-values-configmap.yaml, then a cloud's valuesFrom
 ConfigMaps) keeps the plumbing and the startup switches; tooling/base/agent-factory/resources/
-holds the catalogue and the repositories. `config()` lays one over the other in the old shape
+holds the catalogue and the repositories, and the chart's catalog supplies the common MergePolicies
+when `mergePolicies.catalog.enabled` is true. `config()` lays one over the other in the old shape
 (`repositories: [{name, classes, merge, ...}]`, `meter.prices`, ...), as Maku's resources.Assemble
 merges them, so a suite reads one config whichever side a key lives on. It does not validate:
 scripts/ci/validate-factory-config.sh runs the pinned Maku's own `maku config validate` on both.
@@ -24,12 +25,50 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 BASE = "tooling/base/agent-factory"
 RESOURCES = f"{BASE}/resources"
 VALUES_NAME = "agent-factory-helm-values"
+CATALOG_LABEL = "maku.ogenki.io/catalog"
 # Maku's resources.CatalogueKeys: the file's top-level keys a Factory replaces.
 CATALOGUE = ("control", "defaults", "tiers", "templates", "caps", "budgets", "facts", "brief", "resume",
-             "scoper", "loops", "harnessProfiles", "mergeGuardrails", "evaluation", "mergeDefaults")
-REPOSITORY_KEYS = ("maintainers", "triggerLabel", "checks", "schedules", "classAuthority")
+             "scoper", "loops", "harnessProfiles", "workflows", "mergeGuardrails", "evaluation", "mergeDefaults")
+REPOSITORY_KEYS = ("maintainers", "triggerLabel", "checks", "schedules", "workflow", "classAuthority", "privateCode")
 # The Flux variables these files read, as placeholders the factory's parser accepts.
 PLACEHOLDERS = {"private_domain_name": "priv.example.test", "identity_provider_url": "https://auth.example.test"}
+
+# The four MergePolicy specs in Maku's charts/agent-factory/templates/merge-policies-catalog.yaml (MR1).
+CATALOG_POLICIES = {
+    "docs-links": {
+        "description": "Link targets in Markdown, nothing else.",
+        "diffShape": "links-only",
+        "modifyOnly": True,
+        "maxModifiedLines": 20,
+        "evidence": "low",
+    },
+    "revert": {
+        "description": "A revert whose diff changes link targets only.",
+        "diffShape": "links-only",
+        "modifyOnly": True,
+        "maxModifiedLines": 20,
+        "evidence": "low",
+    },
+    "deps-patch": {
+        "description": "Renovate patch updates, after their release age.",
+        "author": {"adopt": {"logins": ["renovate[bot]"], "branches": ["^renovate/"]}},
+        "diffShape": "semver-patch",
+        "modifyOnly": True,
+        "maxPatchFiles": 3,
+        "maxModifiedLines": 10,
+        "releaseAgeCheck": "renovate/stability-days",
+        "maxPerDay": 2,
+        "evidence": "low",
+    },
+    "docs": {
+        "description": "Prose in Markdown files, small changes.",
+        "allowedFiles": [r"^.+\.mdx?$"],
+        "maxPatchFiles": 5,
+        "maxModifiedLines": 100,
+        "maxPerDay": 2,
+        "evidence": "standard",
+    },
+}
 
 
 def _docs(path):
@@ -68,10 +107,44 @@ def values(root=ROOT, cloud=None):
     return out
 
 
-def objects(root=ROOT):
-    """The Factory, Repository and MergePolicy objects of the resources directory, unrendered."""
-    d = pathlib.Path(root) / RESOURCES
-    return [doc for f in yaml.safe_load((d / "kustomization.yaml").read_text())["resources"] for doc in _docs(d / f)]
+def chart_catalog(vals):
+    """The MergePolicy specs the chart's templates/merge-policies-catalog.yaml renders from vals."""
+    cat = (vals.get("mergePolicies") or {}).get("catalog") or {}
+    if not cat.get("enabled"):
+        return {}
+    exclude = set(cat.get("exclude") or [])
+    return {k: yaml.safe_load(yaml.safe_dump(v)) for k, v in CATALOG_POLICIES.items() if k not in exclude}
+
+
+def catalog_objects(vals):
+    """The catalog MergePolicy documents, labelled maku.ogenki.io/catalog: 'true' (MR1, MR2)."""
+    return [{
+        "apiVersion": "maku.ogenki.io/v1alpha1",
+        "kind": "MergePolicy",
+        "metadata": {"name": name, "namespace": "agent-system", "labels": {CATALOG_LABEL: "true"}},
+        "spec": spec,
+    } for name, spec in chart_catalog(vals).items()]
+
+
+def objects(root=ROOT, cloud=None, catalog=True):
+    """The Factory, Repository and MergePolicy objects of the resources directory (and the chart's
+    catalog when enabled), unrendered."""
+    root = pathlib.Path(root)
+    d = root / RESOURCES
+    objs = [doc for f in yaml.safe_load((d / "kustomization.yaml").read_text())["resources"] for doc in _docs(d / f)]
+    if cloud:
+        cd = root / f"tooling/{cloud}/agent-factory/resources"
+        k = yaml.safe_load((cd / "kustomization.yaml").read_text()) if (cd / "kustomization.yaml").is_file() else {}
+        for p in k.get("patches") or []:
+            if isinstance(p, dict) and p.get("path") and (cd / p["path"]).is_file():
+                for patch in _docs(cd / p["path"]):
+                    for i, o in enumerate(objs):
+                        if o.get("kind") == patch.get("kind") and o["metadata"]["name"] == patch["metadata"]["name"]:
+                            objs[i] = _merge(o, patch)
+    if catalog:
+        have = {o["metadata"]["name"] for o in objs if o.get("kind") == "MergePolicy"}
+        objs += [o for o in catalog_objects(values(root, cloud)) if o["metadata"]["name"] not in have]
+    return objs
 
 
 # Reusable merge policies, the B4 table: how a class-shape MergePolicy and one Repository's binding
@@ -165,17 +238,22 @@ def assemble(cfg, objs, defaults=True):
                 m[k] = v
     mps = [o for o in objs if o["kind"] == "MergePolicy"]
     classes = {o["metadata"]["name"]: o["spec"] for o in mps}
+    catalog_names = [o["metadata"]["name"] for o in mps
+                     if ((o.get("metadata") or {}).get("labels") or {}).get(CATALOG_LABEL) == "true"]
     repos = sorted((o for o in objs if o["kind"] == "Repository"), key=lambda o: o["metadata"]["name"])
     listed = list(m.get("repositories") or [])
     for r in repos:
         entry = {"name": r["spec"]["repository"]}
         entry.update({k: r["spec"][k] for k in REPOSITORY_KEYS if k in r["spec"]})
-        if "merge" in r["spec"] or "mergePolicies" in r["spec"]:
-            # Bound (B2, B3): the Repository's own merge over the defaults, and each binding resolved.
-            # Maku v0.48.0 removed the per-repository MergePolicy: a binding is the only shape.
+        if "merge" in r["spec"] or "mergePolicies" in r["spec"] or catalog_names:
+            # Bound (B2, B3, MR2): the Repository's own merge over the defaults, each binding resolved,
+            # and every unbound catalog policy evaluated in shadow.
             entry["merge"] = merge_settings(m.get("mergeDefaults"), r["spec"].get("merge"))
+            bindings = list(r["spec"].get("mergePolicies") or [])
+            bound = {b["name"] for b in bindings}
+            bindings += [{"name": name, "mode": "shadow"} for name in catalog_names if name not in bound]
             entry["classes"] = {b["name"]: resolve(classes.get(b["name"]), b, entry["merge"], m.get("mergeGuardrails"), b["name"], defaults)
-                                for b in r["spec"].get("mergePolicies") or [] if b["name"] in classes}
+                                for b in bindings if b["name"] in classes}
         listed.append(entry)
     m["repositories"] = listed
     return m
@@ -183,7 +261,7 @@ def assemble(cfg, objs, defaults=True):
 
 def config(root=ROOT, cloud=None, defaults=True):
     """The factory's config as it reads it: the file's `config:` with the objects laid over it."""
-    return assemble(values(root, cloud)["config"], objects(root), defaults)
+    return assemble(values(root, cloud)["config"], objects(root, cloud), defaults)
 
 
 def substitute(text, cloud):
@@ -200,8 +278,12 @@ def substitute(text, cloud):
 def render(cloud, manifests, out):
     out = pathlib.Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "config.yaml").write_text(substitute(yaml.safe_dump(values(ROOT, cloud)["config"], allow_unicode=True), cloud))
-    (out / "manifests.yaml").write_text(substitute(pathlib.Path(manifests).read_text(), cloud))
+    vals = values(ROOT, cloud)
+    (out / "config.yaml").write_text(substitute(yaml.safe_dump(vals["config"], allow_unicode=True), cloud))
+    docs = _docs(pathlib.Path(manifests))
+    have = {d["metadata"]["name"] for d in docs if d.get("kind") == "MergePolicy"}
+    docs += [o for o in catalog_objects(vals) if o["metadata"]["name"] not in have]
+    (out / "manifests.yaml").write_text(substitute(yaml.safe_dump_all(docs, allow_unicode=True), cloud))
 
 
 if __name__ == "__main__":

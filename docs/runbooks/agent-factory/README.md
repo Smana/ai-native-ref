@@ -146,7 +146,7 @@ Expected: `refs/heads/main`; both `Ready=True`, `Suspended=False`.
 | 1 | OpenBao policy `agents-secrets` + JWT role `agents-secrets` on `jwt/<cluster>` — applied by the `opentofu/$CLOUD/openbao/management` stack | `agent-secrets` → `agent-router`, `model-gateway`, `agent-factory` (runbooks 04, 07) | see below |
 | 2 | The agents' Z.ai key | runbook 04 (frontier route), 07 | `bao kv put -mount=agents zai api_key=-` (key on stdin, never as an argument) |
 | 2b | The agents' Anthropic key, read by the ExternalSecret `agents-anthropic-api-key` | the internal tier on Claude (agentgateway's Anthropic backend) | `bao kv put -mount=agents anthropic api_key=-` |
-| 2c | The agents' own Kimi Code and Mistral keys (feature 15), each capped on its console: Mistral's spend cap (pay-as-you-go, $20; billing active first), and Kimi Code's flat-rate plan as its cap. Moonshot processes in China and Mistral in the EU, so both serve public data only | the selectable `kimi-frontier`, `mistral-standard`, `mistral-light` aliases, switched on per class with `loops.<class>.models` | `bao kv put -mount=agents moonshot api_key=-` and `bao kv put -mount=agents mistral api_key=-` |
+| 2c | The agents' own Kimi Code and Mistral keys (feature 15), each capped on its console: Mistral's spend cap (pay-as-you-go, $20; billing active first), and Kimi Code's flat-rate plan as its cap. Moonshot processes in China and Mistral in the EU, so both serve public data only | the selectable `kimi-frontier`, `mistral-standard`, `mistral-light` aliases, switched on per workflow with `workflows.<name>.models` | `bao kv put -mount=agents moonshot api_key=-` and `bao kv put -mount=agents mistral api_key=-` |
 | 3 | Branch ruleset, **before** the App exists | the agents' App confined to `agent/**` | `task ops:github:agent-branch-ruleset -- Smana/cloud-native-ref` |
 | 4 | GitHub App `ogenki-agents` on `Smana`, installed on `Smana/cloud-native-ref` only; the factory mints each run's token from it (`agent-factory-agents-app`) | runbook 07 | `bao kv put -mount=agents github-app app_id=<id> private_key=@<pem file>` |
 | 4b | The `factory-app` GitHub App key, read by SP3's ExternalSecret `agent-factory-github` | the `agent-factory` Kustomization | `bao kv put -mount=agents factory-app app_id=<id> private_key=@<pem file>` |
@@ -206,30 +206,29 @@ cloud-native-ref's `main`: the umbrellas and the source go back to `suspend: tru
 reconciling without removing anything, so follow the cluster README's Teardown for the children.
 Destroying the cluster is a separate owner call.
 
-## v3 loop and sandbox layers on the `docs` class
+## v3 loop and sandbox layers on the `careful` and `standard` workflows
 
-v3 features are switched on for the `docs` class one at a time, one commit each in
-`tooling/base/agent-factory/resources/factory.yaml`, so a failure is attributable. Prove them in this
-order; the next layer waits for the previous one's proofs. Layers 1 to 4 and the splitter's `scripts` row
-are on in the source; `testFirst` (layer 6) is a session switch, off. The class is
-declared by both repositories, so each switch reads for `Smana/ai-native-ref` and
-`Smana/cloud-native-ref`; the drills below file on ai-native-ref unless said otherwise. Each issue is
-public. A maintainer labels it `class:docs` first (without the label the task's class is `review`, which
-reads `default`'s row, off), then `factory/ready`.
+v3 features live on the shipped workflows (`workflows.careful` and `workflows.standard` in
+`tooling/base/agent-factory/resources/factory.yaml`, and Maku's shipped `loops.careful` row). Prove them in this
+order; the next layer waits for the previous one's proofs. Layers 1 to 4 are on in the shipped `careful`
+and `standard` workflows; the splitter (layer 5) and `testFirst` (layer 6) are session switches, off.
+The drills below file on ai-native-ref unless said otherwise. Each issue is
+public. A maintainer labels it `workflow:careful` first for layers 1, 2, 4 and 5 (without the label the
+repository's `workflow.default: standard` runs), then `factory/ready`.
 
 The drills' issue texts live on the operator's machine (`~/.cache/v3/drills/`), not here: the agents
 read this README, and an agent that recognises a drill ("this task is the repository's own Drill E")
 answers the drill rather than the issue. This page keeps each drill's
 name, purpose and expected outcome; reword a drill's text before it runs again.
 
-| Layer | Switch (`loops.docs`, or `classes.docs` per repository) | Design |
+| Layer | Switch (`loops.careful`, `workflows.*`, or `Repository.spec.workflow`) | Design |
 |---|---|---|
-| 1. Scoper | `scope: scoper` | [scoper](../../superpowers/specs/2026-10-22-scoper-design.md#gate) |
-| 2. Loop policy | `stallSteps: 60`, `continuations: 2`, `judge: tier-light` | [loops](../../superpowers/specs/2026-10-21-loops-and-teams-design.md), [harness reference](../../../website/content/docs/operate/tune-a-run.md#loop-policy) |
-| 3. Sandbox checks | `checks: true` | [sandbox checks](../../superpowers/specs/2026-10-22-sandbox-checks-design.md#gate) |
-| 4. Search tool (used live once; SQ5a open) | `search: true` | [search tool](../../superpowers/specs/2026-10-23-search-tool-design.md) |
-| 5. Splitter (`scripts`) | `split: {…}` | [splitter](../../superpowers/specs/2026-10-23-splitter-design.md) |
-| 6. Test-first tester (`scripts`) | `testFirst: true` | [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) |
+| 1. Scoper | `scope: scoper` on `loops.careful` (`workflow:careful`) | [scoper](../../superpowers/specs/2026-10-22-scoper-design.md#gate) |
+| 2. Loop policy | `stallSteps: 60`, `continuations: 2`, `judge: tier-light` on `loops.careful` (`workflow:careful`) | [loops](../../superpowers/specs/2026-10-21-loops-and-teams-design.md), [harness reference](../../../website/content/docs/operate/tune-a-run.md#loop-policy) |
+| 3. Sandbox checks | `checks: true` on `workflows.standard` and `workflows.careful` | [sandbox checks](../../superpowers/specs/2026-10-22-sandbox-checks-design.md#gate) |
+| 4. Search tool (used live once; SQ5a open) | `search: true` on `loops.careful` (`workflow:careful`) | [search tool](../../superpowers/specs/2026-10-23-search-tool-design.md) |
+| 5. Splitter | `split: {…}` on `loops.careful` (`workflow:careful`) | [splitter](../../superpowers/specs/2026-10-23-splitter-design.md) |
+| 6. Test-first tester | `Repository.spec.workflow.testFirst: true` on `cloud-native-ref` | [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) |
 
 Before layer 1: the run-controller's `AgentRun` carries `spec.loop` (`search`, `checks`,
 `stallSteps`, `continuations`, `judgeModel`), as every `maku.ogenki.io` release does, and `scripts/ops/k8s/gcp-0-platform-gates.sh`
@@ -237,15 +236,15 @@ passes. Read a task with `kubectl -n agent-system get task <name> -o yaml`.
 
 ### Layer 1: the scoper
 
-The factory runs a read-only triager first. Under `scope: scoper` it either scopes the issue (the scope
+The factory runs a read-only triager first when the workflow's loop row sets `scope: scoper` (`workflow:careful`). It either scopes the issue (the scope
 reaches the room and the implementer's brief) or asks its author the one question it cannot answer.
 
 | # | Do | Expected reading |
 |---|---|---|
-| 1 | File drill issue A below; a maintainer applies `class:docs`, then `factory/ready` | A triager run, then an implementer. `status.scope` on the task is `ready` and holds the scope; the room shows the same scope; the implementer's brief holds it; `spec.scopeMode` is `scoper` |
-| 2 | File drill issue B below and label it | One comment on the issue (the question, the assumption it would make), the label `factory/needs-author`, the task `Escalated` with reason `needs_author`, no implementer run |
+| 1 | File drill issue A below; a maintainer applies `workflow:careful`, then `factory/ready` | A triager run, then an implementer. `status.scope` on the task is `ready` and holds the scope; the room shows the same scope; the implementer's brief holds it; `spec.scopeMode` is `scoper` |
+| 2 | File drill issue B below and label it `workflow:careful`, then `factory/ready` | One comment on the issue (the question, the assumption it would make), the label `factory/needs-author`, the task `Escalated` with reason `needs_author`, no implementer run |
 | 3 | Edit issue B's body to add the acceptance check, then re-apply `factory/ready` | A new task (a new generation) scopes `ready`; the first one is superseded |
-| 4 | File drill issue B again as a new issue, label it, then comment `/factory retry` | The implementer starts on the assumption (`status.scope` `assumed`), no second scoper run, the label is removed |
+| 4 | File drill issue B again as a new issue, label it `workflow:careful` and `factory/ready`, then comment `/factory retry` | The implementer starts on the assumption (`status.scope` `assumed`), no second scoper run, the label is removed |
 | 5 | Read the counters | `maku_factory_scoper_runs_total` and `maku_factory_scope_bounces_total` carry one outcome per run above |
 
 Steering (live proof 3) needs a note at `.github/agent-factory/steering/docs.md` on the target's default
@@ -266,21 +265,21 @@ Text: `~/.cache/v3/drills/drill-b.md`, on the operator's machine, never in a rep
 Prerequisites: layer 1's proofs passed (the judge reads the scope's checks). Since R3 the run-controller
 gives a run with a judge a second model token for the judge's alias (`JUDGE_API_KEY_FILE`), and refuses to
 start a run whose judge alias its listener does not serve; the identity proxy's `/judge/v1` is gone.
-The row reads `docs: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}`.
-The factory copies it into every implementer run of the class: `kubectl -n agent-system get task <name> -o
+The shipped `careful` row reads `careful: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}`.
+The factory copies it into every implementer run of `workflow:careful`: `kubectl -n agent-system get task <name> -o
 jsonpath='{.spec.loop}'` shows `stallSteps`, `continuations` and `judgeModel`.
 
 | # | Do | Expected reading |
 |---|---|---|
-| 1 | In a commit of the session, set `loops.docs.stallSteps` to 20 for this drill. File drill issue C (a stall drill) and label it as in layer 1 | The implementer ends with no commit by step 20: the task is `Escalated`, reason `stalled`; the room holds the run's findings as a note; the issue carries the fixed narration with the reason category only; `maku_factory_loop_runs_total{end="stalled"}` is 1. The run's cost stays under the tier's `runUSD` |
-| 2 | File drill issue D (a clear issue whose first attempt misses a check) and label it | After the first run ends on its own, the judge answers `not_yet` against the scope's checks; the same conversation continues (the room shows one run's conversation, not a restart), at most twice |
+| 1 | In a commit of the session, set `loops.careful.stallSteps` to 20 for this drill. File drill issue C (a stall drill) and label it `workflow:careful`, then `factory/ready` | The implementer ends with no commit by step 20: the task is `Escalated`, reason `stalled`; the room holds the run's findings as a note; the issue carries the fixed narration with the reason category only; `maku_factory_loop_runs_total{end="stalled"}` is 1. The run's cost stays under the tier's `runUSD` |
+| 2 | File drill issue D (a clear issue whose first attempt misses a check) and label it `workflow:careful`, then `factory/ready` | After the first run ends on its own, the judge answers `not_yet` against the scope's checks; the same conversation continues (the room shows one run's conversation, not a restart), at most twice |
 | 3 | On step 2's task, read the cache | `cache_read` over `input` for the continued steps is high (runbook 04, Part E); a continuation that restarted the conversation reads as a cold prefix |
-| 4 | An issue whose acceptance cannot be met (drill E) | The judge answers `impossible`: `Escalated`, reason `judge_impossible`, the judge's text only in the room, the issue carries the category only |
+| 4 | An issue whose acceptance cannot be met (drill E), labelled `workflow:careful` | The judge answers `impossible`: `Escalated`, reason `judge_impossible`, the judge's text only in the room, the issue carries the category only |
 | 5 | Read the reviewer's role in the room on any of the runs above | The reviewer's brief and calls hold no implementer transcript |
 | 6 | Read the counters | `maku_factory_loop_runs_total` by `end` (`finished`, `stalled`, `not_met`, `judge_impossible`) matches the runs above |
 
-After the drill, put `stallSteps` back to 60 (a real docs run takes 15 to 40 steps before its first
-commit; do not go under about 50), then set it from the accepted runs' step counts.
+After the drill, remove the `loops.careful` override (a real docs run takes 15 to 40 steps before its first
+commit; do not go under about 50), so Maku's shipped `stallSteps: 60` is back in force.
 
 **Drill C, a stall** (a task that sends the run searching without ever committing):
 
@@ -300,8 +299,8 @@ Text: `~/.cache/v3/drills/drill-e.md`, on the operator's machine, never in a rep
 
 ### Layer 3: the sandbox checks
 
-Both repositories carry `docs: {checks: true}` (egress `[pypi]` on cloud-native-ref, `[golang, pypi]`
-on ai-native-ref). Prerequisites: each repository's `.github/agent-checks.yaml` is on its default branch
+`workflows.standard` and `workflows.careful` carry `checks: true` (egress `[pypi]` on cloud-native-ref, `[golang, pypi]`
+on ai-native-ref; a repository without `.github/agent-checks.yaml` is a no-op). Prerequisites: each repository's `.github/agent-checks.yaml` is on its default branch
 (`gh api repos/<repo>/contents/.github/agent-checks.yaml`), and `internal` runs never get
 `spec.loop.checks`: the `AgentRun` refuses the combination, and the factory sets it on public implementer
 and reviewer runs only. Watch the egress during every step: the egress proxy's refusals
@@ -309,15 +308,14 @@ and reviewer runs only. Watch the egress during every step: the egress proxy's r
 
 | # | Do | Expected reading |
 |---|---|---|
-| 1 | File drill issue F on ai-native-ref, label it as in layer 1 | The implementer's run has `spec.loop.checks` true (`kubectl -n agents get agentruns.maku.ogenki.io -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.checks}'`), the toolchain installs through the egress proxy, and the proxy refuses no declared host |
+| 1 | File drill issue F on ai-native-ref, label it `factory/ready` (`workflow.default: standard`) | The implementer's run has `spec.loop.checks` true (`kubectl -n agents get agentruns.maku.ogenki.io -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.checks}'`), the toolchain installs through the egress proxy, and the proxy refuses no declared host |
 | 2 | Read the run's checks note in the room | Each step of ai-native-ref's `agent-checks.yaml` ends `pass` or `skip`; the result matches offline proof 4's on `main` |
 | 3 | The same for drill issue G on cloud-native-ref | The same, with the host's steps (`overlay`, `suites`, `shellcheck`, `links`, `pre-commit`) |
 | 4 | Read each drill's first pushed head | The seeded defect was reported before the push; the first head's CI is green; `status.fixRuns` is 0 on the task (`kubectl -n agent-system get task <name> -o jsonpath='{.status.fixRuns}'`) |
-| 5 | After a few real `docs` issues, compare each final head | The sandbox's step results agree with the CI's check conclusions on at least 90% of final heads; explain each miss |
+| 5 | After a few real `standard` issues, compare each final head | The sandbox's step results agree with the CI's check conclusions on at least 90% of final heads; explain each miss |
 
 The drills' seeded defect is a broken relative Markdown link, caught by the `links` step of both
-repositories. The host's `shellcheck` step needs a script change, outside the `docs` class: prove it
-under a `scripts` class switch in a later session.
+repositories.
 
 **Drill F, a seeded defect on ai-native-ref:**
 
@@ -332,16 +330,16 @@ and the pushed head carries the corrected link.
 
 ### Layer 4: the search tool
 
-`docs: {…, search: true}` offers the class's implementer runs the search tool (a read-only child on the
+`loops.careful` (`{…, search: true}`) offers `workflow:careful`'s implementer runs the search tool (a read-only child on the
 run's token: 40 iterations, 300k tokens, 300 s, six calls a run). It never switches the loop on. Design:
 [search tool](../../superpowers/specs/2026-10-23-search-tool-design.md) (live proofs, SQ5). Prerequisite:
 layers 1 and 2 passed, so a difference between the arms is the tool's alone.
 
 | # | Do | Expected reading |
 |---|---|---|
-| 1 | File drill issues H1 to H3 below, label each as in layer 1 | The task has `spec.search: true`, every implementer run `spec.loop.search: true` (`kubectl -n agents get agentruns.maku.ogenki.io -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.search}'`), the run calls the search tool at least once, the gateway's log shows the child's calls under the run's identity |
+| 1 | File drill issues H1 to H3 below, label each `workflow:careful`, then `factory/ready` | The task has `spec.search: true`, every implementer run `spec.loop.search: true` (`kubectl -n agents get agentruns.maku.ogenki.io -l agents.ogenki.io/task=<task> -o jsonpath='{.items[*].spec.loop.search}'`), the run calls the search tool at least once, the gateway's log shows the child's calls under the run's identity |
 | 2 | Read the ledger of each run | The child's tokens are inside the run's; `budget` and `error` outcomes are under a quarter of the calls |
-| 3 | Paired gate (SQ5a): flip `search` to `false` in a commit, file the same three issues again as new issues, then flip it back | Acceptance not lower over the pairs; steps per run (children included) and cost per accepted PR not higher with search on |
+| 3 | Paired gate (SQ5a): flip `loops.careful.search` to `false` in a commit, file the same three issues again as new issues with `workflow:careful`, then remove the override | Acceptance not lower over the pairs; steps per run (children included) and cost per accepted PR not higher with search on |
 
 **Drill H1, a multi-file lookup** (the answer is spread over several files, so searching beats reading):
 
@@ -355,17 +353,17 @@ Text: `~/.cache/v3/drills/drill-h2.md`, on the operator's machine, never in a re
 
 Text: `~/.cache/v3/drills/drill-h3.md`, on the operator's machine, never in a repository the agents read.
 
-Cost: six runs for the three pairs, each capped by the docs tier's task cap (standard: $5.10); a docs
+Cost: six runs for the three pairs, each capped by the workflow's task cap; a docs
 run costs about $0.50 to $1.50 and a search adds at most the child's 300k tokens, so the layer is
-about $5 expected and $31 at the caps, inside `tasksPerDay: 20` and `factoryDailyUSD: 42.50`.
+about $5 expected and inside `tasksPerDay: 20` and `factoryDailyUSD: 42.50`.
 
 ### Layer 5: the splitter
 
-`scripts: {scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}}` lets the
-scoper propose a split of a hard `scripts` task; nothing splits before a maintainer comments `/factory
+`careful: {scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}}` lets the
+scoper propose a split of a hard `workflow:careful` task; nothing splits before a maintainer comments `/factory
 split`. The proofs are [runbook 17](17-splitter.md) section 3. Prerequisites: layer 1 passed (the split
 needs the scoper), the factory App holds `issues: write`. File the cohort on cloud-native-ref, label each
-`class:scripts` then `factory/ready` (without `class:scripts` the task's class is `review`, off).
+`workflow:careful` then `factory/ready`.
 
 **Drill S1, a hard issue of three separable parts:**
 
@@ -384,10 +382,10 @@ $1 to $2).
 ### Layer 6: the test-first tester
 
 Design: [test-first tester](../../superpowers/specs/2026-10-22-test-first-tester-design.md) (TF1, TO4).
-The switch is `repositories[].classes.scripts.testFirst: true` on cloud-native-ref only (TO4: none on
+The switch is `Repository.spec.workflow.testFirst: true` on `cloud-native-ref` only (TO4: none on
 ai-native-ref, whose tests live under the gate path `scripts/ci/`), with `merge: {contractCheck: "Test
 contract 🧪"}`. A session commit sets it, the session's last commit reverts it. The drills run on
-cloud-native-ref with `class:scripts` then `factory/ready`; [runbook 21](21-test-first-tester.md) holds
+cloud-native-ref with `factory/ready`; [runbook 21](21-test-first-tester.md) holds
 the steps. Proofs: the tester runs first and commits a test that fails on the base; `status.contract`
 holds `{runId, commit, files, ids}`; the implementer's pull request passes "Test contract 🧪"; the gate
 reads `contract_modified` if the implementer edits a contract file.

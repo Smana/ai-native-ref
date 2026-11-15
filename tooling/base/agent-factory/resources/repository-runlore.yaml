@@ -11,6 +11,8 @@ spec:
   repository: Smana/runlore
   maintainers: [Smana]
   triggerLabel: factory/ready
+  workflow:
+    default: standard
   merge:
     # RunLore's only required check is `build`, so it is the holdout of each class and the one check
     # the merge and its verification wait on.

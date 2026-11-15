@@ -9,7 +9,6 @@ metadata:
   name: kb-entries
   namespace: agent-system
 spec:
-  requires: [allowedFiles, companionFiles, requiredLabel]
   author: {adopt: {logins: ["runlore[bot]"], branches: ["^runlore/kb-"]}}
   diffShape: added-entry
   holdoutChecks: [validate]

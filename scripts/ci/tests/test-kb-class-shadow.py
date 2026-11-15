@@ -34,7 +34,7 @@ check("runlore[bot]'s labelled PRs only", c["author"]["adopt"] == {"logins": ["r
       and c["requiredLabel"] == "ready-to-merge")
 check("the validator holds", c["holdoutChecks"] == ["validate"])
 check("five a day at most", c["maxPerDay"] == 5)
-check("the classes the factory requires, all shadow", set(kb["classes"]) == {"kb-entries", "docs-links", "revert"}
+check("the classes the factory requires, all shadow", set(kb["classes"]) == {"kb-entries", "docs-links", "revert", "docs"}
       and all(cl.get("shadow") is True and "live" not in cl for cl in kb["classes"].values()))
 m = kb["merge"]
 check("the merge block the factory's validation needs",

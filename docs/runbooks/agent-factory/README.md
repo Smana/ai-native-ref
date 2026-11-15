@@ -7,7 +7,7 @@ every step names its expected output. A **room** is the per-task workspace the r
 ## State
 
 The factory runs on gcp-0 (the ownership fence names `gcp-0`); aws-0's children stay in the source for a
-rebuild. `main` pins Maku v0.48.0 for every component (CRD group `maku.ogenki.io`, from the
+rebuild. The Maku version this platform pins is on the [status page](https://airef.ogenki.io/docs/status/) (every component, CRD group `maku.ogenki.io`, from the
 `agent-factory-crds` release). Since R3 (2026-11-14) runs are `maku.ogenki.io` AgentRuns named `run-<id>`
 in `agents`, run by Maku's run-controller in the `room-broker` release: gVisor pods behind a
 NetworkPolicy and the egress proxy, a runs quota (no Kueue), a git token the factory mints per run (no

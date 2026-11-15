@@ -25,7 +25,7 @@ Measured run costs, cache read shares and acceptance figures live in the
 
 ```mermaid
 flowchart LR
-  issue["Issue labelled<br/>factory/ready"] --> factory["Agent Factory"]
+  issue["Issue labelled<br/>factory/ready"] --> factory["Factory"]
   factory --> run["Agent run<br/>gVisor sandbox, own identity"]
   factory --> room["Room<br/>watch · steer · approve"]
   human(["Maintainer"]) <--> room

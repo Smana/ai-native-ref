@@ -3,11 +3,11 @@ title: User guide
 aliases:
   - /docs/platform/ai-platform/agents/use/user-guide/
 weight: 10
-description: "Hand work to the Agent Factory from Slack, your coding agent or a GitHub issue, follow it, answer what it needs, and merge its pull request."
+description: "Hand work to the factory from Slack, your coding agent or a GitHub issue, follow it, answer what it needs, and merge its pull request."
 lastVerified: 2026-11-08
 ---
 
-Hand the Agent Factory a small, well-defined fix, and an AI agent turns it into a reviewed pull request
+Hand Maku a small, well-defined fix, and an AI agent turns it into a reviewed pull request
 while you keep working. This guide shows you how, from three places: a Slack thread, your coding agent,
 or a GitHub issue with a label.
 

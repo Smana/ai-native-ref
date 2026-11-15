@@ -1,7 +1,7 @@
 ---
 title: "Cheat sheet"
 weight: 20
-description: "Every label, comment command, Slack phrase, coding-agent tool and maku command of the Agent Factory on one page."
+description: "Every label, comment command, Slack phrase, coding-agent tool and maku command on one page."
 ---
 
 Every way to talk to the factory, on one page. Labels and comments go on the GitHub issue unless the

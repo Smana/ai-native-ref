@@ -6,7 +6,7 @@ using the platform, who was not at any of our sessions.
 
 `task docs` runs [`scripts/ci/check-reader-first.py`](../scripts/ci/check-reader-first.py) and
 [`scripts/ci/check-site-contract.py`](../scripts/ci/check-site-contract.py), which enforce rules 1,
-4 and 5 and hold the site's pins (see [The gate](#the-gate)).
+4, 5 and 18 and hold the site's pins (see [The gate](#the-gate)).
 
 ## The rules
 
@@ -133,11 +133,12 @@ shape, and fold a long chain into subgraphs, so the diagram reads at the page's 
 - Bad: `flowchart LR` with nine nodes in one row, rendered as a thin strip.
 - Good: `flowchart TB` with three subgraphs of three nodes each.
 
-**18. Agent Factory is the product; Maku is its controller.** Name Maku only when you mean that
-project's components (`maku-factory`, the broker, the `maku` CLI).
+**18. Maku is the product.** Name a component (the factory, a room, the model gateway) when you
+mean that part; `agent-router` appears in manifests and paths only. "Agent Factory" survives only in
+the release names `Agent Factory v1` to `v3`.
 
-- Bad: "Maku opened a pull request for your issue."
-- Good: "The Agent Factory opened a pull request for your issue."
+- Bad: "The Agent Factory opened a pull request for your issue."
+- Good: "Maku opened a pull request for your issue."
 
 ## The gate
 
@@ -158,5 +159,7 @@ off the site (rule 6), or label it as an example (rule 8). Do not add an allowli
 
 [`scripts/ci/check-site-contract.py`](../scripts/ci/check-site-contract.py) also runs in `task docs`.
 It holds `params.makuVersion` in `website/hugo.yaml` equal to the image tag in
-`tooling/base/agent-factory/helm-values-configmap.yaml`, and `activeCluster` on `status.md` equal to
-`factory` in `.github/agent-factory.yaml`.
+`tooling/base/agent-factory/helm-values-configmap.yaml`, `activeCluster` on `status.md` equal to
+`factory` in `.github/agent-factory.yaml`, refuses "Agent Factory" unless it matches
+`Agent Factory v[0-3]` (outside `decisions/`), and refuses Maku version literals or versioned Maku
+URLs outside `status.md` and `decisions/`.

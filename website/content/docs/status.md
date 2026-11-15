@@ -20,9 +20,9 @@ its run-controller, the harness and bridge, the factory, the model gateway, the 
 [rebuilding the platform](#rebuild). **Next:** [v3.x releases](#v3x) of this platform; v4.0 is
 [deferred](#v4).
 
-The Agent Factory is a bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, RunLore
-and others). [Maku](https://github.com/Smana/maku) is one of them: the factory controller, the rooms,
+[Maku](https://github.com/Smana/maku) is the product: the factory controller, the rooms,
 the run-controller, the harness and bridge, the model gateway's chart, the Slack app and the `maku` CLI.
+This platform bundles it with agentgateway, OpenHands, gVisor, RunLore and the host's controls.
 
 ```mermaid
 flowchart LR
@@ -95,7 +95,7 @@ it on with one value, per class or per platform.
 
 | Capability | What it does for you | Proven on | Evidence |
 |---|---|---|---|
-| The Agent Factory | A labelled issue becomes a reviewed pull request, built by agents in a gVisor sandbox under their own identity | EKS, GKE | [runbook 07](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/07-end-to-end.md), [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md) |
+| Maku | A labelled issue becomes a reviewed pull request, built by agents in a gVisor sandbox under their own identity | EKS, GKE | [runbook 07](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/07-end-to-end.md), [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md) |
 | Runs on Maku's run-controller | Each run is a gVisor pod with its own model and git tokens, behind a NetworkPolicy and an egress proxy; Maku's model gateway serves runs and the broker's planner. Proven end to end: an issue went through triager, implementer and reviewer runs to a pull request, which the factory's merger merged once it was approved. No Kueue queue and no octo-sts token exchange sit in the path | GKE | [runtime]({{< relref "/docs/how-it-works/runtime.md" >}}), [issue #377](https://github.com/Smana/ai-native-ref/issues/377), [pull request #383](https://github.com/Smana/ai-native-ref/pull/383) |
 | Every component from Maku's releases | The room broker installs from Maku's chart, and the `maku.ogenki.io` CRDs and their shared ClusterRoles from the `agent-factory-crds` release | GKE | [runtime]({{< relref "/docs/how-it-works/runtime.md" >}}) |
 | Attended rooms | Follow, steer and approve a run live; an approval after its deadline is refused | EKS, GKE | [rooms]({{< relref "/docs/how-it-works/rooms.md" >}}) |

@@ -2,9 +2,9 @@
 title: Agents
 aliases:
   - /docs/platform/ai-platform/agents/
-linkTitle: The Agent Factory
+linkTitle: Agents
 weight: 10
-description: "The Agent Factory: autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes end to end."
+description: "Maku on this platform: autonomous coding agents that run sandboxed under their own identity, collaborate with humans in rooms, and ship small changes end to end."
 lastVerified: 2026-11-15
 ---
 
@@ -20,13 +20,13 @@ what is experimental and what comes next are on the
 
 ## What it is
 
-The LLM platform serves models; the Agent Factory puts them to work. A maintainer labels an issue,
+The LLM platform serves models; Maku puts them to work. A maintainer labels an issue,
 and agents (an implementer, then a reviewer) work it on their own branch in a gVisor sandbox. They
 open a pull request, and the factory narrates each step on the issue. Humans steer through GitHub reviews, or by
 joining the agents' room. Only policy-defined low-risk changes merge themselves; everything else
 merges on a maintainer's approval.
 
-The Agent Factory is a bundle of open-source tools: Maku, agentgateway, OpenHands, gVisor, RunLore and others. [Maku](https://github.com/Smana/maku) is one component of it: the factory controller, the rooms, the run-controller, the harness and bridge, the model gateway's chart, the Slack app and the `maku` CLI.
+[Maku](https://github.com/Smana/maku) is the product: the factory controller, the rooms, the run-controller, the harness and bridge, the model gateway's chart, the Slack app and the `maku` CLI. This platform bundles it with agentgateway, OpenHands, gVisor, RunLore and others.
 
 <span id="new-here-the-ideas-in-two-minutes"></span>New to rooms, runs, classes and the merge gate?
 Maku's [glossary]({{< maku "docs/concepts.md#glossary" >}}) defines each term. Which alternatives were
@@ -48,8 +48,8 @@ One task, end to end. A maintainer labels an issue; the factory starts a sandbox
 opens a room; every model call the agent makes goes through the gateway under the run's own identity;
 the agent pushes an `agent/**` branch and opens a PR; a human review decides the merge.
 
-<!-- TODO: redraw agent-factory-overview.drawio: the picture still shows the MCP tools and octo-sts behind the agent gateway. -->
-![The Agent Factory at a glance: one task, end to end. A maintainer labels a GitHub issue. The factory controller, maku-factory, turns the issue into a task, starts an agent run and opens a room on maku-broker. The run is a gVisor sandbox holding the coding agent, OpenHands. The maintainer watches and steers through the room, which exchanges events and steering with the run. Every model call the agent makes goes through the model gateway, agentgateway, with per-run identity and budgets, to the models (Z.ai GLM, Kimi and Mistral for public work, Claude for internal work). With a GitHub token the factory minted for the run, limited to agent/** branches, the agent pushes a branch and opens a PR on GitHub, where the maintainer's review decides the merge. Traces, logs and metrics go to the Victoria stack and Grafana](/images/diagrams/agent-factory-overview.svg)
+<!-- TODO: redraw agent-factory-overview.drawio: the picture still shows the MCP tools and octo-sts behind the model gateway. -->
+![Maku at a glance: one task, end to end. A maintainer labels a GitHub issue. The factory controller, maku-factory, turns the issue into a task, starts an agent run and opens a room on maku-broker. The run is a gVisor sandbox holding the coding agent, OpenHands. The maintainer watches and steers through the room, which exchanges events and steering with the run. Every model call the agent makes goes through the model gateway, agentgateway, with per-run identity and budgets, to the models (Z.ai GLM, Kimi and Mistral for public work, Claude for internal work). With a GitHub token the factory minted for the run, limited to agent/** branches, the agent pushes a branch and opens a PR on GitHub, where the maintainer's review decides the merge. Traces, logs and metrics go to the Victoria stack and Grafana](/images/diagrams/agent-factory-overview.svg)
 
 *Source: [`docs/architecture/agent-factory-overview.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/agent-factory-overview.drawio).*
 

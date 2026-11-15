@@ -6,14 +6,32 @@ Rules checked here:
   tooling/base/agent-factory/helm-values-configmap.yaml.
 - active cluster: activeCluster (and any Active: <cluster> line) on
   website/content/docs/status.md equals factory in .github/agent-factory.yaml.
+- product name: "Agent Factory" outside release names (Agent Factory v0..v3) is
+  refused outside decisions/.
+- maku version: a Maku version literal or versioned Maku GitHub URL is refused
+  outside status.md and decisions/.
 
   python3 scripts/ci/check-site-contract.py [ROOT]
 
 Exit 0: no finding. Exit 1: each finding is printed as file:line: <rule>: <match>.
 """
+import importlib.util
 import pathlib
 import re
 import sys
+
+
+def _load_reader_first():
+    path = pathlib.Path(__file__).with_name("check-reader-first.py")
+    spec = importlib.util.spec_from_file_location("check_reader_first", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+reader_first = _load_reader_first()
 
 HUGO_CONFIG = pathlib.PurePosixPath("website/hugo.yaml")
 HELM_VALUES = pathlib.PurePosixPath("tooling/base/agent-factory/helm-values-configmap.yaml")
@@ -25,7 +43,37 @@ MAKU_VERSION_RE = re.compile(r'^\s*makuVersion:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$
 FENCE_RE = re.compile(r'^\s*factory:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$', re.M)
 ACTIVE_CLUSTER_FM_RE = re.compile(r'^\s*activeCluster:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$')
 ACTIVE_CLUSTER_BODY_RE = re.compile(r'^\s*(?:\*\*)?Active:(?:\*\*)?\s*`?((?:aws|gcp)-[0-9]+)`?\b')
-FENCE_BLOCK_RE = re.compile(r"^\s*(```|~~~)")
+
+PRODUCT_NAME_RE = re.compile(r"Agent Factory(?! \[?v[0-3]\b)")
+MAKU_VERSION_TEXT_RE = re.compile(r"Maku v0\.\d+\.\d+")
+MAKU_VERSION_URL_RE = re.compile(r"Smana/maku/(?:blob|tree|releases/tag)/v0\.\d+\.\d+")
+
+
+def split_page(text: str) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
+    """Return (front_matter_lines, body_lines_outside_fences) with 1-based line numbers."""
+    lines = text.splitlines()
+    front: list[tuple[int, str]] = []
+    start = 0
+    if lines and lines[0].strip() == "---":
+        end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), 0)
+        if end:
+            front = [(i + 1, lines[i]) for i in range(1, end)]
+            start = end + 1
+
+    body: list[tuple[int, str]] = []
+    fence_marker = None
+    for idx in range(start, len(lines)):
+        line = lines[idx]
+        fm = reader_first.FENCE.match(line)
+        if fence_marker:
+            if fm and fm.group(1) == fence_marker:
+                fence_marker = None
+            continue
+        if fm:
+            fence_marker = fm.group(1)
+            continue
+        body.append((idx + 1, line))
+    return front, body
 
 
 def check_pin(root: pathlib.Path) -> list[str]:
@@ -64,45 +112,67 @@ def check_active_cluster(root: pathlib.Path) -> list[str]:
     status_path = root / STATUS_PAGE
     got = "<unset>"
     lineno = 1
-    body_start = 0
-    lines: list[str] = []
+    body: list[tuple[int, str]] = []
     if status_path.is_file():
-        lines = status_path.read_text(encoding="utf-8").splitlines()
-        if lines and lines[0].strip() == "---":
-            end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), 0)
-            if end:
-                body_start = end + 1
-                for idx in range(1, end):
-                    am = ACTIVE_CLUSTER_FM_RE.match(lines[idx])
-                    if am:
-                        got = am.group(1)
-                        lineno = idx + 1
-                        break
+        front, body = split_page(status_path.read_text(encoding="utf-8"))
+        for fm_line, text in front:
+            am = ACTIVE_CLUSTER_FM_RE.match(text)
+            if am:
+                got = am.group(1)
+                lineno = fm_line
+                break
 
     findings: list[str] = []
     if got != want:
         findings.append(f"{STATUS_PAGE}:{lineno}: active cluster: {got} != {want}")
 
-    fence_marker = None
-    for idx in range(body_start, len(lines)):
-        line = lines[idx]
-        fm = FENCE_BLOCK_RE.match(line)
-        if fence_marker:
-            if fm and fm.group(1) == fence_marker:
-                fence_marker = None
-            continue
-        if fm:
-            fence_marker = fm.group(1)
-            continue
+    for b_line, line in body:
         bm = ACTIVE_CLUSTER_BODY_RE.match(line)
         if bm and bm.group(1) != want:
-            findings.append(f"{STATUS_PAGE}:{idx + 1}: active cluster: {bm.group(1)} != {want}")
+            findings.append(f"{STATUS_PAGE}:{b_line}: active cluster: {bm.group(1)} != {want}")
+    return findings
+
+
+def _scan_page_vocabulary(rel_display: str, text: str, *, skip_version: bool) -> list[str]:
+    _, body = split_page(text)
+    findings: list[str] = []
+    for lineno, line in body:
+        clean = reader_first.unexempt(line)
+        for hit in PRODUCT_NAME_RE.finditer(clean):
+            findings.append(f"{rel_display}:{lineno}: product name: {hit.group(0)}")
+        if not skip_version:
+            for hit in MAKU_VERSION_TEXT_RE.finditer(clean):
+                findings.append(f"{rel_display}:{lineno}: maku version: {hit.group(0)}")
+            for hit in MAKU_VERSION_URL_RE.finditer(line):
+                findings.append(f"{rel_display}:{lineno}: maku version: {hit.group(0)}")
+    return findings
+
+
+def check_vocabulary(root: pathlib.Path) -> list[str]:
+    findings: list[str] = []
+    readme = root / "README.md"
+    if readme.is_file():
+        findings.extend(_scan_page_vocabulary("README.md", readme.read_text(encoding="utf-8"), skip_version=False))
+
+    docs = root / reader_first.DOCS
+    if docs.is_dir():
+        for page in sorted(docs.rglob("*.md")):
+            rel = page.relative_to(docs).as_posix()
+            if rel == "decisions" or rel.startswith("decisions/"):
+                continue
+            findings.extend(
+                _scan_page_vocabulary(
+                    f"{reader_first.DOCS}/{rel}",
+                    page.read_text(encoding="utf-8"),
+                    skip_version=(rel == "status.md"),
+                )
+            )
     return findings
 
 
 def main(argv: list[str]) -> int:
     root = pathlib.Path(argv[1] if len(argv) > 1 else pathlib.Path(__file__).resolve().parents[2])
-    findings = check_pin(root) + check_active_cluster(root)
+    findings = check_pin(root) + check_active_cluster(root) + check_vocabulary(root)
     if findings:
         for finding in findings:
             print(finding)

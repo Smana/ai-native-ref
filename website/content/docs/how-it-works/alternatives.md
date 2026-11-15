@@ -3,7 +3,7 @@ title: Alternatives considered
 aliases:
   - /docs/platform/ai-platform/agents/alternatives/
 weight: 100
-description: "Work in progress. The alternatives considered for each layer of the Agent Factory, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
+description: "Work in progress. The alternatives considered for each layer of the agent platform, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
 lastVerified: 2026-11-11
 ---
 
@@ -12,7 +12,7 @@ lastVerified: 2026-11-11
 checked and what would reopen it, and the page grows as new candidates appear.
 {{< /callout >}}
 
-What alternatives did we consider for each layer of the Agent Factory, and why did the current
+What alternatives did we consider for each layer of Maku and this platform, and why did the current
 choices win? A new candidate gets a row in [the table](#decisions-at-a-glance). If it could replace a
 whole layer, it also gets a section under [projects evaluated in detail](#projects-evaluated-in-detail).
 

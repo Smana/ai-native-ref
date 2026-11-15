@@ -32,8 +32,8 @@ import factory_config as factory_resources  # noqa: E402  the Factory, Repositor
 
 # Release N (adds human.mcp.start, deprecates sessionStart) and release N+1 (refuses sessionStart and
 # removes the Slack App's proposals switch). Bump each with the Maku pin in the same commit.
-START_RELEASE = "v9.9.9"
-REMOVAL_RELEASE = "v9.9.9"
+START_RELEASE = (0, 53, 0)
+REMOVAL_RELEASE = (0, 53, 0)
 START_KEYS = {"default", "except"}
 REPO_RE = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
 problems = []
@@ -45,7 +45,7 @@ def check(cond, msg):
 
 
 def version(tag):
-    return tuple(int(n) for n in tag.lstrip("v").split("."))
+    return tag if isinstance(tag, tuple) else tuple(int(n) for n in tag.lstrip("v").split("."))
 
 
 def build(path):

@@ -5,7 +5,7 @@ aliases:
 linkTitle: The merge gate
 weight: 15
 description: "When an agent's pull request merges by itself, when it waits for your approval, and what you do when it hands off to you."
-lastVerified: 2026-10-31
+lastVerified: 2026-11-15
 ---
 
 An agent's pull request either merges by itself or waits for a maintainer. The **merge gate** is the
@@ -55,24 +55,23 @@ flowchart LR
   you --> merger
 ```
 
-## Classes: live, shadow, unarmed {#classes}
+## Classes: live, shadow, disabled {#classes}
 
 A **class** is a kind of change the factory recognises, such as "Markdown link fixes only" or "Renovate
-patch bumps". The factory classifies each task when it arrives. Each repository gives each class one of
-three modes:
+patch bumps", defined by a `MergePolicy` and bound per repository. Each binding sets one of three modes:
 
 | Mode | What the gate does |
 |---|---|
 | **live** | Merges it by itself when every check holds |
 | **shadow** | Decides and records what it would have done, but merges nothing: you approve it |
-| **unarmed** | The class has no mode set. The gate decides nothing: a normal pull request you approve |
+| **disabled** | The gate decides nothing (hands off as `class_unarmed`): a normal pull request you approve |
 
 Shadow is how a class earns trust. Its records show whether the gate would have been right, and the
 class goes live only once they do. Separately, a class can be **monitored**: after each merge, whoever made
 it, the factory watches `main` and the class's checks for a while, and a regression pauses the class ([after a merge]({{< relref "/docs/operate/auto-merge-safety.md#after-a-merge" >}})).
 
 Example (the reference host): `docs-links` allows Markdown link targets only, and nothing else; `docs`
-and `scripts` allow any change, so they stay unarmed and always need your approval.
+and `scripts` allow any change in those areas, so they are bound `disabled` and always need your approval.
 
 ## Why no agent can merge its own work {#merge-gate}
 

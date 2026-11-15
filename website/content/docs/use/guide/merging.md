@@ -64,7 +64,7 @@ again.
 ## The merge policy in the room {#merge-policy}
 
 Every factory room has a **Merge policy** fold. Open it to see the task's class and mode (`live`,
-`shadow` or `unarmed`), the class's conditions, what it takes to merge, and, once there is one, the gate's
+`shadow` or `disabled`), the class's conditions, what it takes to merge, and, once there is one, the gate's
 decision. It is read-only: a repository's policy changes through a pull request.
 
 Maintainers change a class, check a change and promote a shadow class from the **Settings** pages:

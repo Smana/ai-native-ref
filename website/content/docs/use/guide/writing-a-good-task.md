@@ -100,7 +100,7 @@ merges the pull request:
 |---|---|
 | **live** | The merge bot, with no human, when every check holds |
 | **shadow** | You. The gate records what it would have done, to build the class's track record |
-| **unarmed** | You. A normal pull request |
+| **disabled** | You. A normal pull request |
 
 A maintainer can predict the class with a label `class:<name>` on the issue, before `factory/ready`.
 Without one, the task is in class `review`, which never merges on its own. The planner picks the class
@@ -115,6 +115,7 @@ Example (the reference host), the classes and what they cover:
 | `dead-links` | Dead external links, replaced by their archived copy |
 | `deps-patch`, `deps-minor` | Renovate's patch and minor bumps, adopted from Renovate's own pull requests |
 | `alert-rules` | Alerting rules |
+| `kb-entries` | RunLore knowledge-base entries marked `ready-to-merge` |
 | `docs`, `scripts`, `tests`, `dashboards` | Any change in those areas |
 | `review` | Everything else |
 

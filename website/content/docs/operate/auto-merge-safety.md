@@ -3,7 +3,7 @@ title: Run auto-merge safely
 linkTitle: Auto-merge safety
 weight: 15
 description: "Keep the classes that merge by themselves reversible: take a class live, undo a merge, the breaker, drills, recovery, the monitor after a merge, metrics and alerts, and adopting Renovate's pull requests."
-lastVerified: 2026-10-31
+lastVerified: 2026-11-15
 ---
 
 A **live** class merges agent pull requests with no human ([the merge gate]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}})).
@@ -12,12 +12,15 @@ a class that goes wrong, a monitor watches each merge, and alerts tell you when 
 
 ## Take a class live {#go-live}
 
-1. Run the class in **shadow** first: `shadow: true` under `repositories[].classes.<class>`. The gate
-   decides and records each pull request, and merges none.
-2. Read the records. Maku's `shadow-merge-tally.sh` counts them (`--outcomes`) and replays them against
-   the current rules (`--replay`, `--strictness`). Look for decisions that would have merged a bad change.
+1. Bind the policy in **shadow** first under `spec.mergePolicies` in `tooling/base/agent-factory/resources/repository-<name>.yaml` (`mode: shadow`). The gate decides and records each pull request, and merges none.
+2. Read the records on `/settings/merge-policies/<owner>/<repo>` (or with Maku's `shadow-merge-tally.sh`: `--outcomes`, `--replay`, `--strictness`). Look for decisions that would have merged a bad change, and run one `factory/drill` revert ([Promote shadow to live]({{< relref "/docs/use/guide/merge-policies.md#promote" >}})).
 3. Add the class's `low-risk` rule to the repository's `.policy.yml`, so policy-bot passes its pull requests.
-4. Switch the class to `live: true`. Keep its `maxPerDay` low at first.
+4. Change the binding's `mode:` to `live` (keep its `maxPerDay` low at first):
+
+```diff
+-  - {name: dead-links, mode: shadow, allowedFiles: ['^(docs|website/content)/.+\.md$'], oracleWorkflow: dead-links.yaml}
++  - {name: dead-links, mode: live, allowedFiles: ['^(docs|website/content)/.+\.md$'], oracleWorkflow: dead-links.yaml}
+```
 
 ## Undo an auto-merge {#revert}
 

@@ -3,6 +3,7 @@ title: "1. Meet the factory"
 linkTitle: "1. Meet the factory"
 weight: 1
 description: "What Maku does for you, the deal between you and the agents, and its four safety rules."
+diataxis: chapter
 ---
 
 By the end of this chapter you will know what the factory does for you, and the rules it keeps.

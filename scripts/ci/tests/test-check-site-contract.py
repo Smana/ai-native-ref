@@ -58,7 +58,7 @@ def page(rel, body, *, front=None):
         files[f"website/content/docs/{rel}"] = text
 
 
-def run():
+def run(*extra_args):
     files = STATE.pop("files", {})
     with tempfile.TemporaryDirectory() as tmp:
         for rel, text in files.items():
@@ -67,7 +67,7 @@ def run():
             path.write_text(text, encoding="utf-8")
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            code = contract.main(["check-site-contract.py", tmp])
+            code = contract.main(["check-site-contract.py", *extra_args, tmp])
         STATE["code"] = code
         return out.getvalue()
 
@@ -149,6 +149,38 @@ page("status.md", "Maku v0.47.0 and [v0.50.0](https://github.com/Smana/maku/rele
 page("decisions/0001.md", "The Agent Factory, Maku v0.30.0\n")
 out = run()
 check("status.md allows maku version and decisions/ allows both", STATE["code"] == 0, out)
+
+print("word ceilings by diataxis page type")
+page("operate/x.md", "word " * 1300, front="diataxis: how-to")
+out = run()
+check("over ceiling fails", "operate/x.md: ceiling: 1300 words, how-to allows 1200" in out and STATE["code"] == 1, out)
+
+page("reference/x.md", "word " * 501, front="diataxis: values")
+out = run()
+check("values page ceiling is 500", "reference/x.md: ceiling: 501 words, values allows 500" in out and STATE["code"] == 1, out)
+
+page("use/guide/c.md", "word " * 600, front="diataxis: chapter")
+page("how-it-works/e.md", "word " * 1500, front="diataxis: explanation")
+page("get-started/t.md", "word " * 1200, front="diataxis: tutorial")
+out = run()
+check("exact ceiling passes for chapter, explanation, tutorial", "ceiling" not in out and STATE["code"] == 0, out)
+
+page("operate/fenced.md", "word " * 100 + "\n```\n" + "code " * 2000 + "\n```\n", front="diataxis: values")
+out = run()
+check("fenced code and front matter excluded from word count", "ceiling" not in out and STATE["code"] == 0, out)
+
+page("reference/y.md", "word " * 9000, front="diataxis: reference")
+page("use/z.md", "word " * 9000)
+out = run()
+check("reference and untyped pages pass", "ceiling" not in out and STATE["code"] == 0, out)
+
+page("use/w.md", "x", front="diataxis: essay")
+out = run()
+check("unknown diataxis type fails", "use/w.md: ceiling: unknown diataxis: essay" in out and STATE["code"] == 1, out)
+
+page("operate/r.md", "one two three\n", front="diataxis: how-to")
+out = run("--report")
+check("--report prints word count and exits 0", "3" in out and "operate/r.md" in out and STATE["code"] == 0, out)
 
 print()
 if FAILURES:

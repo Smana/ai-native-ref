@@ -5,6 +5,7 @@ aliases:
 weight: 30
 description: "The shared, append-only log of a task: the broker, the bridge, the web view, steering, room tools, approvals, and maku."
 lastVerified: 2026-10-31
+diataxis: explanation
 ---
 
 A room is the shared, append-only log of a task: what each agent did, what humans said, the

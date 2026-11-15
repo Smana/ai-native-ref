@@ -5,6 +5,7 @@ aliases:
 weight: 40
 description: "How one AgentRun becomes an isolated, attributed run: Maku's run-controller, a gVisor pod, per-run tokens for the model gateway and GitHub, and default-deny network policy with an egress proxy."
 lastVerified: 2026-11-14
+diataxis: explanation
 ---
 
 One `AgentRun` object becomes a fully isolated, fully attributed run. The agent in the loop is not

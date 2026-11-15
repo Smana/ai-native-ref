@@ -10,10 +10,13 @@ Rules checked here:
   refused outside decisions/.
 - maku version: a Maku version literal or versioned Maku GitHub URL is refused
   outside status.md and decisions/.
+- ceiling: every page that declares diataxis: in front matter obeys its body
+  word ceiling (chapter 600, values 500, tutorial/how-to 1200, explanation 1500,
+  reference none; front matter and fenced code excluded).
 
-  python3 scripts/ci/check-site-contract.py [ROOT]
+  python3 scripts/ci/check-site-contract.py [--report] [ROOT]
 
-Exit 0: no finding. Exit 1: each finding is printed as file:line: <rule>: <match>.
+Exit 0: no finding (or --report). Exit 1: each finding is printed on stdout.
 """
 import importlib.util
 import pathlib
@@ -38,11 +41,21 @@ HELM_VALUES = pathlib.PurePosixPath("tooling/base/agent-factory/helm-values-conf
 FENCE_FILE = pathlib.PurePosixPath(".github/agent-factory.yaml")
 STATUS_PAGE = pathlib.PurePosixPath("website/content/docs/status.md")
 
+CEILINGS: dict[str, int | None] = {
+    "chapter": 600,
+    "values": 500,
+    "tutorial": 1200,
+    "how-to": 1200,
+    "explanation": 1500,
+    "reference": None,
+}
+
 TAG_RE = re.compile(r'^\s*tag:\s*["\']?(v[0-9]+\.[0-9]+\.[0-9]+)(?:@[^"\'\s]*)?["\']?\s*(?:#.*)?$', re.M)
 MAKU_VERSION_RE = re.compile(r'^\s*makuVersion:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$')
 FENCE_RE = re.compile(r'^\s*factory:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$', re.M)
 ACTIVE_CLUSTER_FM_RE = re.compile(r'^\s*activeCluster:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$')
 ACTIVE_CLUSTER_BODY_RE = re.compile(r'^\s*(?:\*\*)?Active:(?:\*\*)?\s*`?((?:aws|gcp)-[0-9]+)`?\b')
+DIATAXIS_FM_RE = re.compile(r'^\s*diataxis:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$')
 
 PRODUCT_NAME_RE = re.compile(r"Agent Factory(?! \[?v[0-3]\b)")
 MAKU_VERSION_TEXT_RE = re.compile(r"Maku v0\.\d+\.\d+")
@@ -74,6 +87,18 @@ def split_page(text: str) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]
             continue
         body.append((idx + 1, line))
     return front, body
+
+
+def _page_type_and_words(text: str) -> tuple[str | None, int]:
+    front, body = split_page(text)
+    dtype = None
+    for _, line in front:
+        dm = DIATAXIS_FM_RE.match(line)
+        if dm:
+            dtype = dm.group(1)
+            break
+    words = sum(len(line.split()) for _, line in body)
+    return dtype, words
 
 
 def check_pin(root: pathlib.Path) -> list[str]:
@@ -170,9 +195,47 @@ def check_vocabulary(root: pathlib.Path) -> list[str]:
     return findings
 
 
+def check_ceilings(root: pathlib.Path) -> list[str]:
+    findings: list[str] = []
+    docs = root / reader_first.DOCS
+    if not docs.is_dir():
+        return findings
+    for page in sorted(docs.rglob("*.md")):
+        rel = page.relative_to(docs).as_posix()
+        dtype, words = _page_type_and_words(page.read_text(encoding="utf-8"))
+        if dtype is None:
+            continue
+        if dtype not in CEILINGS:
+            findings.append(f"{reader_first.DOCS}/{rel}: ceiling: unknown diataxis: {dtype}")
+            continue
+        limit = CEILINGS[dtype]
+        if limit is not None and words > limit:
+            findings.append(f"{reader_first.DOCS}/{rel}: ceiling: {words} words, {dtype} allows {limit}")
+    return findings
+
+
+def report_words(root: pathlib.Path) -> int:
+    docs = root / reader_first.DOCS
+    if not docs.is_dir():
+        return 0
+    for page in sorted(docs.rglob("*.md")):
+        rel = page.relative_to(docs).as_posix()
+        dtype, words = _page_type_and_words(page.read_text(encoding="utf-8"))
+        print(f"{words:6d}  {dtype or '-':12s}  {rel}")
+    return 0
+
+
 def main(argv: list[str]) -> int:
-    root = pathlib.Path(argv[1] if len(argv) > 1 else pathlib.Path(__file__).resolve().parents[2])
-    findings = check_pin(root) + check_active_cluster(root) + check_vocabulary(root)
+    args = argv[1:]
+    report = False
+    if "--report" in args:
+        report = True
+        args = [a for a in args if a != "--report"]
+    root = pathlib.Path(args[0] if args else pathlib.Path(__file__).resolve().parents[2])
+    if report:
+        return report_words(root)
+
+    findings = check_pin(root) + check_active_cluster(root) + check_vocabulary(root) + check_ceilings(root)
     if findings:
         for finding in findings:
             print(finding)

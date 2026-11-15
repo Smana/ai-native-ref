@@ -4,7 +4,7 @@ aliases:
   - /docs/platform/ai-platform/agents/tune/
 linkTitle: Operate
 weight: 40
-description: "Tune an agent run and look up every harness setting."
+description: "Operate Maku on this host, manage access and auto-merge safety, read signals, and tune agent runs."
 ---
 
 {{< cards >}}
@@ -13,4 +13,5 @@ description: "Tune an agent run and look up every harness setting."
   {{< card link="/docs/reference/harness/" title="Harness reference" subtitle="Every setting of an agent run, from the factory's tiers to the OpenHands loop: its example value, what it does, its bounds, and whether it is on by default." >}}
   {{< card link="/docs/operate/auto-merge-safety/" title="Run auto-merge safely" subtitle="Take a class live, undo a merge, the breaker, drills, recovery, the monitor after a merge, metrics and alerts, adopting Renovate's pull requests." >}}
   {{< card link="/docs/operate/observability/" title="Observability" subtitle="Serving metrics and alerts, and per-run traces, step logs, gen_ai metrics and dashboards." >}}
+  {{< card link="/docs/operate/day-2/" title="Day-2 operations" subtitle="Stop everything, upgrade Maku, restore the room database on a rebuild, and switch the active cluster." >}}
 {{< /cards >}}

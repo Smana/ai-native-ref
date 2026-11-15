@@ -50,14 +50,14 @@ Read before Task 1. A task whose prerequisite is unmet waits; the others proceed
 - Modify: `website/content/docs/status.md` (the version, the one place it is stated)
 - Test: `scripts/ci/tests/test-agent-factory-pins.py`, `scripts/ci/tests/test-room-broker-chart.py`, `task factory-config`
 
-- [ ] **Step 1: Bump the four pins to release N, each by digest**
+- [x] **Step 1: Bump the four pins to release N, each by digest**
 
-- [ ] **Step 2: Run the gates**
+- [x] **Step 2: Run the gates**
 
 Run: `task check`
 Expected: exit 0; `test-agent-factory-pins` prints no problem. If `task test` fails only on suites that need GNU sed, GNU grep or a Docker bind mount of `/var/folders` (a macOS workstation), run `task links docs sources` by hand and name those suites in the pull request.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git commit -am "chore(deps): Maku <release N>: boot and clone spans, cache lines, the light alias"
@@ -119,7 +119,7 @@ git commit -am "docs(runbooks): the lot 1 baseline on aws-0"
 **Interfaces:**
 - Produces: on aws-0, `ScaledObject/agents-headroom` in `agent-system` owning the Deployment's replicas; on gcp-0 nothing changes.
 
-- [ ] **Step 1: Write the failing suite** `test-agents-headroom-schedule.py`
+- [x] **Step 1: Write the failing suite** `test-agents-headroom-schedule.py`
 
 It renders both paths with `kustomize build` and asserts:
 
@@ -143,16 +143,16 @@ assert headroom_images(aws) == run_images()
 
 `run_images()` reads the harness and bridge pins from the values that configure the run path: the run-controller's `images.harness` and `images.bridge` once readiness row 13 is done, the Crossplane composition's pin until then. Write it against whichever `main` carries when this task runs, and name the source in the suite's docstring.
 
-- [ ] **Step 2: Run it and see it fail**
+- [x] **Step 2: Run it and see it fail**
 
 Run: `python3 scripts/ci/tests/test-agents-headroom-schedule.py`
 Expected: FAIL, `infrastructure/aws-0/karpenter-nodepools-agents/headroom` does not exist.
 
-- [ ] **Step 3: Write the overlay**
+- [x] **Step 3: Write the overlay**
 
 `kustomization.yaml` takes the base headroom directory as its resource, adds `scaledobject.yaml`, and removes `/spec/replicas` from the Deployment with a JSON 6902 patch. The Flux child for aws-0 points at the overlay and adds `dependsOn: [{name: infrastructure}]` (KEDA, `HOST-CONTRACT.md` H2). In the base Deployment, bring the two images to the pins `run_images()` reads, and replace the comment's cost and cluster with a link to the spec.
 
-- [ ] **Step 4: Run the gates**
+- [x] **Step 4: Run the gates**
 
 Run: `task check`
 Expected: exit 0, the new suite included.
@@ -168,7 +168,7 @@ Expected: exit 0, the new suite included.
 
 Record the four in the results file, beside the baseline.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -am "feat(aws-0): a warm gVisor node on weekdays, 08:00 to 19:00 Europe/Paris"
@@ -217,11 +217,12 @@ One pass of this task per trial, in the spec's order: scoper at effort `medium`,
 - Modify: the session's results file
 - Test: `scripts/ci/tests/test-agent-trial-off.py`, `task factory-config`
 
-- [ ] **Step 1: Write the suite** `test-agent-trial-off.py`
+- [x] **Step 1: Write the suite** `test-agent-trial-off.py`
 
 ```python
-base = render("tooling/base/agent-factory")
-aws = render("tooling/aws-0/agent-factory")
+# The Factory objects and the values file both carry evaluation.treatment; read both.
+base = render("tooling/base/agent-factory/resources") + render("tooling/base/agent-factory")
+aws = render("tooling/aws-0/agent-factory/resources") + render("tooling/aws-0/agent-factory")
 # Base never carries a trial: no workflow whose name ends in "-trial", no evaluation.treatment.
 assert not trial_workflows(base) and not treatment(base)
 # At most one trial per workflow on aws-0, and it differs from the shipped definition in exactly one field.

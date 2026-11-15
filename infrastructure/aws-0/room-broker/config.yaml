@@ -1,6 +1,6 @@
 # aws-0's copy of ../../base/room-broker/config.yaml, plus what gcp-0's adds for the Slack App
 # (human.mcp.sponsored, human.slackLink, human.slackDecide and its webhook, runbook 22), the planner on
-# (ADR-0060), human.mcp.sessionStart (a session switch, runbook 19) and RunLore's webhook subscriber (a
+# (ADR-0060), human.slackStop, human.slackRetry and human.slackAnswer (runbook 27), and RunLore's webhook subscriber (a
 # session switch, RK15, commented while off). The overlay's generator
 # replaces the base file, since a ConfigMap key is one string no patch can extend.
 # test-room-broker-config-parity.py fails when it differs from base in anything but those keys.
@@ -109,24 +109,29 @@ human:
   # needs/v1 (CD21, CD28): one list, read by /api/needs and by the CLI. Read-only, so it ships on.
   needs:
     enabled: true
-  # The developer's MCP server (roomctl mcp, ADR-0059): only roomctl's token and sponsored principals
-  # are admitted. sessionStart lists the repositories whose issue_file form offers "start the factory
-  # now", applied with the developer's own gh (FA5); none here (D4), a session lists one in its cloud's copy (runbook 19).
+  # The developer's MCP server (maku mcp, ADR-0059): start is offered by default wherever the planner serves the repository.
   mcp:
     enabled: true
-    # The session switch: the screencast session on aws-0 starts from cloud-native-ref (runbook 19).
-    sessionStart: [Smana/cloud-native-ref]
     # The Slack App (runbook 22): the same name as the factory's api.sponsored entry
     # (tooling/aws-0/agent-factory/helm-values-sponsored.yaml), and the client id its whole-Secret mount holds.
     sponsored:
       - name: slack-app
         clientIDFile: /etc/room-broker/sponsored/slack-app-client-id
-  # The Slack self-serve link and the App's deciding route, as gcp-0's copy (which says why).
+  # The Slack self-serve link and the App's deciding and acting routes, as gcp-0's copy (which says why).
   slackLink:
     principal: slack-app
     teamID: T07J97G2K2P
     repository: Smana/ai-native-ref
   slackDecide:
+    principal: slack-app
+    teamID: T07J97G2K2P
+  slackStop:
+    principal: slack-app
+    teamID: T07J97G2K2P
+  slackRetry:
+    principal: slack-app
+    teamID: T07J97G2K2P
+  slackAnswer:
     principal: slack-app
     teamID: T07J97G2K2P
 # Webhooks (factory interfaces F6): the Slack App's state lines, as gcp-0's. The egress rule is
@@ -138,7 +143,7 @@ webhooks:
   - name: slack-app
     network: cluster
     url: http://factory-slack-app.agent-system.svc.cluster.local:8081/webhooks
-    events: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.verdict_posted, room.merged, room.reverted, room.budget_reached, room.ended, room.approval_closed]
+    events: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.ended, room.merged, room.reverted]
     secretFile: /etc/room-broker/webhooks/slack-app/signing-key
     repositories: [Smana/ai-native-ref, Smana/cloud-native-ref, Smana/runlore, Smana/runlore-kb]
     # Hand-kept; the generator leaves it (gcp-0's copy says why).

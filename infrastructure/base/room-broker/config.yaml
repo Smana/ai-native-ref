@@ -103,12 +103,9 @@ human:
   # needs/v1 (CD21, CD28): one list, read by /api/needs and by the CLI. Read-only, so it ships on.
   needs:
     enabled: true
-  # The developer's MCP server (roomctl mcp, ADR-0059): only roomctl's token and sponsored principals
-  # are admitted. sessionStart lists the repositories whose issue_file form offers "start the factory
-  # now", applied with the developer's own gh (FA5); none here (D4), a session lists one in its cloud's copy (runbook 19).
+  # The developer's MCP server (maku mcp, ADR-0059): start is offered by default wherever the planner serves the repository.
   mcp:
     enabled: true
-    sessionStart: []
     # Sponsored principals (factory interfaces part 2), none declared (D4): each cloud declares the
     # Slack App in its own copy (runbook 22). It needs factoryURL above, and the same `name` as the
     # factory's api.sponsored entry. clientIDFile is a machine client's id, in the whole-Secret mount

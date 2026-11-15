@@ -77,6 +77,17 @@ for listener, backends in BACKENDS.items():
     if values["aliases"][listener] != want:
         problems.append(f"M2: aliases.{listener} {values['aliases'][listener]} is not agent-router's {want}")
 
+# CP12: the run-controller's default light alias must be served on both listeners, or Maku refuses
+# its config before any run starts. Check the values CI renders, not only the gateway's definition.
+run_controller = find(docs(ROOT / "infrastructure/base/room-broker/helmrelease.yaml"),
+                      "HelmRelease", "room-broker")["spec"]["values"]["runController"]
+run_aliases = run_controller["model"]["gateway"]["aliases"]
+for listener in BACKENDS:
+    if "tier-light" not in run_aliases.get(listener, []):
+        problems.append(f"CP12: runController.model.gateway.aliases.{listener} does not serve tier-light")
+    if "tier-light" not in values["aliases"].get(listener, {}):
+        problems.append(f"CP12: model-gateway aliases.{listener} does not serve tier-light")
+
 # M4
 ours = find(docs(MGW / "policy-budgets.yaml"), "AgentgatewayPolicy", "model-gateway-token-budgets")
 theirs = find(router, "AgentgatewayPolicy", "token-budgets", "agent-gateway")

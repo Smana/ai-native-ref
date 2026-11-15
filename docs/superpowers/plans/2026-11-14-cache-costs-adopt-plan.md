@@ -184,11 +184,11 @@ git commit -am "feat(aws-0): a warm gVisor node on weekdays, 08:00 to 19:00 Euro
 - Modify: the results file; `website/content/docs/how-it-works/routing-and-cost.md` (the measured effect, one short section, linking to Maku for the mechanism)
 - Test: `scripts/ci/tests/test-model-gateway-values.py`, `task check`
 
-- [ ] **Step 1: Write the failing assertion**
+- [x] **Step 1: Write the failing assertion**
 
 In `test-model-gateway-values.py`: each listener's alias list that the run-controller's values name contains `tier-light`; the failure message names the listener. Maku refuses the config at load otherwise, so this fails in CI rather than on the cluster.
 
-- [ ] **Step 2: Run it** (FAIL if a list lacks the alias), **fix the values, run `task check`** (exit 0).
+- [x] **Step 2: Run it** (FAIL if a list lacks the alias), **fix the values, run `task check`** (exit 0).
 
 - [ ] **Step 3: Verify each gain live and record it**
 

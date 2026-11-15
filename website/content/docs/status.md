@@ -13,7 +13,7 @@ names the clouds a capability was proven on, and links to the evidence: a runboo
 a design record.
 
 **Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0),
-released on 2026-10-31. **On `main`** (tag `v3.26.0`): Maku v0.49.0 for every component: the broker and
+released on 2026-10-31. **On `main`**: Maku v0.51.0 for every component: the broker and
 its run-controller, the harness and bridge, the factory, the model gateway, the CRDs and the Slack app.
 **Running now:** nothing. The reference host's GKE cluster was torn down on 2026-11-14; see
 [rebuilding the platform](#rebuild). **Next:** [v3.x releases](#v3x) of this platform; v4.0 is

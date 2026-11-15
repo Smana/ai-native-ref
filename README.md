@@ -98,7 +98,7 @@ Sources and the full record: [status](https://airef.ogenki.io/docs/status/),
 ## Status and roadmap
 
 **v3 is released** ([v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0)). `main` runs
-Maku v0.49.0 for every component (CRD group `maku.ogenki.io`): the broker and its run-controller, the
+Maku v0.51.0 for every component (CRD group `maku.ogenki.io`): the broker and its run-controller, the
 harness and bridge, the factory, the model gateway and the Slack app. v3 aims at more accepted pull requests per dollar by shaping the task, not
 by changing the model. A scoper bounds each issue or asks its author; a test-first tester writes the
 contract; the implementer runs the repository's checks in the sandbox and asks a read-only search

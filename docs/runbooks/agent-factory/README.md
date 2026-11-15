@@ -62,6 +62,7 @@ Grouped by purpose; the number is the order they were written in.
 | [20-runlore-agent-to-agent.md](20-runlore-agent-to-agent.md) | RunLore as the factory's internal principal, live proofs 1 to 5: the paths open, one incident filed as an `investigate` task and replayed idempotently, the old intake silent (stage 1); a fix verified after its soak, and a fix that does not hold (stage 2) | Yes — the owner's go, the ZITADEL sync and the webhook key seeded (runbook 14), a maintainer's `factory/publish` label created | ~2 h |
 | [21-test-first-tester.md](21-test-first-tester.md) | The tester's contract on a seeded `scripts` issue, the hook and row 2c that hold it, a renamed holdout | Yes — F1 to F5 live and the owner's go | ~2 h |
 | [22-slack.md](22-slack.md) | Slack, configure: the App from its manifest, the keys, the machine user, the Request URL, a channel's binding (one declaration, three generated files), who may file, one mention end to end. Users: the [user guide](../../../website/content/docs/use/guide/_index.md) | Yes — the Slack console, OpenBao, the ZITADEL sync | ~1 h |
+| [27-six-tools-and-slack-acts.md](27-six-tools-and-slack-acts.md) | Six tools (`handoff`, `start`, `inbox`, `task`, `wait`, `answer`), `maku setup <client>`, the four default Slack transitions and one end line edited in place, and `stop`, `retry` and `answer` from a Slack thread on `aws-0` (L1–L17) | Yes — the owner's go for the `slackStop`, `slackRetry` and `slackAnswer` switch-ons | ~2 h |
 
 **Media**
 

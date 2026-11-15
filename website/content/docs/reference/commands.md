@@ -1,145 +1,45 @@
 ---
 title: Commands
 weight: 15
-description: "Every maku command, the setup options, what each coding agent supports, the room states, how a run ends, and starting a run by hand."
+description: "This platform's room broker URL, OIDC sign-in command, MCP setup and hand-started run task, with a link to Maku's CLI reference."
+lastVerified: 2026-11-15
+diataxis: values
 ---
 
-Look-up tables for Maku's commands. The [user guide]({{< relref "/docs/use/guide/_index.md" >}})
-shows how to use them; the [cheat sheet]({{< relref "/docs/use/guide/cheat-sheet.md" >}}) lists the labels
-and comment commands.
+`maku` is the terminal client and local MCP server for reading rooms, checking what needs you, handing
+tasks to the planner, and checking out agent branches; every subcommand, flag, MCP tool, room state and
+exit code is in Maku's [CLI guide]({{< maku "docs/cli.md" >}}).
 
-- [The `maku` CLI](#maku)
-- [`maku setup`](#setup)
-- [The tools a coding agent gets](#tools)
-- [What each coding agent supports](#clients)
-- [Room states](#room-states)
-- [How a run ends](#run-ends)
-- [Start a run by hand](#run-by-hand)
+## CLI and sign-in values on this platform {#maku}
 
-## The `maku` CLI {#maku}
+<span id="setup"></span><span id="tools"></span><span id="clients"></span><span id="room-states"></span><span id="run-ends"></span><span id="run-by-hand"></span>
 
-Download `maku-<os>-<arch>` from a [Maku release](https://github.com/Smana/maku/releases) and check it
-against `maku.sha256`, or build it with `go build ./cmd/maku`.
+Example (the reference host): download `maku` from the release pinned on the
+[status page]({{< relref "/docs/status.md" >}}), then configure it against this host's room broker and
+ZITADEL issuer:
 
 ```bash
-maku configure --url … --issuer … --client-id … --project-id …  # the room list's "CLI setup" prints it
-maku login                                    # device flow: open the URL, enter the code
-maku rooms --mine                             # issues you filed or labelled, PRs you authored or review
-maku rooms --needs-me                         # approvals, held tasks, PRs to merge, escalated tasks; --repo filters
-maku needs                                    # everything that needs you, across rooms, in one order
-maku needs --since 2026-11-04T18:20:00Z       # only what appeared since then; without --since, your last call
-maku status <room>                            # the brief's head, then the card: run, budget, PR, what needs you
-maku status <room> --json                     # the room's summary as the broker serves it
-maku changes <room>                           # what changed since your last call (first call: 24 h)
-maku checkout <room>                          # the room's branch in a new worktree beside the repository
-maku setup <client>                           # the MCP server and the skill, for a coding agent
-maku doctor                                   # checks the set-up; every check should read ok
-maku watch <room>                             # the last 50 events, then live
-maku post <room> --queue "address L42"        # for the next run's brief; without --queue, a chat
-maku fork <room> --at <seq> --role implementer --egress pypi --note "try uv"
-maku token                                    # your access token, for scripts
+maku configure \
+  --url https://rooms.<private-domain> \
+  --issuer https://zitadel.<private-domain> \
+  --client-id <roomctl-client-id> \
+  --project-id <zitadel-project-id>
+maku login
+maku setup opencode   # or: claude, codex, gemini, cursor, copilot
 ```
 
-`maku` reads, chats, queues and forks. It never drives a run, interrupts it or approves: those stay in
-the browser, because a local agent can type into a terminal
-([ADR-0049]({{< relref "/docs/decisions/0049-room-client-and-human-auth.md" >}})). What `maku needs` lists, and
-where else you see it: [one list, wherever you look]({{< relref "/docs/use/guide/when-the-factory-needs-you.md#one-list" >}}).
+The exact `maku configure` one-liner with the cluster's current client and project IDs is printed in the
+**CLI setup** drawer on `https://rooms.<private-domain>`.
 
-## `maku setup` {#setup}
-
-`maku setup <client>` registers `maku mcp` as the `factory` MCP server and writes the `factory-handoff`
-skill where that client reads skills. The clients: `claude`, `opencode`, `codex`, `gemini`, `cursor`,
-`copilot`.
-
-| Option | Effect |
-|---|---|
-| (none) | User-level set-up |
-| `--project` | Writes both into the repository instead, for a team that commits them |
-| `--print` | Shows every command and file, changes nothing |
-
-It is idempotent. It runs the client's own `mcp add` when that is on the `PATH`, and otherwise prints
-the snippet to paste: it never edits a config file itself. Gemini CLI starts a local server only in a
-folder you trust.
-
-## The tools a coding agent gets {#tools}
-
-| Tool or prompt | What it does |
-|---|---|
-| `handoff` | Asks the planner for a plan, one defect per issue; a form shows it to you, files it and offers to start it |
-| `intake_plan` | Proposes the plan: one repository with its evidence, one to three issues, the roles, the ceiling, and at most one question |
-| `plan_check` | Holds a plan to the allowlist and the class table again and answers whether it still holds; files nothing |
-| `status [room or #issue]` | The room card; without an argument, your most recently updated room |
-| `needs_list` | Everything that needs you, each item with its one action and link, and a `since` cursor |
-| `room_brief` | Come back to a room: what it needs, the plan, what changed, the blocker and the next step |
-| `resume [room]` | `needs_list`, then the brief of the first room that needs you, or of the room you name; ends on its next step |
-| `inbox` | One `needs_list` call; when nothing needs you, it says so and points to `rooms_list` |
-| `room_wait` | Follows a room and returns when it needs you, opens a pull request or ends |
-| `room_checkout` | The room's branch in a new git worktree, at the commit it checked |
-
-The other tools are `rooms_list`, `room_summary`, `room_changes`, `room_tail`, `room_queue`,
-`room_fork`, `issue_draft` and `issue_file`. Where the operator turns multi-repository coordination on,
-`coordination_plan` proposes one change across two public repositories and files nothing.
-
-Starting a task is a form field, never a tool argument: your agent can file an issue but cannot answer
-the form. It is offered only on repositories the platform lists and you can write to. A checkout that
-changes agent or editor config, hooks, symlinks or non-ASCII paths asks first. Everything an agent wrote
-comes back in code spans, as data. The design: [ADR-0059]({{< relref "/docs/decisions/0059-factory-from-your-coding-agent.md" >}}).
-
-Both planner tools are read-only and reach no repository of yours. What they may name is fixed by
-[Planner settings]({{< relref "/docs/reference/planner.md" >}}): the allowlist, the class table, the
-roles and the money come from config, and a reply that names anything outside them is refused whole.
-
-## What each coding agent supports {#clients}
-
-Text views work everywhere. The rest depends on what each client declares. `unconfirmed` means no
-source says. Which clients are tested end to end: the [status page]({{< relref "/docs/status.md" >}}).
-
-| Client | Forms | Slash commands | Skill directory |
-|---|---|---|---|
-| Claude Code | unconfirmed | `/mcp__factory__<prompt>` (unconfirmed) | `~/.claude/skills` |
-| OpenCode | yes | `/factory:<prompt>` | `~/.agents/skills` |
-| Codex CLI | unconfirmed | unconfirmed | `~/.agents/skills` |
-| Gemini CLI | unconfirmed | yes | `~/.gemini/skills` |
-| Copilot CLI | unconfirmed | unconfirmed | `~/.copilot/skills` |
-| Cursor | yes | yes | `~/.cursor/skills` |
-
-`maku doctor --client <name>` prints what a client declared the last time it opened `maku mcp`: forms,
-URL mode, roots, prompts and the protocol revision it asked for.
-
-Without forms the draft is shown for you to file with `gh`, nothing starts, and a checkout that needs
-to confirm refuses. Codex CLI may cut a call at 60 s; the skill then calls `room_wait` again.
-
-## Room states {#room-states}
-
-| State | Meaning |
-|---|---|
-| `needs you` | An item names you: an approval, a hand-off |
-| `waiting for a human` | The task waits for a maintainer |
-| `running` | A run is working |
-| `queued` | A run is waiting for a free sandbox |
-| `done`, `failed`, `stopped` | The task ended |
-
-## How a run ends {#run-ends}
-
-| Reason | Meaning | Resumed? |
+<!-- example -->
+| Platform setting | Value on this platform | Manifest path |
 |---|---|---|
-| `Disrupted` | Its node was reclaimed or drained: a spot reclaim, an eviction, an upgrade | Yes |
-| `PodLost` | Its pod was deleted, or vanished with its node, before a final state was read | Yes |
-| `PodFailed` | The run failed on its own, or hit its deadline | No: the task waits for you |
+| Room broker URL (`publicURL`, `roomsURL`) | `https://rooms.${private_domain_name}` (`https://rooms.priv.aws.ogenki.io` or `https://rooms.priv.gcp.ogenki.io`) | `infrastructure/base/room-broker/config.yaml`, `tooling/base/agent-factory/helm-values-configmap.yaml` |
+| Identity provider preset and issuer | `preset: zitadel`, `issuer: ${identity_provider_url}`, `groups: {admin: agents-admin, member: agents-member}` | `infrastructure/base/room-broker/config.yaml` |
+| CLI OIDC client and project IDs | Mounted from OpenBao into `/etc/room-broker/roomctl/client-id` and `/etc/room-broker/oidc/project-id` | `infrastructure/base/room-broker/config.yaml`, `infrastructure/base/room-broker/externalsecret-roomctl.yaml`, `infrastructure/base/room-broker/externalsecret-rooms-proxy.yaml` |
+| Developer MCP server (`maku mcp`) | `human.mcp.enabled: true`; `sessionStart: []` in base, `[Smana/ai-native-ref]` in the cloud overlays | `infrastructure/base/room-broker/config.yaml`, `infrastructure/aws-0/room-broker/config.yaml`, `infrastructure/gcp-0/room-broker/config.yaml` |
+| Start a run by hand (`agents-member`) | `task agent:run -- --role implementer --class public --task-url <issue>` (wraps `scripts/ops/k8s/agent-run.sh` against `:8082`) | `taskfile.yaml`, `scripts/ops/k8s/agent-run.sh` |
 
-The factory resumes at most twice per task, within its budget; `/factory retry` does not give the
-resumes back. A lost review run starts again without using a review round. On the way out, within
-15 s, an implementer commits its changes with the trailer `Agent-Checkpoint: disruption` and pushes
-them, so the resumed run starts from that commit. Limits: [Reference › Harness]({{< relref "/docs/reference/harness.md#caps" >}}).
-
-## Start a run by hand {#run-by-hand}
-
-With `agents-member`, after `maku login`:
-
-```bash
-task agent:run -- --role implementer --class public --task-url <issue>
-task agent:run -- --role implementer --class public --task-url <issue> --branch agent/<task>   # continue a stopped task
-```
-
-The factory creates the run under your sign-in identity: the run is yours.
-`internal` work and `triager` runs need `agents-admin`. The run API: [Reference › Harness]({{< relref "/docs/reference/harness.md#run-api" >}}).
+Unlike Maku's generic OIDC defaults (which require only an issuer and client ID), this platform uses
+the `zitadel` preset with a ZITADEL project ID audience check and a tailnet-only `rooms.${private_domain_name}`
+endpoint signed by the cluster's `openbao-ca` root CA.

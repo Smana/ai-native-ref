@@ -3,196 +3,115 @@ title: Harness reference
 aliases:
   - /docs/platform/ai-platform/agents/tune/harness-reference/
 weight: 10
-description: "Every setting of an agent run, from the factory's tiers to the OpenHands loop: its example value, what it does, its bounds, and whether it is on by default."
-lastVerified: 2026-11-14
+description: "The tier budgets, templates, concurrency caps, loop rows, run-controller mounts and OpenHands harness values set on this platform."
+lastVerified: 2026-11-15
+diataxis: reference
 ---
 
-Every knob of a run, layer by layer. How to use them is on
+Every run on this platform is bounded by the `Factory` catalogue in
+`tooling/base/agent-factory/resources/factory.yaml`, the run-controller values in
+`infrastructure/base/room-broker/helmrelease.yaml`, and the OpenHands harness defaults in Maku's
+`maku-harness` image. For the full schema of every `Factory`, `AgentRun` and budget key, see Maku's
+[configuration reference]({{< maku "docs/reference/config.md" >}}) and
+[budgets reference]({{< maku "docs/reference/budgets.md" >}}). How to tune these knobs is on
 [Harness tuning]({{< relref "/docs/operate/tune-a-run.md" >}}).
 
-{{< cards >}}
-  {{< card link="#tiers" title="Tiers" icon="adjustments" subtitle="USD cap, deadline and model per tier." >}}
-  {{< card link="#templates" title="Templates and triage" icon="user-group" subtitle="Which roles run, and how a task gets its template." >}}
-  {{< card link="#caps" title="Caps and resume" icon="shield-check" subtitle="Concurrency, daily caps and resumes." >}}
-  {{< card link="#run-api" title="Run API" icon="terminal" subtitle="Flags of a run started by hand." >}}
-  {{< card link="#claim" title="AgentRun" icon="document-text" subtitle="The fields a run is created with." >}}
-  {{< card link="#harness" title="Harness" icon="cog" subtitle="The loop's settings, baked into the image." >}}
-{{< /cards >}}
-
-Values below are examples: the reference host's configuration. Which Maku release it pins is on the
-[status page]({{< relref "/docs/status.md" >}}).
-
-| Status | Meaning |
-|---|---|
-| {{< badge content="default" color="green" >}} | On by default |
-| {{< badge content="experimental" color="yellow" >}} | Built, on for a few classes only; its benefit is still measured |
-| {{< badge content="off" color="gray" >}} | Shipped, switched off |
-| {{< badge content="planned" color="blue" >}} | Specified, not built |
+- [Factory: tiers](#tiers)
+- [Factory: templates and triage](#templates)
+- [Factory: caps, budgets and loops](#caps)
+- [Factory: what a brief holds](#brief)
+- [Run API and AgentRun values](#run-api)
+- [Run-controller and harness values](#composition)
 
 ## Factory: tiers {#tiers}
 
-`tiers` in the `Factory`, `tooling/base/agent-factory/resources/factory.yaml`. Triage fixes one tier per
-task; every run of the task inherits it. {{< badge content="default" color="green" >}}
+Example (the reference host), `spec.tiers` in `tooling/base/agent-factory/resources/factory.yaml`:
 
-| Tier | `runUSD` / `taskUSD` | `runMinutes` | `runTokens` / `taskTokens` |
-|---|---|---|---|
-| light | 0.51 / 1.02 | 20 | 300 k / 600 k |
-| standard | 2.55 / 5.10 | 45 | 1.5 M / 3 M |
-| frontier | 6.80 / 13.60 | 90 | 4 M / 8 M |
+| Tier | `model` | `runUSD` / `taskUSD` | `runMinutes` | `runTokens` / `taskTokens` |
+|---|---|---|---|---|
+| `light` | `agent-default` | `$0.51` / `$1.02` | `20` | `300,000` / `600,000` |
+| `standard` | `agent-default` | `$2.55` / `$5.10` | `45` | `1,500,000` / `3,000,000` |
+| `frontier` | `agent-default` | `$6.80` / `$13.60` | `90` | `4,000,000` / `8,000,000` |
 
-| Field | What it does | Bounds |
-|---|---|---|
-| `model` | The logical model the run asks for. Every tier asks for `agent-default` today, so the tier changes caps, not the model | A logical name |
-| `runUSD` | The meter revokes the run at this cost (`BudgetExhausted`, limit `run-usd`). Cache reads are priced at their own rate | Positive; needs a `meter.prices` row |
-| `runTokens` | The run's `budget.maxTokens`. Caps the run only when the meter cannot price it | 1 … 5 M |
-| `taskUSD`, `taskTokens` | The whole task, every run and resume. A new run starts only if a whole run still fits | ≥ the run cap |
-| `runMinutes` | The pod's deadline. A kill at the deadline is `PodFailed` and never resumed | 1 … 480 |
-
-A priced run is held to USD, not tokens: `kk2egjta` passed 12.5 M tokens against a 4 M `maxTokens`
-at $4.46 of $6.80, since 95% were cache reads. The gateway's per-run budget B1 is the backstop
-([gateways]({{< relref "/docs/how-it-works/gateways.md#budgets" >}})).
+Every priced run is held to `runUSD` and `taskUSD` at the rates in `spec.prices` of
+`tooling/base/agent-factory/resources/factory.yaml` (cache reads priced at their own rate); `runTokens`
+and `taskTokens` cap a run only when the meter cannot price its model. The model gateway's per-run
+token budget is the hard backstop ([gateways]({{< relref "/docs/how-it-works/gateways.md#budgets" >}})).
 
 ## Factory: templates and triage {#templates}
 
-`config.templates`: the roles that run, in order, on one branch. {{< badge content="default" color="green" >}}
+Example (the reference host), `spec.templates`, `spec.defaults` and `spec.triage` in
+`tooling/base/agent-factory/resources/factory.yaml`:
 
-| Template | Roles | Review rounds |
+| Setting | Value on this platform | Notes |
 |---|---|---|
-| `solo` | implementer | — |
-| `pair` | implementer, reviewer | 2 |
-| `trio` | implementer, reviewer: `pair`'s shape until the bench; the tester runs first through `testFirst`, not the template | 2 |
-| `investigate` | triager: proposes an issue text, never writes | — |
+| `templates.solo` | `{roles: [implementer]}` | Used for `docs-links` on `standard` |
+| `templates.pair` | `{roles: [implementer, reviewer], maxReviewRounds: 2}` | Default for `review` and most classes; `docs-links` on `frontier` |
+| `templates.trio` | `{roles: [implementer, reviewer], maxReviewRounds: 2}` | Matches `pair` here; the tester runs through `testFirst` on the class |
+| `templates.investigate` | `{roles: [triager]}` | Forced `internal` for RunLore findings; never writes code |
+| `defaults` | `{dataClass: public, predictedClass: review}` | Fallback class when triage predicts none |
+| `triage.controlPercent` | `10` | No classifier is deployed, so 90% of tasks run on `standard` and 10% on `frontier` |
 
-- `maxReviewRounds`: every revision or restarted review uses one. Out of rounds, the task escalates.
-- `reviewerModel`: the reviewer's model whatever the tier says. Unset here:
-  [ADR-0058]({{< relref "/docs/decisions/0058-reviewer-on-another-model.md" >}}) keeps the public
-  reviewer on the implementer's model.
+The reviewer runs on **the other tier** (`frontier` for a `standard` or `light` implementer, `standard`
+for a `frontier` one) with that tier's `runUSD` cap, keeping the implementer's `runTokens` and
+`runMinutes`.
 
-Triage picks the template from the class and the tier:
+## Factory: caps, budgets and loops {#caps}
 
-| Task | Template |
-|---|---|
-| A RunLore finding | `investigate`, forced `internal` |
-| `docs-links` | `solo`; `pair` on `frontier` |
-| Any other class | `pair`; `trio` on `frontier` |
+Example (the reference host), `spec.caps`, `spec.budgets`, `spec.resume`, `spec.facts`, `spec.brief`
+and `spec.loops` in `tooling/base/agent-factory/resources/factory.yaml`:
 
-The tier would come from the complexity classifier, which is {{< badge content="planned" color="blue" >}}: every task falls back to
-`standard`, except one in ten (`triage.controlPercent: 10`), the control group, on `frontier`.
-`defaults.template` and `defaults.tier` choose nothing at run time, but the factory still validates
-them at startup, as it requires `triage.classifierURL`: they leave the config only with an
-Maku release that drops them.
-
-The reviewer runs on **the other tier**: `frontier` for a `standard` or `light` implementer,
-`standard` for a `frontier` one. The reviewer's tier's USD cap applies; its tokens and minutes stay the
-implementer's tier's. The tester keeps the implementer's tier.
-
-## Factory: caps and resume {#caps}
-
-| Key | Value here | What it does |
+| Key | Value on this platform | Effect here |
 |---|---|---|
-| `caps.activeTasks` | 3 | Tasks worked at once |
-| `caps.concurrentRuns` | 4 | Sandboxes at once |
-| `caps.tasksPerDay` | 20 | Past it, a labelled issue is refused with a comment |
-| `caps.maxTextBytes` | 14,336 | The longest task text accepted |
-| `caps.maxPendingMinutes` | 30 (5 … 480) | A run still `Pending` escalates as `run_unschedulable` |
-| `resume.maxPerTask` | 2 (1 … 5) | Runs lost to infrastructure are resumed; never a `PodFailed` one. {{< badge content="default" color="green" >}} |
-| `budgets.*` | `factoryDailyUSD` $42.50, `humanDailyUSD` $8.50 | Daily caps in USD at `meter.prices`, counted on the USD gauges. The fleet's and each person's count in shadow while `enforcePrincipal` is `false` |
-| `loops.<class>` | `default: {scope: off}`; `docs` (scoper, loop policy, search) and `scripts` (scoper, splitter) | The loop policy and the scope, off for every class without a row. `scope` is `off`, `steering` or `scoper` ([what a brief holds](#brief)). A row sets `stallSteps` (default 80, 1 … 500), `continuations` (2, 0 … 5) and `judge` (one of the four model aliases, default `tier-light`, or `none`); any one of them switches the class on. [Loop policy]({{< relref "/docs/operate/tune-a-run.md#loop-policy" >}}) |
-| `scoper.nudgeAt`, `scoper.maxToolCalls` | 25 and 40 (Maku's defaults; this repository sets no `scoper:` key) | The scoper's exploration bound: a nudge to wrap up at 25 tool calls, a stop at 40 with the end `budget_calls`; any end without a handoff leaves the implementer to run unscoped |
-| `loops.<class>.search` | `true` on `docs` only | The implementer's `search` tool; never switches the loop on. [Search]({{< relref "/docs/operate/tune-a-run.md#search" >}}) |
+| `caps` | `{activeTasks: 3, concurrentRuns: 4, tasksPerDay: 20, maxTextBytes: 14336, awaitingHumanWIP: 5, preferRevisions: true}` | Caps active tasks and sandboxes, prioritizes revision runs, and pauses new intake when 5 tasks await human review |
+| `budgets` | `{enforceTask: true, enforcePrincipal: false, factoryDailyUSD: 42.50, humanDailyUSD: 8.50, perPerson: {enabled: true}}` | Task and run USD caps enforced; fleet and per-person daily caps counted in shadow |
+| `resume` | `{maxPerTask: 2}` | Resumes `Disrupted` and `PodLost` runs up to twice within `taskTokens`; never resumes `PodFailed` |
+| `facts.finalSpend` · `brief.ciEvidence` | `true` · `true` | Posts one final spend fact after settle; inlines reviewer comments and failing check annotations in revision briefs |
+| `loops.default` | `{scope: "off"}` | Classes without a row run unscoped with no completion judge |
+| `loops.docs` | `{scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}` | Scoper, 60-step stall stop, up to 2 `tier-light` judge continuations, and the read-only `search` helper |
+| `loops.scripts` | `{scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}, judge: tier-light}` | Scoper, splitter (up to 4 parts, `$20.40` family cap) and `tier-light` completion judge |
+| `loops.{docs-links,revert,dead-links,deps-patch}` | `{models: {reviewer: {frontier: kimi-frontier}}}` | Runs the `frontier` reviewer on Kimi K3.1 Pro ([providers]({{< relref "/docs/how-it-works/providers.md" >}})) |
+| `scoper.nudgeAt` / `scoper.maxToolCalls` | `25` / `40` (Maku defaults; unset in `factory.yaml`) | Nudges the scoper at 25 tool calls and stops it at 40 (`budget_calls`) |
 
 ## Factory: what a brief holds {#brief}
 
-`loops.<class>.scope` picks the mode per class; `loops.default` covers a class with no row and
-`review`. `docs` and `scripts` are `scoper` here; every other class is `off`.
+`loops.<class>.scope` selects what the factory places in each run's brief (`scoper` on `docs` and
+`scripts`, `off` on every other class):
 
-| Brief | `off` | `steering` | `scoper` |
-|---|---|---|---|
-| Scoper (a triager run) | — | — | preamble · steering · snapshot · how to scope, ask or assume, and hand off |
-| First implementer | preamble · snapshot (today) | preamble · steering · snapshot | preamble · steering · scope · snapshot |
-| Revision, CI fix, retry, resume (≤ 13 KiB) | today | steering before the room log | steering and scope before the room log |
-| Judge's continuation | the issue's acceptance section | the same | the scope's acceptance checks |
-| Reviewer | the room | the room; steering once the reviewer's brief carries it | the room (the scope is a handoff); steering and scope once it does |
+- **Scoper (`scope: scoper`):** preamble, repository steering note (`.github/agent-factory/steering/<class>.md`,
+  fenced as trusted), sanitised issue snapshot (fenced as untrusted), and instructions to scope, ask one
+  question, or propose a split.
+- **Implementer:** preamble, steering note, scoper handoff, and issue snapshot (inlined up to 16 KiB, or
+  fetched via `room_read`). Revisions, CI fixes, retries and resumes prepend steering and scope ahead
+  of up to 13 KiB of room log.
+- **Judge and reviewer:** the completion judge reads the scoper's acceptance checks (or the issue's
+  acceptance section when `scope: off`); the reviewer reads the pull request and room handoff without
+  the implementer's transcript.
 
-The steering note and the scope are never clipped. The snapshot is inlined whole while the brief stays
-within 16 KiB, else the brief tells the implementer to read it with `room_read`. The scope is an
-agent's text drawn from an untrusted issue: sanitised and fenced as the snapshot is. The steering note
-is fenced as trusted. Example (the reference host): on for `docs` and `scripts`.
+## Run API and AgentRun values {#run-api}
 
-## Run API: runs started by hand {#run-api}
+<span id="claim"></span>
 
-`task agent:run -- --role … --class … --task …` asks the factory for one run.
+`task agent:run` (`scripts/ops/k8s/agent-run.sh`) calls `POST /v1/runs` on `:8082`, and the factory
+writes `agentruns.maku.ogenki.io` objects in `agents` (CRDs from
+`tooling/base/agent-factory/crds/ocirepository.yaml`):
 
-| Flag | Default | Note |
-|---|---|---|
-| `--max-tokens` | 2,000,000 (≤ 5 M) | A hand-started run has no tier, so it is capped in tokens |
-| `--model` | `agent-default` | One of the four logical names |
-| `--profiles` | none | Egress profiles: `pypi`, `npm`, `golang`, `crates` |
-| `--minutes`, `--size` | refused | Fixed at 120 min and `small` |
-
-## AgentRun {#claim}
-
-`agentruns.maku.ogenki.io`, installed by the `agent-factory-crds` release. A run is named
-`run-<id>`, the id being 8 characters of `[a-z2-7]`. Only the factory creates one, and only
-`budget.maxTokens` can change on a live run. The factory always writes `size: small`.
-
-| Field | Default | Effect |
-|---|---|---|
-| `role` | required | `implementer` writes and pushes; `reviewer` and `triager` read only; the tester writes tests the harness signs and pushes |
-| `dataClass` | required | `public`: Z.ai and the provider aliases, GitHub egress. `internal`: Claude, read-only clone, no egress profiles, prompt caching |
-| `model` | `agent-default` | The alias the run's model token names; an `internal` run never names a provider alias |
-| `budget.maxTokens` | 2 M (1 … 5 M) | The token cap when the run is not priced |
-| `budget.maxMinutes` | 120 (1 … 480) | The pod's deadline and the lifetime of its tokens |
-| `size` | `small` | `small` 1→2 CPU, 2→4 GiB; `medium` ×2; `large` ×4 |
-| `egress.profiles` | `[]` | Package registries on top of GitHub; refused on `internal` |
-| `roomRef` | — | Adds the maku-bridge sidecar (container `room-bridge`), the room rules and the room tools |
-| `loop.checks` | — | Runs the repository's checks in the sandbox: `AGENT_CHECKS=1`, refused on `internal` |
-| `loop.search` | — | The `search` tool for an implementer: `AGENT_SEARCH=1`. Alone, no loop policy |
-| `loop.stallSteps`, `loop.continuations`, `loop.judgeModel` | — | The loop policy, handed to the harness as `AGENT_LOOP` |
-
-## Run-controller {#composition}
-
-Maku's run-controller, in the broker's `maku` chart (`infrastructure/base/room-broker/helmrelease.yaml`,
-`runController`), turns the `AgentRun` into the pod. Nothing here is set per run.
-
-| Setting | Value |
+| Surface | Values on this platform |
 |---|---|
-| Harness image | `runController.images.harness`, the Maku release's image pinned by digest: a harness change reaches new runs with the chart's next pin |
-| Environment | `MODEL`, `DATA_CLASS`, `ROLE`, `LLM_BASE_URL` and `LLM_API_KEY_FILE` (the run's gateway token), `GIT_TOKEN_FILE`, `TASK_FILE`, `RULES_FILE`, tracing; `MCP_URL` with a room; `AGENT_CHECKS` and `AGENT_RUN_SECONDS` with `loop.checks`; `AGENT_SEARCH` with `loop.search`; `JUDGE_*` with a judge. `LLM_REASONING_EFFORT` is not set |
-| `rules.md` | One branch, one PR, never `.github/workflows/`, "a 429 means the budget is spent: stop". Each rule is also enforced outside the sandbox |
-| `task.md` | The task text: the biggest driver of a run's length |
-| Egress | Through the egress proxy only: `github.com` and its API, codeload, content and release-asset hosts, the model, plus each profile's registries (`golang` includes `dl.google.com`) |
-| Grace period | 30 s, longer with a room: checkpoint, final read, stop, revoke |
-| MCP tools | The `room_*` tools on the broker's `:8090`, for a run with a room; any write needs an approval in the room |
+| `task agent:run` flags | `--max-tokens` default `2,000,000` (max `5,000,000`), `--model` default `agent-default`, `--profiles` (`pypi`, `npm`, `golang`, `crates`), fixed at `120` min and `size: small` |
+| `AgentRun.spec` | `size: small` (1–2 CPU, 2–4 GiB), `dataClass: public` or `internal`, `model: agent-default` (or a class's provider alias on `public`), `loop.checks: true` on `docs` (`Repository.spec.checks.egress` adds `[pypi]` on `cloud-native-ref` and `[golang, pypi]` on `ai-native-ref`) |
 
-## Harness {#harness}
+## Run-controller and harness values {#composition}
 
-Set in [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}})
-and [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}}),
-or left at the [SDK v1.49.6 defaults](https://github.com/OpenHands/software-agent-sdk/tree/v1.49.6/openhands-sdk/openhands/sdk).
-None is an `AgentRun` field.
+<span id="harness"></span>
 
-| Knob | Value | Effect | Status |
-|---|---|---|---|
-| `reasoning_effort` | `high` | Unsent, GLM-5.3 thinks at maximum: 150 s per reply instead of 11 s | {{< badge content="default" color="green" >}} |
-| Model timeout | 300 s per call | A call that timed out before its first token is retried once when the run has time left; a second timeout ends the run | {{< badge content="default" color="green" >}} |
-| Retries | 3 attempts, 10 s then 20 s apart | On a 503 or a reset. **Never** a 429; a timeout has its own single retry (above) | {{< badge content="default" color="green" >}} |
-| `max_iterations` | 500 | Past it the run ends `error`; the USD cap and deadline usually end it first | {{< badge content="default" color="green" >}} |
-| Stuck detection | last 20 events | Ends the run `stuck` on 4 identical cycles, 3 repeated errors or 3 messages with no action | {{< badge content="default" color="green" >}} |
-| Condenser | 80 events, keep first 4 | Summarises history with the same model, on the run's budget | {{< badge content="default" color="green" >}} |
-| Event size | 30,000 chars | A huge output is truncated, not refused | {{< badge content="default" color="green" >}} |
-| Tools | terminal, file editor, task tracker, MCP | No browser; the only MCP server is the room's | {{< badge content="default" color="green" >}} |
-| `search` | 40 iterations, 300k tokens, 300 s, 6 a run, effort `low`, 8,000 characters back | A read-only child (`grep`, `glob`, `read_file`, `list_directory`) on the run's token; its steps are the run's; ledger `/workspace/.agent-search.jsonl` | {{< badge content="experimental" color="yellow" >}} |
-| Prompt caching | on for `internal` | 85% of input from cache: $0.48 instead of $2.13 | {{< badge content="default" color="green" >}} |
-| `autotitle` | off | Saves a model call per title | {{< badge content="default" color="green" >}} |
-| `agent-checks` | the CI's fast subset from `.github/agent-checks.yaml` | Before every push; the harness re-runs it on a finished implementer's head and notes the result | {{< badge content="default" color="green" >}} |
-| Step log | every 15 s | Lines arrive in batches | {{< badge content="default" color="green" >}} |
-| Progress notes | 5 milestones, ≤ 8 a run | Fixed texts in the room, nothing the model wrote | {{< badge content="default" color="green" >}} |
-| Checkpoint on SIGTERM | implementer only | A reclaimed run's work survives on its branch | {{< badge content="default" color="green" >}} |
-| Tracing | span per model and MCP call | No prompt or output content | {{< badge content="default" color="green" >}} |
+Maku's run-controller (`infrastructure/base/room-broker/helmrelease.yaml`, under `runController`) turns
+each `AgentRun` into a gVisor pod running [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}})
+and [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}}):
 
-```promql
-# One run's tokens by model and type, as the meter prices them
-sum by (gen_ai_request_model, gen_ai_token_type) (
-  max_over_time(gen_ai_client_token_usage_sum{ar_agent="system:serviceaccount:agents:run-<id>"}[1d]))
-```
+| Setting | Value on this platform | Manifest / source |
+|---|---|---|
+| RuntimeClass and egress | `gvisor`, isolated via `egressProxy` to GitHub, the model gateway (`:8080` public, `:8081` internal) and allowed package registries | `infrastructure/base/room-broker/helmrelease.yaml` |
+| Model and git credentials | Per-run projected gateway token (`LLM_API_KEY_FILE`) and per-run `<run>-git` Secret (`GIT_TOKEN_FILE`) | `infrastructure/base/room-broker/helmrelease.yaml`, `tooling/base/agent-factory/helm-values-configmap.yaml` |
+| Loop and call bounds | `reasoning_effort: high` (unset in env), 300 s call timeout (1 retry before first token), 3 retries on 503/reset (never 429), `max_iterations: 500`, stuck detector over last 20 events, condenser at 80 events (keeps first 4), 30,000-char event truncation | [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}}), [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}}) |
+| Tools, checks and telemetry | Terminal, file editor, task tracker, room MCP (`:8090`), optional `search` child (40 iterations, 300k tokens, 300 s, max 6/run at `low` effort), `.github/agent-checks.yaml` pre-push and end-of-run check, 15 s step batches, SIGTERM checkpoint commit, OTLP spans without prompt text | [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}}) |

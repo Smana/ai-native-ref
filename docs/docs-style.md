@@ -143,7 +143,7 @@ project's components (`maku-factory`, the broker, the `maku` CLI).
 
 [`scripts/ci/check-reader-first.py`](../scripts/ci/check-reader-first.py) runs in `task docs`
 (and so in `task check`). It fails on a cluster name, an ISO date, "proven live", a handle or a
-proof ID in `website/content/docs/**/*.md`. It does not read:
+proof ID in `README.md` and `website/content/docs/**/*.md`. It does not read:
 
 - the status page (`status.md`) and the decision records (`decisions/`);
 - front matter, such as `lastVerified`;

@@ -1,2 +1,2 @@
-# Names the agent factory that may act on this repository (agent-platform ownership fence): only gcp-0 takes its issues, runs and merges (the 2026-11-11 session; runbook 14 §6).
+# Names the agent factory that may act on this repository (ownership fence); the status page's activeCluster must equal this value.
 factory: gcp-0

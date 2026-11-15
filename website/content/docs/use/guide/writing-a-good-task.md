@@ -33,7 +33,7 @@ reviewer runs it again before it gives its verdict.
 | `fix the docs` | No defect, no place, no end state | `docs: the logging page lists the wrong chart version` |
 | "The test is flaky sometimes" | Nothing an agent can reproduce | "`test-storage-dashboard.py` finds no dashboard when the checkout is under `.claude/`" |
 | "Clean up the scripts folder and fix the dead links" | Two tasks in one; the first has no end | Two issues; the second names the links |
-| Acceptance: "it works" | Nothing to run | Acceptance: "`python3 scripts/ci/tests/test-storage-dashboard.py` exits 0" |
+| Acceptance check: "it works" | Nothing to run | Acceptance check: "`python3 scripts/ci/tests/test-storage-dashboard.py` exits 0" |
 | "Use a regex here, then refactor the loop, then…" | Steps, not an outcome: the agent follows them even when they are wrong | "SKIP is matched against the path relative to the repository root" |
 
 A good issue, complete:
@@ -79,7 +79,7 @@ where, so the planner has facts to copy rather than a belief:
 ```text
 @factory docs/install.md, section "Download", links to maku-linux, which 404s.
 It should link to maku-linux-amd64, the asset the release publishes.
-Acceptance: the link resolves, and the link check passes.
+The link resolves, and the link check passes.
 ```
 
 Before you press **Confirm**, or answer **file: yes** in your agent's form:

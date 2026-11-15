@@ -2,7 +2,7 @@
 title: "5. Follow and steer a task"
 linkTitle: "5. Follow and steer"
 weight: 5
-description: "Find your tasks, read a room page from top to bottom, get told when a task needs you, queue a note or steer the running agent, and stay inside the budget."
+description: "Find your tasks, read a room page from top to bottom, get told when a task needs you, leave a note or steer the running agent, and stay inside the budget."
 ---
 
 By the end of this chapter you will find any of your tasks, see where it stands, be told when it needs
@@ -14,16 +14,16 @@ You do not have to watch. Each place you started from tells you when a task need
 
 | Started from | You are told by | Ask for more |
 |---|---|---|
-| Slack | Lines in the thread: `Triaged.`, `Pull request #… opened.`, `The work waits for a human (…)`, `#… merged.` | Reply `status`, `needs me`, `what changed` |
-| Your coding agent | `room_wait`, running in the background, returns when the room needs you, opens a pull request or ends | `/factory status`, `/factory inbox` |
-| GitHub | The factory's comments on the issue, and GitHub's own notifications | The room link in the first comment |
+| Slack | Four lines in the thread: started, needs you, pull request opened, and one end line edited in place on merge or revert | Reply `status`, `needs me`, `what changed`, `the pull request` |
+| Your coding agent | `wait`, running in the background, returns when the task needs you, opens a pull request or ends | `/maku task`, `/maku inbox` |
+| GitHub | Comments on the issue, and GitHub's own notifications | The room link in the first comment |
 | Anywhere | The room list's tab title counts the rooms that need you: `(2) Maku rooms` | `maku needs` in a terminal |
 
 ## The room list {#the-room-list}
 
 Every task has a room, and the room list shows them all, the ones that need you first. Open it from the
-*Watch* link in the factory's first comment, the Slack thread's room link, or the address your platform
-team gave you.
+*Watch* link in the first comment, the Slack thread's room link, or the address your platform team gave
+you.
 
 ![The room list: a filter bar with "mine", "needs me" and "all repositories", then one row per task with its repository, status, pull request and last activity. Two rows carry a "needs you" badge.](/images/screenshots/rooms-list-needs-you.png)
 
@@ -67,12 +67,12 @@ flowchart LR
 | Part | What it tells you |
 |---|---|
 | **Status line** | Where the task stands, in fixed words: `⏳ Waiting for you — approve a pending action`, `✓ Done — merged` |
-| **Facts** | The run (role, id, model, age), the cost (`Tokens 189 k of 1.5 M`, and dollars when the task is priced), the pull request and dashboards, the data class and who drives |
+| **Facts** | The run (role, id, model, age), the budget (`Tokens 189 k of 1.5 M`, and dollars when the task is priced), the pull request and dashboards, the data class and who drives |
 | **NEXT** | Shown while the task waits: why, then `Your move:` and the one step |
 | **NOW** | What the agent is doing: its latest call, its status and how long ago |
 | **Needs you** | One card per thing waiting for you ([chapter 6]({{< relref "when-the-factory-needs-you.md" >}})) |
 | **Notes** | The agents' own account of their progress, labelled as their claim. Useful, but the pull request is what counts |
-| **Merge policy** | A fold: the task's class, its mode, and what it takes to merge ([chapter 7]({{< relref "merging.md" >}})) |
+| **Merge policy** | A fold: the task's policy, its mode, and what it takes to merge ([chapter 7]({{< relref "merging.md" >}})) |
 | **Run rail** | One node per run: implementer, reviewer, then the merge, each with its state, cost and model. Click a node to see only that run's events |
 | **Conversation** | Every message and tool call. Plumbing folds into one line per turn; **Raw events** shows everything |
 | **Dock** | The composer, the theme button and the connection |
@@ -100,37 +100,38 @@ Most of the time a queued note, or a **Request changes** review on the pull requ
 note never interrupts the run in progress, and you can remove it from **Queued for the next run** until
 it is delivered.
 
-From a terminal or your coding agent you can queue too, but never steer:
+From your coding agent (`answer` when no question is open) or a terminal you can queue a note too,
+but never steer:
 
 ```bash
-maku post <room> --queue "the acceptance check also covers docs/README.md"
+maku post <task> --queue "the acceptance check also covers docs/README.md"
 ```
 
 ## Steer the running agent {#steer}
 
-Steering is the *driver's* alone. The driver holds the room's driver token; for a factory task that is
-the factory itself, until someone takes it.
+Steering is the *driver's* alone. The driver holds the room's driver token; for a task that is the
+factory itself, until someone takes it.
 
 1. Open **Driver** in the controls. Ask the driver for the token with **request**, or, as the room's
    owner, **take** it with a reason.
 2. Choose **Steer** in the composer and write your correction. **Interrupt** stops the agent's current
    step first.
-3. When you are done, **give** the token back to the factory. While you hold it, the task waits for you:
+3. When you are done, **give** the token back. While you hold it, the task waits for you:
    the room shows a *hold* ([chapter 6]({{< relref "when-the-factory-needs-you.md#hold" >}})).
 
 Steering, interrupting and taking the token work only in the browser. A token issued to `maku` is
 refused, because an agent on your machine can type into a terminal.
 
-## Budgets and ceilings {#budgets}
+## Budgets {#budgets}
 
-Every run has a deadline and a spending cap, and every task has a cap of its own, so a confused agent
+Every run has a deadline and a spending cap, and every task has a budget of its own, so a confused agent
 stops on its own. You see them in three places:
 
 | Where | What it shows |
 |---|---|
-| The factory's first comment | The run's cap and deadline: `Budget: 1.5 M tokens, 45 minutes (tier standard)` |
-| The room's facts, and `maku status` | Spent so far against the task's cap: `$0.16 of $5.10 (3 %)` |
-| The Slack proposal, and your agent's plan | The **ceiling**: the most the task may cost, and where that number comes from |
+| The first comment on GitHub | The run's cap and deadline: `Budget: 1.5 M tokens, 45 minutes (tier standard)` |
+| The room's facts, `task` (`maku status`), and the Slack end line / `status` | Spent so far against the task's budget: `$0.16 of $2.00` |
+| The Slack plan, and your agent's `handoff` plan | The **budget**: the most the task may spend |
 
 For a run on the owner's flat-rate Kimi Code subscription, the room's dollars are **nominal**: the
 run's marginal cost is **USD 0**, not an extra bill. The configured `kimi-frontier` model is Kimi
@@ -138,23 +139,23 @@ K3.1 Pro (`k3.1-pro`). Its nominal price row is `meter.prices.k3.1-pro` in
 `tooling/base/agent-factory/resources/factory.yaml`; the dollars still bound token use against the
 caps.
 
-The caps come from the task's *tier*. A ceiling from Slack or your coding agent can only lower the
+The caps come from the task's *tier*. A budget from Slack or your coding agent can only lower the
 task's cap, never raise it.
 
 Example (the reference host), the `standard` tier: each run at most 1.5 M tokens, 45 minutes and $2.55,
-the whole task at most $5.10. A link fix planned in Slack has a $2.00 ceiling.
+the whole task at most $5.10. A link fix planned in Slack has a $2.00 budget.
 
 When a run reaches its cap, it stops. When the task cannot afford another whole run, it waits for you
-with the reason `budget-task`. The factory also starts only so many tasks a day; past that it answers a
-new label with a comment. Every number: [Reference › Harness]({{< relref "/docs/reference/harness.md#caps" >}}).
+with the reason `budget-task`. Every number:
+[Reference › Harness]({{< relref "/docs/reference/harness.md#caps" >}}).
 
 ## Stop a task {#stop}
 
-Put the label `factory/stop` on the issue or its pull request. The task's runs end within a minute, and
-the branch keeps whatever the agents pushed. From Slack, reply `stop` and the thread tells you where the
-label goes; the thread itself never stops anything.
+Put the label `factory/stop` on the issue or its pull request, or in the Slack thread type `stop` (or
+press **Stop**) and confirm as a maintainer ([Slack]({{< relref "/docs/use/slack.md#stop-or-retry-a-task" >}})).
+The task's run ends and the pull request stays open.
 
 To pick a stopped task up later, see [chapter 10]({{< relref "when-things-go-wrong.md#continue" >}}).
 
-**Next:** [chapter 6]({{< relref "when-the-factory-needs-you.md" >}}) covers each moment the factory stops
+**Next:** [chapter 6]({{< relref "when-the-factory-needs-you.md" >}}) covers each moment a task stops
 and asks for you.

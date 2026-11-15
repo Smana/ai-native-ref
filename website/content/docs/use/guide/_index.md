@@ -3,8 +3,9 @@ title: User guide
 aliases:
   - /docs/platform/ai-platform/agents/use/user-guide/
 weight: 10
-description: "Hand work to the factory from Slack, your coding agent or a GitHub issue, follow it, answer what it needs, and merge its pull request."
-lastVerified: 2026-11-08
+diataxis: chapter
+description: "Hand work to Maku from Slack, your coding agent or a GitHub issue, follow it, answer what it needs, and merge its pull request."
+lastVerified: 2026-11-15
 ---
 
 Hand Maku a small, well-defined fix, and an AI agent turns it into a reviewed pull request
@@ -18,9 +19,9 @@ or a GitHub issue with a label.
 flowchart TB
   subgraph ask["1 · You ask"]
     direction LR
-    S["Slack:<br/>@factory + your words"] ~~~ C["Coding agent:<br/>/factory handoff"] ~~~ G["GitHub:<br/>issue + factory/ready"]
+    S["Slack:<br/>@factory + your words"] ~~~ C["Coding agent:<br/>/maku handoff"] ~~~ G["GitHub:<br/>issue + factory/ready"]
   end
-  subgraph work["2 · The factory works"]
+  subgraph work["2 · The agents work"]
     direction LR
     I["implementer<br/>opens a PR"] --> R["reviewer<br/>gives a verdict"]
   end
@@ -35,7 +36,7 @@ flowchart TB
 
 | Chapter | You will be able to |
 |---|---|
-| 1. [Meet the factory]({{< relref "meet-the-factory.md" >}}) | Say what the factory does, and the four rules it keeps |
+| 1. [Meet the factory]({{< relref "meet-the-factory.md" >}}) | Say what Maku does, and the four rules it keeps |
 | 2. [Before your first task]({{< relref "before-your-first-task.md" >}}) | Get the five things you need, from the right person |
 | 3. [Get started in five minutes]({{< relref "your-first-task.md" >}}) | Take one task from request to merged pull request, from Slack, your coding agent or GitHub |
 | 4. [Write a good task]({{< relref "writing-a-good-task.md" >}}) | Write a request the agents can finish, and know what may merge on its own |

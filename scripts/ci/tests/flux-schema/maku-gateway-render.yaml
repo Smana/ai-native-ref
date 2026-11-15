@@ -1,7 +1,8 @@
-# helm template model-gateway oci://ghcr.io/smana/charts/maku-gateway --version 0.50.0 with
+# helm template model-gateway oci://ghcr.io/smana/charts/maku-gateway --version 0.51.0 with
 # infrastructure/base/agent-gateway/model-gateway/helmrelease.yaml's values, issuer https://issuer.example:
 # AG15's fixture (test-assert-agent-gateway.py). Re-render it with the chart pin.
 ---
+# Source: maku-gateway/templates/catalog.yaml
 # The prices agentgateway merges over its built-in catalog to price each response (the access log's
 # `cost`), from the factory's meter.prices rows: edit a price there.
 apiVersion: v1
@@ -13,7 +14,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 data:
   catalog.json: |
     {
@@ -105,6 +106,7 @@ data:
     }
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # agent-default on zai (zai): the model is forced to the alias whatever the
 # body says, then mapped to glm-5.3 (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-zai-api-key by reference (D14).
@@ -117,7 +119,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -147,6 +149,7 @@ spec:
           expression: '"agent-default"'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # kimi-frontier on moonshot (moonshot): the model is forced to the alias whatever the
 # body says, then mapped to k3.1-pro (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-moonshot-api-key by reference (D14).
@@ -159,7 +162,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -195,6 +198,7 @@ spec:
           expression: 'null'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # mistral-light on mistral (mistral): the model is forced to the alias whatever the
 # body says, then mapped to mistral-small-2603 (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-mistral-api-key by reference (D14).
@@ -207,7 +211,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -240,6 +244,7 @@ spec:
           expression: '"none"'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # mistral-standard on mistral (mistral): the model is forced to the alias whatever the
 # body says, then mapped to mistral-medium-2604 (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-mistral-api-key by reference (D14).
@@ -252,7 +257,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -285,6 +290,7 @@ spec:
           expression: '"none"'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # tier-frontier on zai (zai): the model is forced to the alias whatever the
 # body says, then mapped to glm-5.3 (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-zai-api-key by reference (D14).
@@ -297,7 +303,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -327,6 +333,7 @@ spec:
           expression: '"tier-frontier"'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # tier-light on zai (zai): the model is forced to the alias whatever the
 # body says, then mapped to glm-5.3-flash (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-zai-api-key by reference (D14).
@@ -339,7 +346,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -369,6 +376,7 @@ spec:
           expression: '"tier-light"'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # tier-standard on zai (zai): the model is forced to the alias whatever the
 # body says, then mapped to glm-5.3-flashx (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-zai-api-key by reference (D14).
@@ -381,7 +389,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -411,6 +419,7 @@ spec:
           expression: '"tier-standard"'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # agent-default on anthropic (anthropic): the model is forced to the alias whatever the
 # body says, then mapped to claude-opus-5-5 (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-anthropic-api-key by reference (D14).
@@ -423,7 +432,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -445,6 +454,7 @@ spec:
           expression: '"agent-default"'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # tier-frontier on anthropic (anthropic): the model is forced to the alias whatever the
 # body says, then mapped to claude-opus-5-5 (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-anthropic-api-key by reference (D14).
@@ -457,7 +467,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -479,6 +489,7 @@ spec:
           expression: '"tier-frontier"'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # tier-light on anthropic (anthropic): the model is forced to the alias whatever the
 # body says, then mapped to claude-haiku-5-5 (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-anthropic-api-key by reference (D14).
@@ -491,7 +502,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -513,6 +524,7 @@ spec:
           expression: '"tier-light"'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # tier-standard on anthropic (anthropic): the model is forced to the alias whatever the
 # body says, then mapped to claude-sonnet-5-5 (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-anthropic-api-key by reference (D14).
@@ -525,7 +537,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -547,6 +559,7 @@ spec:
           expression: '"tier-standard"'
 
 ---
+# Source: maku-gateway/templates/backends.yaml
 # tier-frontier on zai (zai): the model is forced to the alias whatever the
 # body says, then mapped to glm-5.3 (GW5): a caller holds no other alias's audience, so it
 # cannot reach another model. The key is read from Secret agents-zai-api-key by reference (D14).
@@ -559,7 +572,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   ai:
     provider:
@@ -589,6 +602,7 @@ spec:
           expression: '"tier-frontier"'
 
 ---
+# Source: maku-gateway/templates/parameters.yaml
 # The generated proxy has no pod seccomp profile, no liveness probe, no limits and a LoadBalancer
 # Service by default; these fields are strategic-merge overlays on what the controller renders (its
 # container is already non-root, read-only, capabilities dropped). As cnref's parameters.yaml.
@@ -601,7 +615,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   # A controller pin change does not re-render the proxy until the Gateway is touched: bump this with
   # the controller, then check the pod's digest.
@@ -673,6 +687,7 @@ spec:
       minAvailable: 1
 
 ---
+# Source: maku-gateway/templates/policies-identity.yaml
 # The identity headers are dropped before routing, so no route or backend sees a forged one, even
 # where a listener's `set` does not run.
 apiVersion: agentgateway.dev/v1alpha1
@@ -684,7 +699,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     -
@@ -702,6 +717,7 @@ spec:
           - agent-session-id
 
 ---
+# Source: maku-gateway/templates/policies-identity.yaml
 # Listener public: the caller's projected ServiceAccount token, verified offline against this
 # cluster's issuer, must carry `exp` and `sub` (a sub-less token would share one rate-limit bucket),
 # the subject below, and an audience starting "maku-gateway.public."; each route then
@@ -717,7 +733,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     -
@@ -732,7 +748,7 @@ spec:
         - issuer: https://issuer.example
           jwks:
             remote:
-              url: https://issuer.example/jwks
+              url: https://issuer.example/keys
           validation:
             requiredClaims:
               - exp
@@ -764,6 +780,7 @@ spec:
       request: 600s
 
 ---
+# Source: maku-gateway/templates/policies-identity.yaml
 # Listener internal: the caller's projected ServiceAccount token, verified offline against this
 # cluster's issuer, must carry `exp` and `sub` (a sub-less token would share one rate-limit bucket),
 # the subject below, and an audience starting "maku-gateway.internal."; each route then
@@ -779,7 +796,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     -
@@ -794,7 +811,7 @@ spec:
         - issuer: https://issuer.example
           jwks:
             remote:
-              url: https://issuer.example/jwks
+              url: https://issuer.example/keys
           validation:
             requiredClaims:
               - exp
@@ -826,6 +843,7 @@ spec:
       request: 600s
 
 ---
+# Source: maku-gateway/templates/policies-identity.yaml
 # Listener clients: the caller's projected ServiceAccount token, verified offline against this
 # cluster's issuer, must carry `exp` and `sub` (a sub-less token would share one rate-limit bucket),
 # the subject below, and an audience starting "maku-gateway.client."; each route then
@@ -841,7 +859,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     -
@@ -856,7 +874,7 @@ spec:
         - issuer: https://issuer.example
           jwks:
             remote:
-              url: https://issuer.example/jwks
+              url: https://issuer.example/keys
           validation:
             requiredClaims:
               - exp
@@ -888,6 +906,7 @@ spec:
       request: 60s
 
 ---
+# Source: maku-gateway/templates/policies-identity.yaml
 # One frontend policy per Gateway: two would leave the merge to the controller.
 # Buffer: 8Mi, as cnref's agent-router (agentgateway's 2 MiB default cuts long agent contexts).
 # Telemetry: every identity label is the verified sub, under the names the factory's meter and the
@@ -901,7 +920,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     -
@@ -926,6 +945,7 @@ spec:
             expression: jwt.sub
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -938,7 +958,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -953,6 +973,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -965,7 +986,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -980,6 +1001,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -992,7 +1014,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1007,6 +1029,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -1019,7 +1042,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1034,6 +1057,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -1046,7 +1070,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1061,6 +1085,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -1073,7 +1098,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1088,6 +1113,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -1100,7 +1126,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1115,6 +1141,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -1127,7 +1154,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1142,6 +1169,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -1154,7 +1182,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1169,6 +1197,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -1181,7 +1210,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1196,6 +1225,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -1208,7 +1238,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1223,6 +1253,7 @@ spec:
           - 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # The pin (GW5): the listener admits any audience of its class; this route admits only its own.
 # A caller that rewrites its path to another alias holds no token for it: 403. The listener's
 # subject check is repeated here, so it holds whatever agentgateway's policy merge does (probe P2).
@@ -1235,7 +1266,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1250,6 +1281,7 @@ spec:
           - 'jwt.sub == "system:serviceaccount:agent-system:room-broker"'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
@@ -1259,7 +1291,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1271,6 +1303,7 @@ spec:
       body: '{"error":"model listing is not served on the model gateway"}'
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
@@ -1280,7 +1313,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
@@ -1292,6 +1325,7 @@ spec:
       body: '{"error":"model listing is not served on the model gateway"}'
 
 ---
+# Source: maku-gateway/templates/networkpolicy.yaml
 # The same in Cilium's terms, with each provider by FQDN through Cilium's DNS proxy.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -1302,7 +1336,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   endpointSelector:
     matchLabels:
@@ -1377,6 +1411,7 @@ spec:
             - {port: "443", protocol: TCP}
 
 ---
+# Source: maku-gateway/templates/gateway.yaml
 # The model gateway (D7). One listener per data class, as on cnref's agent-router: an internal run's
 # token never reaches a public-only provider, because that provider's routes attach to `public` only.
 # `clients` serves the broker's planner and classifier. Routes attach from this namespace only.
@@ -1389,7 +1424,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   gatewayClassName: agentgateway
   listeners:
@@ -1418,6 +1453,7 @@ spec:
       name: model-gateway
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/agent-default on public: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/agent-default/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1430,7 +1466,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1454,6 +1490,7 @@ spec:
           name: zai-agent-default
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/kimi-frontier on public: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/kimi-frontier/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1466,7 +1503,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1490,6 +1527,7 @@ spec:
           name: moonshot-kimi-frontier
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/mistral-light on public: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/mistral-light/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1502,7 +1540,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1526,6 +1564,7 @@ spec:
           name: mistral-mistral-light
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/mistral-standard on public: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/mistral-standard/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1538,7 +1577,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1562,6 +1601,7 @@ spec:
           name: mistral-mistral-standard
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/tier-frontier on public: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/tier-frontier/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1574,7 +1614,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1598,6 +1638,7 @@ spec:
           name: zai-tier-frontier
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/tier-light on public: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/tier-light/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1610,7 +1651,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1634,6 +1675,7 @@ spec:
           name: zai-tier-light
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/tier-standard on public: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/tier-standard/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1646,7 +1688,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1670,6 +1712,7 @@ spec:
           name: zai-tier-standard
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/agent-default on internal: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/agent-default/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1682,7 +1725,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1720,6 +1763,7 @@ spec:
           name: anthropic-agent-default
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/tier-frontier on internal: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/tier-frontier/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1732,7 +1776,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1770,6 +1814,7 @@ spec:
           name: anthropic-tier-frontier
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/tier-light on internal: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/tier-light/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1782,7 +1827,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1820,6 +1865,7 @@ spec:
           name: anthropic-tier-light
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /m/tier-standard on internal: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/m/tier-standard/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1832,7 +1878,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1870,6 +1916,7 @@ spec:
           name: anthropic-tier-standard
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # /clients/planner on clients: a caller's base URL is
 # http://model-gateway.<namespace>.svc:<port>/clients/planner/v1; each path is matched exactly and
 # rewritten to the backend's typed route.
@@ -1882,7 +1929,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1906,6 +1953,7 @@ spec:
           name: zai-planner
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # A model listing is answered 404 after the listener's token check, as cnref's agent-router answers
 # it: every harness works with that. The Exact match outranks each alias's prefix.
 apiVersion: gateway.networking.k8s.io/v1
@@ -1917,7 +1965,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -1954,6 +2002,7 @@ spec:
           name: zai-agent-default
 
 ---
+# Source: maku-gateway/templates/routes.yaml
 # A model listing is answered 404 after the listener's token check, as cnref's agent-router answers
 # it: every harness works with that. The Exact match outranks each alias's prefix.
 apiVersion: gateway.networking.k8s.io/v1
@@ -1965,7 +2014,7 @@ metadata:
     app.kubernetes.io/instance: model-gateway
     app.kubernetes.io/part-of: maku
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/version: "v0.50.0"
+    app.kubernetes.io/version: "v0.51.0"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

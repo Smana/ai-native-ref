@@ -20,7 +20,6 @@ it and what it costs is on [Model routing and cost]({{< relref "/docs/how-it-wor
 | **Model choice** | Named by the client, or picked from the prompt by the Semantic Router (`model: MoM`) | The alias the run's token names, mapped statically to one backend; nothing selects per request |
 | **Software** | Envoy Gateway + Envoy AI Gateway (Agent Router) `1.1.0` | [agentgateway](https://agentgateway.dev/docs/) `v1.6.0`, Gateway `model-gateway` from Maku's `maku-gateway` chart ([ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})) |
 
-<!-- TODO: redraw ai-platform.drawio page 2 for the model gateway: the picture still shows the identity-proxy sidecar, the MCP tools and octo-sts behind the model gateway. -->
 ![The two gateways side by side. Top: humans and coding clients reach ai-gateway over the tailnet with an API key; the Semantic Router may pick the model, and the request lands on a vLLM model in the serving fleet. Bottom: an agent run calls the model gateway with its own token; the gateway verifies it, meters the run's tokens and routes the alias the token names to a frontier provider (Z.ai GLM, Moonshot Kimi and Mistral for public data only, Claude for internal data). Both gateways write access logs and gen_ai metrics to the Victoria stack](/images/diagrams/ai-platform-2.svg)
 
 *Source: [`docs/architecture/ai-platform.drawio`](https://github.com/Smana/ai-native-ref/blob/main/docs/architecture/ai-platform.drawio), page 2.*

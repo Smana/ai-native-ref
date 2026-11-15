@@ -24,7 +24,7 @@ daily cap in `tooling/base/agent-factory/resources/repository-<name>.yaml`:
 
 | Platform setting | Value on this platform | Manifest path |
 |---|---|---|
-| Gate status check | `gateStatus: false`, `policyBot: true` (`policy-bot: main` posted by `ogenki-merge-gate[bot]`) | `tooling/base/agent-factory/resources/factory.yaml` |
+| Gate status check | `gateStatus: true`, `policyBot: false` (`maku/merge-gate` posted by the factory's gate) | `tooling/base/agent-factory/resources/factory.yaml` |
 | Agents App (branch pushes and PR creation) | `ogenki-agents[bot]`, Secret `agent-factory-agents-app` | `tooling/base/agent-factory/helm-values-configmap.yaml` |
 | Factory App (issue narration and status) | `ogenki-agent-factory[bot]`, Secret `agent-factory-github` | `tooling/base/agent-factory/helm-values-configmap.yaml` |
 | Merger App (the only identity allowed to merge) | `ogenki-agent-merger[bot]`, `apps.merger.mode: separate`, Secret `agent-factory-merger` | `tooling/base/agent-factory/resources/factory.yaml`, `tooling/base/agent-factory/helm-values-configmap.yaml` |
@@ -32,10 +32,9 @@ daily cap in `tooling/base/agent-factory/resources/repository-<name>.yaml`:
 | Daily auto-merge cap (`merge.maxPerDay`) | `1` on `Smana/cloud-native-ref` (`dead-links` also sets `maxPerDay: 1`, `deps-patch` `2`), `2` on `Smana/ai-native-ref`, `5` on `Smana/runlore-kb` and `Smana/runlore` | `tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml`, `tooling/base/agent-factory/resources/repository-ai-native-ref.yaml`, `tooling/base/agent-factory/resources/repository-runlore-kb.yaml`, `tooling/base/agent-factory/resources/repository-runlore.yaml` |
 | CI fix runs and check re-runs | `fixRuns: 2, checkReruns: 1` on `Smana/cloud-native-ref`; `fixRuns: 1, checkReruns: 0` on the other three repositories | `tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml`, `tooling/base/agent-factory/resources/repository-ai-native-ref.yaml` |
 
-Unlike Maku's defaults (`gateStatus: true`, `policyBot: false`, and `apps.merger.mode: factory` sharing
-one App), this platform keeps `policy-bot: main` as the required policy status check and isolates the
-right to merge in a dedicated third GitHub App (`ogenki-agent-merger[bot]`) so neither the agents App
-nor the factory App can merge code.
+Unlike Maku's default (`apps.merger.mode: factory` sharing one App), this platform isolates the right to
+merge in a dedicated third GitHub App (`ogenki-agent-merger[bot]`) so neither the agents App nor the
+factory App can merge code.
 
 Which policies are bound in `live`, `shadow` or `disabled` mode on each repository is listed in
 [Configure merge policies]({{< relref "/docs/use/guide/merge-policies.md#configuration" >}}), and the

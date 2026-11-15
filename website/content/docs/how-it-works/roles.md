@@ -2,8 +2,8 @@
 title: The agent roles
 linkTitle: Roles
 weight: 10
-description: "Who does what in a task: the scoper, tester, implementer, judge and reviewer, the two GitHub Apps beside them, and a task's life from label to merge."
-lastVerified: 2026-10-31
+description: "Who does what in a task: the five roles (scoper, tester, implementer, judge and reviewer), the merger App beside them, and a task's life from label to merge."
+lastVerified: 2026-11-15
 diataxis: explanation
 ---
 
@@ -11,9 +11,9 @@ A task is a series of agent runs on one `agent/<task>` branch. Each run has one 
 fixes what the run may write and which models and tools it may call. Only two roles write: the tester
 and the implementer. Every other role reads and reports.
 
-Two GitHub Apps stand beside the agents. They are not agents and run no model: **policy-bot** posts a
-status on every agent pull request, and the **merger App** merges what the
-[merge gate]({{< relref "/docs/how-it-works/merge-gate.md" >}}) decided or a maintainer approved.
+The factory's [merge gate]({{< relref "/docs/how-it-works/merge-gate.md" >}}) posts the
+**`maku/merge-gate`** status on every agent pull request, and one GitHub App stands beside the agents:
+the **merger App**, which runs no model and merges what the gate decided or a maintainer approved.
 
 {{< hero-video clip="agent-factory-v3" width="720" height="854" alt="Animation: a scoper bounds the task or asks one question, the implementer opens a pull request, a judge and a reviewer check it, and a maintainer's approval or the merge gate leads to the merger App." />}}
 
@@ -47,24 +47,23 @@ flowchart TB
   build -->|"pull request → merge gate"| merge
 ```
 
-The implementer runs on every task, and the reviewer on almost every one: the task's **template** decides
-(`pair` is the implementer and a reviewer). The scoper, tester, search and judge are switched on **per
-class**: a class is a kind of change the factory recognises, such as "link fixes" or "scripts". A role
-that is off for a class is skipped.
+Five roles run in a task. The task's **workflow** (`quick`, `standard` or `careful`) decides which of
+them run: `quick` runs the implementer alone; `standard` runs the implementer, its repository checks,
+the completion judge and the reviewer; `careful` adds the scoper before them (including a split
+proposal when an issue is too big for one pull request) and the implementer's repository search tool.
+A repository switches the **tester** on with `Repository.spec.workflow.testFirst: true`. For RunLore's
+incident role, which investigates an alert and proposes an issue, see
+[RunLore]({{< relref "/docs/how-it-works/runlore.md" >}}).
 
 ## Every role in one table {#role-table}
 
 | Role | What it does | Writes? |
 |---|---|---|
-| <span id="scoper"></span>**Scoper** | Reads the issue and turns it into a bounded task with acceptance checks. If one thing is unclear, it asks the author one question instead ([what you do then]({{< relref "/docs/use/guide/when-the-factory-needs-you.md#scoper-question" >}})) | No |
-| **Splitter** | Part of the scoper: proposes splitting a hard issue into smaller parts. A maintainer approves the split; the parts then run one at a time | No |
+| <span id="scoper"></span>**Scoper** | Reads the issue and turns it into a bounded task with acceptance checks. If one thing is unclear, it asks the author one question instead ([what you do then]({{< relref "/docs/use/guide/when-the-factory-needs-you.md#scoper-question" >}})); if the issue is too large for one pull request, it proposes splitting it into parts that run one at a time after a maintainer's `/factory split` | No |
 | <span id="tester"></span>**Tester** | Writes tests that fail on the current code. They become the contract the implementer works to, and the implementer may not change them | Tests only |
-| **Implementer** | Writes the change on the task's branch, runs the repository's own checks and opens the pull request. It runs again for a review's changes or a red CI | Code |
-| **Search** | A read-only helper the implementer can ask a question about the repository | No |
+| **Implementer** | Writes the change on the task's branch, runs the repository's own checks (and, in `careful`, a read-only repository search tool) and opens the pull request. It runs again for a review's changes or a red CI | Code |
 | <span id="judge"></span>**Completion judge** | A single model call with a fresh context: is the change done against its acceptance checks? `not_yet` sends the implementer back; `impossible` escalates to you | No |
-| <span id="reviewer"></span>**Reviewer** | Reviews the pull request without the implementer's transcript, and posts a verdict. It runs the implementer's model unless the class names another for it ([providers]({{< relref "/docs/how-it-works/providers.md" >}})). On a class that may merge by itself, the gate needs its approval; otherwise its verdict is advice for you | No |
-| **Triager** | Investigates an alert handed over by [RunLore]({{< relref "/docs/how-it-works/runlore.md" >}}), the platform's incident agent, and proposes a public issue, which a maintainer publishes. The scoper is a triager run too | No |
-| **policy-bot** (an App) | Posts the `policy-bot: main` status on every push; dismisses an approval when the head moves | No |
+| <span id="reviewer"></span>**Reviewer** | Reviews the pull request without the implementer's transcript, and posts a verdict. It runs the implementer's model unless the workflow names another for it ([providers]({{< relref "/docs/how-it-works/providers.md" >}})). On a policy that may merge by itself, the gate needs its approval; otherwise its verdict is advice for you | No |
 | **Merger App** (an App) | Merges the commit the gate decided, or the one a maintainer approved; opens the revert of a factory merge | Merges only |
 
 When each role starts and how it ends: [run endings]({{< relref "/docs/reference/gate-reasons.md#role-endings" >}}).
@@ -82,7 +81,7 @@ For platform owners. A run calls one model and, with a room, the room's tools:
 | No public-only alias on internal work | The `AgentRun` refuses an `internal` run that names a [provider]({{< relref "/docs/how-it-works/providers.md" >}}) alias |
 | The `room_*` tools, for a run with a room | The broker checks the run's token and each tool's roles; the reviewer cannot read the implementer's transcript |
 
-The capability profiles in `infrastructure/base/agent-gateway/profiles/<role>.<public|internal>.yaml`
+The role rules in `infrastructure/base/agent-gateway/profiles/<role>.<public|internal>.yaml`
 still compile into the rules of `agent-router`, the older Gateway beside the model gateway. No run
 calls it.
 

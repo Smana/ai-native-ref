@@ -3,7 +3,7 @@ title: Harness reference
 aliases:
   - /docs/platform/ai-platform/agents/tune/harness-reference/
 weight: 10
-description: "The tier budgets, templates, concurrency caps, loop rows, run-controller mounts and OpenHands harness values set on this platform."
+description: "The tier budgets, templates, workflows, concurrency caps, loop rows, run-controller mounts and OpenHands harness values set on this platform."
 lastVerified: 2026-11-15
 diataxis: reference
 ---
@@ -17,7 +17,7 @@ Every run on this platform is bounded by the `Factory` catalogue in
 [Harness tuning]({{< relref "/docs/operate/tune-a-run.md" >}}).
 
 - [Factory: tiers](#tiers)
-- [Factory: templates and triage](#templates)
+- [Factory: templates, workflows and triage](#templates)
 - [Factory: caps, budgets and loops](#caps)
 - [Factory: what a brief holds](#brief)
 - [Run API and AgentRun values](#run-api)
@@ -38,19 +38,20 @@ Every priced run is held to `runUSD` and `taskUSD` at the rates in `spec.prices`
 and `taskTokens` cap a run only when the meter cannot price its model. The model gateway's per-run
 token budget is the hard backstop ([gateways]({{< relref "/docs/how-it-works/gateways.md#budgets" >}})).
 
-## Factory: templates and triage {#templates}
+## Factory: templates, workflows and triage {#templates}
 
-Example (the reference host), `spec.templates`, `spec.defaults` and `spec.triage` in
+Example (the reference host), `spec.templates`, `spec.workflows`, `spec.defaults` and `spec.triage` in
 `tooling/base/agent-factory/resources/factory.yaml`:
 
 | Setting | Value on this platform | Notes |
 |---|---|---|
-| `templates.solo` | `{roles: [implementer]}` | Used for `docs-links` on `standard` |
-| `templates.pair` | `{roles: [implementer, reviewer], maxReviewRounds: 2}` | Default for `review` and most classes; `docs-links` on `frontier` |
-| `templates.trio` | `{roles: [implementer, reviewer], maxReviewRounds: 2}` | Matches `pair` here; the tester runs through `testFirst` on the class |
+| `templates.solo` | `{roles: [implementer]}` | Used by the `quick` workflow and scheduled tasks |
+| `templates.pair` | `{roles: [implementer, reviewer], maxReviewRounds: 2, reviewerModel: kimi-frontier}` | Used by `standard` and `careful`; the `frontier` reviewer runs on Kimi K3.1 Pro ([providers]({{< relref "/docs/how-it-works/providers.md" >}})) |
 | `templates.investigate` | `{roles: [triager]}` | Forced `internal` for RunLore findings; never writes code |
-| `defaults` | `{dataClass: public, predictedClass: review}` | Fallback class when triage predicts none |
-| `triage.controlPercent` | `10` | No classifier is deployed, so 90% of tasks run on `standard` and 10% on `frontier` |
+| `workflows.quick` | `{template: solo, tier: standard}` | Implementer alone; used by scheduled runs and `workflow:quick` |
+| `workflows.standard` | `{template: pair, tier: standard, checks: true, stallSteps: 80, continuations: 2, judge: tier-light}` | Every repository's default (`Repository.spec.workflow.default: standard`) |
+| `workflows.careful` | `{template: pair, tier: frontier, checks: true, stallSteps: 80, continuations: 2, judge: tier-light}` | Scoper first (`loops.careful`), implementer with `search` and checks, then reviewer |
+| `defaults` / `triage.controlPercent` | `{dataClass: public}` / `0` | Triage picks `workflow:<name>` label, schedule workflow, `evaluation` arm (`treatment: careful` at 30%), or `Repository.spec.workflow.default` (`standard`) |
 
 The reviewer runs on **the other tier** (`frontier` for a `standard` or `light` implementer, `standard`
 for a `frontier` one) with that tier's `runUSD` cap, keeping the implementer's `runTokens` and
@@ -67,18 +68,16 @@ and `spec.loops` in `tooling/base/agent-factory/resources/factory.yaml`:
 | `budgets` | `{enforceTask: true, enforcePrincipal: false, factoryDailyUSD: 42.50, humanDailyUSD: 8.50, perPerson: {enabled: true}}` | Task and run USD caps enforced; fleet and per-person daily caps counted in shadow |
 | `resume` | `{maxPerTask: 2}` | Resumes `Disrupted` and `PodLost` runs up to twice within `taskTokens`; never resumes `PodFailed` |
 | `facts.finalSpend` · `brief.ciEvidence` | `true` · `true` | Posts one final spend fact after settle; inlines reviewer comments and failing check annotations in revision briefs |
-| `loops.default` | `{scope: "off"}` | Classes without a row run unscoped with no completion judge |
-| `loops.docs` | `{scope: scoper, stallSteps: 60, continuations: 2, judge: tier-light, search: true}` | Scoper, 60-step stall stop, up to 2 `tier-light` judge continuations, and the read-only `search` helper |
-| `loops.scripts` | `{scope: scoper, split: {maxChildren: 4, familyUSD: 20.40, childTier: standard, anyTier: true}, judge: tier-light}` | Scoper, splitter (up to 4 parts, `$20.40` family cap) and `tier-light` completion judge |
-| `loops.{docs-links,revert,dead-links,deps-patch}` | `{models: {reviewer: {frontier: kimi-frontier}}}` | Runs the `frontier` reviewer on Kimi K3.1 Pro ([providers]({{< relref "/docs/how-it-works/providers.md" >}})) |
+| `loops.default` | `{scope: "off"}` | `quick` and `standard` run without the scoper |
+| `loops.careful` | `{scope: scoper, search: true, split: {maxChildren: 5, familyUSD: 20.40, childTier: standard, anyTier: true}}` | Runs the scoper, enables the `search` tool, and bounds splits to 5 parts and `$20.40` across the family |
 | `scoper.nudgeAt` / `scoper.maxToolCalls` | `25` / `40` (Maku defaults; unset in `factory.yaml`) | Nudges the scoper at 25 tool calls and stops it at 40 (`budget_calls`) |
 
 ## Factory: what a brief holds {#brief}
 
-`loops.<class>.scope` selects what the factory places in each run's brief (`scoper` on `docs` and
-`scripts`, `off` on every other class):
+`loops.<workflow>.scope` selects what the factory places in each run's brief (`scoper` on `careful`,
+`off` on `quick` and `standard`):
 
-- **Scoper (`scope: scoper`):** preamble, repository steering note (`.github/agent-factory/steering/<class>.md`,
+- **Scoper (`scope: scoper`):** preamble, repository steering note (`.github/agent-factory/steering/<workflow>.md`,
   fenced as trusted), sanitised issue snapshot (fenced as untrusted), and instructions to scope, ask one
   question, or propose a split.
 - **Implementer:** preamble, steering note, scoper handoff, and issue snapshot (inlined up to 16 KiB, or
@@ -99,7 +98,7 @@ writes `agentruns.maku.ogenki.io` objects in `agents` (CRDs from
 | Surface | Values on this platform |
 |---|---|
 | `task agent:run` flags | `--max-tokens` default `2,000,000` (max `5,000,000`), `--model` default `agent-default`, `--profiles` (`pypi`, `npm`, `golang`, `crates`), fixed at `120` min and `size: small` |
-| `AgentRun.spec` | `size: small` (1–2 CPU, 2–4 GiB), `dataClass: public` or `internal`, `model: agent-default` (or a class's provider alias on `public`), `loop.checks: true` on `docs` (`Repository.spec.checks.egress` adds `[pypi]` on `cloud-native-ref` and `[golang, pypi]` on `ai-native-ref`) |
+| `AgentRun.spec` | `size: small` (1–2 CPU, 2–4 GiB), `dataClass: public` or `internal`, `model: agent-default` (or `kimi-frontier` on the `frontier` reviewer), `loop.checks: true` on `standard` and `careful` (`Repository.spec.checks.egress` adds `[pypi]` on `cloud-native-ref` and `[golang, pypi]` on `ai-native-ref`) |
 
 ## Run-controller and harness values {#composition}
 

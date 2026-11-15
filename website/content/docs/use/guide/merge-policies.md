@@ -16,43 +16,28 @@ rule, editor workflow and promotion step is in Maku's
 
 <span id="where"></span><span id="change-a-class"></span><span id="starter"></span><span id="by-hand"></span><span id="editor"></span><span id="promote"></span><span id="limits"></span>
 
-Example (the reference host): the central `Repository` objects decide every merge, while
+Example (the reference host): the central `Repository` objects and the chart catalog
+(`mergePolicies.catalog: {enabled: true, exclude: [deps-patch]}`) decide every merge, while
 `policyManagement.stage: manage` compares each repository's `.github/agent-factory.yaml`, runs dual
 evaluation, and serves the Settings pages:
 
-| Repository | `live` | `shadow` | `disabled` | Manifest path |
-|---|---|---|---|---|
-| `Smana/cloud-native-ref` | `docs-links`, `revert` | `alert-rules`, `dead-links`, `deps-patch`, `deps-minor` | `docs`, `tests`, `dashboards`, `scripts`, `review` | `tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml` |
-| `Smana/ai-native-ref` | — | `docs-links`, `revert`, `dead-links` | `docs`, `tests`, `dashboards`, `scripts` | `tooling/base/agent-factory/resources/repository-ai-native-ref.yaml` |
-| `Smana/runlore-kb` | — | `docs-links`, `revert`, `kb-entries` | — | `tooling/base/agent-factory/resources/repository-runlore-kb.yaml` |
-| `Smana/runlore` | — | `docs-links`, `revert` | — | `tooling/base/agent-factory/resources/repository-runlore.yaml` |
+| Repository | `live` | `shadow` | Manifest path |
+|---|---|---|---|
+| `Smana/cloud-native-ref` | `docs-links`, `revert` | `alert-rules`, `dead-links`, `deps-patch`, `deps-minor`, `docs` | `tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml` |
+| `Smana/ai-native-ref` | — | `docs-links`, `revert`, `dead-links`, `docs` (`^website/content/.+\.md$`, 60 lines) | `tooling/base/agent-factory/resources/repository-ai-native-ref.yaml` |
+| `Smana/runlore-kb` | — | `docs-links`, `revert`, `kb-entries`, `docs` | `tooling/base/agent-factory/resources/repository-runlore-kb.yaml` |
+| `Smana/runlore` | — | `docs-links`, `revert`, `docs` | `tooling/base/agent-factory/resources/repository-runlore.yaml` |
 
 <!-- example -->
 | Platform setting | Value on this platform | Manifest path |
 |---|---|---|
 | Policy management stage | `stage: manage` (factory and broker), `operators: [Smana]` | `tooling/base/agent-factory/helm-values-configmap.yaml`, `infrastructure/base/room-broker/config.yaml` |
-| Reusable policy definitions | Twelve `MergePolicy` objects (`alert-rules`, `dashboards`, `dead-links`, `deps-minor`, `deps-patch`, `docs-links`, `docs`, `kb-entries`, `revert`, `review`, `scripts`, `tests`) | `tooling/base/agent-factory/resources/mergepolicy-docs-links.yaml` (and sibling `mergepolicy-*.yaml` files) |
-| Central guardrails | Unset (Maku's defaults hold: `.github/`, `.policy.yml` and `CODEOWNERS` protected; at most 10 files, 300 lines and 5 merges/day) | `tooling/base/agent-factory/resources/factory.yaml` |
+| Chart catalog and custom policies | Chart catalog enabled (`docs-links`, `revert`, `docs` in `shadow`; `deps-patch` excluded) plus five custom `MergePolicy` objects (`alert-rules`, `dead-links`, `deps-minor`, `deps-patch`, `kb-entries`) | `tooling/base/agent-factory/helm-values-configmap.yaml`, `tooling/base/agent-factory/resources/mergepolicy-*.yaml` |
+| Gate status and guardrails | `mergeDefaults: {gateStatus: true, policyBot: false}`; `mergeGuardrails` unset (Maku defaults hold: `.github/`, `.policy.yml` and `CODEOWNERS` protected; at most 10 files, 300 lines and 5 merges/day) | `tooling/base/agent-factory/resources/factory.yaml` |
 | Ownership fence and repo mirror | `factory: <active-cluster>` in every served repository ([active cluster]({{< relref "/docs/status.md#clusters" >}})); `cloud-native-ref` also mirrors its bindings under `mergePolicies:` | `.github/agent-factory.yaml` |
-| policy-bot rules | One `low-risk:` rule per unattended class | `.policy.yml` |
 
-Example (the reference host), from `tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml`:
-
-```yaml
-spec:
-  mergePolicies:
-    - {name: docs-links, mode: live, holdoutChecks: ["Check the documentation links 🔗"]}
-    - {name: revert, mode: live, holdoutChecks: ["Check the documentation links 🔗"]}
-    - {name: docs, mode: disabled}
-    - name: dead-links
-      mode: shadow
-      allowedFiles: ['^(docs|website/content)/.+\.md$']
-      oracleWorkflow: dead-links.yaml
-```
-
-Unlike Maku's default (`policyManagement.stage` off, only the two starter policies), this platform
-runs `stage: manage` with central authority (`classAuthority: central`) and binds `docs-links` and
-`revert` as `live` on `Smana/cloud-native-ref` only, keeping every other repository in `shadow` or
-`disabled` until its shadow cohort reaches 20 clean decisions.
-
-**Next:** keep the [cheat sheet]({{< relref "cheat-sheet.md" >}}) at hand.
+Unlike Maku's defaults (`policyManagement.stage: observe`, `mergePolicies.catalog.enabled: false`), this
+platform enables the chart's starter policy catalog (excluding `deps-patch` in favor of the custom Go/GHA
+policy), runs `stage: manage` so operators can inspect dual-evaluation comparisons and promotion readiness
+in the broker UI, and keeps `cloud-native-ref` as the only repository with `live` unattended merges
+(`docs-links` and `revert`) gated by `maku/merge-gate`.

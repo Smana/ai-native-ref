@@ -71,14 +71,14 @@ What is wrong: docs/runbooks/agent-factory/22-slack.md links to
 18-factory-interface.md, which does not exist.
 What it should be: the link points at 18-factory-interfaces.md.
 Acceptance check: the link resolves, and the link check passes.
-class docs-links
+workflow standard
 
 Roles
-scoper, implementer, reviewer · one issue: a plan with more is filed
+implementer, reviewer · one issue: a plan with more is filed
 from your coding agent or the web UI
 
 Ceiling
-$2.00 (class:docs-links.taskUSD)
+$5.10 (workflow:standard.taskUSD)
 
 Editing
 Edit issues is a reply: write what should change in this thread and

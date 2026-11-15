@@ -3,6 +3,7 @@ title: Gateways
 aliases:
   - /docs/platform/ai-platform/gateways/
 weight: 70
+diataxis: explanation
 description: "Two gateways, one per kind of caller: ai-gateway for humans and coding clients, the model gateway for agent runs — identity, routing, and what they share."
 lastVerified: 2026-11-14
 ---
@@ -108,26 +109,7 @@ under [known gaps]({{< relref "/docs/how-it-works/serving/_index.md#known-gaps" 
 
 ### Semantic routing — `model: MoM`
 
-Sending `model: MoM` lets the Semantic Router pick from the prompt. Its
-decision list, highest priority first
-(`infrastructure/base/vllm-semantic-router/helmrelease.yaml`):
-
-| Priority | Decision | Target |
-|---|---|---|
-| 110 | code + reasoning | `xplane-qwen-coder` (`use_reasoning: true`) |
-| 100 | code | `xplane-qwen-coder` |
-| 90 | reasoning (math / physics) | `xplane-qwen3-8b` (`use_reasoning: true`) |
-| 80 | multilingual | `xplane-qwen3-8b` |
-| 50 | general (the default) | `xplane-qwen3-8b` |
-
-{{< callout type="warning" >}}
-`xplane-llamaguard3-1b` and the two LoRA adapters on `xplane-qwen-coder`
-appear in **no** rule above. They hold serving capacity and are reachable only
-by naming them directly. The router's own in-pod `prompt_guard` classifier
-blocks jailbreak attempts, but that is a filter, not a routing decision —
-there is no automatic guardrail dispatch (see
-[known gaps]({{< relref "/docs/how-it-works/serving/_index.md#known-gaps" >}})).
-{{< /callout >}}
+Sending `model: MoM` lets the Semantic Router (`infrastructure/base/vllm-semantic-router/helmrelease.yaml`) pick from the prompt; the priority table and guardrail exclusions are in [the repository's design records](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-14-routing-and-cost-measurements.md#gateway-routing-and-budgets).
 
 ### LoRA canaries
 
@@ -164,15 +146,7 @@ curl -s https://llm.priv.aws.ogenki.io/v1/chat/completions \
   -d '{"model": "tier-frontier", "messages": [{"role": "user", "content": "Say hi"}]}'
 ```
 
-The gateway strips `x-ar-agent`, `x-ar-human` and `x-ai-gateway-client-id` from every request before
-authentication runs, so a client-forged value never survives to be charged. Today only
-`x-ai-gateway-client-id` is then set — from the API key that matched. `x-ar-agent` belongs to the agent
-side, where the verified token sets it; `x-ar-human` arrives with `ai-gateway`'s `oidc` listener. A
-client cannot choose whose budget it spends.
-
-Daily token budgets per API-key client (5M), per human (10M) and on all frontier spend (20M) are
-counted in **shadow mode**: nothing is rejected yet
-([ADR-0050]({{< relref "/docs/decisions/0050-token-budgets-envoy-gateway-rate-limit.md" >}})).
+Identity-header stripping and the shadow token budgets ([ADR-0050]({{< relref "/docs/decisions/0050-token-budgets-envoy-gateway-rate-limit.md" >}})) are in [the repository's design records](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-14-routing-and-cost-measurements.md#gateway-routing-and-budgets).
 
 ## The model gateway: agent runs {#the-agent-gateway-agent-runs}
 
@@ -228,44 +202,10 @@ reaches exactly one model. The run-controller refuses to start a run whose alias
 alias, its listener does not serve. The verified `sub` labels every signal: `ar_agent` on the
 `gen_ai_*` metrics (`vmpodscrape.yaml` relabels them), and the run in the access log.
 
-### Tools
+### Tools and budgets {#budgets}
 
 A run's only MCP server is the broker's room tools on `room-broker:8090`, which the run calls directly
 with a token of audience `room-tools`; the broker checks it with a TokenReview. A run without a room
 has no MCP server.
 
-The older Gateway, `agent-router`, still runs beside the model gateway with its MCP federation
-(`agent-mcp`: Flux, VictoriaMetrics and VictoriaLogs reads) and the capability profiles in
-`infrastructure/base/agent-gateway/profiles/`. No run calls it.
-
-### Budgets
-
-ADR-0050's agent budgets, on a rate-limit server of their own so they never share a bucket with the
-human ones (`model-gateway/policy-budgets.yaml`, `ratelimit.yaml`, `kvstore.yaml`):
-
-| Budget | Bucket | Limit per day | Above the factory's |
-|---|---|---|---|
-| B1 | per caller (the verified `sub`) | 5M reference tokens ($8.50) | dearest run cap, $6.80 |
-| B2 | the whole fleet | 41M reference tokens ($69.70) | daily budget plus four runs in flight |
-| B6 | Anthropic, on `internal` | 10M reference tokens ($17) | nothing: a provider cap |
-
-They are a backstop: the factory's run meter stays the exact cap, and the gateway never refuses a
-call the factory would admit. Each call is charged at the meter's own prices, so a cache read costs
-its cache rate; the CI gateway check holds the gateway's price expression and limits to the factory's
-values. The planner's calls count in the broker's own B1 bucket and in B2. The budgets are
-**enforced** (`SHADOW_MODE: "false"` on the server): a call over budget gets a `429`, which the
-harness treats as the end of the run
-([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)).
-The server is `envoyproxy/ratelimit` (`agent-ratelimit`) on the Valkey `KVStore`
-`xplane-agent-ratelimit`; if it is down the gateway fails open and `AgentRateLimitDown` fires.
-
-## What the two share, and what they keep apart
-
-From the [model routing and budgets design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md):
-
-| Concern | Decision | Why |
-|---|---|---|
-| Semantic Router | On `ai-gateway` only; agents use their own Gateway | The router can be neither a single point of failure nor a prompt reader for agents |
-| Agent model choice | Every agent alias maps to one backend: no weights, canaries or fallback | Nothing re-routes a trajectory mid-run; escalation is a new run at the next tier |
-| Backends | One set per gateway, each with its own provider key | Revoking the agents' key never breaks chat or RunLore, and provider spend splits by key |
-| Budgets | Token budgets at both gateways, in token units, each through its own `envoyproxy/ratelimit` and Valkey (ADR-0053) | One mechanism for every principal, no shared bucket; the factory still revokes a run at its exact cap |
+The legacy `agent-router` deployment, the enforced B1/B2/B6 rate-limit buckets ([runbook 04, Part D](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-d--enforcing-the-agents-budgets)) and the side-by-side comparison of the two gateways ([model routing and budgets design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md)) are in [the repository's design records](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-14-routing-and-cost-measurements.md#gateway-routing-and-budgets).

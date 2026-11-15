@@ -10,6 +10,8 @@ Rules checked here:
   refused outside decisions/.
 - maku version: a Maku version literal or versioned Maku GitHub URL is refused
   outside status.md and decisions/.
+- raw maku link: a raw github.com/Smana/maku/(blob|tree)/ link in a page source
+  is refused outside decisions/ (use the maku shortcode instead).
 - ceiling: every page that declares diataxis: in front matter obeys its body
   word ceiling (chapter 600, values 500, tutorial/how-to 1200, explanation 1500,
   reference none; front matter and fenced code excluded).
@@ -60,6 +62,7 @@ DIATAXIS_FM_RE = re.compile(r'^\s*diataxis:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$')
 PRODUCT_NAME_RE = re.compile(r"Agent Factory(?! \[?v[0-3]\b)")
 MAKU_VERSION_TEXT_RE = re.compile(r"Maku v0\.\d+\.\d+")
 MAKU_VERSION_URL_RE = re.compile(r"Smana/maku/(?:blob|tree|releases/tag)/v0\.\d+\.\d+")
+RAW_MAKU_LINK_RE = re.compile(r"github\.com/Smana/maku/(?:blob|tree)/\S+")
 
 
 def split_page(text: str) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
@@ -158,7 +161,7 @@ def check_active_cluster(root: pathlib.Path) -> list[str]:
     return findings
 
 
-def _scan_page_vocabulary(rel_display: str, text: str, *, skip_version: bool) -> list[str]:
+def _scan_page_vocabulary(rel_display: str, text: str, *, skip_version: bool, check_raw_maku: bool) -> list[str]:
     _, body = split_page(text)
     findings: list[str] = []
     for lineno, line in body:
@@ -170,6 +173,9 @@ def _scan_page_vocabulary(rel_display: str, text: str, *, skip_version: bool) ->
                 findings.append(f"{rel_display}:{lineno}: maku version: {hit.group(0)}")
             for hit in MAKU_VERSION_URL_RE.finditer(line):
                 findings.append(f"{rel_display}:{lineno}: maku version: {hit.group(0)}")
+        if check_raw_maku:
+            for hit in RAW_MAKU_LINK_RE.finditer(line):
+                findings.append(f"{rel_display}:{lineno}: raw maku link: {hit.group(0).rstrip(').,;')}")
     return findings
 
 
@@ -177,7 +183,14 @@ def check_vocabulary(root: pathlib.Path) -> list[str]:
     findings: list[str] = []
     readme = root / "README.md"
     if readme.is_file():
-        findings.extend(_scan_page_vocabulary("README.md", readme.read_text(encoding="utf-8"), skip_version=False))
+        findings.extend(
+            _scan_page_vocabulary(
+                "README.md",
+                readme.read_text(encoding="utf-8"),
+                skip_version=False,
+                check_raw_maku=False,
+            )
+        )
 
     docs = root / reader_first.DOCS
     if docs.is_dir():
@@ -190,6 +203,7 @@ def check_vocabulary(root: pathlib.Path) -> list[str]:
                     f"{reader_first.DOCS}/{rel}",
                     page.read_text(encoding="utf-8"),
                     skip_version=(rel == "status.md"),
+                    check_raw_maku=True,
                 )
             )
     return findings

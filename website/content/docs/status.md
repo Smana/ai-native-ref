@@ -67,7 +67,7 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 | Settings as objects and team evaluation profiles | Both are built and need live proof. [Factory configuration]({{< relref "/docs/reference/factory-configuration.md" >}}) |
 | Multi-repository integration runtime | Exact-commit worktrees and the typed integration result are built and inert. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-05-v4-multi-repo-coordination-design.md) |
 | Untrusted-input hardening | H0's contracts are built and switched off. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-07-untrusted-input-hardening-design.md) |
-| The factory on a laptop | The Maku demo and quickstart are built; outside-user validation remains. [Quickstart](https://github.com/Smana/maku/blob/main/docs/quickstart.md) |
+| The factory on a laptop | The Maku demo and quickstart are built; outside-user validation remains. [Quickstart]({{< maku "docs/quickstart.md" >}}) |
 | Per-person caps and more auto-merge classes | Daily caps are counted in shadow; additional classes are evaluated before promotion. [Caps](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week), [classes](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/16-deps-patch.md) |
 
 ## In progress {#v3x}
@@ -95,7 +95,7 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 | Signed provenance and reviewed repository memory | Attest how a change was produced and capture what agents learn as reviewed instructions. |
 | Gemini as a provider | Add another public-work model with its own capability profile and cost checks. |
 | Serving improvements | GPU sharing, larger or denser models, and cost per tenant, each with its own measured trigger. [Serving]({{< relref "/docs/how-it-works/serving/_index.md" >}}) |
-| v4: anyone can run it | Production installation and upgrades are deferred with no date set; the laptop demo is built. [Quickstart](https://github.com/Smana/maku/blob/main/docs/quickstart.md) |
+| v4: anyone can run it | Production installation and upgrades are deferred with no date set; the laptop demo is built. [Quickstart]({{< maku "docs/quickstart.md" >}}) |
 | Eval bench and open-weight bake-off | Fixed issues will compare acceptance and cost per accepted pull request when funded. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-eval-bench-design.md) |
 
 ## Known limitations {#before-v3}

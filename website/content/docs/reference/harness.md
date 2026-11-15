@@ -167,8 +167,8 @@ Maku's run-controller, in the broker's `maku` chart (`infrastructure/base/room-b
 
 ## Harness {#harness}
 
-Set in [`agent_run.py`](https://github.com/Smana/maku/blob/main/images/maku-harness/agent_run.py)
-and [`sitecustomize.py`](https://github.com/Smana/maku/blob/main/images/maku-harness/site/sitecustomize.py),
+Set in [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}})
+and [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}}),
 or left at the [SDK v1.49.6 defaults](https://github.com/OpenHands/software-agent-sdk/tree/v1.49.6/openhands-sdk/openhands/sdk).
 None is an `AgentRun` field.
 

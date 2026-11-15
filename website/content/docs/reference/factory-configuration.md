@@ -40,7 +40,7 @@ the factory's policy, and a maintainer merges each edit.
 | Everything in the `Factory`, every `Repository` and `MergePolicy`, adding or removing a repository | `factory`, `policyManagement`, `coordination`, `hardening`, `api`, `runs`, `sandbox`, `broker`, `github`, `meter.url`, `meter.query`, `meter.logsURL`, `meter.throttleQuery`, `poll`, `tracing`, `factoryLogin`, `agentsLogin`, `roomsURL`, `runlore.listen`, `triage.classifierURL` |
 
 A change to the values file reaches the factory as a Helm upgrade, which restarts its pods. Maku's
-[architecture](https://github.com/Smana/maku/blob/main/docs/architecture.md#live-fields-and-fields-that-need-a-rollout)
+[architecture]({{< maku "docs/architecture.md#live-fields-and-fields-that-need-a-rollout" >}})
 has the same table with how the factory reads each side.
 
 ## When the factory refuses an edit {#refused}
@@ -71,6 +71,6 @@ Each object reports `Accepted`. A `Repository` also reports `Connected`, its Git
 `MergePolicy` reports its consumers, the Repositories binding it, and how many serve its current
 generation. The
 `Factory` reports `Ready`. Every condition and reason is in Maku's
-[merge policies guide](https://github.com/Smana/maku/blob/main/docs/merge-policies.md#status).
+[merge policies guide]({{< maku "docs/merge-policies.md#status" >}}).
 
 To change a class, see [Configure merge policies]({{< relref "/docs/use/guide/merge-policies.md#change-a-class" >}}).

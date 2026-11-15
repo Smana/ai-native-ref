@@ -2,15 +2,17 @@
 """Render the Slack channel binding's consumers from its one declaration (CD24, proof 16).
 
 tooling/base/agent-factory/slack-bindings.yaml names the workspace (`teamID`) and each channel the
-factory's App serves, `{repositories, maxCostUSD, notify}` and an optional boolean `approvals`. This script owns one region of each
-consumer and preserves every other byte:
+factory's App serves, `{repositories, maxCostUSD}` and optional `approvals`, `intentActions` and `notify`.
+This script owns one region of each consumer and preserves every other byte:
 
   the App's config         `teamID:`, its line replaced whole; `channels:`, replaced whole by one line
-                           per channel, sorted by id: `<id>: {repositories: […], maxCostUSD: …, notify: […]}`,
-                           with `approvals: true` before notify only when the channel sets it
+                           per channel, sorted by id: `<id>: {repositories: […], maxCostUSD: …}`, with
+                           `approvals: true`, `intentActions: […]` and `notify: […]` appended in that
+                           order when set (absent `notify` takes Maku's four default notifications)
   the sponsored values     api.sponsored[slack-app].repositories: the sorted union of the channels'
   the broker's config      webhooks[slack-app].repositories: the same union; .events: the union of the
-                           channels' `notify`, in declaration order
+                           channels' `notify` (or DEFAULT_NOTIFY), then ALWAYS_SUBSCRIBED (`room.merged`,
+                           `room.reverted`, which edit the end line in place), each once
 
 The sponsored values and the broker's config are per cloud: either cloud in CLOUDS may serve the App,
 so each gets the same rendering, and a channel's maxCostUSD is held to the lower principal's.
@@ -21,11 +23,11 @@ decoded document must be the committed one with only that value changed.
 The declaration is refused, before any file is written, on: a channel id outside ^[CG][A-Z0-9]{2,20}$;
 a teamID outside ^T[A-Z0-9]{2,20}$; no channel; an empty `repositories`; a repository outside
 ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$, or one no Repository of the factory names (it fails here,
-not in the cluster); a maxCostUSD under 0.01 or above the sponsored principal's maxCostUSD; a `notify`
-entry outside the ten event names the App draws a line for; a notify union that is empty (the broker
-refuses `events: []`; one channel's `notify: []`, told nothing, is fine); a duplicate entry or channel;
-an unknown key; an `approvals` that is not a boolean. A consumer without its `slack-app` entry, or one
-that does not parse, fails too.
+not in the cluster); a maxCostUSD under 0.01 or above the sponsored principal's maxCostUSD; an
+`intentActions` entry outside `stop`, `retry`, `answer`; a `notify` entry outside the ten event names
+the App draws a line for; a notify union that is empty (the broker refuses `events: []`; one channel's
+`notify: []`, told nothing, is fine); a duplicate entry or channel; an unknown key; an `approvals` that
+is not a boolean. A consumer without its `slack-app` entry, or one that does not parse, fails too.
 
 `approvals` is not in the plan's declaration (a deliberate deviation): `channels:` is replaced whole, so
 a hand-kept `approvals: true` in the App config would be erased by the next --write. Maku decodes it
@@ -61,8 +63,13 @@ MIN_COST = 0.01
 EVENTS = ("room.task_triaged", "room.run_started", "room.waiting_for_human", "room.pr_opened",
           "room.verdict_posted", "room.merged", "room.reverted", "room.budget_reached", "room.ended",
           "room.approval_closed")
-CHANNEL_KEYS = {"repositories", "maxCostUSD", "notify"}
-OPTIONAL_KEYS = {"approvals"}
+# Maku's four default Slack notifications (UX8), and the two transitions the broker must keep sending so
+# the thread's end line can be edited in place even when no channel lists them in `notify` (UX7).
+DEFAULT_NOTIFY = ["room.task_triaged", "room.waiting_for_human", "room.pr_opened", "room.ended"]
+ALWAYS_SUBSCRIBED = ["room.merged", "room.reverted"]
+INTENT_ACTIONS = ("stop", "retry", "answer")
+CHANNEL_KEYS = {"repositories", "maxCostUSD"}
+OPTIONAL_KEYS = {"approvals", "intentActions", "notify"}
 
 
 class ConfigError(Exception):
@@ -126,6 +133,10 @@ def validate(declaration, served, ceiling):
             raise ConfigError(f"channels.{cid}: unknown key {', '.join(sorted(map(str, unknown)))}")
         if not isinstance(ch.get("approvals", False), bool):
             raise ConfigError(f"channels.{cid}.approvals {ch['approvals']!r} is not a boolean")
+        if "intentActions" in ch:
+            for act in _list(f"channels.{cid}.intentActions", ch["intentActions"]):
+                if act not in INTENT_ACTIONS:
+                    raise ConfigError(f"channels.{cid}.intentActions: {act!r} is not one of {', '.join(INTENT_ACTIONS)}")
         repos = _list(f"channels.{cid}.repositories", ch["repositories"])
         if not repos:
             raise ConfigError(f"channels.{cid}.repositories is empty")
@@ -139,10 +150,11 @@ def validate(declaration, served, ceiling):
         if not _number(cost) or cost < MIN_COST or cost > ceiling:
             raise ConfigError(f"channels.{cid}.maxCostUSD {cost!r} is not in [{MIN_COST}, {ceiling}], "
                               f"the lowest {PRINCIPAL} principal's maxCostUSD ({', '.join(SPONSORED)})")
-        for e in _list(f"channels.{cid}.notify", ch["notify"]):
-            if e not in EVENTS:
-                raise ConfigError(f"channels.{cid}.notify: {e!r} is not an event name the App draws a line for")
-    if not notify_union(channels):
+        if "notify" in ch:
+            for e in _list(f"channels.{cid}.notify", ch["notify"]):
+                if e not in EVENTS:
+                    raise ConfigError(f"channels.{cid}.notify: {e!r} is not an event name the App draws a line for")
+    if not any(ch.get("notify", DEFAULT_NOTIFY) for ch in channels.values()):
         raise ConfigError("no channel's notify names an event: the broker refuses an empty events list")
     return channels
 
@@ -155,17 +167,27 @@ def _flow(items):
     return "[" + ", ".join(items) + "]"
 
 
+def _channel_fields(ch):
+    parts = [f"repositories: {_flow(ch['repositories'])}", f"maxCostUSD: {_scalar(ch['maxCostUSD'])}"]
+    if ch.get("approvals"):
+        parts.append("approvals: true")
+    if "intentActions" in ch:
+        parts.append(f"intentActions: {_flow(ch['intentActions'])}")
+    if "notify" in ch:
+        parts.append(f"notify: {_flow(ch['notify'])}")
+    return ", ".join(parts)
+
+
 def channels_block(channels):
     """The App config's `channels:` region, as lines: one per channel, sorted by id."""
-    return ["channels:"] + [f"  {cid}: {{repositories: {_flow(ch['repositories'])}, "
-                            f"maxCostUSD: {_scalar(ch['maxCostUSD'])}, {'approvals: true, ' if ch.get('approvals') else ''}"
-                            f"notify: {_flow(ch['notify'])}}}"
-                            for cid, ch in sorted(channels.items())]
+    return ["channels:"] + [f"  {cid}: {{{_channel_fields(ch)}}}" for cid, ch in sorted(channels.items())]
 
 
 def notify_union(channels):
-    """Every channel's `notify`, once each, in declaration order."""
-    return list(dict.fromkeys(e for ch in channels.values() for e in ch["notify"]))
+    """Every channel's `notify` (or DEFAULT_NOTIFY), then ALWAYS_SUBSCRIBED, once each."""
+    return list(dict.fromkeys(
+        [e for ch in channels.values() for e in ch.get("notify", DEFAULT_NOTIFY)] + list(ALWAYS_SUBSCRIBED)
+    ))
 
 
 def repositories_union(channels):

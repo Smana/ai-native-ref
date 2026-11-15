@@ -174,8 +174,9 @@ def check_two_channels_render_in_their_orders():
               values["config"]["api"]["sponsored"][0]["repositories"] == union)
         hooks = {w["name"]: w for w in yaml.safe_load((root / broker).read_text())["webhooks"]}
         check(f"{broker}: the repositories are the sorted union", hooks["slack-app"]["repositories"] == union)
-        check(f"{broker}: the events are the notify union in declaration order", hooks["slack-app"]["events"]
-              == ["room.merged", "room.pr_opened", "room.ended", "room.approval_closed"])
+        check(f"{broker}: the events are the notify union in declaration order, then ALWAYS_SUBSCRIBED",
+              hooks["slack-app"]["events"]
+              == ["room.merged", "room.pr_opened", "room.ended", "room.approval_closed", "room.reverted"])
         check(f"{broker}: another subscriber is untouched", hooks["ci"]["repositories"] == ["acme/shop"]
               and hooks["ci"]["events"] == ["room.merged"])
     shutil.rmtree(root)
@@ -240,6 +241,133 @@ check_two_channels_render_in_their_orders()
 check_each_refusal_names_its_value()
 check_hand_editing_a_generated_region_fails()
 check_an_unserved_repository_fails_at_the_declaration()
+
+
+def test_notify_is_optional():
+    root = mini()
+    (root / gen.DECLARATION).write_text(
+        "teamID: T0ACME\nchannels:\n  C0SHOP:\n    repositories: [acme/shop]\n    maxCostUSD: 1.5\n"
+    )
+    rc, err = run(root, "--write")
+    check(f"test_notify_is_optional: --write exits 0 ({err.strip()})", rc == 0)
+    app = (root / gen.APP).read_text()
+    check("test_notify_is_optional: renders channel without notify key",
+          app.endswith("channels:\n  C0SHOP: {repositories: [acme/shop], maxCostUSD: 1.5}\n"))
+    channels = yaml.safe_load(app)["channels"]
+    check("test_notify_is_optional: decoded channel has no notify key",
+          channels == {"C0SHOP": {"repositories": ["acme/shop"], "maxCostUSD": 1.5}})
+    check("test_notify_is_optional: check mode exits 0", run(root)[0] == 0)
+    shutil.rmtree(root)
+
+
+def test_broker_events_keep_merged_and_reverted():
+    default_notify = ["room.task_triaged", "room.waiting_for_human", "room.pr_opened", "room.ended"]
+    always = ["room.merged", "room.reverted"]
+    check("test_broker_events_keep_merged_and_reverted: DEFAULT_NOTIFY constant",
+          getattr(gen, "DEFAULT_NOTIFY", None) == default_notify)
+    check("test_broker_events_keep_merged_and_reverted: ALWAYS_SUBSCRIBED constant",
+          getattr(gen, "ALWAYS_SUBSCRIBED", None) == always)
+
+    # Channel omitting notify: broker gets DEFAULT_NOTIFY + ALWAYS_SUBSCRIBED.
+    root = mini()
+    (root / gen.DECLARATION).write_text(
+        "teamID: T0ACME\nchannels:\n  C0SHOP:\n    repositories: [acme/shop]\n    maxCostUSD: 1.5\n"
+    )
+    rc, err = run(root, "--write")
+    check(f"test_broker_events_keep_merged_and_reverted (default): --write exits 0 ({err.strip()})", rc == 0)
+    for broker in gen.BROKER:
+        hooks = {w["name"]: w for w in yaml.safe_load((root / broker).read_text())["webhooks"]}
+        check(f"test_broker_events_keep_merged_and_reverted (default, {broker}): events hold defaults + merged/reverted",
+              hooks["slack-app"]["events"] == default_notify + always)
+    shutil.rmtree(root)
+
+    # Channel naming explicit notify without merged or reverted: broker still holds merged and reverted.
+    root = mini()
+    (root / gen.DECLARATION).write_text(
+        "teamID: T0ACME\nchannels:\n  C0SHOP:\n    repositories: [acme/shop]\n    maxCostUSD: 1.5\n"
+        "    notify: [room.pr_opened, room.ended]\n"
+    )
+    rc, err = run(root, "--write")
+    check(f"test_broker_events_keep_merged_and_reverted (explicit): --write exits 0 ({err.strip()})", rc == 0)
+    for broker in gen.BROKER:
+        hooks = {w["name"]: w for w in yaml.safe_load((root / broker).read_text())["webhooks"]}
+        check(f"test_broker_events_keep_merged_and_reverted (explicit, {broker}): events keep merged and reverted",
+              hooks["slack-app"]["events"] == ["room.pr_opened", "room.ended", "room.merged", "room.reverted"])
+    shutil.rmtree(root)
+
+
+def test_explicit_notify_kept():
+    root = mini()
+    (root / gen.DECLARATION).write_text(
+        "teamID: T0ACME\nchannels:\n"
+        "  C0DEF:\n    repositories: [acme/shop]\n    maxCostUSD: 1\n"
+        "  C0OWN:\n    repositories: [acme/shop]\n    maxCostUSD: 1.5\n"
+        "    notify: [room.pr_opened, room.verdict_posted]\n"
+        "  C0SAME:\n    repositories: [acme/shop]\n    maxCostUSD: 2\n"
+        "    notify: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.ended]\n"
+    )
+    rc, err = run(root, "--write")
+    check(f"test_explicit_notify_kept: --write exits 0 ({err.strip()})", rc == 0)
+    app = (root / gen.APP).read_text()
+    check("test_explicit_notify_kept: explicit notify lists render unchanged",
+          app.endswith(
+              "channels:\n"
+              "  C0DEF: {repositories: [acme/shop], maxCostUSD: 1}\n"
+              "  C0OWN: {repositories: [acme/shop], maxCostUSD: 1.5, notify: [room.pr_opened, room.verdict_posted]}\n"
+              "  C0SAME: {repositories: [acme/shop], maxCostUSD: 2, "
+              "notify: [room.task_triaged, room.waiting_for_human, room.pr_opened, room.ended]}\n"
+          ))
+    shutil.rmtree(root)
+
+
+def test_intent_actions_rendered():
+    root = mini()
+    (root / gen.DECLARATION).write_text(
+        "teamID: T0ACME\nchannels:\n  C0SHOP:\n    repositories: [acme/shop]\n    maxCostUSD: 1.5\n"
+        "    approvals: true\n    intentActions: [stop, retry]\n    notify: [room.ended]\n"
+    )
+    rc, err = run(root, "--write")
+    check(f"test_intent_actions_rendered: --write exits 0 ({err.strip()})", rc == 0)
+    app = (root / gen.APP).read_text()
+    check("test_intent_actions_rendered: intentActions renders after approvals and before notify",
+          app.endswith(
+              "channels:\n  C0SHOP: {repositories: [acme/shop], maxCostUSD: 1.5, approvals: true, "
+              "intentActions: [stop, retry], notify: [room.ended]}\n"
+          ))
+    check("test_intent_actions_rendered: check mode exits 0", run(root)[0] == 0)
+    shutil.rmtree(root)
+
+
+def test_intent_actions_closed():
+    root = mini()
+    (root / gen.DECLARATION).write_text(
+        "teamID: T0ACME\nchannels:\n  C0SHOP:\n    repositories: [acme/shop]\n    maxCostUSD: 1.5\n"
+        "    intentActions: [stop, retry, answer]\n"
+    )
+    rc, err = run(root, "--write")
+    check(f"test_intent_actions_closed: [stop, retry, answer] is accepted ({err.strip()})", rc == 0)
+    shutil.rmtree(root)
+
+    for label, raw, bad in [("unknown action", "[steer]", "steer"), ("duplicate action", "[stop, stop]", "stop")]:
+        root = mini()
+        (root / gen.DECLARATION).write_text(
+            f"teamID: T0ACME\nchannels:\n  C0SHOP:\n    repositories: [acme/shop]\n    maxCostUSD: 1.5\n"
+            f"    intentActions: {raw}\n"
+        )
+        before = tree(root)
+        rc, err = run(root, "--write")
+        check(f"test_intent_actions_closed ({label}): exits 1", rc == 1)
+        check(f"test_intent_actions_closed ({label}): names channel C0SHOP and {bad!r} ({err.strip()})",
+              "C0SHOP" in err and bad in err)
+        check(f"test_intent_actions_closed ({label}): writes nothing", tree(root) == before)
+        shutil.rmtree(root)
+
+
+test_notify_is_optional()
+test_broker_events_keep_merged_and_reverted()
+test_explicit_notify_kept()
+test_intent_actions_rendered()
+test_intent_actions_closed()
 
 print("\n".join(failures) or "PASS")
 sys.exit(1 if failures else 0)

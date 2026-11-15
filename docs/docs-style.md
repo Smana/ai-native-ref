@@ -4,8 +4,9 @@ How to write a page for [airef.ogenki.io](https://airef.ogenki.io/) (`website/co
 It is for anyone who edits the site, people and agents alike. The reader is someone evaluating or
 using the platform, who was not at any of our sessions.
 
-`task docs` runs [`scripts/ci/check-reader-first.py`](../scripts/ci/check-reader-first.py), which
-enforces rules 1, 4 and 5 (see [The gate](#the-gate)).
+`task docs` runs [`scripts/ci/check-reader-first.py`](../scripts/ci/check-reader-first.py) and
+[`scripts/ci/check-site-contract.py`](../scripts/ci/check-site-contract.py), which enforce rules 1,
+4 and 5 and hold the site's pins (see [The gate](#the-gate)).
 
 ## The rules
 
@@ -154,3 +155,8 @@ proof ID in `website/content/docs/**/*.md`. It does not read:
 
 When it fails, rewrite the sentence for a reader who was not there, move it to the status page or
 off the site (rule 6), or label it as an example (rule 8). Do not add an allowlist.
+
+[`scripts/ci/check-site-contract.py`](../scripts/ci/check-site-contract.py) also runs in `task docs`.
+It holds `params.makuVersion` in `website/hugo.yaml` equal to the image tag in
+`tooling/base/agent-factory/helm-values-configmap.yaml`, and `activeCluster` on `status.md` equal to
+`factory` in `.github/agent-factory.yaml`.

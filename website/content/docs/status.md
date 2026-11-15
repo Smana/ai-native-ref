@@ -5,7 +5,8 @@ aliases:
 linkTitle: Status
 weight: 60
 description: "The one place state lives: what is available, what is experimental, what is planned, and the known limitations."
-lastVerified: 2026-11-14
+activeCluster: gcp-0
+lastVerified: 2026-11-15
 ---
 
 The one place the platform's state lives. Every other page describes the design. Each line here
@@ -13,7 +14,7 @@ names the clouds a capability was proven on, and links to the evidence: a runboo
 a design record.
 
 **Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0),
-released on 2026-10-31. **On `main`**: Maku v0.51.0 for every component: the broker and
+released on 2026-10-31. **On `main`**: Maku {{< maku-version >}} for every component: the broker and
 its run-controller, the harness and bridge, the factory, the model gateway, the CRDs and the Slack app.
 **Running now:** nothing. The reference host's GKE cluster was torn down on 2026-11-14; see
 [rebuilding the platform](#rebuild). **Next:** [v3.x releases](#v3x) of this platform; v4.0 is
@@ -129,8 +130,22 @@ Hardening is tracked on the **v1 hardening** milestones of
 <span id="class-modes"></span>**Auto-merge class modes**, from the `Repository` objects' bindings in `tooling/base/agent-factory/resources/`
 ([when a pull request merges]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}})):
 cloud-native-ref has `docs-links` and `revert` live, and `alert-rules`, `dead-links`, `deps-patch` and
-`deps-minor` in shadow; every ai-native-ref class, every runlore class and every runlore-kb class (`kb-entries`
-among them) is in shadow; `approveToMerge` is on for all four.
+`deps-minor` in shadow; ai-native-ref has `docs-links`, `revert` and `dead-links` in shadow; every
+runlore class and every runlore-kb class (`kb-entries` among them) is in shadow; the run-only classes
+are disabled; `approveToMerge` is on for all four.
+
+## Clusters {#clusters}
+
+| Cluster | Cloud | What it proves |
+|---|---|---|
+| `aws-0` | AWS EKS | Karpenter gVisor node pool, S3 model weights, approve-to-merge, the regression breaker and auto-merge drills |
+| `gcp-0` | GCP GKE | GKE gVisor sandbox pool, GCS model weights, Maku's run-controller, Slack intake and multi-repository |
+
+One cluster runs the factory at a time. The owner finishes a phase of work on one, then switches,
+which proves the platform on both.
+
+Active: `gcp-0` (the ownership fence in `.github/agent-factory.yaml`; the GKE cluster is currently
+torn down — see [Not running now](#rebuild)).
 
 ## Experimental {#experimental}
 

@@ -68,6 +68,7 @@ tasks:
       - cd website && hugo --gc --minify
       - ./scripts/ci/verify-doc-paths.sh
       - python3 scripts/ci/check-reader-first.py
+      - python3 scripts/ci/check-site-contract.py
 
   agent:run:
     desc: "Ask the agent factory for one AgentRun (roomctl login first; AGENT_FACTORY_CA=<private CA PEM>)"

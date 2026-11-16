@@ -3,7 +3,7 @@
 """This repository as the agent factory's second repository (second-repository design D7, D9).
 
 - No octo-sts trust policy: the factory mints each run's git token (R3), so none is served here.
-- The fence names gcp-0, the only live factory.
+- The fence names aws-0, the only live factory.
 - .policy.yml: every agent rule excludes the whole gate list, and every sentinel is a gate path.
   An agent rule approves without a review only as `low-risk: <class>` of a class this repository
   declares and has not made live (R50: shadow approves, the merger merges nothing).
@@ -34,8 +34,8 @@ if trust := sorted(p.name for p in (OWN / ".github/chainguard").glob("*.sts.yaml
     fails.append(f"octo-sts trust policies are retired, found {trust}")
 
 fence = OWN / ".github/agent-factory.yaml"
-if not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": "gcp-0"}:
-    fails.append(".github/agent-factory.yaml: must be exactly `factory: gcp-0`")
+if not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": "aws-0"}:
+    fails.append(".github/agent-factory.yaml: must be exactly `factory: aws-0`")
 
 rules = yaml.safe_load((OWN / ".policy.yml").read_text()).get("approval_rules", [])
 canon = next((r for r in rules if r.get("name") == "agent change approved by a maintainer"), None)

@@ -1,15 +1,5 @@
 {
   "Smana/ai-native-ref": {
-    "dashboards": {
-      "protectedFiles": [
-        "^\\.github/",
-        "^\\.policy\\.yml$",
-        "^CODEOWNERS$"
-      ],
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
-      "maxPerDay": 5
-    },
     "dead-links": {
       "shadow": true,
       "allowedFiles": [
@@ -41,63 +31,59 @@
       }
     },
     "docs": {
-      "checks": true,
+      "description": "Prose in Markdown files, small changes.",
+      "shadow": true,
+      "allowedFiles": [
+        "^.+\\.mdx?$"
+      ],
+      "narrowedFiles": [
+        "^website/content/.+\\.md$"
+      ],
       "protectedFiles": [
         "^\\.github/",
         "^\\.policy\\.yml$",
         "^CODEOWNERS$"
       ],
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
-      "maxPerDay": 5
+      "maxPatchFiles": 5,
+      "maxModifiedLines": 60,
+      "maxPerDay": 2,
+      "evidence": "standard"
     },
     "docs-links": {
+      "description": "Link targets in Markdown, nothing else.",
       "shadow": true,
       "protectedFiles": [
         "^\\.github/",
         "^\\.policy\\.yml$",
         "^CODEOWNERS$"
       ],
+      "modifyOnly": true,
       "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
       "holdoutChecks": [
         "validate"
       ],
-      "maxPerDay": 5
+      "maxPerDay": 5,
+      "evidence": "low"
     },
     "revert": {
+      "description": "A revert whose diff changes link targets only.",
       "shadow": true,
       "protectedFiles": [
         "^\\.github/",
         "^\\.policy\\.yml$",
         "^CODEOWNERS$"
       ],
+      "modifyOnly": true,
       "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
       "holdoutChecks": [
         "validate"
       ],
-      "maxPerDay": 5
-    },
-    "scripts": {
-      "protectedFiles": [
-        "^\\.github/",
-        "^\\.policy\\.yml$",
-        "^CODEOWNERS$"
-      ],
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
-      "maxPerDay": 5
-    },
-    "tests": {
-      "protectedFiles": [
-        "^\\.github/",
-        "^\\.policy\\.yml$",
-        "^CODEOWNERS$"
-      ],
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
-      "maxPerDay": 5
+      "maxPerDay": 5,
+      "evidence": "low"
     }
   },
   "Smana/cloud-native-ref": {
@@ -120,16 +106,6 @@
         },
         "followUpWindow": "2h0m0s"
       }
-    },
-    "dashboards": {
-      "protectedFiles": [
-        "^\\.github/",
-        "^\\.policy\\.yml$",
-        "^CODEOWNERS$"
-      ],
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
-      "maxPerDay": 5
     },
     "dead-links": {
       "shadow": true,
@@ -170,7 +146,9 @@
         "^security/base/zitadel/",
         "^security/(aws|gcp)-0/zitadel/",
         "^flux/sources/helmrepo-zitadel\\.yaml$",
+        "^flux/sources/ocirepo-ai-native-ref\\.yaml$",
         "^infrastructure/base/crossplane/configuration-core/",
+        "^infrastructure/base/crossplane/configuration-(aws|gcp)/",
         "^flux/sources/gitrepo-gateway-api\\.yaml$",
         "^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\\.yaml$",
         "^\\.github/",
@@ -210,7 +188,9 @@
         "^security/base/zitadel/",
         "^security/(aws|gcp)-0/zitadel/",
         "^flux/sources/helmrepo-zitadel\\.yaml$",
+        "^flux/sources/ocirepo-ai-native-ref\\.yaml$",
         "^infrastructure/base/crossplane/configuration-core/",
+        "^infrastructure/base/crossplane/configuration-(aws|gcp)/",
         "^flux/sources/gitrepo-gateway-api\\.yaml$",
         "^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\\.yaml$",
         "^\\.github/",
@@ -222,6 +202,7 @@
       "maxModifiedLines": 10,
       "diffShape": "semver-patch",
       "maxPerDay": 2,
+      "evidence": "low",
       "monitor": {
         "flux": {
           "source": "flux-system/flux-system",
@@ -242,110 +223,146 @@
       "releaseAgeCheck": "renovate/stability-days"
     },
     "docs": {
-      "checks": true,
+      "description": "Prose in Markdown files, small changes.",
+      "shadow": true,
+      "allowedFiles": [
+        "^.+\\.mdx?$"
+      ],
       "protectedFiles": [
         "^\\.github/",
         "^\\.policy\\.yml$",
         "^CODEOWNERS$"
       ],
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
-      "maxPerDay": 5
+      "maxPatchFiles": 5,
+      "maxModifiedLines": 100,
+      "maxPerDay": 2,
+      "evidence": "standard"
     },
     "docs-links": {
+      "description": "Link targets in Markdown, nothing else.",
       "live": true,
       "protectedFiles": [
         "^\\.github/",
         "^\\.policy\\.yml$",
         "^CODEOWNERS$"
       ],
+      "modifyOnly": true,
       "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
       "holdoutChecks": [
         "Check the documentation links 🔗"
       ],
-      "maxPerDay": 5
+      "maxPerDay": 5,
+      "evidence": "low"
     },
     "revert": {
+      "description": "A revert whose diff changes link targets only.",
       "live": true,
       "protectedFiles": [
         "^\\.github/",
         "^\\.policy\\.yml$",
         "^CODEOWNERS$"
       ],
+      "modifyOnly": true,
       "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
       "holdoutChecks": [
         "Check the documentation links 🔗"
       ],
-      "maxPerDay": 5
-    },
-    "review": {},
-    "scripts": {
-      "protectedFiles": [
-        "^\\.github/",
-        "^\\.policy\\.yml$",
-        "^CODEOWNERS$"
-      ],
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
-      "maxPerDay": 5
-    },
-    "tests": {
-      "protectedFiles": [
-        "^\\.github/",
-        "^\\.policy\\.yml$",
-        "^CODEOWNERS$"
-      ],
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
-      "maxPerDay": 5
+      "maxPerDay": 5,
+      "evidence": "low"
     }
   },
   "Smana/runlore": {
+    "docs": {
+      "description": "Prose in Markdown files, small changes.",
+      "shadow": true,
+      "allowedFiles": [
+        "^.+\\.mdx?$"
+      ],
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 5,
+      "maxModifiedLines": 100,
+      "maxPerDay": 2,
+      "evidence": "standard"
+    },
     "docs-links": {
+      "description": "Link targets in Markdown, nothing else.",
       "shadow": true,
       "protectedFiles": [
         "^\\.github/",
         "^\\.policy\\.yml$",
         "^CODEOWNERS$"
       ],
+      "modifyOnly": true,
       "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
       "holdoutChecks": [
         "build"
       ],
-      "maxPerDay": 5
+      "maxPerDay": 5,
+      "evidence": "low"
     },
     "revert": {
+      "description": "A revert whose diff changes link targets only.",
       "shadow": true,
       "protectedFiles": [
         "^\\.github/",
         "^\\.policy\\.yml$",
         "^CODEOWNERS$"
       ],
+      "modifyOnly": true,
       "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
       "holdoutChecks": [
         "build"
       ],
-      "maxPerDay": 5
+      "maxPerDay": 5,
+      "evidence": "low"
     }
   },
   "Smana/runlore-kb": {
+    "docs": {
+      "description": "Prose in Markdown files, small changes.",
+      "shadow": true,
+      "allowedFiles": [
+        "^.+\\.mdx?$"
+      ],
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$"
+      ],
+      "maxPatchFiles": 5,
+      "maxModifiedLines": 100,
+      "maxPerDay": 2,
+      "evidence": "standard"
+    },
     "docs-links": {
+      "description": "Link targets in Markdown, nothing else.",
       "shadow": true,
       "protectedFiles": [
         "^\\.github/",
         "^\\.policy\\.yml$",
         "^CODEOWNERS$"
       ],
+      "modifyOnly": true,
       "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
       "holdoutChecks": [
         "validate"
       ],
-      "maxPerDay": 5
+      "maxPerDay": 5,
+      "evidence": "low"
     },
     "kb-entries": {
       "shadow": true,
@@ -381,18 +398,22 @@
       "requiredLabel": "ready-to-merge"
     },
     "revert": {
+      "description": "A revert whose diff changes link targets only.",
       "shadow": true,
       "protectedFiles": [
         "^\\.github/",
         "^\\.policy\\.yml$",
         "^CODEOWNERS$"
       ],
+      "modifyOnly": true,
       "maxPatchFiles": 10,
-      "maxModifiedLines": 300,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
       "holdoutChecks": [
         "validate"
       ],
-      "maxPerDay": 5
+      "maxPerDay": 5,
+      "evidence": "low"
     }
   }
 }

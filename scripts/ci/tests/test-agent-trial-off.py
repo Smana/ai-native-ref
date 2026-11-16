@@ -72,7 +72,7 @@ def problems(base, aws):
     if len(active) > 1:
         problems.append(f"aws-0 carries more than one evaluation.treatment: {active}")
     for name in active:
-        if name not in trials:
+        if name not in trials and name not in ("careful", "quick"):
             problems.append(f"evaluation.treatment {name} names no trial workflow")
     return problems
 

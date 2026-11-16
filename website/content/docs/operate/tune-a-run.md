@@ -6,7 +6,7 @@ linkTitle: Tune a run
 weight: 10
 diataxis: how-to
 description: "How to tune an agent run: which lever moves cost, time and quality, how to measure a change, what goes wrong and how to fix it."
-lastVerified: 2026-10-31
+lastVerified: 2026-11-15
 ---
 
 The harness runs the agent loop inside the sandbox: OpenHands
@@ -28,7 +28,7 @@ whole $2.55 on 319 `grep` steps and pushed nothing.
 | Lever | Sets | Changed in | Reference |
 |---|---|---|---|
 | 🎚️ **Tier** | USD cap, deadline, model | Factory config | [Tiers]({{< relref "/docs/reference/harness.md#tiers" >}}) |
-| 👥 **Template** | Which roles run: solo, pair, trio | Factory config | [Templates]({{< relref "/docs/reference/harness.md#templates" >}}) |
+| 👥 **Workflow** | Which roles and loop checks run: `quick`, `standard`, `careful` | Factory and `Repository` config, or `workflow:<name>` label | [Templates and workflows]({{< relref "/docs/reference/harness.md#templates" >}}) |
 | 🔒 **Data class** | Provider, egress, tools, prompt caching | The task's source | [AgentRun]({{< relref "/docs/reference/harness.md#claim" >}}) |
 | 📝 **Task text** | How far the agent wanders | The issue | [Writing a good task]({{< relref "/docs/use/guide/writing-a-good-task.md" >}}) |
 | ⚙️ **Harness** | Iterations, condenser, timeouts, reasoning effort | A harness release, not per run | [Agent loop]({{< relref "/docs/reference/harness.md#loop" >}}) |
@@ -43,7 +43,7 @@ How `agent-run` drives `agent-server`, the tester's contract ([runbook 21](https
 | ⬆️ `runMinutes` alone ([tiers]({{< relref "/docs/reference/harness.md#tiers" >}})) | Wall time | A deadline kill is never resumed: add money too |
 | ⬆️ `runUSD` alone ([tiers]({{< relref "/docs/reference/harness.md#tiers" >}})) | Money | Keep `taskUSD ≥ 2 × runUSD` so a resume fits |
 | ⬆️ `maxReviewRounds` ([caps]({{< relref "/docs/reference/harness.md#caps" >}})) | One implementer and one reviewer run per round | Out of rounds, the task escalates |
-| ⬆️ `trio` over `pair` ([templates]({{< relref "/docs/reference/harness.md#templates" >}})) | One more run | The tester keeps the implementer's tier |
+| ⬆️ `careful` over `standard` ([workflows]({{< relref "/docs/reference/harness.md#templates" >}})) | One scoper run before the implementer, plus the `search` tool and `frontier` caps | The scoper stops at 40 tool calls |
 | ⬆️ `reasoning_effort` ([loop]({{< relref "/docs/reference/harness.md#loop" >}})) | Reasoning tokens, seconds per step | Above `high`, GLM-5.3 hits the 300 s timeout |
 | ✅ Prompt caching ([loop]({{< relref "/docs/reference/harness.md#loop" >}})) | Nothing: cache reads cost 5% | Needs the marker carried end to end |
 
@@ -129,7 +129,7 @@ command differs.
 A review of a small PR takes under 10 steps: the cost is in the rounds.
 
 1. Keep `maxReviewRounds` at 2, or 1 for mechanical fixes ([caps]({{< relref "/docs/reference/harness.md#caps" >}})).
-2. Leave `docs-links` on `solo`: the matrix skips the reviewer below `frontier` ([templates]({{< relref "/docs/reference/harness.md#templates" >}})).
+2. Use `workflow:quick` on mechanical fixes and scheduled runs: it runs `solo` and skips the reviewer ([workflows]({{< relref "/docs/reference/harness.md#templates" >}})).
 3. For a smaller reviewer, set `templates.pair.reviewerModel: tier-standard`.
    [ADR-0058]({{< relref "/docs/decisions/0058-reviewer-on-another-model.md" >}}) weighs it: cheaper,
    but a smaller model judging a larger one's work.
@@ -164,7 +164,7 @@ flowchart TB
 
 <span id="search"></span><span id="limits"></span>
 
-The loop policy (`loops.<class>` in `tooling/base/agent-factory/resources/factory.yaml`, [reference]({{< relref "/docs/reference/harness.md#caps" >}})) stops wandering runs (`stallSteps`), checks a finished run against the task's acceptance checks (`judge`) and continues the conversation (`continuations`), while `loops.<class>.search: true` gives the implementer an experimental read-only search helper ([agent loop]({{< relref "/docs/reference/harness.md#loop" >}})). The loop-policy end states, search sequence diagram and untunable-settings table are in [the repository's design records](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-14-routing-and-cost-measurements.md#loop-policy-details).
+The loop policy (`workflows.<name>` in `tooling/base/agent-factory/resources/factory.yaml`, [reference]({{< relref "/docs/reference/harness.md#caps" >}})) stops wandering runs (`stallSteps`), checks a finished run against the task's acceptance checks (`judge`) and continues the conversation (`continuations`), while `loops.careful.search: true` gives `careful`'s implementer an experimental read-only search helper ([agent loop]({{< relref "/docs/reference/harness.md#loop" >}})). The loop-policy end states, search sequence diagram and untunable-settings table are in [the repository's design records](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-14-routing-and-cost-measurements.md#loop-policy-details).
 
 Related: [Harness reference]({{< relref "/docs/reference/harness.md" >}}) ·
 [Factory]({{< relref "/docs/how-it-works/factory.md" >}}) ·

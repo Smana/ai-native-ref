@@ -5,3 +5,6 @@ kind: Kustomization
 # Factory, Repositories and MergePolicies, named for this cluster by Flux's ${cluster_name}.
 resources:
   - ../../../base/agent-factory/resources
+
+patches:
+  - path: factory-evaluation.yaml

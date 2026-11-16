@@ -12,8 +12,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 # maku-linux-amd64 of the release, from its maku.sha256 asset.
-MAKU_PIN="v0.51.0"
-MAKU_SHA256="876adb47982676084c49789e4d629c01c709223b51156d869ff4752f7e394e81"  # pragma: allowlist secret
+MAKU_PIN="v0.53.1"
+MAKU_SHA256="33c9aad87a2841a8243b945f03f48d2054844d7d24c96f3e7277ebfc798017a8"  # pragma: allowlist secret
 
 python3 -c 'import yaml' 2>/dev/null || { echo "FAIL: PyYAML is not installed" >&2; exit 1; }
 values="tooling/base/agent-factory/helm-values-configmap.yaml"
@@ -63,7 +63,7 @@ policy["spec"]["shadow"] = True
 yaml.safe_dump_all(docs, open(sys.argv[2], "w"), allow_unicode=True)
 PY
 if out="$("$maku" config validate --config "$tmp/aws-0/config.yaml" "$tmp/bite.yaml" 2>&1)" \
-   || ! grep -q "MergePolicy/docs-links: Invalid: class docs-links: mode is the binding's" <<<"$out"; then
+   || ! grep -Eq 'MergePolicy/docs-links: Invalid: class docs-links: mode is the binding'\''s|MergePolicy "docs-links":.*unknown field "shadow"' <<<"$out"; then
   echo "FAIL  a mode on a MergePolicy was not refused (B4):"; sed 's/^/      /' <<<"$out"; fails=$((fails + 1))
 else
   echo "ok    a mode on a MergePolicy is refused: MergePolicy/docs-links, B4"

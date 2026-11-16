@@ -10,7 +10,6 @@ metadata:
   name: dead-links
   namespace: agent-system
 spec:
-  requires: [allowedFiles, oracleWorkflow]
   protectedFiles: ['^docs/(superpowers|specs)/', '^website/content/docs/decisions/']
   modifyOnly: true
   maxModifiedLines: 20

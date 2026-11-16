@@ -12,8 +12,10 @@ spec:
   repository: Smana/ai-native-ref
   maintainers: [Smana]
   triggerLabel: factory/ready
-  # v3 feature 3: what a check-enabled run requests beyond github. Only docs has checks: true,
-  # since the gcp-0 session's live proofs (README, "v3 loop and sandbox layers").
+  workflow:
+    default: standard
+  # v3 feature 3: what a check-enabled run requests beyond github. standard and careful set
+  # checks: true in Factory.spec.workflows.
   checks: {egress: [golang, pypi]}
   schedules:
     # dead-links' intake here (MC6, F3): what two nightly runs of this repository's
@@ -24,6 +26,7 @@ spec:
       cron: "15 7 * * *"  # after the 04:41 scan; the host's slot is 07:00
       class: dead-links
       probe: dead-links
+      workflow: quick
       text: Fix the dead external links listed below.
   merge:
     # The `main` ruleset's 2 contexts (app 15368): `gh api repos/Smana/ai-native-ref/rulesets/25225244`.
@@ -38,10 +41,10 @@ spec:
     # No testFirst here (TO4): the tests live under the gate path scripts/ci/.
     - {name: docs-links, mode: shadow, holdoutChecks: [validate]}
     - {name: revert, mode: shadow, holdoutChecks: [validate]}
-    - {name: docs, mode: disabled}
-    - {name: tests, mode: disabled}
-    - {name: dashboards, mode: disabled}
-    - {name: scripts, mode: disabled}
+    - name: docs
+      mode: shadow
+      allowedFiles: ['^website/content/.+\.md$']
+      maxModifiedLines: 60
     # Shadow (MC14, runbook 15 §6): its detector is this repository's dead-links.yaml and its rule
     # `low-risk: dead-links` in .policy.yml (test-agent-merge-gate-parity.py holds the two).
     - name: dead-links

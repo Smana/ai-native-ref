@@ -58,7 +58,7 @@ The room tools are a run's only MCP server: a run without a room gets none.
 | Boundary | Mechanism |
 |---|---|
 | Code execution | gVisor, restricted pod security, no ServiceAccount token mounted, images pinned by digest |
-| Network | Default deny per run; HTTPS only through the egress proxy, to GitHub, the run's egress profiles and the model |
+| Network | Default deny per run; HTTPS only through the egress proxy, to GitHub, the run's package registries and the model |
 | Identity | Every token names the run's ServiceAccount, `system:serviceaccount:agents:run-<id>`, and one audience |
 | Model | The gateway serves a run only the alias its token names, on its data class's listener |
 | GitHub | A per-run token for one repository and the role's permissions; rulesets let the agents' App push only `agent/**` branches, and no tags |

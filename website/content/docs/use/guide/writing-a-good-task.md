@@ -86,51 +86,58 @@ Before you press **Confirm**, or answer **file: yes** in your agent's form:
 
 1. **Read the issue section as filed.** Is every fact in it true? Open the file it names.
 2. **Read the acceptance check.** Could you run it yourself? Would it fail today?
-3. **Check the repository and the class.** The proposal names both; a docs fix in the wrong
+3. **Check the repository and the workflow.** The proposal names both; a docs fix in the wrong
    repository is a wasted run.
 4. **Reply to change it.** In Slack, a reply re-plans the same message. In your agent, say what to
    change before you confirm.
 
-## Classes: what may merge on its own {#classes}
+## Workflows and merge policies: what runs and what merges on its own {#classes}
 
-The factory sorts every task into a **class**, the kind of change it is. The class decides who
-merges the pull request:
+Two choices stay separate: the **workflow** decides which roles run on the issue, and the **merge
+policy** decides who merges the pull request once it opens.
 
-| Mode of the class | Who merges |
+| Workflow label on the issue | Roles that run |
+|---|---|
+| *(none)* (`standard`, the default) | Implementer (with repository checks and the completion judge), then reviewer |
+| `workflow:quick` | Implementer alone, for mechanical fixes and scheduled runs |
+| `workflow:careful` | Scoper first, then implementer (with repository search, checks and judge), then reviewer |
+
+The planner picks the workflow in Slack and your coding agent from the factory's live catalogue, or a
+maintainer can put `workflow:quick` or `workflow:careful` on the issue before `factory/ready`.
+
+When the pull request opens, the merge gate matches its diff and files against the repository's bound
+**merge policies**:
+
+| Mode of the policy | Who merges |
 |---|---|
 | **live** | The merge bot, with no human, when every check holds |
-| **shadow** | You. The gate records what it would have done, to build the class's track record |
-| **disabled** | You. A normal pull request |
+| **shadow** | You. The gate records what it would have done, to build the policy's track record |
+| **unbound** | You. A normal pull request |
 
-A maintainer can predict the class with a label `class:<name>` on the issue, before `factory/ready`.
-Without one, the task is in class `review`, which never merges on its own. The planner picks the class
-in Slack and your coding agent, from the classes its configuration offers.
+Example (the reference host), the policies and what they cover:
 
-Example (the reference host), the classes and what they cover:
-
-| Class | Covers |
+| Policy | Covers |
 |---|---|
-| `docs-links` | Markdown link targets only, nothing else in the diff |
-| `revert` | The factory's own revert of a merge it made |
+| `docs-links` | Markdown link targets only, nothing else in the diff (shipped in the chart catalog) |
+| `revert` | The factory's own revert of a merge it made (shipped in the chart catalog) |
+| `docs` | Documentation Markdown files within a repository's allowed paths and line cap (shipped in the chart catalog) |
 | `dead-links` | Dead external links, replaced by their archived copy |
 | `deps-patch`, `deps-minor` | Renovate's patch and minor bumps, adopted from Renovate's own pull requests |
 | `alert-rules` | Alerting rules |
 | `kb-entries` | RunLore knowledge-base entries marked `ready-to-merge` |
-| `docs`, `scripts`, `tests`, `dashboards` | Any change in those areas |
-| `review` | Everything else |
 
 Which of them are live where you are is on the status page's
-[class modes]({{< relref "/docs/status.md#class-modes" >}}). Most work lands in a class you merge; that
+[class modes]({{< relref "/docs/status.md#class-modes" >}}). Most work lands in a policy you merge; that
 is by design. [Chapter 7]({{< relref "merging.md" >}}) covers merging, and
-[the merge gate]({{< relref "/docs/how-it-works/merge-gate.md#classes" >}}) every condition a live class
+[the merge gate]({{< relref "/docs/how-it-works/merge-gate.md#classes" >}}) every condition a live policy
 checks.
 
-The class also sets the task's **tier**: how much time and money each run may spend
+The workflow and its tier also set how much time and money each run may spend
 ([chapter 5]({{< relref "following-and-steering.md#budgets" >}})).
 
 ## When the issue is not enough {#not-enough}
 
-For some classes a *scoper* reads the issue before anyone writes code. When the issue leaves something
+On `workflow:careful`, a *scoper* reads the issue before anyone writes code. When the issue leaves something
 open it asks you a question instead of guessing, and a big issue may come back with a plan to split it
 into parts. [Chapter 6]({{< relref "when-the-factory-needs-you.md#scoper-question" >}}) shows how to
 answer both.

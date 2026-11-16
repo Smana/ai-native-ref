@@ -10,14 +10,15 @@ metadata:
   name: deps-patch
   namespace: agent-system
 spec:
-  requires: [allowedFiles]
   author: {adopt: {logins: ["renovate[bot]"], branches: ['^renovate/']}}
   diffShape: semver-patch
   protectedFiles:
     - '^security/base/zitadel/'
     - '^security/(aws|gcp)-0/zitadel/'
     - '^flux/sources/helmrepo-zitadel\.yaml$'
+    - '^flux/sources/ocirepo-ai-native-ref\.yaml$'
     - '^infrastructure/base/crossplane/configuration-core/'
+    - '^infrastructure/base/crossplane/configuration-(aws|gcp)/'
     - '^flux/sources/gitrepo-gateway-api\.yaml$'
     - '^observability/base/victoria-metrics-k8s-stack/vm-common-helm-values-configmap\.yaml$'
   modifyOnly: true
@@ -25,4 +26,5 @@ spec:
   maxModifiedLines: 10
   releaseAgeCheck: renovate/stability-days
   maxPerDay: 2
+  evidence: low
   monitor: {flux: {within: 1h}, followUpWindow: 168h}

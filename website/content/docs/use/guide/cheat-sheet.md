@@ -13,7 +13,7 @@ row says otherwise; only a maintainer's count.
 | Label | What happens |
 |---|---|
 | `factory/ready` | Starts the issue as a task |
-| `class:<name>` | Before `factory/ready`: predicts the task's class, such as `class:docs-links` |
+| `workflow:<name>` | Before `factory/ready`: picks `workflow:quick` or `workflow:careful` (no label runs `standard`) |
 | `factory/stop` | Ends the task's runs; its branch stays. On the pinned control issue, it stops every task |
 | `factory/revert` | On a pull request merged automatically, within 7 days: opens the revert |
 | `factory/publish` | On a RunLore proposal's stub issue (`factory/proposed`): files the fix issue ([RunLore]({{< relref "/docs/how-it-works/runlore.md" >}})) |
@@ -39,7 +39,7 @@ row says otherwise; only a maintainer's count.
 |---|---|
 | `factory/needs-author` | It asked a question: answer in the Slack thread or with `answer` in your coding agent |
 | `factory/split-proposed` | It proposed a split: `/factory split` or `/factory retry` |
-| `factory/class:<class>` | On the pull request: the class it predicted |
+| `factory/policy` | On the pull request: the merge policy that matched its diff |
 | `factory/child-of:#<n>` | On a part's issue: the split it belongs to |
 | `factory/stale` | On a pull request it closed after 14 days with no maintainer activity |
 

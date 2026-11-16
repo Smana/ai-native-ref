@@ -13,7 +13,7 @@ decode and refuse each key (`ux-review-design`, UX3, UX9).
     Slack App's strict config, so no copy of the Slack App config carries `proposals`.
 
 Both placeholders stay at v9.9.9 until each Maku release is cut; the commit that bumps the pin sets
-the corresponding constant in lockstep, as INTAKE_RELEASE is set in test-room-broker-intake-classes.py.
+the corresponding constant in lockstep, as INTAKE_RELEASE is set in test-room-broker-intake-catalog.py.
 """
 import pathlib
 import re

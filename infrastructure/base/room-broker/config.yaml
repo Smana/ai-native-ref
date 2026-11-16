@@ -86,14 +86,13 @@ human:
     activeWindow: 168h
   # The governed planner (v3.x conversational intake): intake_plan and plan_check on /mcp, off. Its
   # candidate set is the write check human.access above carries and both tools live on /mcp, so it
-  # needs human.mcp.enabled too. repositories is the allowlist a plan may ever name (CD5); classes is
-  # the roles and the money every plan gets, never
-  # the model's choice (CD17). The model call goes to agent-gateway/model-gateway's clients
-  # listener (:8082), whose route forces tier-frontier to Z.ai glm-5.3, with the projected token
+  # needs human.mcp.enabled too. It reads the served repositories and their workflows from the
+  # factory's GET /v1/catalog (WF12, factoryURL above). The model call goes to agent-gateway/model-gateway's
+  # clients listener (:8082), whose route forces tier-frontier to Z.ai glm-5.3, with the projected token
   # helmrelease.yaml's broker.modelGateway mounts (audience maku-gateway.client.planner): no static key.
   intake:
     plan:
-      enabled: false            # on in the clouds' copies, for one repository (ADR-0060)
+      enabled: false            # on in the clouds' copies (ADR-0060)
       url: http://model-gateway.agent-gateway.svc.cluster.local:8082/clients/planner/v1
       model: tier-frontier
       apiKeyFile: /var/run/secrets/maku/model-gateway/planner
@@ -101,14 +100,6 @@ human:
       reasoningEffort: low       # glm-5.3 always reasons: at its default a plan needs over 20 s (Maku #372)
       dailyPlans: 50
       fallback: "off"
-      repositories: [Smana/ai-native-ref, Smana/runlore-kb, Smana/runlore, Smana/cloud-native-ref]      # the public repositories this boundary may plan for
-      classes:
-        docs-links: {roles: [scoper, implementer, reviewer], ceilingUSD: 2.00, source: "class:docs-links.taskUSD"}
-        # docs and scripts are the ai-native-ref classes a plan may suggest (Factory loops: scoper on both,
-        # pair template). docs is priced like docs-links; scripts at the standard tier's taskUSD.
-        docs: {roles: [scoper, implementer, reviewer], ceilingUSD: 2.00, source: "class:docs.taskUSD"}
-        scripts: {roles: [scoper, implementer, reviewer], ceilingUSD: 5.10, source: "class:scripts.taskUSD"}
-        review: {roles: [implementer, reviewer], ceilingUSD: 2.00, source: "class:review.taskUSD"}  # cloud-native-ref declares it; the pair template
   # needs/v1 (CD21, CD28): one list, read by /api/needs and by the CLI. Read-only, so it ships on.
   needs:
     enabled: true

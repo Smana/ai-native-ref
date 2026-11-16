@@ -12,6 +12,8 @@ spec:
   repository: Smana/runlore-kb
   maintainers: [Smana]
   triggerLabel: factory/ready
+  workflow:
+    default: standard
   merge:
     requiredChecks: [validate, leak-scan]
     verifyChecks: [validate, leak-scan]

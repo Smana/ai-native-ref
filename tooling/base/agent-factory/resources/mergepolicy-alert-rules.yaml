@@ -10,5 +10,4 @@ metadata:
   name: alert-rules
   namespace: agent-system
 spec:
-  requires: [allowedFiles]
   monitor: {verification: {within: 2h}, followUpWindow: 2h}

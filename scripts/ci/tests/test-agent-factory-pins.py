@@ -47,6 +47,11 @@ if source["spec"]["url"] != "oci://ghcr.io/smana/charts/agent-factory":
     problems.append(f"OCIRepository agent-factory url {source['spec']['url']!r} is not oci://ghcr.io/smana/charts/agent-factory")
 if image.get("repository") != "ghcr.io/smana/maku-factory":
     problems.append(f"image repository {image.get('repository')!r} is not ghcr.io/smana/maku-factory")
+for cloud in ("aws-0", "gcp-0"):
+    sponsored_cm = yaml.safe_load((ROOT / f"tooling/{cloud}/agent-factory/helm-values-sponsored.yaml").read_text())
+    sponsored = yaml.safe_load(sponsored_cm["data"]["values.yaml"])
+    if "maku-factory" in sponsored and not isinstance(sponsored["maku-factory"], dict):
+        problems.append(f"{cloud} sponsored values replace maku-factory with {sponsored['maku-factory']!r}, hiding the base image and enabled keys")
 
 crds_dir = ROOT / "tooling/base/agent-factory/crds"
 crds_source = yaml.safe_load((crds_dir / "ocirepository.yaml").read_text())

@@ -21,9 +21,9 @@ data:
       enabled: true
       image:
         repository: ghcr.io/smana/maku-factory
-        # maku v0.53.1, the chart's appVersion.
+        # Signed PR image matching the chart's appVersion during aws-0 validation.
         # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
-        tag: "v0.53.1@sha256:ced3493da6273d0cf3382191012da33ba74b81c89a012461cee18e7ec115a9c8"
+        tag: "v0.53.2-pr618.9d0bdb48@sha256:8cd74cd52b0b55d23e682420e92674ce4351cb0961dfd3f2b38cdf385eb84319"
       # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
       # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
       # declares `monitor.flux` yet, so nothing reads through it.

@@ -17,6 +17,7 @@ spec:
     - '^security/(aws|gcp)-0/zitadel/'
     - '^flux/sources/helmrepo-zitadel\.yaml$'
     - '^flux/sources/ocirepo-ai-native-ref\.yaml$'
+    - '^flux/sources/ocirepo-agent-factory\.yaml$'
     - '^infrastructure/base/crossplane/configuration-core/'
     - '^infrastructure/base/crossplane/configuration-(aws|gcp)/'
     - '^flux/sources/gitrepo-gateway-api\.yaml$'

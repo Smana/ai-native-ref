@@ -19,31 +19,30 @@ metadata:
   namespace: agent-system
 data:
   values.yaml: |  # pragma: allowlist secret -- Secret key file paths, no credential value
-    maku-factory:
     config:
       api:
-      projectIDFile: /etc/agent-factory-sponsored/project-id
-      sponsored:
-        - name: slack-app
-          clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
-          sponsor: Smana
-          repositories: [Smana/ai-native-ref, Smana/cloud-native-ref, Smana/runlore, Smana/runlore-kb]
-          dailyUSD: 5
-          maxCostUSD: 2
-          # "<Slack team id>/<owner's Slack user id>": the owner's GitHub login; slackLinks reads the
-          # broker's link records (human.slackLink) for the users this map omits.
-          onBehalfOf:
-            slack: {"T07J97G2K2P/U07JY4EQNDN": Smana}
-            slackLinks: true
-      internalPrincipals:
-        - name: runlore
-          clientIDFile: /etc/agent-factory-sponsored/runlore-client-id
-          sponsor: Smana
-          repositories: [Smana/cloud-native-ref]
-          dailyUSD: 10
-          maxCostUSD: 2
-          maxOpenTasks: 3
-          minConfidence: 0.75
-          dailyTasks: 5
-          verification: true
-          publishStarts: true
+        projectIDFile: /etc/agent-factory-sponsored/project-id
+        sponsored:
+          - name: slack-app
+            clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
+            sponsor: Smana
+            repositories: [Smana/ai-native-ref, Smana/cloud-native-ref, Smana/runlore, Smana/runlore-kb]
+            dailyUSD: 5
+            maxCostUSD: 2
+            # "<Slack team id>/<owner's Slack user id>": the owner's GitHub login; slackLinks reads the
+            # broker's link records (human.slackLink) for the users this map omits.
+            onBehalfOf:
+              slack: {"T07J97G2K2P/U07JY4EQNDN": Smana}
+              slackLinks: true
+        internalPrincipals:
+          - name: runlore
+            clientIDFile: /etc/agent-factory-sponsored/runlore-client-id
+            sponsor: Smana
+            repositories: [Smana/cloud-native-ref]
+            dailyUSD: 10
+            maxCostUSD: 2
+            maxOpenTasks: 3
+            minConfidence: 0.75
+            dailyTasks: 5
+            verification: true
+            publishStarts: true

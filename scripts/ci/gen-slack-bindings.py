@@ -228,7 +228,7 @@ def registries(root):
     ceilings = []
     for path in SPONSORED:
         sponsored = _parse(path, _values, (root / path).read_text())
-        entry = _entry(((sponsored.get("config") or {}).get("api") or {}).get("sponsored"),
+        entry = _entry(((sponsored.get("maku-factory") or {}).get("config") or {}).get("api", {}).get("sponsored"),
                        f"{path} config.api.sponsored")
         if not _number(entry.get("maxCostUSD")):
             raise ConfigError(f"{path}: the {PRINCIPAL} principal names no maxCostUSD")
@@ -333,7 +333,7 @@ def _sponsored(root, path, repos):
     new = _at(path, lambda: splice(text, "repositories", [f"repositories: {_flow(repos)}"], parent="sponsored"))
 
     def sponsored_entry(doc, v):
-        _entry(doc["config"]["api"]["sponsored"], f"{path} config.api.sponsored")["repositories"] = v
+        _entry(doc["maku-factory"]["config"]["api"]["sponsored"], f"{path} maku-factory.config.api.sponsored")["repositories"] = v
     _held(path, text, new, _values, [(sponsored_entry, repos)])
     return new
 

@@ -723,7 +723,7 @@ def factory_values(objs):
                if meta(c).get("namespace") == FACTORY_NS and meta(c).get("name") == FACTORY_VALUES), None)
     if cm is None:
         return None
-    cfg = (yaml.load((cm.get("data") or {}).get("values.yaml") or "", Loader=YAML_LOADER) or {}).get("config") or {}
+    cfg = ((yaml.load((cm.get("data") or {}).get("values.yaml") or "", Loader=YAML_LOADER) or {}).get("maku-factory") or {}).get("config") or {}
     factories = [f for f in kind(objs, "Factory")
                  if meta(f).get("namespace") == FACTORY_NS and meta(f).get("name") == cfg.get("factory")]
     return factory_config.assemble(cfg, factories)

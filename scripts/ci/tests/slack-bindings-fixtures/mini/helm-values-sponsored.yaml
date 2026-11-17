@@ -6,11 +6,12 @@ metadata:
   namespace: agent-system
 data:
   values.yaml: |
-    config:
-      api:
-        sponsored:
-          - name: slack-app
-            sponsor: acme-owner
-            repositories: [acme/shop]
-            dailyUSD: 5
-            maxCostUSD: 2
+    maku-factory:
+      config:
+        api:
+          sponsored:
+            - name: slack-app
+              sponsor: acme-owner
+              repositories: [acme/shop]
+              dailyUSD: 5
+              maxCostUSD: 2

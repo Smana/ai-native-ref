@@ -75,7 +75,7 @@ service = next(d for d in load("tooling/base/agent-factory/slack-app/service.yam
 def check_cloud(cloud):
     broker = load(f"infrastructure/{cloud}/room-broker/config.yaml")[0]
     values = yaml.safe_load(load(f"tooling/{cloud}/agent-factory/helm-values-sponsored.yaml")[0]["data"]["values.yaml"])
-    api = values["config"]["api"]
+    api = values["maku-factory"]["config"]["api"]
     principal = api["sponsored"][0]
     sponsored = broker["human"]["mcp"]["sponsored"]
 

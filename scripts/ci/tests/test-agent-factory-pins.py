@@ -32,7 +32,8 @@ if not DIGEST.match(ref.get("digest", "")):
     problems.append(f"OCIRepository agent-factory ref.digest {ref.get('digest')!r} is not sha256:<64 hex>")
 
 cm = yaml.safe_load((ROOT / "tooling/base/agent-factory/helm-values-configmap.yaml").read_text())
-image = yaml.safe_load(cm["data"]["values.yaml"])["image"]
+values = yaml.safe_load(cm["data"]["values.yaml"])
+image = values["maku-factory"]["image"]
 version, _, digest = image["tag"].partition("@")
 if not DIGEST.match(digest):
     problems.append(f"image tag {image['tag']!r} is not <version>@sha256:<64 hex>")
@@ -42,10 +43,15 @@ if version != expected:
     problems.append(f"image {version!r} is not chart {chart_tag!r}'s appVersion {expected!r}: bump both")
 
 # The maku names since v0.30.0 (agent-platform renamed); the old ones stop at v0.29.x.
-if source["spec"]["url"] != "oci://ghcr.io/smana/charts/maku-factory":
-    problems.append(f"OCIRepository agent-factory url {source['spec']['url']!r} is not oci://ghcr.io/smana/charts/maku-factory")
+if source["spec"]["url"] != "oci://ghcr.io/smana/charts/agent-factory":
+    problems.append(f"OCIRepository agent-factory url {source['spec']['url']!r} is not oci://ghcr.io/smana/charts/agent-factory")
 if image.get("repository") != "ghcr.io/smana/maku-factory":
     problems.append(f"image repository {image.get('repository')!r} is not ghcr.io/smana/maku-factory")
+for cloud in ("aws-0", "gcp-0"):
+    sponsored_cm = yaml.safe_load((ROOT / f"tooling/{cloud}/agent-factory/helm-values-sponsored.yaml").read_text())
+    sponsored = yaml.safe_load(sponsored_cm["data"]["values.yaml"])
+    if "maku-factory" in sponsored and not isinstance(sponsored["maku-factory"], dict):
+        problems.append(f"{cloud} sponsored values replace maku-factory with {sponsored['maku-factory']!r}, hiding the base image and enabled keys")
 
 crds_dir = ROOT / "tooling/base/agent-factory/crds"
 crds_source = yaml.safe_load((crds_dir / "ocirepository.yaml").read_text())
@@ -64,7 +70,7 @@ if (crds_hr.get("values") or {}).get("keep") is not True:
 # One owner for the shared ClusterRoles (Maku v0.48.0, D2): two releases rendering them fails Helm's ownership check.
 if (crds_hr.get("values") or {}).get("clusterRoles", True) is not True:
     problems.append("HelmRelease agent-factory-crds: values.clusterRoles is not true; it owns the shared ClusterRoles")
-if yaml.safe_load(cm["data"]["values.yaml"]).get("clusterRoles", True) is not False:
+if values["maku-factory"].get("clusterRoles", True) is not False:
     problems.append("agent-factory values: clusterRoles is not false; agent-factory-crds owns the shared ClusterRoles")
 for phase in ("install", "upgrade"):
     if (crds_hr.get(phase) or {}).get("remediation"):
@@ -90,7 +96,7 @@ if (rooms.get("labels") or {}).get("app.kubernetes.io/managed-by") != "Helm":
     problems.append("crd-rooms.yaml: label app.kubernetes.io/managed-by is not Helm")
 
 rules = json.loads((ROOT / ".github/renovate.json").read_text())["packageRules"]
-names = {"ghcr.io/smana/charts/maku-factory", "ghcr.io/smana/maku-factory"}
+names = {"ghcr.io/smana/charts/agent-factory", "ghcr.io/smana/maku-factory"}
 if not any(names <= set(r.get("matchPackageNames") or []) and r.get("groupName") for r in rules):
     problems.append("no Renovate packageRule groups the factory's chart and image")
 

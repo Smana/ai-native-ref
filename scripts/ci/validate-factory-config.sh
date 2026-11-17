@@ -20,21 +20,31 @@ values="tooling/base/agent-factory/helm-values-configmap.yaml"
 version="$(python3 -c '
 import sys, yaml
 cm = yaml.safe_load(open(sys.argv[1]))
-print(yaml.safe_load(cm["data"]["values.yaml"])["image"]["tag"].partition("@")[0])' "$values")"
-if [ "$version" != "$MAKU_PIN" ]; then
-  echo "FAIL: the HelmRelease's image is $version, this script's maku is $MAKU_PIN: bump MAKU_PIN and MAKU_SHA256 with it" >&2
-  exit 1
-fi
+print(yaml.safe_load(cm["data"]["values.yaml"])["maku-factory"]["image"]["tag"].partition("@")[0])' "$values")"
 
-cache="${XDG_CACHE_HOME:-$HOME/.cache}/ai-native-ref/maku/$MAKU_PIN"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/ai-native-ref/maku/$version"
 maku="$cache/maku-linux-amd64"
-if ! echo "$MAKU_SHA256  $maku" | sha256sum -c --status - 2>/dev/null; then
-  mkdir -p "$cache"
-  curl -fsSL --retry 3 --retry-delay 2 -o "$maku.part" \
-    "https://github.com/Smana/maku/releases/download/$MAKU_PIN/maku-linux-amd64"
-  echo "$MAKU_SHA256  $maku.part" | sha256sum -c --quiet - || { rm -f "$maku.part"; echo "FAIL: maku $MAKU_PIN does not match MAKU_SHA256" >&2; exit 1; }
-  chmod +x "$maku.part"
-  mv "$maku.part" "$maku"
+if [[ "$version" == *-pr* ]]; then
+  # A prerelease has no GitHub release asset. Its final version component is the
+  # immutable Maku source commit, which the Go module checksum database verifies.
+  maku="$cache/maku"
+  if [ ! -x "$maku" ]; then
+    mkdir -p "$cache"
+    GOBIN="$cache" go install "github.com/Smana/maku/cmd/maku@${version##*.}"
+  fi
+else
+  if [ "$version" != "$MAKU_PIN" ]; then
+    echo "FAIL: the HelmRelease's image is $version, this script's maku is $MAKU_PIN: bump MAKU_PIN and MAKU_SHA256 with it" >&2
+    exit 1
+  fi
+  if ! echo "$MAKU_SHA256  $maku" | sha256sum -c --status - 2>/dev/null; then
+    mkdir -p "$cache"
+    curl -fsSL --retry 3 --retry-delay 2 -o "$maku.part" \
+      "https://github.com/Smana/maku/releases/download/$MAKU_PIN/maku-linux-amd64"
+    echo "$MAKU_SHA256  $maku.part" | sha256sum -c --quiet - || { rm -f "$maku.part"; echo "FAIL: maku $MAKU_PIN does not match MAKU_SHA256" >&2; exit 1; }
+    chmod +x "$maku.part"
+    mv "$maku.part" "$maku"
+  fi
 fi
 
 tmp="$(mktemp -d)"

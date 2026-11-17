@@ -52,7 +52,7 @@ CEILINGS: dict[str, int | None] = {
     "reference": None,
 }
 
-TAG_RE = re.compile(r'^\s*tag:\s*["\']?(v[0-9]+\.[0-9]+\.[0-9]+)(?:@[^"\'\s]*)?["\']?\s*(?:#.*)?$', re.M)
+TAG_RE = re.compile(r'^\s*tag:\s*["\']?(v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)(?:@[^"\'\s]*)?["\']?\s*(?:#.*)?$', re.M)
 MAKU_VERSION_RE = re.compile(r'^\s*makuVersion:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$')
 FENCE_RE = re.compile(r'^\s*factory:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$', re.M)
 ACTIVE_CLUSTER_FM_RE = re.compile(r'^\s*activeCluster:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$')
@@ -112,6 +112,10 @@ def check_pin(root: pathlib.Path) -> list[str]:
     if not m:
         return [f"{HELM_VALUES}:1: pin: no tag found"]
     want = m.group(1)
+    # Validation branches run signed prereleases without making an unreleased
+    # version the public documentation's release pin. Release pins stay exact.
+    if "-pr" in want:
+        return []
 
     hugo_path = root / HUGO_CONFIG
     got = "<unset>"

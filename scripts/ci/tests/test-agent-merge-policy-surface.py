@@ -82,13 +82,15 @@ objs = {cloud: render(cloud) for cloud in ("aws-0", "gcp-0")}
 check("aws-0 and gcp-0 apply the same Factory (outside evaluation), Repository and MergePolicy objects",
       without_evaluation(objs["aws-0"]) == without_evaluation(objs["gcp-0"]))
 
-vals = factory_config.values(ROOT)
+all_vals = factory_config.values(ROOT)
+vals = all_vals["maku-factory"]
 check("the factory: policyManagement is {stage: manage}, no switch",
-      stage_only(vals["config"].get("policyManagement")))
+      stage_only(all_vals["config"].get("policyManagement")))
 for cfg in sorted(ROOT.glob("infrastructure/*/room-broker/config.yaml")):
     pm = (yaml.safe_load(cfg.read_text()) or {}).get("policyManagement")
     check(f"{cfg.relative_to(ROOT)}: policyManagement.stage manage, no switch", stage_only(pm))
 
+check("maku-factory.enabled renders the controller and its catalog", vals.get("enabled") is True)
 cat_cfg = (vals.get("mergePolicies") or {}).get("catalog") or {}
 check("mergePolicies.catalog: enabled is true and exclude is [deps-patch]",
       cat_cfg.get("enabled") is True and cat_cfg.get("exclude") == ["deps-patch"])

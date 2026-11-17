@@ -25,3 +25,12 @@ description: "The AI platform of Cloud Native Reference: self-hosted model servi
 {{< hextra/hero-button text="The host: Cloud Native Ref ↗" link="https://cnref.ogenki.io/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
 
 {{< /hero-video >}}
+
+## Watch a real task
+
+Hand a defect from OpenCode to Maku, review its pull request and approve the merge.
+
+- [Hand it off, get a PR — 23 seconds](https://github.com/Smana/ai-native-ref-screencasts/blob/main/ai-factory-short.webm)
+- [The factory, end to end — 54 seconds](https://github.com/Smana/ai-native-ref-screencasts/blob/main/ai-factory-demo.webm)
+
+Both recordings are silent and captioned. The longer cut includes the clarification, sandboxed roles, Kubernetes runs and per-role cost.

@@ -25,12 +25,12 @@ sequenceDiagram
   participant M as Maku (rooms)
   participant GH as GitHub
   participant G as Grafana
-  You->>OC: Scene 1: find a stale doc, then /factory:handoff
+  You->>OC: Scene 1: find a stale doc, then /maku handoff
   OC->>GH: issue filed + factory/ready (as you)
   OC-->>You: Scene 2: room card, background wait
   You->>M: Scene 3: room page — scoper → implementer → reviewer
   You->>GH: Scene 4: issue comments, PR by the App, checks, approve = merge
-  OC-->>You: Scene 5: wait returns, status card with spend
+  OC-->>You: Scene 5: wait returns, task card with spend
   You->>G: Scene 6: room, run, factory, spend dashboards
 ```
 
@@ -49,7 +49,7 @@ List anything stale (a renamed command, a wrong path, a dead reference). Don't f
 **Prompt 2 — the handoff (Scene 1, the line the video is about).**
 
 ```text
-/factory:handoff In Smana/cloud-native-ref, <file>: <one-line defect, e.g. "the setup step still
+/maku handoff In Smana/cloud-native-ref, <file>: <one-line defect, e.g. "the setup step still
 names `roomctl`, renamed to `maku` in v0.30.0">.
 Acceptance: <one observable check, e.g. "no `roomctl` left in that page; the doc build passes">.
 ```
@@ -72,8 +72,8 @@ Prompt 2.
 | # | Do | Expected |
 |---|---|---|
 | 1 | aws-0 up, factory intake on, fence on aws-0 (cnref PR #2682 merged) | `kubectl -n agent-system get deploy` all ready; the Agents overview dashboard is green |
-| 2 | `maku login`, then `maku doctor` | every check `ok` (`dns`, `tls`, `login`, `github`, `skill`). Today the `factory` MCP server says `not_logged_in`: this fixes it |
-| 3 | `maku setup opencode` (idempotent) | `factory` under `mcp.servers` in opencode's config; in OpenCode the tools `rooms_list` … `issue_file` and the prompts `/factory:handoff`, `/factory:status`, `/factory:inbox` are listed |
+| 2 | `maku login`, then `maku doctor` | every check `ok` (`dns`, `tls`, `login`, `github`, `skill`). Today the `maku` MCP server says `not_logged_in`: this fixes it |
+| 3 | `maku setup opencode` (idempotent) | `maku` under `mcp.servers` in opencode's config; in OpenCode the tools `handoff`, `start`, `inbox`, `task`, `wait`, `answer` and the verbs `/maku handoff`, `/maku task`, `/maku inbox` are listed |
 | 4 | **Choose the start path** (below) | |
 | 5 | **Full dry run** with a throwaway defect, off camera: Prompt 1, Prompt 2, through to the approval | Note the real timings per scene; close that PR unmerged, or let it merge if it's genuine |
 | 6 | Pre-open the Grafana dashboards once (caches the panels), set time range "Last 3 hours" | |
@@ -82,8 +82,8 @@ Prompt 2.
 
 | Path | What | On camera |
 |---|---|---|
-| **A. Start from the session** (recommended) | Session switch: `human.mcp.sessionStart: [Smana/cloud-native-ref]` in aws-0's broker copy, `infrastructure/aws-0/room-broker/config.yaml` ([#244](https://github.com/Smana/ai-native-ref/pull/244)). Merge it on the eve of the session, revert it after | The form offers **"start the factory now"** → yes. Zero GitHub clicks to start |
-| B. No switch | Nothing to change | The form files the issue only; you cut to GitHub and apply **`factory/ready`** yourself. Honest, one extra shot |
+| **A. Start from the form** (recommended) | Nothing to change: the `start` form's **"Start now"** defaults to yes wherever the planner serves `Smana/cloud-native-ref` and you can write to it | The form offers **"Start now"** → leave it at yes. Zero GitHub clicks to start |
+| B. File only | In the form, switch **"Start now"** to no | The form files the issue only; you cut to GitHub and apply **`factory/ready`** yourself. Honest, one extra shot |
 
 ---
 
@@ -123,13 +123,14 @@ Each scene: **Do** (keys), **Say** (voice-over, optional), **Show** (what must b
 1. **Do**: Prompt 1. Let it answer (speed it up ×4 in edit).
    **Say**: "I'm reviewing docs, I find something stale — not my job right now."
 2. **Do**: Prompt 2.
-   **Show**: the agent calls `issue_draft`, then the **form**: title, body with *Acceptance*, repo.
+   **Show**: the agent plans with `handoff` — the issue text, the workflow, the budget — then opens
+   the `start` **form**: title, body with *Acceptance*, repo.
    **Say**: "My agent drafts the issue. Only I can answer this form — the agent can't start the
    factory on its own."
-3. **Do**: answer *file it* = yes, *start the factory now* = yes (path A).
+3. **Do**: in the form, answer *File* = yes, leave *Start now* = yes (path A).
    **Show**: `Filed #N for @Smana; the factory starts it. Room: …` and, within 60 s, the **room card**.
 4. **Do**: type `wait for it`.
-   **Show**: a background subagent starts `room_wait`; the prompt is free again.
+   **Show**: a background subagent starts `wait`; the prompt is free again.
    **Say**: "It follows the room in the background. I keep working."
 5. **Do**: type one unrelated question to prove the session is usable (e.g. "what does
    `task check` run?").
@@ -165,8 +166,8 @@ Record when the issue reads "*waits for a maintainer's review*" (dry run tells y
    - **Files changed**: the small diff.
    - **Commits**: the `Agent-Run: <id>` trailer — every commit traces back to a run.
    - The **reviewer** run's verdict.
-   - **Checks**: the docs link check, security scan, and the **merge gate** (policy-bot) waiting on
-     a maintainer.
+   - **Checks**: the docs link check, security scan, and the **merge gate** (`maku/merge-gate`)
+     waiting on a maintainer.
    - The hand-off comment naming the one action left: approve.
 3. **Do**: *Review changes → Approve*.
    **Say**: "My approval is the merge. I don't press merge — the factory does, as a human merge."
@@ -185,12 +186,12 @@ Record when the issue reads "*waits for a maintainer's review*" (dry run tells y
 
 ### Scene 4 — back in OpenCode (45 s on screen)
 
-1. **Show**: the background `room_wait` has returned (PR opened / ended).
-2. **Do**: `/factory:status`.
+1. **Show**: the background `wait` has returned (PR opened / ended).
+2. **Do**: `/maku task` (or `/maku task #N`).
    **Show**: the card — runs chain with time and **$ per run**, spend vs budget, PR, state `done`.
    **Say**: "Same card as the room, in my terminal. This change cost N cents."
-3. **Do** (optional): `check it out` → `room_checkout` returns a new worktree path; your checkout
-   untouched.
+3. **Do** (optional): `check it out` → the agent's `maku checkout <task>` returns a new worktree
+   path; your checkout untouched.
 - **Cut**.
 
 ### Scene 5 — the dashboards (2 min on screen)
@@ -226,8 +227,8 @@ Set each to the task's window. In order, one claim each:
 
 ## After recording
 
-1. Path A: revert the session switch (empty `sessionStart` or delete aws-0's copy); `task check` green.
-2. `git worktree remove <path>` for any `room_checkout` worktree.
+1. `task check` green.
+2. `git worktree remove <path>` for any `maku checkout` worktree.
 3. Blur in edit: anything showing a token, an internal IP, or an email.
 4. Edit notes: speed ×4 on model output, hard-cut every wait, overlay a small clock
    ("+5 min", "+38 min") so the viewer feels the elapsed time without watching it.

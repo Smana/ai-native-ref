@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # requires: python3 kustomize
-"""Comparison 1 (WF9): aws-0 carries the standard-vs-careful evaluation overlay; base and gcp-0 do not."""
+"""The workflow comparison is opt-in; no shipped cloud carries its evaluation overlay."""
 import pathlib
 import subprocess
 import sys
@@ -18,10 +18,6 @@ def factory(path):
 
 assert "evaluation" not in factory("tooling/base/agent-factory/resources")
 assert "evaluation" not in factory("tooling/gcp-0/agent-factory/resources")
-ev = factory("tooling/aws-0/agent-factory/resources").get("evaluation")
-assert ev == {
-    "controlPercent": 70,
-    "treatment": "careful",
-}, ev
-print("ok    aws-0 evaluation overlay is careful at 30% (controlPercent: 70); base and gcp-0 carry none")
+assert "evaluation" not in factory("tooling/aws-0/agent-factory/resources")
+print("ok    no cloud carries the workflow evaluation overlay")
 sys.exit(0)

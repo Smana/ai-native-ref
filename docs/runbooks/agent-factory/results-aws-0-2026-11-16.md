@@ -41,7 +41,7 @@
 | W3 — `careful` role chain and judge continuation | PARTIAL | Prepared issue body `w3.md`; not filed | Two attempts failed with `handoff_expired` because only the handoff digest was displayed. Using the real random handoff ID reached clarification and confirmation. Maku #617 fixes the rendered plan text; rerun pending. |
 | W4 — label and confirmation selection | PARTIAL | W1–W3 | W1 repository default and W2 maintainer label sources are recorded; W3 confirmation remains. |
 | W5 — legacy, unknown, conflicting and non-maintainer pins | PARTIAL | #423/`57bkwslw`/#424; #359/`nhqxxxhw`; #425/`hwmzeu5n` | Legacy labels are narrated as ignored and select `standard` (#423, reviewer-approved, 399k tokens/$0.16 charged to github:smana). `workflow:nope` records `profile_unknown`; conflicting labels record `profile_conflict` and select `standard`. The unknown-label run selected `careful` only because the unintended evaluation overlay was still live, so that fallback was stopped. Non-maintainer actor remains unavailable. |
-| W6 — `quick` with a verdict-requiring policy | PARTIAL | W2 / #419 | Currently `no_policy_matched` because the catalog is absent; `reviewer_verdict_missing` assertion follows rollout. |
+| W6 — `quick` with a verdict-requiring policy | PASS | #433/`nxtm6cnu`/#435 | Actual website prose ran quick with one implementer and no reviewer. The decision records `considered=docs:reviewer_verdict_missing,docs-links:class_mismatch,revert:class_mismatch`; no autonomous merge occurred. The separate runbook-only #430 correctly records `docs:file_not_allowed`. |
 | W7 — `maku repo add` and `repo check` for four repositories | FAIL | [maku#616](https://github.com/Smana/maku/issues/616) | v0.53.1 `repo add` requires public `GET /apps/{slug}` metadata. All three private Apps answer 404; no declarations were generated and no App visibility was changed. |
 | W8 — planner catalog discovery on `runlore-kb` | NOT RUN | | Pending corrected chart and #617 deployment. |
 
@@ -52,11 +52,11 @@
 | M1 — diff selection and `no_policy_matched` | PARTIAL | [#418](https://github.com/Smana/ai-native-ref/issues/418) / `7k4yfmcw` / [#420](https://github.com/Smana/ai-native-ref/pull/420) | Standard implementer/reviewer succeeded. The expected human hand-off is present, but catalog `considered=` evidence awaits the corrected chart. |
 | M2 — unbound catalog shadow evidence | NOT RUN | | Pending corrected catalog. |
 | M3 — bounds, protected paths, size and `modifyOnly` | NOT RUN | | Pending corrected catalog. |
-| M4 — hold and approval precedence | NOT RUN | | Pending corrected catalog. |
+| M4 — hold and approval precedence | PARTIAL | #436 / `buwtrs4p` | Maintainer approval of `97c7804988aad59e77d4aa4a6728d7a1f439162f` caused `ogenki-agent-merger[bot]` to merge that exact head. Task is Done/merged with `mergedHow=approved` and `decidedHeadSHA` equal to the reviewed head. Hold and stale-head cases remain. |
 | M5 — strictest selection, cap/pause and no fall-through | NOT RUN | | Pending corrected catalog. |
-| M6 — reviewer verdict requirement | PARTIAL | W2 / #419 | `reviewer_verdict_missing` rerun pending. |
-| M7 — UI, CLI and API maintainer journeys | PARTIAL | [ai-native-ref#415](https://github.com/Smana/ai-native-ref/pull/415) | Approval-memory 404 fixed and merged. Direct page returns 200; unprivileged API returns 401. Remaining UI/CLI/API journeys need catalog rollout. |
-| M8 — live merge, revert, breaker and recovery | BLOCKED | | No valid existing `docs-links` promotion evidence is proven. No threshold or policy was changed. |
+| M6 — reviewer verdict requirement | PASS | #433/#435 versus #434/`buwtrs4p`/#436 | Quick records `docs:reviewer_verdict_missing`; standard's reviewer-backed prose records `shadow_would_arm` with policy `docs`, verdict `approve`, and `considered=docs-links:class_mismatch,revert:class_mismatch`. Neither merged autonomously. |
+| M7 — UI, CLI and API maintainer journeys | PARTIAL | [ai-native-ref#415](https://github.com/Smana/ai-native-ref/pull/415) | All three authenticated settings routes return 200; unprivileged approval-memory API returns 401. Maku v0.53.1 export/diff/check/simulate proves `docs: tightening`, reports intentional non-equivalence, and all applicable conformance fixtures agree. UI write and authorization journeys remain. |
+| M8 — live merge, revert, breaker and recovery | BLOCKED | `/api/policy/repositories/Smana/ai-native-ref` evidence | `docs-links` has 4/5 clean decisions, one bad outcome, and no drill. The API reports `below_minimum`, `bad_outcome`, `no_drill`. No threshold or policy was changed. |
 
 ## Screencasts
 
@@ -90,13 +90,14 @@
 |---|---|---|
 | Second-person and unlinked Slack actors | The owner and second accounts are unavailable. | Run L10, L11, L15, L16 and W5-untrusted with the real actors. |
 | Credential exposure during operations | A Kubernetes Secret inspection accidentally printed restored credentials into the operator transcript. | Rotate the exposed provider API keys and factory/agents/merger private keys; do not reuse the transcript values. |
-| M8 evidence | Existing `docs-links` evidence and drill eligibility are unproven. | Keep blocked unless the ledger and evidence view meet the shipped low-evidence gate. |
+| M8 evidence | `docs-links` has 4/5 clean decisions, one bad outcome and no drill. | Keep blocked unless the ledger and evidence view meet the shipped low-evidence gate. |
+| Outbound GitHub connectivity | Requests alternate between HTTP 200 and `no route to host`; Terramate requires `origin/main`. | Restore stable networking, then deploy host #2869 and run M2, hold/stale-approval, W3/W8 and the recordings. |
 
 ## Cleanup
 
 | Check | Result | Evidence |
 |---|---|---|
-| Temporary switches and test-specific limits removed | IN PROGRESS | Evaluation is removed live but still reappears through the old pin; corrected rollout pending. The temporary `profile:careful` fixture label must be deleted after W5. |
-| No active test tasks or unintended open test PRs | IN PROGRESS | Five Tasks currently exist; W1/W2/M1 await policy reevaluation and W5 is running. |
-| Final baseline healthy | NOT RUN | Workloads are Ready; final strict preflight follows catalog rollout. |
+| Temporary switches and test-specific limits removed | PARTIAL | Evaluation is removed and the M2 `docs` binding was restored through Flux after every intake failure. Temporary `profile:careful` and `workflow:nope` labels still need deletion when GitHub is stable. |
+| No active test tasks or unintended open test PRs | PARTIAL | #436 merged through the normal approved path. #435's new local revision was not pushed. Other test PRs remain open for maintainer review or cleanup; no autonomous unsafe merge was forced. |
+| Final baseline healthy | PASS | Factory is 2/2 Ready with all four policy objects. Strict preflight: 15 pass, 3 skip, 0 fail. |
 | aws-0 retained for verification; no automatic teardown | PASS | aws-0 remains running. No GCP deployment or release tag occurred. |

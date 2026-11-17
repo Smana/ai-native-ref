@@ -53,6 +53,9 @@ factoryInsecure: true
 # Humans, through oauth2-proxy (phase 2). Required by the broker. The ids are
 # files, never literals: gcp-0 mints a fresh ZITADEL every build (ruling AS-a).
 human:
+  # Stage 5's separate door: /settings/approval-memory and its API. Stage `manage` enables the
+  # factory side; without this flag the broker returns 404 for both.
+  approvalMemory: true
   # ZITADEL's token rules, said explicitly (Maku v4 step 5 ANR follow-up 1): the project id in every
   # token's aud, the groups claim or the project roles, token use access. Unset is the same preset.
   preset: zitadel

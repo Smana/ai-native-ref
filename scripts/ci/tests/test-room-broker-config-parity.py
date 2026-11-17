@@ -33,6 +33,8 @@ for cloud in ("aws-0", "gcp-0"):
 config = yaml.safe_load((ROOT / "infrastructure/base/room-broker/config.yaml").read_text())
 gcp = yaml.safe_load((ROOT / "infrastructure/gcp-0/room-broker/config.yaml").read_text())
 checks["no copy declares suspend"] = all("suspend" not in c for c in (config, gcp))
+for name, cfg in (("base", config), ("gcp-0", gcp)):
+    checks[f"{name}: approval memory serves /settings/approval-memory"] = cfg["human"].get("approvalMemory") is True
 
 
 def minus_switches(cfg):
@@ -59,6 +61,7 @@ if aws_copy.is_file():  # the Slack App (runbook 22), the planner and the sessio
     checks["aws-0's broker config is base's but for webhooks, human.mcp, human.slackLink, human.intake, human.slackDecide and coordination"] = (
         "suspend" not in aws and minus_switches(aws) == minus_switches(config))
     checks["aws-0's human.mcp stays enabled"] = (aws["human"]["mcp"].get("enabled") is True)
+    checks["aws-0: approval memory serves /settings/approval-memory"] = aws["human"].get("approvalMemory") is True
 
 fails = 0
 for desc, ok in checks.items():

@@ -45,7 +45,7 @@ def check(cond, msg):
 
 
 def version(tag):
-    return tag if isinstance(tag, tuple) else tuple(int(n) for n in tag.lstrip("v").split("."))
+    return tag if isinstance(tag, tuple) else tuple(int(n) for n in tag.lstrip("v").split("-", 1)[0].split("."))
 
 
 def build(path):
@@ -88,7 +88,7 @@ pinned = next(d for d in build("infrastructure/base/room-broker")
               if d["kind"] == "HelmRelease" and d["metadata"]["name"] == "room-broker")
 image = pinned["spec"]["values"]["broker"]["image"]
 pin = image["tag"].split("@")[0]
-check(re.fullmatch(r"v\d+\.\d+\.\d+", pin) is not None, f"helmrelease.yaml's image tag is a release tag: {pin}")
+check(re.fullmatch(r"v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", pin) is not None, f"helmrelease.yaml's image tag is a release or prerelease tag: {pin}")
 check(version(START_RELEASE) <= version(REMOVAL_RELEASE),
       f"START_RELEASE {START_RELEASE} must not exceed REMOVAL_RELEASE {REMOVAL_RELEASE}")
 

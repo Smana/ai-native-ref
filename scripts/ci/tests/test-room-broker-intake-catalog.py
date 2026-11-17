@@ -34,7 +34,7 @@ def check(cond, msg):
 
 
 def version(tag):
-    return tuple(int(n) for n in tag.lstrip("v").split("."))
+    return tuple(int(n) for n in tag.lstrip("v").split("-", 1)[0].split("."))
 
 
 def build(path):
@@ -60,14 +60,16 @@ pinned = next(d for d in build("infrastructure/base/room-broker")
               if d["kind"] == "HelmRelease" and d["metadata"]["name"] == "room-broker")
 image = pinned["spec"]["values"]["broker"]["image"]
 pin = image["tag"].split("@")[0]
-check(re.fullmatch(r"v\d+\.\d+\.\d+", pin) is not None, f"helmrelease.yaml's image tag is a release tag: {pin}")
+check(re.fullmatch(r"v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", pin) is not None, f"helmrelease.yaml's image tag is a release or prerelease tag: {pin}")
 
-# --- the pin is one release, in the three places that name it -----------------------------
+# --- release charts and CRDs match; a validation image may be a signed prerelease -----------
 chart_source = yaml.safe_load((ROOT / "infrastructure/base/room-broker/ocirepository.yaml").read_text())
-check(f"v{chart_source['spec']['ref']['tag']}" == pin,
-      f"the maku chart's tag (infrastructure/base/room-broker/ocirepository.yaml) is {pin} without its v")
+chart_pin = f"v{chart_source['spec']['ref']['tag']}"
+if "-pr" not in pin:
+    check(chart_pin == pin,
+          f"the maku chart's tag (infrastructure/base/room-broker/ocirepository.yaml) is {pin} without its v")
 crd = (ROOT / "infrastructure/base/room-broker/crd-rooms.yaml").read_text().splitlines()[1]
-check(f"maku {pin}" in crd, f"crd-rooms.yaml's source comment names {pin}")
+check(f"maku {chart_pin}" in crd, f"crd-rooms.yaml's source comment names {chart_pin}")
 schema = yaml.safe_load((ROOT / "infrastructure/base/room-broker/sqlinstance.yaml").read_text())
 check("atlasSchema" not in schema["spec"], "the broker's migrate init container owns the schema ledger")
 

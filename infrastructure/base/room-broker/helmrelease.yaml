@@ -100,8 +100,8 @@ spec:
     broker:
       image:
         repository: ghcr.io/smana/maku-broker
-        # maku v0.53.1, by digest. Move it with ocirepository.yaml (the chart) and crd-rooms.yaml.
-        tag: "v0.53.1@sha256:03d08bfd93fa2240d750f7927d02fa04aa32eccd0000c0235be5e6aba3e9825b"
+        # Signed PR image carrying the handoff-ID fix; chart and CRDs remain v0.53.1.
+        tag: "v0.53.2-pr618.9d0bdb48@sha256:f388790e9173fb3e67f0e06813785e2691b524eedc7db3233eca5c5b17746ee2"
       # Two (§9): the leader lease picks the controller, and every replica serves humans through the
       # LISTEN/NOTIFY hub (ruling AT). pdb.yaml keeps one through a drain.
       replicas: 2

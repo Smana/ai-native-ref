@@ -124,10 +124,12 @@ delete them, per stack, and re-run.
 **[OWNER] The admin PAT.** A ZITADEL restored from a seed has no admin PAT, so the OIDC-client sync
 cannot authenticate. A PAT stored before the seed was restored is stale: every ZITADEL admin call
 answers 401, the IdP and client sync are skipped with a `[warn]`, and the OpenBao OIDC check fails
-with `App.NotFound`. The admin PAT lacks the INSTANCE role IAM_OWNER (or IDP_URL / the PAT is stale).
-Mint a PAT in the ZITADEL console for the `iam-admin` machine user, store it as Secret
-`security/iam-admin-pat` (key `pat`), and re-run the deploy: it persists the PAT to Secret Manager
-`zitadel-iam-admin-pat`.
+with `App.NotFound`. The admin PAT lacks the INSTANCE role IAM_OWNER (or IDP_URL / the PAT is
+stale). Recover:
+
+1. Mint a new PAT in the ZITADEL console for the `iam-admin` machine user
+2. Store it in the cluster Secret `security/iam-admin-pat` under the key `pat`
+3. Re-run the deploy: it persists the PAT to Secret Manager `zitadel-iam-admin-pat`
 
 **After the client sync, restart the rooms proxy.** The sync re-creates the OIDC clients, and
 `rooms-oauth2-proxy` loads its client ids at start. The ExternalSecrets `rooms-proxy` and

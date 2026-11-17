@@ -43,7 +43,7 @@ spec:
       # containers use the run images, so the kubelet pre-pulls what an R3 run pulls.
       initContainers:
         - name: harness-admission
-          image: ghcr.io/smana/maku-harness:v0.53.1@sha256:104c1749567ccff3864aeab7856bf1d9c2b4f7bd0398d522f6f59b69b36813cf
+          image: ghcr.io/smana/maku-harness:v0.53.2@sha256:b45699d18d200402d71f2a020bbda429fe646aa6eb61e96419e7dbd2769200b8
           restartPolicy: Always
           command: ["tini", "--", "python3", "-c"]
           args:
@@ -80,7 +80,7 @@ spec:
             seccompProfile:
               type: RuntimeDefault
         - name: room-bridge
-          image: ghcr.io/smana/maku-bridge:v0.53.1@sha256:3648b20957f64a6c0a18f7dedd8bc8e8b8a73ffd1981ea042e8c5aa4b8f456ea
+          image: ghcr.io/smana/maku-bridge:v0.53.2@sha256:b476125bd832ea36a2cd2c1969321b9ef5effc2cd3ee574ff8254c8c3a1be0a4
           args: ["gate"]
           resources:
             requests: {cpu: 10m, memory: 16Mi}
@@ -88,7 +88,7 @@ spec:
           securityContext: *container-security
       containers:
         - name: harness
-          image: ghcr.io/smana/maku-harness:v0.53.1@sha256:104c1749567ccff3864aeab7856bf1d9c2b4f7bd0398d522f6f59b69b36813cf
+          image: ghcr.io/smana/maku-harness:v0.53.2@sha256:b45699d18d200402d71f2a020bbda429fe646aa6eb61e96419e7dbd2769200b8
           command: ["tini", "--", "sleep", "infinity"]
           readinessProbe:
             exec: {command: ["true"]}

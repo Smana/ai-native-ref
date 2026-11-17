@@ -12,44 +12,48 @@ metadata:
   namespace: agent-system
 data:
   values.yaml: |  # pragma: allowlist secret -- Secret names and key file paths, no credential value
-    image:
-      repository: ghcr.io/smana/maku-factory
-      # maku v0.53.1, the chart's appVersion.
-      # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
-      tag: "v0.53.1@sha256:ced3493da6273d0cf3382191012da33ba74b81c89a012461cee18e7ec115a9c8"
+    maku:
+      agentRunPolicies:
+        creators: [system:serviceaccount:agent-system:agent-factory]
     # The factory subchart must be enabled: its Deployment and the four-policy catalog are behind
     # this gate. Without it the factory runs no Maku controller and docs/docs-links/revert do not exist.
-    maku-factory: {enabled: true}
-    # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
-    # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
-    # declares `monitor.flux` yet, so nothing reads through it.
-    monitor: {flux: {enabled: true}}
-    # The cluster's shared ClusterRoles (maku-factory-admin, maku-mergepolicy-editor, maku-viewer,
-    # agent-factory-flux-reader) are agent-factory-crds' since Maku v0.48.0 (D2): one set per cluster.
-    # Both releases rendering them fails the CRD chart's upgrade on Helm's ownership check.
-    clusterRoles: false
-    # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
-    # The GitHub Apps under the chart's apps.* keys (Maku v4 D12), the only keys since Maku v0.49.0
-    # removed githubSecret and mergerSecret. The merger stays its own App, from the chart's
-    # agent-factory-merger Secret: mode separate is explicit because v0.49.0 made `factory` the default.
-    apps:
-      factory: {existingSecret: agent-factory-github}
-      # The agents' App (externalsecret-agents-app.yaml), the per-run token minter's (R3).
-      agents: {existingSecret: agent-factory-agents-app}
-      merger: {mode: separate}
-    # Each run's git token is its own Secret, <run>-git in agents, minted from the agents' App for the
-    # run's repository and role (Maku v4 D10). The run-controller mounts it (infrastructure/base/
-    # room-broker/helmrelease.yaml; per-run is the only mode since Maku v0.49.0); the chart's admission policy bounds
-    # the factory's create, patch and delete on Secrets there to those it labels and the run owns.
-    runTokens: {enabled: true, perRun: true}
-    brokerCASecret: openbao-ca
-    # The chart's four-policy catalog (merge policies review MR1, MR2): docs-links, revert and docs
-    # come from the chart with maku.ogenki.io/catalog: "true"; deps-patch stays in resources/ so it
-    # keeps its six protectedFiles and its monitor.flux.
-    mergePolicies:
-      catalog:
-        enabled: true
-        exclude: [deps-patch]
+    maku-factory:
+      enabled: true
+      image:
+        repository: ghcr.io/smana/maku-factory
+        # maku v0.53.1, the chart's appVersion.
+        # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
+        tag: "v0.53.1@sha256:ced3493da6273d0cf3382191012da33ba74b81c89a012461cee18e7ec115a9c8"
+      # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
+      # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
+      # declares `monitor.flux` yet, so nothing reads through it.
+      monitor: {flux: {enabled: true}}
+      # The cluster's shared ClusterRoles (maku-factory-admin, maku-mergepolicy-editor, maku-viewer,
+      # agent-factory-flux-reader) are agent-factory-crds' since Maku v0.48.0 (D2): one set per cluster.
+      # Both releases rendering them fails the CRD chart's upgrade on Helm's ownership check.
+      clusterRoles: false
+      # Explicit so they visibly agree with externalsecret-github.yaml and agent-secrets' openbao-ca.
+      # The GitHub Apps under the chart's apps.* keys (Maku v4 D12), the only keys since Maku v0.49.0
+      # removed githubSecret and mergerSecret. The merger stays its own App, from the chart's
+      # agent-factory-merger Secret: mode separate is explicit because v0.49.0 made `factory` the default.
+      apps:
+        factory: {existingSecret: agent-factory-github}
+        # The agents' App (externalsecret-agents-app.yaml), the per-run token minter's (R3).
+        agents: {existingSecret: agent-factory-agents-app}
+        merger: {mode: separate}
+      # Each run's git token is its own Secret, <run>-git in agents, minted from the agents' App for the
+      # run's repository and role (Maku v4 D10). The run-controller mounts it (infrastructure/base/
+      # room-broker/helmrelease.yaml; per-run is the only mode since Maku v0.49.0); the chart's admission policy bounds
+      # the factory's create, patch and delete on Secrets there to those it labels and the run owns.
+      runTokens: {enabled: true, perRun: true}
+      brokerCASecret: openbao-ca
+      # The chart's four-policy catalog (merge policies review MR1, MR2): docs-links, revert and docs
+      # come from the chart with maku.ogenki.io/catalog: "true"; deps-patch stays in resources/ so it
+      # keeps its six protectedFiles and its monitor.flux.
+      mergePolicies:
+        catalog:
+          enabled: true
+          exclude: [deps-patch]
     config:
       # The ownership fence (agent-platform v0.14.0): a repository is acted on only while its
       # .github/agent-factory.yaml names this factory, so aws-0 and gcp-0 never take the same issue.

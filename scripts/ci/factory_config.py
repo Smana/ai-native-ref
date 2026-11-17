@@ -109,6 +109,7 @@ def values(root=ROOT, cloud=None):
 
 def chart_catalog(vals):
     """The MergePolicy specs the chart's templates/merge-policies-catalog.yaml renders from vals."""
+    vals = vals.get("maku-factory", vals)
     cat = (vals.get("mergePolicies") or {}).get("catalog") or {}
     if not cat.get("enabled"):
         return {}

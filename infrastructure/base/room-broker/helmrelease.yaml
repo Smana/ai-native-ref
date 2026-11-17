@@ -100,8 +100,7 @@ spec:
     broker:
       image:
         repository: ghcr.io/smana/maku-broker
-        # maku v0.53.1, by digest. Move it with ocirepository.yaml (the chart), crd-rooms.yaml and
-        # sqlinstance.yaml's atlasSchema.ref together.
+        # maku v0.53.1, by digest. Move it with ocirepository.yaml (the chart) and crd-rooms.yaml.
         tag: "v0.53.1@sha256:03d08bfd93fa2240d750f7927d02fa04aa32eccd0000c0235be5e6aba3e9825b"
       # Two (§9): the leader lease picks the controller, and every replica serves humans through the
       # LISTEN/NOTIFY hub (ruling AT). pdb.yaml keeps one through a drain.

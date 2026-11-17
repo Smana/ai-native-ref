@@ -104,6 +104,5 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 - Some final costs settle after the task status is written ([maku#279](https://github.com/Smana/maku/issues/279), [maku#280](https://github.com/Smana/maku/issues/280)); a few approval-binding edge cases remain ([maku#304](https://github.com/Smana/maku/issues/304)).
 - Mistral can spend an entire run budget on a small change, so it is not recommended as the implementer.
 - Semantic Router decisions are not yet available as VictoriaMetrics series.
-- The room broker's `SQLInstance` still carries an `atlasSchema` block; remove it before the first Maku release that adds a migration.
 
 <span id="dark-factory"></span>

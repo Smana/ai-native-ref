@@ -62,14 +62,14 @@ image = pinned["spec"]["values"]["broker"]["image"]
 pin = image["tag"].split("@")[0]
 check(re.fullmatch(r"v\d+\.\d+\.\d+", pin) is not None, f"helmrelease.yaml's image tag is a release tag: {pin}")
 
-# --- the pin is one release, in the four places that name it ------------------------------
+# --- the pin is one release, in the three places that name it -----------------------------
 chart_source = yaml.safe_load((ROOT / "infrastructure/base/room-broker/ocirepository.yaml").read_text())
 check(f"v{chart_source['spec']['ref']['tag']}" == pin,
       f"the maku chart's tag (infrastructure/base/room-broker/ocirepository.yaml) is {pin} without its v")
 crd = (ROOT / "infrastructure/base/room-broker/crd-rooms.yaml").read_text().splitlines()[1]
 check(f"maku {pin}" in crd, f"crd-rooms.yaml's source comment names {pin}")
 schema = yaml.safe_load((ROOT / "infrastructure/base/room-broker/sqlinstance.yaml").read_text())
-check(schema["spec"]["atlasSchema"]["ref"] == pin, f"atlasSchema.ref is {pin}")
+check("atlasSchema" not in schema["spec"], "the broker's migrate init container owns the schema ledger")
 
 # --- the release gates the block, in both directions --------------------------------------
 knows_intake = version(pin) >= version(INTAKE_RELEASE)

@@ -33,7 +33,7 @@ evaluation, and serves the Settings pages:
 |---|---|---|
 | Policy management stage | `stage: manage` (factory and broker), `operators: [Smana]` | `tooling/base/agent-factory/helm-values-configmap.yaml`, `infrastructure/base/room-broker/config.yaml` |
 | Chart catalog and custom policies | Chart catalog enabled (`docs-links`, `revert`, `docs` in `shadow`; `deps-patch` excluded) plus five custom `MergePolicy` objects (`alert-rules`, `dead-links`, `deps-minor`, `deps-patch`, `kb-entries`) | `tooling/base/agent-factory/helm-values-configmap.yaml`, `tooling/base/agent-factory/resources/mergepolicy-*.yaml` |
-| Gate status and guardrails | `mergeDefaults: {gateStatus: true, policyBot: false}`; `mergeGuardrails` unset (Maku defaults hold: `.github/`, `.policy.yml` and `CODEOWNERS` protected; at most 10 files, 300 lines and 5 merges/day) | `tooling/base/agent-factory/resources/factory.yaml` |
+| Gate status and guardrails | `maku/merge-gate` posted by the factory's gate, evaluating the repository's reviewed `Repository` and `MergePolicy` objects (`mergeDefaults: {gateStatus: true, policyBot: false}`); `mergeGuardrails` unset (Maku defaults hold: `.github/`, `.policy.yml` and `CODEOWNERS` protected; at most 10 files, 300 lines and 5 merges/day) | `tooling/base/agent-factory/resources/factory.yaml` |
 | Ownership fence and repo mirror | `factory: <active-cluster>` in every served repository ([active cluster]({{< relref "/docs/status.md#clusters" >}})); `cloud-native-ref` also mirrors its bindings under `mergePolicies:` | `.github/agent-factory.yaml` |
 
 Unlike Maku's defaults (`policyManagement.stage: observe`, `mergePolicies.catalog.enabled: false`), this

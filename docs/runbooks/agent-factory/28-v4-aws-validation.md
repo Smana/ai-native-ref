@@ -3,7 +3,8 @@
 Runs the [approved campaign](../../superpowers/specs/2026-11-16-v4-aws-validation-design.md) on
 aws-0. It validates shipped workflows and merge policies, performs targeted adjacent regression, and
 records the two screencasts from issue #394. Record every result in
-[results-aws-0-2026-11-16.md](results-aws-0-2026-11-16.md).
+[results-aws-0-2026-11-16.md](results-aws-0-2026-11-16.md); the residual cases run after it are in
+[results-aws-0-2026-11-17-residuals.md](results-aws-0-2026-11-17-residuals.md).
 
 The separate [workflow comparison](27-workflow-comparison.md) is out of scope. Do not enable its
 `evaluation` overlay, file repeated tasks for a cohort, raise a budget, or tag a release.

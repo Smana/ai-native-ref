@@ -89,6 +89,7 @@ for cfg in sorted(ROOT.glob("infrastructure/*/room-broker/config.yaml")):
     pm = (yaml.safe_load(cfg.read_text()) or {}).get("policyManagement")
     check(f"{cfg.relative_to(ROOT)}: policyManagement.stage manage, no switch", stage_only(pm))
 
+check("maku-factory.enabled renders the controller and its catalog", vals.get("maku-factory", {}).get("enabled") is True)
 cat_cfg = (vals.get("mergePolicies") or {}).get("catalog") or {}
 check("mergePolicies.catalog: enabled is true and exclude is [deps-patch]",
       cat_cfg.get("enabled") is True and cat_cfg.get("exclude") == ["deps-patch"])

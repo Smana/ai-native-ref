@@ -17,6 +17,9 @@ data:
       # maku v0.53.1, the chart's appVersion.
       # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
       tag: "v0.53.1@sha256:ced3493da6273d0cf3382191012da33ba74b81c89a012461cee18e7ec115a9c8"
+    # The factory subchart must be enabled: its Deployment and the four-policy catalog are behind
+    # this gate. Without it the factory runs no Maku controller and docs/docs-links/revert do not exist.
+    maku-factory: {enabled: true}
     # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
     # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
     # declares `monitor.flux` yet, so nothing reads through it.

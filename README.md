@@ -21,15 +21,6 @@ documentation ([airef.ogenki.io](https://airef.ogenki.io/)).
 Measured run costs, cache read shares and acceptance figures live in the
 [cost snapshot](docs/superpowers/specs/2026-10-18-cost-snapshot.md).
 
-## Watch a real task
-
-See a developer hand a defect from OpenCode to Maku, review the resulting pull request and approve its merge:
-
-- [Hand it off, get a PR — 23 seconds](https://github.com/Smana/ai-native-ref-screencasts/blob/main/ai-factory-short.webm)
-- [The factory, end to end — 54 seconds](https://github.com/Smana/ai-native-ref-screencasts/blob/main/ai-factory-demo.webm)
-
-Both recordings are silent and captioned. The longer cut shows the planner's clarification, separate sandboxed roles, Kubernetes runs and per-role cost.
-
 ## One task, end to end
 
 ```mermaid

@@ -1,6 +1,6 @@
 # AWS v4 feature validation and screencasts — 2026-11-16
 
-**Status:** core validation and recordings complete; focused residual cases are listed below. aws-0 is healthy and retained. **Procedure:**
+**Status:** core validation is complete; the trial screencasts were rejected and deleted, and focused residual cases are listed below. aws-0 is healthy and retained. **Procedure:**
 [runbook 28](28-v4-aws-validation.md). **Design:**
 [the approved campaign](../../superpowers/specs/2026-11-16-v4-aws-validation-design.md).
 
@@ -31,7 +31,7 @@
 | B6 — OpenCode and Slack L1–L17 proofs | PARTIAL | `maku setup opencode` and `maku doctor` pass. MCP exposes exactly `handoff`, `start`, `inbox`, `task`, `wait`, `answer`; removed `intake_plan` returns `unknown tool`. Second-person/unlinked Slack actors remain unavailable. |
 | B7 — repository checks, observability and alerts | PASS | #436's PR checks completed before the gate. `agent-factory`, `agent-platform`, `agent-platform-logs` and `agent-rooms` VMRules are loaded; the ALERTS query returned no firing campaign alerts. |
 | B8 — role and charged-identity cost | PASS | #436's Task and terminal card agree at 1,523,896 tokens / $0.540329, charged to github:smana. VictoriaMetrics shows implementer $0.446182 and reviewer $0.094147 with matching run IDs and model glm-5.3. The recording task #441 independently settled at 621,074 tokens / $0.253427. |
-| B9 — RunLore `kb_search` from a triager | NOT RUN | RunLore principals, both webhook keys, fences and required rulesets are restored, and strict preflight confirms `kb_search` and `kb_get`. The reviewed-entry/triager call and room/metric proof remain. |
+| B9 — RunLore `kb_search` from a triager | FAIL | RunLore principals, both webhook keys, fences and required rulesets are restored, and strict preflight confirms `kb_search` and `kb_get`. Correct RunLore/investigate Task `bkbsea23` started triager `kffdqnks`, but its first model call failed `401 invalid x-api-key` through `agent-default`; no `kb_search` call occurred and the metric stayed at zero. Public implementer runs succeeded, isolating the failure to the internal model credential or route. Raw evidence: `b9-triager-agent.log` and `b9-metric-before.json`. A valid internal provider credential is required before rerun. |
 
 ## Workflows
 
@@ -52,21 +52,21 @@
 |---|---|---|---|
 | M1 — diff selection and `no_policy_matched` | PARTIAL | [#418](https://github.com/Smana/ai-native-ref/issues/418) / `7k4yfmcw` / [#420](https://github.com/Smana/ai-native-ref/pull/420) | Standard implementer/reviewer succeeded and human hand-off is present. Detailed catalog `considered=` evidence for every refusal remains. |
 | M2 — unbound catalog shadow evidence | PASS | #440/`kae57zin`/#442 | With the Repository's `docs` binding removed, the chart catalog still evaluates `docs` and records `shadow_would_arm` with reviewer approve. The binding was restored through Flux. The first, broader issue #437 exhausted its run budget before a PR and was not counted. |
-| M3 — bounds, protected paths, size and `modifyOnly` | NOT RUN | | Focused protected-path, size and links-only shape fixtures were not exercised. No unsafe fixture was merged. |
+| M3 — bounds, protected paths, size and `modifyOnly` | PASS | `m3path46`/#450; `m3size45`/#449; `m3shape5`/#447 | Agents-App-authored fixtures with green CI returned `dead-links:file_protected`, `docs:patch_too_large` plus the links/revert size refusals, and `docs-links:file_added_or_deleted` plus the revert refusal. All three ended at `AwaitingHuman` or `no_policy_matched`; none merged and all were closed. An earlier custom schedule without findings did not arm dead-links and was not counted. |
 | M4 — hold and approval precedence | PASS | #436; #439; #442 | Approved head merges as `approved`. `factory/hold` blocks #439 and removal re-enters as `reentered_unheld`. On #442, old-head approval was followed by new head `610eae5a30479a32145da681081558be3da6bad8`; it stayed unmerged and the PR was closed during cleanup. An earlier attempt on already-merged #435 was invalid and is not counted. |
 | M5 — strictest selection, cap/pause and no fall-through | NOT RUN | | Overlapping-policy and cap/pause observations were not exercised; M8's evidence gate remains blocked. |
 | M6 — reviewer verdict requirement | PASS | #433/#435 versus #434/`buwtrs4p`/#436 | Quick records `docs:reviewer_verdict_missing`; standard's reviewer-backed prose records `shadow_would_arm` with policy `docs`, verdict `approve`, and `considered=docs-links:class_mismatch,revert:class_mismatch`. Neither merged autonomously. |
-| M7 — UI, CLI and API maintainer journeys | PARTIAL | [ai-native-ref#415](https://github.com/Smana/ai-native-ref/pull/415) | All three authenticated settings routes return 200; unprivileged approval-memory API returns 401. Maku v0.53.1 export/diff/check/simulate proves `docs: tightening`, reports intentional non-equivalence, and all applicable conformance fixtures agree. UI write and linked non-maintainer authorization journeys remain. |
+| M7 — UI, CLI and API maintainer journeys | PARTIAL | [ai-native-ref#415](https://github.com/Smana/ai-native-ref/pull/415); `editor-valid.json` in the campaign evidence directory | All three authenticated settings routes return 200; unprivileged approval-memory API returns 401. The guided editor accepted `docs.maxModifiedLines: 50`, classified `docs: shadow, tightening`, and produced a downloadable Repository manifest without saving or opening a PR. The UI exposes no YAML-editing mode or GitHub edit link. Maku v0.53.1 export/diff/check/simulate agrees with all applicable conformance fixtures. Linked non-maintainer authorization journeys remain. |
 | M8 — live merge, revert, breaker and recovery | BLOCKED | `/api/policy/repositories/Smana/ai-native-ref` evidence | `docs-links` has 4/5 clean decisions, one bad outcome, and no drill. The API reports `below_minimum`, `bad_outcome`, `no_drill`. No threshold or policy was changed and no evidence was manufactured. |
 
 ## Screencasts
 
-| ID | Result | Source issue / PR | Export and publication links |
+| ID | Result | Source issue / PR | Outcome |
 |---|---|---|---|
-| S1 — 20–30 second handoff-to-PR cut | PASS | [#441](https://github.com/Smana/ai-native-ref/issues/441) / `e2dgpqn3` / [#443](https://github.com/Smana/ai-native-ref/pull/443) | [Hand it off, get a PR — 23 seconds](https://github.com/Smana/ai-native-ref-screencasts/blob/main/ai-factory-short.webm). Silent, captioned 1920×1080 WebM, reviewed for secrets. |
-| S2 — approximately one-minute end-to-end cut | PASS | #441 / `e2dgpqn3` / #443 | [The factory, end to end — 54 seconds](https://github.com/Smana/ai-native-ref-screencasts/blob/main/ai-factory-demo.webm). Includes clarification, issue identity, room roles, Kubernetes runs, gate, approval-as-merge and per-role cost. |
+| S1 — 20–30 second handoff-to-PR cut | REJECTED | [#441](https://github.com/Smana/ai-native-ref/issues/441) / `e2dgpqn3` / [#443](https://github.com/Smana/ai-native-ref/pull/443) | The owner rejected the export's quality. The local WebM files and issue #394 media comment were deleted; no deliverable remains. |
+| S2 — approximately one-minute end-to-end cut | REJECTED | #441 / `e2dgpqn3` / #443 | Rejected and deleted with S1. The owner will record replacements. |
 
-The recording PR merged through `ogenki-agent-merger[bot]` with `mergedHow=approved`. Its final Task cost is 621,074 tokens / $0.253427, charged to github:smana; implementer `iefrjoyj` cost $0.171757 and reviewer `zpcsz376` cost $0.081670. The videos show the settled terminal card and a VictoriaMetrics per-role rendering. The actual Grafana dashboard required an unavailable SSO session and is not shown. Both links are published on issue #394, the repository README and the site homepage.
+The source PR merged through `ogenki-agent-merger[bot]` with `mergedHow=approved`. Its final Task cost is 621,074 tokens / $0.253427, charged to github:smana; implementer `iefrjoyj` cost $0.171757 and reviewer `zpcsz376` cost $0.081670. The rejected exports used the settled terminal card and a VictoriaMetrics per-role rendering, not the Grafana dashboard. README, homepage and issue-media links were removed. Deleting the temporary public media repository is blocked by the CLI token's missing `delete_repo` OAuth scope.
 
 ## Failures, fixes and reruns
 
@@ -83,6 +83,7 @@ The recording PR merged through `ogenki-agent-merger[bot]` with `mergedHow=appro
 | Rollout | The catalog was incorrectly nested under the subchart; factory config was incorrectly placed at umbrella level, causing `503` and Helm rollback. | ai-native-ref #428/#429/#432; host #2866/#2867/#2868/#2869; Maku #619 | Corrected artifacts reconciled from `main`; catalog shadow decisions, W2/W3/W6, M2/M4/M6 and recording paths passed afterward. |
 | Final Helm health | The initial failed install had no successful rollback target, leaving the HelmRelease stalled despite healthy pods. | Operational recovery only | `flux reconcile helmrelease agent-factory --force --reset` completed release v3. HelmRelease and Kustomization are Ready; final strict preflight is 15 pass / 3 skip / 0 fail. |
 | W7 | Private factory, agents and merger Apps all return 404 from the public app endpoint. | [maku#616](https://github.com/Smana/maku/issues/616) | Recorded without changing App visibility. |
+| B9 | The correct internal triager's first model call failed `401 invalid x-api-key`; strict preflight's run-alias probe is only a skip. | Valid internal provider credential required | No `kb_search` call occurred. Replace or rotate the internal credential, then rerun `bkbsea23`'s read-only search and room/metric assertions. |
 
 ## Out of scope and residual gaps
 
@@ -93,9 +94,10 @@ The recording PR merged through `ogenki-agent-merger[bot]` with `mergedHow=appro
 | Gap | Reason | Follow-up |
 |---|---|---|
 | Second-person and unlinked Slack actors | The owner and second accounts are unavailable. | Run L10, L11, L15, L16 and W5-untrusted with the real actors. |
-| Focused matrix cases | M1 detailed `considered=`, M3, M5, M7 write/authorization, W2 scheduled/revert sources, W4 confirmation source and B9's triager call were not completed. | Execute the focused cases without weakening their fixtures or evidence requirements. |
+| Focused matrix cases | M1 detailed `considered=`, M5, M7 YAML/authorization, W2 scheduled/revert sources and W4 confirmation source were not completed. M3 passed all three boundary cases. | Execute the focused cases without weakening their fixtures or evidence requirements. |
+| B9 internal model credential | Triager `kffdqnks` received `401 invalid x-api-key` before it could call `kb_search`. | Replace or rotate the internal provider credential, then rerun B9's triager, room-event and metric assertions. |
 | M8 evidence | `docs-links` has 4/5 clean decisions, one bad outcome and no drill. | Keep blocked unless the ledger and evidence view meet the shipped low-evidence gate. |
-| Grafana capture | Neither browser profile had an authenticated Grafana SSO session. | Capture the same settled task in Grafana in a future recording; do not claim the current videos show it. |
+| Screencasts and temporary media repository | The owner rejected the trial exports and will record replacements. Local WebM files and links are deleted; GitHub refuses repository deletion without the CLI token's `delete_repo` scope. | Record replacements manually. Authorize `delete_repo`, then delete `Smana/ai-native-ref-screencasts`; no current video is claimed. |
 | Credential exposure during operations | A Kubernetes Secret inspection accidentally printed restored credentials into the operator transcript. | Rotate the exposed provider API keys and factory/agents/merger private keys; do not reuse the transcript values. |
 
 ## Cleanup
@@ -103,6 +105,6 @@ The recording PR merged through `ogenki-agent-merger[bot]` with `mergedHow=appro
 | Check | Result | Evidence |
 |---|---|---|
 | Temporary switches and test-specific limits removed | PASS | Evaluation is empty; the M2 `docs` binding was restored through Flux; temporary `profile:careful` and `workflow:nope` labels were deleted. |
-| No active test tasks or unsafe open fixture | PASS | No AgentRun remains. Tasks are Done, Closed, Stopped, Escalated or AwaitingHuman. #442's new stale-test head was closed unmerged; no unsafe fixture was merged. Other genuine documentation PRs remain for normal maintainer review. |
+| No active test tasks or unsafe open fixture | PASS | No AgentRun is active; all are terminal. Campaign Tasks are Done, Closed, Stopped, Escalated or AwaitingHuman. Every synthetic M3 PR and #442's stale-test head was closed unmerged; no unsafe fixture was merged. Other genuine documentation PRs remain for normal maintainer review. |
 | Final baseline healthy | PASS | Factory and broker are 2/2 Ready, the factory HelmRelease and Kustomization are Ready, all four policy objects remain, and strict preflight is 15 pass / 3 skip / 0 fail. |
 | aws-0 retained for verification; no automatic teardown | PASS | aws-0 remains running. No GCP deployment or release tag occurred. |

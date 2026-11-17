@@ -1,7 +1,8 @@
 # 09 — App key compromise
 
 What to do when the private key of any GitHub App the platform holds — the agents' App, the
-factory's App, the merger's App or the merge gate's policy-bot — is suspected stolen. The table
+factory's App, the merger's App or the merge gate's `ogenki-merge-gate`, whose key posts Maku's
+built-in `maku/merge-gate` status — is suspected stolen. The table
 names, per App, where the key lives in OpenBao, which ExternalSecret holds it, and what a stolen
 key can do. The procedure, for any row, is the same five steps. See [README.md](README.md) for
 prerequisites.
@@ -10,8 +11,8 @@ prerequisites.
 |---|---|---|---|
 | `ogenki-agents` | `agents/github-app` | the factory, which mints each run's token (`agent-factory-agents-app`, `agent-system`) | push `agent/**`, open and comment on PRs |
 | `ogenki-agent-factory` | `agents/factory-app` | the factory (`agent-factory-github`) and the broker (SP2 P31), `agent-system` | comment, label and edit issues and PRs |
-| `ogenki-agent-merger` | `agents/merger-app` | the factory only (`agent-factory-merger`, `agent-system`) | merge any PR with 8 green checks and `policy-bot: main` `success`, and push `revert-*` and `agent/**` (R16) |
-| `ogenki-merge-gate` | `merge-gate/policy-bot` | policy-bot (`policy-bot`, `merge-gate`) | post `policy-bot: main` `success` on any PR, so the gate stops meaning anything once `agent-merge-gate` is applied |
+| `ogenki-agent-merger` | `agents/merger-app` | the factory only (`agent-factory-merger`, `agent-system`) | merge any PR whose declared required checks are green and `maku/merge-gate` is `success`, and push `revert-*` and `agent/**` (R16) |
+| `ogenki-merge-gate` | `merge-gate/policy-bot` | the factory's gate (`maku/merge-gate`, `agent-system`) | post `maku/merge-gate` `success` on any PR, so the built-in gate stops meaning anything once branch protection requires it |
 
 ## Procedure, for any row
 

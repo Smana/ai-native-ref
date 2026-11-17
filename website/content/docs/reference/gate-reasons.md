@@ -17,10 +17,10 @@ reason's meaning and next step are in Maku's
 
 <span id="bypass"></span><span id="decision-rows"></span><span id="settings"></span><span id="caps"></span><span id="reasons"></span><span id="role-endings"></span><span id="decision-record"></span>
 
-Example (the reference host): because this platform runs `gateStatus: true, policyBot: false`,
-`approveToMerge: true`, central policy bindings, oracle checks on `dead-links`, and
-`renovate/stability-days` on adopted Renovate policies, its repositories can produce the following
-subset of Maku's codes:
+Example (the reference host): because this platform runs `gateStatus: true` (the factory's gate
+posts `maku/merge-gate`), `approveToMerge: true`, central policy bindings, oracle checks on
+`dead-links`, and `renovate/stability-days` on adopted Renovate policies, its repositories can
+produce the following subset of Maku's codes:
 
 | Source on this platform | Codes produced here | Manifest path |
 |---|---|---|
@@ -31,7 +31,7 @@ subset of Maku's codes:
 | Breaker and daily caps (`mergeDefaults.breaker`, `merge.maxPerDay`) | `class_paused`, `auto_merge_cap`, `reentered_unpaused`, `reentered_day_turned` | `tooling/base/agent-factory/resources/factory.yaml`, `tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml` |
 | Role endings (`spec.workflows`, `spec.loops`, `spec.templates`) | Scoper (`careful`): `ready`, `question`, `split_proposed`, `budget_calls` (parent split ends `children_merged`, `child_dropped`, `budget-family`); Tester (`testFirst`): `contract_ready`, `not_testable`, `contract_not_red`, `contract_outside_tests`, `contract_invalid`, `contract_disputed`; Implementer/Judge: `met`, `not_yet`, `impossible`, `judge_impossible`, `stalled`, `not_met`, `deadline`, `budget-run`, `agent_error`, `stuck`; Reviewer (`standard`, `careful`): `review_rounds_exhausted`, `no_verdict`; Triager (`investigate`): `proposal_ready`, `no_action` | `tooling/base/agent-factory/resources/factory.yaml` |
 
-Unlike a `policyBot: true` or `requiresApproval` configuration, this platform evaluates policies in the
-factory gate (`maku/merge-gate`) and declares no `requiresApproval` policies in
-`tooling/base/agent-factory/resources/`, so `policy_absent`, `policy_pending` and approval-grant codes
-do not fire here.
+Unlike a configuration that routes the gate through a separate policy engine or declares
+`requiresApproval` policies, this platform evaluates policies in the factory gate (`maku/merge-gate`)
+and declares no `requiresApproval` policies in `tooling/base/agent-factory/resources/`, so
+`policy_absent`, `policy_pending` and approval-grant codes do not fire here.

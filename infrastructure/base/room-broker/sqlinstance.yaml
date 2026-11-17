@@ -21,7 +21,7 @@ spec:
       owner: rooms_owner
   roles:
     - name: rooms_owner
-      comment: Owns the schema; Atlas migrates as it
+      comment: Owns the schema; the broker's migrate init container migrates as it
       superuser: false
     - name: rooms_broker
       comment: The broker appends to and reads the log, nothing else (SC-10)
@@ -29,12 +29,6 @@ spec:
     - name: rooms_retention
       comment: The retention job deletes rooms closed past their retention
       superuser: false
-  atlasSchema:
-    url: https://github.com/Smana/maku
-    # A v* ref resolves as a tag, anything else as a branch, never a SHA: the release tag
-    # of the broker image, so the schema and the binary match.
-    ref: v0.53.1
-    path: internal/store/migrations
   # The next bootstrap restores the last teardown's log; `bootstrap` is immutable once
   # the Cluster exists. `rooms-pre-destroy` is the alias the host's destroy hook
   # (cnref scripts/ops/k8s/cnpg-pre-destroy-seed.sh, every SQLInstance with `backup`)

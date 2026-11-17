@@ -298,9 +298,10 @@ rendered factory configuration, resource bundle and repository file used by CLI 
    Expected: the `docs` and `docs-links` rows agree with the recorded shadow decisions. If eligible,
    prepare but do not bypass the maintainer promotion PR. If ineligible, the UI must say what is
    missing.
-5. **Approval memory:** only if a live policy has an eligible `requiresApproval` subset, exercise
+5. **Approval memory:** open `/settings/approval-memory` authenticated. Expected: the approval-memory
+   page, not a 404. Then, only if a live policy has an eligible `requiresApproval` subset, exercise
    preview, save, use, audit and revocation through the UI and API. Otherwise record NOT APPLICABLE
-   with the configuration proof; do not create an unsafe policy to force it.
+   with the page and configuration proof; do not create an unsafe policy to force it.
 6. **Authorization:** repeat one read and one write attempt with a linked non-maintainer. Expected:
    reads follow repository visibility; writes are refused server-side, not merely hidden in the UI.
 

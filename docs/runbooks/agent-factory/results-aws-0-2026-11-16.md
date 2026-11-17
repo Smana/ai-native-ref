@@ -54,7 +54,7 @@
 | M4 — hold and approval precedence | NOT RUN | | Paused by B2. |
 | M5 — strictest selection, cap/pause and no fall-through | NOT RUN | | Paused by B2. |
 | M6 — reviewer verdict requirement | NOT RUN | | Paused by B2. |
-| M7 — UI, CLI and API maintainer journeys | NOT RUN | | Exact Maku `v0.53.1` source staged for offline fixtures; GitHub link and merger permission missing. |
+| M7 — UI, CLI and API maintainer journeys | BLOCKED | [ai-native-ref#415](https://github.com/Smana/ai-native-ref/pull/415) | The approval-memory direct-load regression is now covered. Its 404 root cause was `human.approvalMemory` unset; the live fix returns 200 for the page and 401 for an unprivileged API token. The remaining UI/CLI/API journeys need the GitHub link and merger permission. |
 | M8 — live merge, revert, breaker and recovery | BLOCKED | | Built-in gate unavailable while the merger lacks `statuses:write`; valid existing `docs-links` promotion evidence is also unproven. No threshold or policy was changed. |
 
 ## Screencasts
@@ -73,6 +73,7 @@
 | B3 | aws-0 shipped `evaluation: {controlPercent: 70, treatment: careful}` despite the campaign forbidding it. | [ai-native-ref#414](https://github.com/Smana/ai-native-ref/pull/414) | Live overlay removed; PR `task check`: 67 passed, 4 skipped, 0 failed. |
 | B2 | Merger App has `statuses:read`; `MergerPermissions(..., status=true)` requires write. Direct factory-App mint succeeds. | Owner console required | Temporary legacy fallback connected all four repositories with all classes shadow. Built-in merge-gate tests remain paused. |
 | B2 / B6 | `agents/github-link` is absent and the ExternalSecret cannot sync. | Owner console required | Factory OAuth callback and OpenBao path documented; no credential was invented or shared with the ZITADEL OAuth client. |
+| M7 | `/settings/approval-memory` returned 404 because `policyManagement.stage: manage` was set without the separate `human.approvalMemory` door. | [ai-native-ref#415](https://github.com/Smana/ai-native-ref/pull/415) | Config regression added to all copies and M7 now checks authenticated direct load. Live broker page returns 200; unprivileged API returns 401, not 404. PR `task check`: 67 passed, 4 skipped, 0 failed. |
 | W7 | Private factory, agents and merger Apps all return 404 from the public app endpoint. | [maku#616](https://github.com/Smana/maku/issues/616) | Recorded without changing App visibility. |
 
 ## Out of scope and residual gaps

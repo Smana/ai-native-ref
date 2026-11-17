@@ -5,7 +5,7 @@ aliases:
 weight: 30
 diataxis: how-to
 description: "Connecting a coding client to the platform: the ai-gateway for models and Maku for hand-offs, on AWS and GCP, with each client's configuration and the six tools."
-lastVerified: 2026-11-15
+lastVerified: 2026-11-17
 ---
 
 A coding client can use the platform in two ways, and they are independent:

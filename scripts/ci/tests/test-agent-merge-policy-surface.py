@@ -85,7 +85,7 @@ check("aws-0 and gcp-0 apply the same Factory (outside evaluation), Repository a
 all_vals = factory_config.values(ROOT)
 vals = all_vals["maku-factory"]
 check("the factory: policyManagement is {stage: manage}, no switch",
-      stage_only(all_vals["config"].get("policyManagement")))
+      stage_only(vals["config"].get("policyManagement")))
 for cfg in sorted(ROOT.glob("infrastructure/*/room-broker/config.yaml")):
     pm = (yaml.safe_load(cfg.read_text()) or {}).get("policyManagement")
     check(f"{cfg.relative_to(ROOT)}: policyManagement.stage manage, no switch", stage_only(pm))

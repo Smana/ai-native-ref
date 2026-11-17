@@ -171,7 +171,7 @@ def check_two_channels_render_in_their_orders():
     for sponsored, broker in zip(gen.SPONSORED, gen.BROKER):
         values = yaml.safe_load(yaml.safe_load((root / sponsored).read_text())["data"]["values.yaml"])
         check(f"{sponsored}: the sponsored repositories are the sorted union",
-              values["config"]["api"]["sponsored"][0]["repositories"] == union)
+              values["maku-factory"]["config"]["api"]["sponsored"][0]["repositories"] == union)
         hooks = {w["name"]: w for w in yaml.safe_load((root / broker).read_text())["webhooks"]}
         check(f"{broker}: the repositories are the sorted union", hooks["slack-app"]["repositories"] == union)
         check(f"{broker}: the events are the notify union in declaration order, then ALWAYS_SUBSCRIBED",

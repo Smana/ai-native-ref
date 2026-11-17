@@ -37,7 +37,7 @@ def treatments(objects):
     for cm in (o for o in objects if o.get("kind") == "ConfigMap"):
         raw = cm.get("data", {}).get("values.yaml")
         if raw:
-            value = (yaml.safe_load(raw).get("config", {}).get("evaluation", {}) or {}).get("treatment")
+            value = (yaml.safe_load(raw).get("maku-factory", {}).get("config", {}).get("evaluation", {}) or {}).get("treatment")
             if value:
                 out.append(value)
     return out

@@ -111,7 +111,7 @@ for cloud in CLOUDS:
 
 values = yaml.safe_load(yaml.safe_load((ROOT / "tooling/base/agent-factory/helm-values-configmap.yaml").read_text())
                         ["data"]["values.yaml"])
-factory = values["config"]["api"]
+factory = values["maku-factory"]["config"]["api"]
 access = factory.get("access") or {}
 checks["factory: api.preset zitadel"] = factory.get("preset") == "zitadel"
 checks["factory: api.access.links broker, no readerFile"] = (

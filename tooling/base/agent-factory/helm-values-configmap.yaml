@@ -47,6 +47,101 @@ data:
       # the factory's create, patch and delete on Secrets there to those it labels and the run owns.
       runTokens: {enabled: true, perRun: true}
       brokerCASecret: openbao-ca
+      config:
+        # The ownership fence (agent-platform v0.14.0): a repository is acted on only while its
+        # .github/agent-factory.yaml names this factory, so aws-0 and gcp-0 never take the same issue.
+        factory: ${cluster_name}
+        # The run-controller's runs (R3), not the Crossplane XR: maku.ogenki.io AgentRuns named run-<id>.
+        # They call the model gateway with their own token (runController.model.mode gateway), so the
+        # meter prices them from its series.
+        runs:
+          group: maku.ogenki.io
+          namespace: agents
+          namePrefix: run-
+          gatewayIdentity: true
+        # Merge policy stage `manage`, the one switch since Maku v0.50.0 (it replaces read, simulation,
+        # dualEvaluation and promotion, the highest of which was this stage): the observer compares each
+        # owned repository's .github/agent-factory.yaml with this config, the offline `maku policy
+        # simulate|diff` verbs, every merge re-decided under the repository policy without acting on it,
+        # and each class's shadow evidence served to the broker's settings pages. It also consults
+        # approval grants, which no policy here asks for (no requiresApproval). The central config stays
+        # the only merge authority: no repository sets classAuthority: repository.
+        policyManagement: {stage: manage}
+        # The catalogue (workflows, control, defaults, triage, tiers, templates, caps, facts,
+        # brief, budgets, resume, loops, meter.prices) is the Factory, and the repositories with their
+        # classes and merge rules are the Repository and MergePolicy objects, in resources/ beside this
+        # file (Maku factory resources): the factory reads them live. What stays here is plumbing and the
+        # startup switches, read once at start: a change here is a rollout.
+        # scripts/ci/validate-factory-config.sh lays the objects over this config as the factory does.
+        #
+        # No runlore block: RunLore's intake is off (R14) and RunLore reaches the factory through
+        # api.internalPrincipals. Whoever adds runlore.listen sets runlore.repository with it: unset, it
+        # is the first repository served, which moves as Repository objects come and go.
+        factoryLogin: ogenki-agent-factory[bot]
+        agentsLogin: ogenki-agents[bot]
+        roomsURL: https://rooms.${private_domain_name}
+        # The broker's system API is TLS on both clouds (GP-18, ruling SC).
+        broker:
+          url: https://room-broker.agent-system.svc.cluster.local:8443
+          caFile: /etc/agent-factory/openbao-ca/ca.crt
+          tokenFile: /var/run/secrets/agents/rooms/token
+        # The chart writes these four only with apps.merger.mode factory; with separate it mounts the
+        # two Secrets at these paths and the factory reads them from here.
+        github:
+          appIDFile: /etc/agent-factory-github/app_id
+          privateKeyFile: /etc/agent-factory-github/private_key
+          mergerAppIDFile: /etc/agent-factory-merger/app_id
+          mergerKeyFile: /etc/agent-factory-merger/private_key
+        # The run-request API (FR-5): tailnet only via the HTTPRoute, tokens checked
+        # offline against ZITADEL's JWKS; the client ids ride the chart's oidcSecret mount.
+        api:
+          # Plaintext inside the mesh; 8443 is the broker's TLS listener (agent-platform#111).
+          listen: ":8082"
+          # ZITADEL's token rules, as the broker's human.preset (Maku v4 step 5 ANR follow-up 1).
+          preset: zitadel
+          humanIssuer: ${identity_provider_url}
+          humanJWKS: ${identity_provider_url}/oauth/v2/keys
+          clientIDFiles:
+            - /etc/agent-factory-oidc/rooms-proxy-client-id
+            - /etc/agent-factory-oidc/roomctl-client-id
+          # Resolves a human caller to their GitHub login from the broker's GitHub account links
+          # (links: broker, GET /v1/links/github on broker.url as system:factory); write on the
+          # repository is then asked of GitHub. An account with no link is refused 403
+          # repository_permission.
+          access:
+            links: broker
+            ttl: 5m
+          # Sponsored principals (factory interfaces part 2), none declared (D4): a gcp-0 session declares
+          # the Slack App in gcp-0's copy (runbook 18). It needs meter.prices, and projectIDFile beside it;
+          # the chart mounts both files from sponsoredSecret (agent-factory-sponsored, optional). The name
+          # and the client id file are the broker's human.mcp.sponsored entry's.
+          # projectIDFile: /etc/agent-factory-sponsored/project-id
+          # sponsored:
+          #   - name: slack-app
+          #     clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
+          #     sponsor: <a maintainer's GitHub login>
+          #     repositories: [Smana/cloud-native-ref]
+          #     dailyUSD: <in (0, budgets.factoryDailyUSD]>
+          #     maxCostUSD: <in (0, dailyUSD]>
+          #     onBehalfOf:
+          #       slack: {"<team id>/<user id>": <maintainer login>}
+        poll: {issues: 60s, tasks: 30s, meter: 30s}
+        # The model gateway's token series (agent-gateway/model-gateway, relabelled to the gen_ai_* names
+        # by infrastructure/base/agent-gateway/vmpodscrape.yaml), keyed by the run's verified subject.
+        meter:
+          url: http://vmsingle-victoria-metrics-k8s-stack.observability.svc:8428
+          # Grouped by gen_ai_request_model, the model the backend's alias resolved to: the meter
+          # prices each run by the model that served it (plan, phase J), since agent-default is
+          # GLM-5.3 on public and Claude Opus 5.5 on internal. Grouped by pod too, so a gateway
+          # replica whose scrape drops out for a tick is not charged twice on its return.
+          query: 'sum by (ar_agent, gen_ai_request_model, gen_ai_token_type, pod) (gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:run-.+", gen_ai_token_type=~"input|cached_input|cache_creation_input|output"})'
+          # meter.prices, the price overlay, is the Factory's spec.prices (resources/factory.yaml).
+          # The 429 lookup (R13): throttle hits per agent over the gateway's access logs.
+          # The model gateway (agentgateway, ADR-0053, plan F.4): a rate-limit refusal logs http.status 429, reason RateLimit.
+          logsURL: http://victoria-logs-victoria-logs-single-server.observability.svc:9428
+          throttleQuery: '_time:2m kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"model-gateway" | unpack_json | filter log.http.status:429 AND log.reason:RateLimit | stats by (log.x_ar_agent) count() hits'
+        # Task spans (R46) to the trace collector's platform port (observability plan O20).
+        tracing: {otlpEndpoint: agent-traces-collector.observability.svc.cluster.local:4317}
     # The umbrella's four-policy catalog (merge policies review MR1, MR2): docs-links, revert and docs
     # come from the chart with maku.ogenki.io/catalog: "true"; deps-patch stays in resources/ so it
     # keeps its protectedFiles and its monitor.flux.
@@ -54,98 +149,3 @@ data:
       catalog:
         enabled: true
         exclude: [deps-patch]
-    config:
-      # The ownership fence (agent-platform v0.14.0): a repository is acted on only while its
-      # .github/agent-factory.yaml names this factory, so aws-0 and gcp-0 never take the same issue.
-      factory: ${cluster_name}
-      # The run-controller's runs (R3), not the Crossplane XR: maku.ogenki.io AgentRuns named run-<id>.
-      # They call the model gateway with their own token (runController.model.mode gateway), so the
-      # meter prices them from its series.
-      runs:
-        group: maku.ogenki.io
-        namespace: agents
-        namePrefix: run-
-        gatewayIdentity: true
-      # Merge policy stage `manage`, the one switch since Maku v0.50.0 (it replaces read, simulation,
-      # dualEvaluation and promotion, the highest of which was this stage): the observer compares each
-      # owned repository's .github/agent-factory.yaml with this config, the offline `maku policy
-      # simulate|diff` verbs, every merge re-decided under the repository policy without acting on it,
-      # and each class's shadow evidence served to the broker's settings pages. It also consults
-      # approval grants, which no policy here asks for (no requiresApproval). The central config stays
-      # the only merge authority: no repository sets classAuthority: repository.
-      policyManagement: {stage: manage}
-      # The catalogue (workflows, control, defaults, triage, tiers, templates, caps, facts,
-      # brief, budgets, resume, loops, meter.prices) is the Factory, and the repositories with their
-      # classes and merge rules are the Repository and MergePolicy objects, in resources/ beside this
-      # file (Maku factory resources): the factory reads them live. What stays here is plumbing and the
-      # startup switches, read once at start: a change here is a rollout.
-      # scripts/ci/validate-factory-config.sh lays the objects over this config as the factory does.
-      #
-      # No runlore block: RunLore's intake is off (R14) and RunLore reaches the factory through
-      # api.internalPrincipals. Whoever adds runlore.listen sets runlore.repository with it: unset, it
-      # is the first repository served, which moves as Repository objects come and go.
-      factoryLogin: ogenki-agent-factory[bot]
-      agentsLogin: ogenki-agents[bot]
-      roomsURL: https://rooms.${private_domain_name}
-      # The broker's system API is TLS on both clouds (GP-18, ruling SC).
-      broker:
-        url: https://room-broker.agent-system.svc.cluster.local:8443
-        caFile: /etc/agent-factory/openbao-ca/ca.crt
-        tokenFile: /var/run/secrets/agents/rooms/token
-      # The chart writes these four only with apps.merger.mode factory; with separate it mounts the
-      # two Secrets at these paths and the factory reads them from here.
-      github:
-        appIDFile: /etc/agent-factory-github/app_id
-        privateKeyFile: /etc/agent-factory-github/private_key
-        mergerAppIDFile: /etc/agent-factory-merger/app_id
-        mergerKeyFile: /etc/agent-factory-merger/private_key
-      # The run-request API (FR-5): tailnet only via the HTTPRoute, tokens checked
-      # offline against ZITADEL's JWKS; the client ids ride the chart's oidcSecret mount.
-      api:
-        # Plaintext inside the mesh; 8443 is the broker's TLS listener (agent-platform#111).
-        listen: ":8082"
-        # ZITADEL's token rules, as the broker's human.preset (Maku v4 step 5 ANR follow-up 1).
-        preset: zitadel
-        humanIssuer: ${identity_provider_url}
-        humanJWKS: ${identity_provider_url}/oauth/v2/keys
-        clientIDFiles:
-          - /etc/agent-factory-oidc/rooms-proxy-client-id
-          - /etc/agent-factory-oidc/roomctl-client-id
-        # Resolves a human caller to their GitHub login from the broker's GitHub account links
-        # (links: broker, GET /v1/links/github on broker.url as system:factory); write on the
-        # repository is then asked of GitHub. An account with no link is refused 403
-        # repository_permission.
-        access:
-          links: broker
-          ttl: 5m
-        # Sponsored principals (factory interfaces part 2), none declared (D4): a gcp-0 session declares
-        # the Slack App in gcp-0's copy (runbook 18). It needs meter.prices, and projectIDFile beside it;
-        # the chart mounts both files from sponsoredSecret (agent-factory-sponsored, optional). The name
-        # and the client id file are the broker's human.mcp.sponsored entry's.
-        # projectIDFile: /etc/agent-factory-sponsored/project-id
-        # sponsored:
-        #   - name: slack-app
-        #     clientIDFile: /etc/agent-factory-sponsored/slack-app-client-id
-        #     sponsor: <a maintainer's GitHub login>
-        #     repositories: [Smana/cloud-native-ref]
-        #     dailyUSD: <in (0, budgets.factoryDailyUSD]>
-        #     maxCostUSD: <in (0, dailyUSD]>
-        #     onBehalfOf:
-        #       slack: {"<team id>/<user id>": <maintainer login>}
-      poll: {issues: 60s, tasks: 30s, meter: 30s}
-      # The model gateway's token series (agent-gateway/model-gateway, relabelled to the gen_ai_* names
-      # by infrastructure/base/agent-gateway/vmpodscrape.yaml), keyed by the run's verified subject.
-      meter:
-        url: http://vmsingle-victoria-metrics-k8s-stack.observability.svc:8428
-        # Grouped by gen_ai_request_model, the model the backend's alias resolved to: the meter
-        # prices each run by the model that served it (plan, phase J), since agent-default is
-        # GLM-5.3 on public and Claude Opus 5.5 on internal. Grouped by pod too, so a gateway
-        # replica whose scrape drops out for a tick is not charged twice on its return.
-        query: 'sum by (ar_agent, gen_ai_request_model, gen_ai_token_type, pod) (gen_ai_client_token_usage_sum{ar_agent=~"system:serviceaccount:agents:run-.+", gen_ai_token_type=~"input|cached_input|cache_creation_input|output"})'
-        # meter.prices, the price overlay, is the Factory's spec.prices (resources/factory.yaml).
-        # The 429 lookup (R13): throttle hits per agent over the gateway's access logs.
-        # The model gateway (agentgateway, ADR-0053, plan F.4): a rate-limit refusal logs http.status 429, reason RateLimit.
-        logsURL: http://victoria-logs-victoria-logs-single-server.observability.svc:9428
-        throttleQuery: '_time:2m kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"model-gateway" | unpack_json | filter log.http.status:429 AND log.reason:RateLimit | stats by (log.x_ar_agent) count() hits'
-      # Task spans (R46) to the trace collector's platform port (observability plan O20).
-      tracing: {otlpEndpoint: agent-traces-collector.observability.svc.cluster.local:4317}

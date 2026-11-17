@@ -261,7 +261,7 @@ def assemble(cfg, objs, defaults=True):
 
 def config(root=ROOT, cloud=None, defaults=True):
     """The factory's config as it reads it: the file's `config:` with the objects laid over it."""
-    return assemble(values(root, cloud)["config"], objects(root, cloud), defaults)
+    return assemble(values(root, cloud)["maku-factory"]["config"], objects(root, cloud), defaults)
 
 
 def substitute(text, cloud):
@@ -279,7 +279,7 @@ def render(cloud, manifests, out):
     out = pathlib.Path(out)
     out.mkdir(parents=True, exist_ok=True)
     vals = values(ROOT, cloud)
-    (out / "config.yaml").write_text(substitute(yaml.safe_dump(vals["config"], allow_unicode=True), cloud))
+    (out / "config.yaml").write_text(substitute(yaml.safe_dump(vals["maku-factory"]["config"], allow_unicode=True), cloud))
     docs = _docs(pathlib.Path(manifests))
     have = {d["metadata"]["name"] for d in docs if d.get("kind") == "MergePolicy"}
     docs += [o for o in catalog_objects(vals) if o["metadata"]["name"] not in have]

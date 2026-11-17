@@ -79,7 +79,7 @@ if [p["port"] for r in rl for p in r["toPorts"][0]["ports"]] != ["8082"]:
     problems.append("RunLore reaches the factory on 8082 only")
 gp = yaml.safe_load((ROOT / "tooling/gcp-0/agent-factory/helm-values-sponsored.yaml").read_text())
 gv = yaml.safe_load(gp["data"][next(iter(gp["data"]))])
-ip = [p for p in gv["config"]["api"]["internalPrincipals"] if p["name"] == "runlore"]
+ip = [p for p in gv["maku-factory"]["config"]["api"]["internalPrincipals"] if p["name"] == "runlore"]
 if not ip or ip[0].get("verification") is not True:
     problems.append("gcp-0's runlore principal has verification: true")
 if problems:

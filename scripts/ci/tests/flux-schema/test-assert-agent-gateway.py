@@ -203,12 +203,12 @@ def compliant(key=REAL):
              {"key": "fleet", "value": "agents", "rate_limit": {"unit": "day", "requests_per_unit": 41000000}},
              {"key": "provider", "value": "anthropic", "rate_limit": {"unit": "day", "requests_per_unit": 10000000}}]})}},
         {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"namespace": "agent-system", "name": gate.FACTORY_VALUES},
-         "data": {"values.yaml": yaml.safe_dump({"config": {"meter": {
+         "data": {"values.yaml": yaml.safe_dump({"maku-factory": {"config": {"meter": {
              "query": "sum by (ar_agent, gen_ai_request_model, gen_ai_token_type) (gen_ai_client_token_usage_sum)",
              "prices": PRICES},
              "tiers": {"light": {"model": "agent-default", "runTokens": 300000, "runUSD": 0.51},
                        "frontier": {"model": "agent-default", "runTokens": 4000000, "runUSD": 6.80}},
-             "budgets": {"factoryDailyUSD": 42.50}, "caps": {"concurrentRuns": 4}}})}},
+             "budgets": {"factoryDailyUSD": 42.50}, "caps": {"concurrentRuns": 4}}}})}},
         {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"namespace": gw_ns, "name": "agent-ratelimit"},
          "spec": {"template": {"spec": {
              "containers": [{"name": "ratelimit", "env": [{"name": "SHADOW_MODE", "value": "true"}]}],
@@ -572,14 +572,14 @@ print("AG10 every pinned model has its price in the meter's overlay (plan J.1, J
 
 
 def meter_cfg(o):
-    return yaml.safe_load(find(o, "ConfigMap", gate.FACTORY_VALUES)["data"]["values.yaml"])["config"]["meter"]
+    return yaml.safe_load(find(o, "ConfigMap", gate.FACTORY_VALUES)["data"]["values.yaml"])["maku-factory"]["config"]["meter"]
 
 
 def edit_config(edit):
     def mutate(o):
         cm = find(o, "ConfigMap", gate.FACTORY_VALUES)
         values = yaml.safe_load(cm["data"]["values.yaml"])
-        edit(values["config"])
+        edit(values["maku-factory"]["config"])
         cm["data"]["values.yaml"] = yaml.safe_dump(values)
     return mutate
 
@@ -593,7 +593,7 @@ def as_factory(o):
     by the values' factory, the values keeping the meter's query."""
     cm = find(o, "ConfigMap", gate.FACTORY_VALUES)
     values = yaml.safe_load(cm["data"]["values.yaml"])
-    c = values["config"]
+    c = values["maku-factory"]["config"]
     spec = {"prices": c["meter"].pop("prices"), **{k: c.pop(k) for k in ("tiers", "budgets", "caps")}}
     c["factory"] = "aws-0"
     cm["data"]["values.yaml"] = yaml.safe_dump(values)
@@ -614,7 +614,7 @@ expect("a Factory another factory's name is not read: its prices are missing",
 print("AG8 the gateway follows the factory's values (J-AC2, never refusing first)")
 expect("a meter price change the gateway's cost misses fails",
        edit_meter(lambda m: m["prices"]["glm-5.3"].update({"input": 1.50})), "AG8", "meter.prices")
-fixture = yaml.safe_load(find(compliant(), "ConfigMap", gate.FACTORY_VALUES)["data"]["values.yaml"])["config"]
+fixture = yaml.safe_load(find(compliant(), "ConfigMap", gate.FACTORY_VALUES)["data"]["values.yaml"])["maku-factory"]["config"]
 check("the fleet floor from factoryDailyUSD $42.50 is B2's 41M: 25M plus 4 frontier runs at 4M",
       gate.factory_floors(fixture) == (4000000, 41000000), f"got {gate.factory_floors(fixture)}")
 expect("a raised factoryDailyUSD without B2 fails ($1.70 more is 1M more)",
@@ -735,7 +735,7 @@ def tier_model(model):
     def change(o):
         cm = find(o, "ConfigMap", gate.FACTORY_VALUES)
         values = yaml.safe_load(cm["data"]["values.yaml"])
-        values["config"]["tiers"]["frontier"]["model"] = model
+        values["maku-factory"]["config"]["tiers"]["frontier"]["model"] = model
         cm["data"]["values.yaml"] = yaml.safe_dump(values)
     return change
 
@@ -906,7 +906,7 @@ def charted_world():
     for o in objs:
         if o["kind"] == "ConfigMap" and o["metadata"]["name"] == gate.FACTORY_VALUES:
             values = yaml.safe_load(o["data"]["values.yaml"])
-            values["config"]["meter"]["prices"] = CHART_PRICES
+            values["maku-factory"]["config"]["meter"]["prices"] = CHART_PRICES
             o["data"]["values.yaml"] = yaml.safe_dump(values)
         if o["kind"] == "AgentgatewayPolicy" and o["metadata"]["name"] == "token-budgets":
             for d in o["spec"]["traffic"]["rateLimit"]["global"]["descriptors"]:

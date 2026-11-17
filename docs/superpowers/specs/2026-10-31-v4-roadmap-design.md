@@ -22,7 +22,7 @@ v3 made the factory land more accepted pull requests per dollar, on the referenc
    provider, secrets store, GitOps tool and gateway.
 
 Today neither holds:
-- Maku's [kind quickstart](https://github.com/Smana/maku/blob/main/docs/quickstart.md) runs one
+- Maku's [kind quickstart](https://github.com/Smana/maku/blob/main/docs/quickstart.md?plain=1) runs one
   attended run in a room. It has no factory loop, gateway, budgets or short-lived credentials.
 - The full platform needs cloud-native-ref's [host contract](../../../HOST-CONTRACT.md).
 - v3 deferred "install on any Kubernetes" ([Later](2026-10-19-v3-roadmap-design.md#later)). v4 takes

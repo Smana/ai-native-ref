@@ -12,7 +12,7 @@ lastVerified: 2026-11-16
 Use this page to see what the platform can do and what is coming next. **Proven live** means
 demonstrated end to end on a real cluster; it does not describe the current deployment.
 
-**Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0).
+**Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0/).
 **On `main`:** Maku {{< maku-version >}} for every component.
 
 For installation, upgrades, restoration, and cluster operations, see

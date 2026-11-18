@@ -107,9 +107,6 @@ human:
       apiKeyFile: /var/run/secrets/maku/model-gateway/planner
       deadline: 20s
       reasoningEffort: low       # glm-5.3 always reasons: at its default a plan needs over 20 s (Maku #372)
-      # Until maku#621: Maku offers "Start now" only on these, though the planner reads the factory's
-      # catalog (WF12). The factory's served repositories, so it narrows nothing; the test pins the match.
-      repositories: [Smana/ai-native-ref, Smana/cloud-native-ref, Smana/runlore, Smana/runlore-kb]
       dailyPlans: 50
       fallback: "off"
   # needs/v1 (CD21, CD28): one list, read by /api/needs and by the CLI. Read-only, so it ships on.

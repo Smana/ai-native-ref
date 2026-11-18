@@ -39,7 +39,7 @@ row says otherwise; only a maintainer's count.
 |---|---|
 | `factory/needs-author` | It asked a question: answer in the Slack thread or with `answer` in your coding agent |
 | `factory/split-proposed` | It proposed a split: `/factory split` or `/factory retry` |
-| `factory/policy` | On the pull request: the merge policy that matched its diff |
+| `factory/class:<class>` | On every pull request: the merge class predicted for its diff |
 | `factory/child-of:#<n>` | On a part's issue: the split it belongs to |
 | `factory/stale` | On a pull request it closed after 14 days with no maintainer activity |
 

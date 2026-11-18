@@ -18,7 +18,7 @@ ok   dns: rooms.example resolves
 ok   tls: the certificate chain is trusted
 ok   login: the token is valid
 ok   github: your GitHub identity is linked
-ok   skill: /home/you/.claude/skills/factory-handoff is v0.39.0
+ok   skill: /home/you/.claude/skills/maku-handoff is vX.Y.Z
 ```
 
 A failing check reads `FAIL <check>: …` with its fix, and a `warn` line flags something to look at

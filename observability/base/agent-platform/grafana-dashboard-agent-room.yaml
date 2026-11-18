@@ -23,7 +23,7 @@ spec:
       "description": "One room: the task it serves, its runs with phase, duration and spend, how long it waits for a human, and the broker's approvals and notes. Pick a room, or arrive from a task id on the overview.",
       "schemaVersion": 39,
       "timezone": "utc",
-      "time": {"from": "now-7d", "to": "now"},
+      "time": {"from": "now-24h", "to": "now"},
       "links": [{"title": "Agents", "type": "dashboards", "tags": ["agents"], "asDropdown": false, "includeVars": true, "keepTime": true, "icon": "dashboard", "tooltip": "Every dashboard of the Agents folder: overview, fleet, factory, gateway, identity, room, run"}, {"title": "Room page", "type": "link", "url": "https://rooms.${private_domain_name}/r/$${room}", "targetBlank": true, "tooltip": "The room's own page: status, needs-you, actions and notes"}],
       "templating": {"list": [{"name": "datasource", "type": "datasource", "query": "prometheus"}, {"name": "room", "label": "Room", "type": "query", "refresh": 2, "sort": 1, "multi": false, "includeAll": false, "datasource": {"type": "prometheus", "uid": "$${datasource}"}, "definition": "query_result(group by (room) (last_over_time(maku_factory_run_charge_info[30d]) or label_replace(last_over_time(maku_factory_task_phase_seconds[30d]), \"room\", \"$1\", \"task\", \"(.*)\")))", "query": "query_result(group by (room) (last_over_time(maku_factory_run_charge_info[30d]) or label_replace(last_over_time(maku_factory_task_phase_seconds[30d]), \"room\", \"$1\", \"task\", \"(.*)\")))", "regex": "/room=\"([^\"]+)\"/"}]},
       "panels": [

@@ -49,8 +49,12 @@ spec:
       email-domain: "*"
       cookie-name: _rooms
       cookie-secure: "true"
-      # oauth2-proxy's default is empty (T9).
-      cookie-samesite: strict
+      # oauth2-proxy's default is empty (T9). Lax, not Strict: a room link clicked in a GitHub
+      # comment or Slack is a top-level GET from another site, and a Strict cookie does not ride it,
+      # so every click went through the login (aws-0, 2026-11-18). Lax still keeps T9: the cookie
+      # does not ride another site's form POST or its WebSocket (the broker also checks Origin), and
+      # no GET changes anything.
+      cookie-samesite: lax
       # The only path on which oauth2-proxy checks the session's expiry. At 0 (the
       # default) it never does: after ZITADEL's token lifetime the broker refuses
       # every request until cookie-expire (168 h), and nobody is sent to log in.

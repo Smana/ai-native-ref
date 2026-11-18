@@ -75,7 +75,7 @@ human:
   # decoder refuses this key, so it only ever lands with the v0.29.3 pin.
   dashboards:
     - label: Room metrics
-      url: https://grafana.${private_domain_name}/d/agent-room/agent-room?var-room={room}
+      url: https://grafana.${private_domain_name}/d/agent-room/agent-room?var-room={room}&from=now-24h&to=now
     - label: Run
       url: https://grafana.${private_domain_name}/d/agent-run/agent-run?var-run={run}
   # D7: room access is the caller's GitHub login, read from the GitHub account link below, then

@@ -244,8 +244,10 @@ with tree() as t:
     check("the result is in sync", run(t)[0] == 0)
 with tree() as t:
     text = rules(t).read_text()
+    # A provenance key renders as "source:" (flow or block); "resources/factory.yaml" in the
+    # generated-from comment is a path, not provenance, and must not trip the check.
     check("provenance is never rendered: no source, no checkedAt in the rules",
-          "source" not in text and "checkedAt" not in text)
+          "source:" not in text and "checkedAt" not in text)
 with tree() as t:
     replace(t, gen.FACTORY, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.60}")
     code, out = run(t, "--write")

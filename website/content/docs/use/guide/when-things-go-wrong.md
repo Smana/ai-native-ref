@@ -33,7 +33,7 @@ without failing the run.
 | `FAIL login`, `not_logged_in` | Your session ended | `maku login` |
 | `FAIL github`; `maku rooms` lists nothing | Your GitHub account is not linked to your sign-in | Link it on the sign-in page |
 | A `403` on the room list | You are not in `agents-member` | Ask an admin to add you |
-| `FAIL skill` | A `factory-handoff` skill from another `maku` release | Run `maku setup <client>` again, or delete the stale copy |
+| `FAIL skill` | A `maku-handoff` skill from another `maku` release | Run `maku setup <client>` again, or delete the stale copy |
 | Your coding agent has no factory tools | The client was running before `maku setup` | Restart it; for OpenCode, `maku doctor` says whether its background service needs a restart |
 
 ## Slack says no {#slack}

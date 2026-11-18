@@ -60,7 +60,7 @@ menu:
 params:
   description: "The AI platform of Cloud Native Reference: self-hosted model serving and an agent factory, shipped as one signed Flux artifact its host pins."
   # Held equal to tooling/base/agent-factory/helm-values-configmap.yaml by scripts/ci/check-site-contract.py.
-  makuVersion: v0.53.2
+  makuVersion: v0.53.3
   navbar:
     displayTitle: true
     displayLogo: true

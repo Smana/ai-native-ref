@@ -1,4 +1,4 @@
-# The PoC twin of agent-router (infrastructure/base/agent-router/gateway.yaml):
+# The PoC twin of agent-router (infrastructure/base/agent-gateway/gateway.yaml):
 # same listeners minus `sts`, class agentgateway.
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway

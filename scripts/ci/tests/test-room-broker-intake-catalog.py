@@ -5,8 +5,9 @@ that has to decode the block before any cloud carries it.
 
 `intake_plan` turns what a person asked into a `plan/v1`. Since WF12, the broker reads the served
 public repositories and their workflows from the factory's `GET /v1/catalog` (`factoryURL`), so no
-copy of `human.intake.plan` carries `classes` or `repositories`, and every enabled copy sets
-`factoryURL`.
+copy of `human.intake.plan` carries `classes`, and every enabled copy sets `factoryURL`. Until
+maku#621, `repositories` is set to exactly the factory's served repositories: Maku offers "Start now"
+only on those, so without it no session can start work.
 """
 import pathlib
 import re
@@ -21,10 +22,12 @@ except ImportError:
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 INTAKE_RELEASE = "v0.35.0"
-PLAN_KEYS = {"enabled", "url", "model", "apiKeyFile", "deadline", "dailyPlans", "fallback", "reasoningEffort"}
+PLAN_KEYS = {"enabled", "url", "model", "apiKeyFile", "deadline", "dailyPlans", "fallback", "reasoningEffort", "repositories"}
 REASONING_EFFORT = "low"
 PLANNER_TOKEN = "/var/run/secrets/maku/model-gateway/planner"
 ENABLED_IN = {"aws-0", "gcp-0"}
+SERVED = sorted(yaml.safe_load(f.read_text())["spec"]["repository"]
+                for f in (ROOT / "tooling/base/agent-factory/resources").glob("repository-*.yaml"))
 problems = []
 
 
@@ -104,8 +107,11 @@ else:
         cfg = broker_config(cloud)
         plan = plan_block(cfg)
         human = cfg.get("human") or {}
-        check("classes" not in plan and "repositories" not in plan,
-              f"{cloud}: human.intake.plan carries neither classes nor repositories (WF12: read from /v1/catalog)")
+        check("classes" not in plan,
+              f"{cloud}: human.intake.plan carries no classes (WF12: read from /v1/catalog)")
+        check(sorted(plan.get("repositories") or []) == SERVED,
+              f"{cloud}: human.intake.plan.repositories is the factory's served repositories {SERVED} "
+              f"(maku#621: start is offered only there), found {plan.get('repositories')}")
         check(set(plan) == PLAN_KEYS,
               f"{cloud}: human.intake.plan's keys are {sorted(PLAN_KEYS)}, found {sorted(plan)}")
         check(plan.get("reasoningEffort") == REASONING_EFFORT,

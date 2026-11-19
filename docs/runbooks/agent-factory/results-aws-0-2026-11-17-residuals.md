@@ -39,6 +39,15 @@ Maku #631 (planner: at most one question, template gaps assumed, answers kept on
 | Outside a repository | guessed smana/runlore-kb | asks which repository, recommends ai-native-ref; 48 s |
 | OpenCode 2.3.2 | 137 s, 2 questions | 1 question; the planner answered in 6 s, OpenCode's own agent took ~4.5 min to call the tool |
 
+### Residual cases, 2026-11-19 morning (v3.27.4 / Maku v0.53.5)
+
+| Test ID | Result | Evidence | Notes |
+|---|---|---|---|
+| CP4 — warm node inside its window | PASS | 08:11 Europe/Paris, Thursday | ScaledObject Active, `agents-headroom` 1/1 ready, a gVisor node up; with the off-window reading the schedule holds both ways |
+| M1 — `considered=` on a config-only PR | PASS | [#468](https://github.com/Smana/ai-native-ref/issues/468) / `n25kfiip` / [#470](https://github.com/Smana/ai-native-ref/pull/470) | `review: a human decides, no_policy_matched`, and the PR carries `considered=docs:file_not_allowed,docs-links:class_mismatch,revert:class_mismatch` (maku#632). Merged on approval |
+| W4 — the workflow chosen in the start form | PASS | [#469](https://github.com/Smana/ai-native-ref/issues/469) / `ihfxeaq6` / [#471](https://github.com/Smana/ai-native-ref/pull/471) | `quick` chosen in Claude Code's form → the issue gets `workflow:quick` from the maintainer's gh; the Task records `requested: quick, source: label` and runs quick (one implementer); the gate records `docs:reviewer_verdict_missing`. In Claude Code, Escape inside the workflow list cancels the whole form |
+| W8 — a filed runlore-kb handoff | PASS | [runlore-kb#197](https://github.com/Smana/runlore-kb/issues/197) / `5hcjlnbg` / [runlore-kb#198](https://github.com/Smana/runlore-kb/pull/198) | Planned for smana/runlore-kb from the catalog, `standard` from the repository default; the gate said `shadow: would merge`; merged on approval. A first wording that named "runlore v0.20.0" was refused `repository_not_served_here` though smana/runlore is served: a #631 regression, maku#635 |
+
 ## Found: `validate` is red on `main` since the PR #618 branch was deleted
 
 `scripts/ci/validate-factory-config.sh` builds the CLI from the factory image's version. For the PR

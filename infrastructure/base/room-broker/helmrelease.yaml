@@ -67,17 +67,17 @@ spec:
       namespaces: [agents]
     runController:
       enabled: true
-      # maku v0.53.7, by digest, as the broker's image.
+      # maku v0.53.9, by digest, as the broker's image.
       image:
         repository: ghcr.io/smana/maku-run-controller
-        tag: "v0.53.7@sha256:33330374013f9fb261269875619da46b330c020d66288aca552cd0e80b3833fd"
+        tag: "v0.53.9@sha256:f77c0ee5675eedd6b374a8d0aac393acf77020e889c9e4ba897109cfe82df3c7"
       images:
         harness:
           repository: ghcr.io/smana/maku-harness
-          tag: "v0.53.7@sha256:8c886d894fb4481ae9ae1bcf17e0959a86ebaf6573c17cb1cb85cc8fecfcc394"
+          tag: "v0.53.9@sha256:9976112aa7cc6abc673705eb4911e96cd7cb576e1b4dbc0da54292299e3f03bb"
         bridge:
           repository: ghcr.io/smana/maku-bridge
-          tag: "v0.53.7@sha256:637c9fbcabf60661bdc87f1fb0669b5971b9c764d1098462ca6a7cfe0670b264"
+          tag: "v0.53.9@sha256:1c7dc8c97106f843d0681d541fef768d2322d44114239006c9f91f3d0f2cf037"
       # Runs call the model gateway (agent-gateway/model-gateway, the maku-gateway release) with their
       # own projected token: no provider key in agents. The aliases are that release's aliases.
       model:
@@ -100,8 +100,8 @@ spec:
     broker:
       image:
         repository: ghcr.io/smana/maku-broker
-        # maku v0.53.7, by digest. Move it with ocirepository.yaml (the chart) and crd-rooms.yaml together.
-        tag: "v0.53.7@sha256:30d941cbeb7d913379a3b7d291585d809ae2c81f6da58caf245aed81c948245a"
+        # maku v0.53.9, by digest. Move it with ocirepository.yaml (the chart) and crd-rooms.yaml together.
+        tag: "v0.53.9@sha256:63c02051d64e9fa8e02dddb2bfbdd30fe50ac01355844a0f5cc0434ef0bf9242"
       # Two (§9): the leader lease picks the controller, and every replica serves humans through the
       # LISTEN/NOTIFY hub (ruling AT). pdb.yaml keeps one through a drain.
       replicas: 2
@@ -203,7 +203,7 @@ spec:
         - {name: webhook-slack-app, mountPath: /etc/room-broker/webhooks/slack-app, readOnly: true}
         - {name: webhook-runlore, mountPath: /etc/room-broker/webhooks/runlore, readOnly: true}
         - {name: github-link, mountPath: /etc/room-broker/github-link-client, readOnly: true}
-  # What v0.53.7's values cannot say. Each patch tests what it replaces, so a chart that moves it
+  # What v0.53.9's values cannot say. Each patch tests what it replaces, so a chart that moves it
   # fails the release instead of patching the wrong field.
   postRenderers:
     - kustomize:

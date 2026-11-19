@@ -29,6 +29,16 @@ After #457 (Start now) and the v3.27.2 bundle (Maku v0.53.3: start's form waits 
 | Slack plan | FAIL → fixed | Every asked plan refused `unresolved_marker` (maku#623, fixed in v0.53.4) |
 | Planner quality | FINDINGS | `planner_invalid` retries (up to 3), a second question for a stated done-when, wrong recommendations, a repository guessed without context (maku#625, #626) |
 
+### After the fixes (v3.27.4 / Maku v0.53.5)
+
+Maku #631 (planner: at most one question, template gaps assumed, answers kept on re-plan, repository grounded in quoted paths), #632 (start offered from the catalog with precise reasons; an escalated task returns to the gate on approval or green CI; hand-off decision records on the pull request) and #633 (setup checks its own client and is idempotent; doctor warns on OpenCode below 2.3; the Evidence page re-polls; `{created}`/`{ended}` placeholders). The #457 workaround is removed (#467).
+
+| Journey | Before | After |
+|---|---|---|
+| Claude Code handoff to form | 92–137 s, 2 questions, 1–3 planner retries | 37 s, 1 question, no retry, right repository, Start now offered |
+| Outside a repository | guessed smana/runlore-kb | asks which repository, recommends ai-native-ref; 48 s |
+| OpenCode 2.3.2 | 137 s, 2 questions | 1 question; the planner answered in 6 s, OpenCode's own agent took ~4.5 min to call the tool |
+
 ## Found: `validate` is red on `main` since the PR #618 branch was deleted
 
 `scripts/ci/validate-factory-config.sh` builds the CLI from the factory image's version. For the PR

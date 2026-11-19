@@ -13,8 +13,8 @@ spec:
   # Flux pulls the digest (it wins over the tag), so a re-pushed tag changes nothing. The tag
   # stays for Renovate and for readers.
   ref:
-    tag: "0.53.6"  # maku v0.53.6
-    digest: sha256:80cbd82f237d6e52541d0838b1f5acd72e10308f70e3f0994c996af64a50a0ca
+    tag: "0.53.7"  # maku v0.53.7
+    digest: sha256:6f020cf69e41b280cca372d42819a781c040e5311a930efd9dd87bec20334323
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy

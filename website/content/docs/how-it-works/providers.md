@@ -30,11 +30,13 @@ a class's choice to public tasks only.
 
 ## Switch a class on
 
-Four classes name one: the reviewer of `docs-links`, `revert`, `dead-links` and `deps-patch`, the classes the merge gate may merge without a person, runs on `kimi-frontier`, so a model from another family reviews them. No other class names a provider. One key on the class's `loops` row, in the `Factory`, `tooling/base/agent-factory/resources/factory.yaml`:
-`models.<role>.<tier>` is the alias that role runs on for a public task of that tier.
+No class names one today: the `loops` map in the `Factory`, `tooling/base/agent-factory/resources/factory.yaml`,
+holds only `default: {scope: "off"}`. A class opts in with one key on its `loops` row:
+`models.<role>.<tier>` is the alias that role runs on for a public task of that tier, as this sketch shows:
 
 ```yaml
 loops:
+  default: {scope: "off"}
   docs: {scope: scoper, …, models: {implementer: {standard: mistral-standard}, reviewer: {frontier: kimi-frontier}}}
 ```
 

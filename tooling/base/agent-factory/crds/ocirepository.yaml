@@ -10,8 +10,8 @@ spec:
   url: oci://ghcr.io/smana/charts/agent-factory-crds
   # Flux pulls the digest (it wins over the tag). The tag stays for Renovate and for readers.
   ref:
-    tag: "0.53.6"  # maku v0.53.6
-    digest: sha256:0df2fcb6a95806cd14a21cab2c053a22fd99cf8f9fe1567612a7d9739b85cce8
+    tag: "0.53.7"  # maku v0.53.7
+    digest: sha256:aeabe5d11060a9533003bd965356eab19abef30684b1538d4d74ace72a8ddfde
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy

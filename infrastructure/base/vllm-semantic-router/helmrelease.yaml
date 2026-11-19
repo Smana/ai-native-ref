@@ -23,7 +23,7 @@ spec:
     # (the release name) instead of `semantic-router` (the upstream chart
     # `.Name`). Without this, all `app.kubernetes.io/name` labels rendered
     # by the chart's pods + Service would be `semantic-router`, breaking:
-    #   * VMServiceScrape selector (observability/.../vmservicecrapes/vllm-semantic-router.yaml)
+    #   * VMServiceScrape selector (./vmservicescrape.yaml)
     #   * CiliumNetworkPolicy endpointSelector (./network-policy.yaml)
     #   * AIGatewayRoute backend selector
     #   * InferenceService composition's _defaultIngress allow-list

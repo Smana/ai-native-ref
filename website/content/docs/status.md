@@ -6,13 +6,14 @@ linkTitle: Status
 weight: 60
 description: "What is proven live, what awaits validation, what is in progress, and what is planned next."
 activeCluster: aws-0
-lastVerified: 2026-11-16
+lastVerified: 2026-11-20
 ---
 
 Use this page to see what the platform can do and what is coming next. **Proven live** means
 demonstrated end to end on a real cluster; it does not describe the current deployment.
 
-**Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0).
+**Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0); `main` is tagged up to `v3.27.9`.
+**Next:** v4.0.0 is in preparation. Its standalone runtime is proven on our GKE and EKS clusters; the installs listed under [Next plans](#later) remain.
 **On `main`:** Maku {{< maku-version >}} for every component.
 
 For installation, upgrades, restoration, and cluster operations, see
@@ -47,6 +48,7 @@ These capabilities were demonstrated end to end on a real cluster.
 | Slack and coding agents can start and follow work | [Slack](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md), [coding agents](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/19-factory-from-your-agent.md) |
 | RunLore can investigate an alert, ship a fix, and record reviewed knowledge | [Agent to agent](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/20-runlore-agent-to-agent.md), [knowledge base](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/25-runlore-kb-phase-1.md) |
 | Model calls are authenticated, routed, and metered; Claude is available for internal work, and Kimi and Mistral for public work | [agentgateway]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}}), [providers]({{< relref "/docs/how-it-works/providers.md" >}}) |
+| A coding agent hands work off in plain words and a form confirms it; the merge gate chooses a policy from the diff, in shadow | [v4 validation](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/28-v4-aws-validation.md), [results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-aws-0-2026-11-16.md), [screencast](https://blog.ogenki.io/maku/) |
 | Gateway budgets, cache alerts, and cost by role or charged identity make spend visible | [Budgets and cache](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md), [cost cross-check](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-g--the-cost-cross-check) |
 
 <span id="class-modes"></span>
@@ -63,7 +65,7 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 | Agent search and self-hosted model serving | Search benefit is unmeasured; serving is off by default. [Search](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md#layer-4-the-search-tool), [serving]({{< relref "/docs/how-it-works/serving/_index.md" >}}) |
 | Merge policies declared in a repository | Repository-file decisions and remembered approvals are built and off. [UX review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-08-merge-policy-ux-review.md) |
 | Conversational UX | The needs list, return brief, Slack push approval, and animated run view need live proof. Slack's proposal message works live. [Following and steering]({{< relref "/docs/use/guide/following-and-steering.md" >}}) |
-| RunLore knowledge search from a room | The incident-to-entry loop is proven; `kb_search` still needs its live check. [Runbook](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/25-runlore-kb-phase-1.md) |
+| RunLore knowledge search from a room | The incident-to-entry loop is proven; `kb_search` failed its live check on an invalid gateway key and needs a rerun. [Runbook](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/25-runlore-kb-phase-1.md) |
 | Settings as objects and team evaluation profiles | Both are built and need live proof. [Factory configuration]({{< relref "/docs/reference/factory-configuration.md" >}}) |
 | Multi-repository integration runtime | Exact-commit worktrees and the typed integration result are built and inert. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-05-v4-multi-repo-coordination-design.md) |
 | Untrusted-input hardening | H0's contracts are built and switched off. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-07-untrusted-input-hardening-design.md) |
@@ -80,7 +82,7 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 | Slack and room conversations | The proposal works live. Thread answers, the needs list, return briefs, and push approval are being proven. [Slack]({{< relref "/docs/use/slack.md" >}}) |
 | Multi-repository execution | Planning is on. Execution stays blocked until repository merge policies and untrusted-input hardening ship. [Multi-repository]({{< relref "/docs/use/guide/multi-repository.md" >}}) |
 | Untrusted-input hardening | H1–H5 follow H0: audit, enforced non-code outputs, enforced pushes, filtered reads, and readiness. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-07-untrusted-input-hardening-design.md) |
-| Workflow and model trials | Live traffic will compare quick, standard, and careful workflows, then role effort and model choices, using cost per merged pull request and merge rate. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-14-workflows-review-design.md) |
+| Workflow and model trials | The comparison is built; the reference trial was turned off ([#414](https://github.com/Smana/ai-native-ref/pull/414)) before it recorded a task. It will compare quick, standard, and careful workflows by cost per merged pull request and merge rate. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-14-workflows-review-design.md) |
 
 ## Next plans {#later}
 
@@ -95,11 +97,12 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 | Signed provenance and reviewed repository memory | Attest how a change was produced and capture what agents learn as reviewed instructions. |
 | Gemini as a provider | Add another public-work model with its own capability profile and cost checks. |
 | Serving improvements | GPU sharing, larger or denser models, and cost per tenant, each with its own measured trigger. [Serving]({{< relref "/docs/how-it-works/serving/_index.md" >}}) |
-| v4: anyone can run it | Production installation and upgrades are deferred with no date set; the laptop demo is built. [Quickstart]({{< maku "docs/quickstart.md" >}}) |
+| v4.0.0: anyone can run it | The standalone runtime is proven on GKE and EKS. Before the release: recorded GKE and kubeadm installs, and an outside user's laptop run. [Quickstart]({{< maku "docs/quickstart.md" >}}) |
 | Eval bench and open-weight bake-off | Fixed issues will compare acceptance and cost per accepted pull request when funded. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-eval-bench-design.md) |
 
 ## Known limitations {#before-v3}
 
+- The planner reads public repositories only; for a private repository, file the issue on GitHub.
 - A judge can quote a CI log only when the sandbox's egress policy allows GitHub's Actions log host.
 - Some final costs settle after the task status is written ([maku#279](https://github.com/Smana/maku/issues/279), [maku#280](https://github.com/Smana/maku/issues/280)); a few approval-binding edge cases remain ([maku#304](https://github.com/Smana/maku/issues/304)).
 - Mistral can spend an entire run budget on a small change, so it is not recommended as the implementer.

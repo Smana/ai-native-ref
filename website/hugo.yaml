@@ -101,8 +101,8 @@ params:
     title: "Looking for a partner company"
     message: "I've spent a lot of time on this project (and quite a few tokens 😅). Next, I want to put it to the test in the field: I'm looking for a **partner company** ready to try it with its teams, on real use cases. Interested? Get in touch."
     links:
-      - name: "Message me on LinkedIn"
-        url: "https://www.linkedin.com/in/sma%C3%AFne-kahlouch-44374110/"
+      - name: "Get in touch"
+        url: "https://blog.ogenki.io/about/"
       - name: "Bluesky"
         url: "https://bsky.app/profile/smana.dev"
   sponsor:

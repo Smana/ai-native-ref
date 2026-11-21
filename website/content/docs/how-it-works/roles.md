@@ -3,7 +3,7 @@ title: The agent roles
 linkTitle: Roles
 weight: 10
 description: "Who does what in a task: the five roles (scoper, tester, implementer, judge and reviewer), the merger App beside them, and a task's life from label to merge."
-lastVerified: 2026-11-15
+lastVerified: 2026-11-21
 diataxis: explanation
 ---
 
@@ -15,7 +15,7 @@ The factory's [merge gate]({{< relref "/docs/how-it-works/merge-gate.md" >}}) po
 **`maku/merge-gate`** status on every agent pull request, and one GitHub App stands beside the agents:
 the **merger App**, which runs no model and merges what the gate decided or a maintainer approved.
 
-{{< hero-video clip="agent-factory-v3" width="720" height="854" alt="Animation: a scoper bounds the task or asks one question, the implementer opens a pull request, a judge and a reviewer check it, and a maintainer's approval or the merge gate leads to the merger App." />}}
+{{< hero-video clip="agent-factory-v3" width="720" height="854" alt="Animation: a workflow picks the roles. quick runs the implementer alone; standard adds a reviewer; careful adds a scoper that bounds the task or asks the author one question, the repository search and a judge call. The merge gate then reads the diff: a live policy merges alone, a shadow one only records, otherwise one approval merges." />}}
 
 ## The roles {#roles}
 
@@ -48,10 +48,11 @@ flowchart TB
 ```
 
 Five roles run in a task. The task's **workflow** (`quick`, `standard` or `careful`) decides which of
-them run: `quick` runs the implementer alone; `standard` runs the implementer, its repository checks,
-the completion judge and the reviewer; `careful` adds the scoper before them (including a split
-proposal when an issue is too big for one pull request) and the implementer's repository search tool.
-A repository switches the **tester** on with `Repository.spec.workflow.testFirst: true`. For RunLore's
+them run: `quick` runs the implementer alone; `standard` runs the implementer, with its repository
+checks, then the reviewer; `careful` adds the scoper before them (including a split proposal when an
+issue is too big for one pull request), the implementer's repository search tool and the completion
+judge.
+A repository switches the **tester** on, for `careful` tasks, with `Repository.spec.workflow.testFirst: true`. For RunLore's
 incident role, which investigates an alert and proposes an issue, see
 [RunLore]({{< relref "/docs/how-it-works/runlore.md" >}}).
 

@@ -39,13 +39,13 @@ on reload, so run `npm run build` after an edit.
 The site plays a 720-wide web encode of each clip, with a poster named after it
 (`static/media/<clip>.mp4` and `<clip>-poster.jpg`). Scale with `-2`, never a fixed height: a fixed
 `720:900` stretches the 1080×1280 v3 clip. v1's poster is its opening frame; v3's first frame is an
-empty grid, so its poster is taken at 26 s, when the diagram is complete:
+empty grid, so its poster is taken at 32 s, when the diagram is complete:
 
 ```bash
 CLIP=agent-factory-v3   # or agent-factory
 ffmpeg -i out/$CLIP.mp4 -vf scale=720:-2 -c:v libx264 -crf 26 -preset slow \
   -pix_fmt yuv420p -movflags +faststart -an ../../website/static/media/$CLIP.mp4
-ffmpeg -ss 26 -i out/$CLIP.mp4 -frames:v 1 -vf scale=720:-2 -q:v 3 ../../website/static/media/$CLIP-poster.jpg  # v1: -ss 0
+ffmpeg -ss 32 -i out/$CLIP.mp4 -frames:v 1 -vf scale=720:-2 -q:v 3 ../../website/static/media/$CLIP-poster.jpg  # v1: -ss 0
 ```
 
 Embed a clip with the `hero-video` shortcode: `{{< hero-video clip="agent-factory-v3" width="720"
@@ -69,13 +69,16 @@ Most edits need no engine knowledge:
 | Clip | Scene | Length | Made for |
 |---|---|---|---|
 | `agent-factory` | v1/v2, one task end to end, with a title card | 32 s | the feed and the homepage |
-| `agent-factory-v3` | the scoper, the split, the loop policy and the judgement roles; no title card, 1080×1280, loops from an empty cluster | 33 s | the [run roles](../../website/content/docs/how-it-works/merge-gate.md) page |
+| `agent-factory-v3` | the v4 workflows (quick, standard, careful), the roles each runs and the merge gate; no title card, 1080×1280, loops from an empty cluster | 34 s | the [roles](../../website/content/docs/how-it-works/roles.md) page |
 
-The v3 beats map to the harness runbook layers: `scoper` (0–7 s) is layer 1; `split` (7–13 s) is
-layer 5, the splitter; `implement` (13–20 s) is layer 4 (search) plus the tester (layer 6, shown as a
-`switch` pill) and the implementer's own checks; `judge` (20–27 s) is layer 2, the judge and the loop
-policy, then the reviewer and the human approval; `outro` (27–33 s) is the merge gate, which merges
-only low-risk classes. The legend line names which class runs which stage. Beats are named per clip (for example `hook`, `intake`, `identity`, `pr`, `outro`). Each has a
+The `agent-factory-v3` clip shows Agent Factory v4. Every role is on screen from the start, ghosted;
+each workflow lights its own. `intake` (0–4.5 s): a label reaches GitHub and the workflow picks the
+roles. `quick` (4.5–9 s): the implementer alone, its pull request straight to the gate. `standard`
+(9–14 s): the implementer runs the repository's checks, then the reviewer. `scope` (14–20.5 s):
+`careful` adds the scoper, which bounds the task or asks the author one question, and the tester when
+the repository sets `workflow.testFirst`. `build` (20.5–26 s): the implementer's search and the
+`tier-light` judge call. `gate` (26–34 s): the merge gate reads the diff; a live policy merges under a
+daily cap, a shadow one only records, otherwise one approval merges. Beats are named per clip (for example `hook`, `intake`, `identity`, `pr`, `outro`). Each has a
 `start`, an `end` and a caption. The scene schedules every animation relative to its
 beat's `start`, so moving a beat moves its contents.
 

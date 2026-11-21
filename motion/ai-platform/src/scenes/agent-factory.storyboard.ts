@@ -14,7 +14,8 @@ export const title = {
 
 export const labels = {
   cluster: 'Kubernetes',
-  maintainer: { title: 'Maintainer', sub: 'labels · reviews' },
+  developer: { title: 'Developer', sub: 'coding agent · Slack' },
+  planner: { title: 'Planner', sub: ['drafts the issue', 'asks ≤ 1 question'] },
   github: { title: 'GitHub', sub: 'issue · pull request' },
   readyLabel: 'factory/ready',
   room: { title: 'Room', sub: 'watch · steer' },
@@ -23,13 +24,14 @@ export const labels = {
   gateway: { title: 'agentgateway', sub: 'per-run identity · budgets' },
   models: { title: 'Models', sub: 'Z.ai GLM · Claude' },
   tools: { title: 'MCP tools', sub: 'Flux · Victoria' },
-  token: { title: 'GitHub token', sub: 'octo-sts' },
+  token: { title: 'GitHub token', sub: 'per-run App token' },
   edges: {
-    label: 'labels issue',
+    ask: 'asks ·\nplans',
+    file: 'files issue',
     review: 'reviews ·\nmerges',
     open: 'opens',
     start: 'starts run',
-    steer: 'events ·\nsteering',
+    steer: 'events · steering',
     watch: 'watches · steers',
     call: 'every call',
     pr: 'branch · PR',
@@ -38,23 +40,28 @@ export const labels = {
 
 export const beats = {
   hook: { start: 0, end: 4 } as Beat,
-  intake: {
+  ask: {
     start: 4,
-    end: 11,
-    caption: 'Label an issue. It becomes a **sandboxed\u00a0agent\u00a0run** you can watch and steer.',
+    end: 9,
+    caption: 'One sentence from your **coding\u00a0agent** or **Slack**, or a labelled issue. A **planner** drafts the issue; you confirm it.',
+  } as Beat,
+  intake: {
+    start: 9,
+    end: 14,
+    caption: 'The issue becomes a **sandboxed\u00a0agent\u00a0run** you can watch and steer.',
   } as Beat,
   identity: {
-    start: 11,
-    end: 18,
+    start: 14,
+    end: 20,
     caption: 'Every call goes through a gateway under the run\u2019s **own\u00a0identity**, with a **budget**.',
   } as Beat,
   pr: {
-    start: 18,
-    end: 24,
+    start: 20,
+    end: 25.5,
     caption: 'The agent opens a **pull\u00a0request**. A **human review** decides the merge.',
   } as Beat,
   outro: {
-    start: 24,
+    start: 25.5,
     end: 32,
     caption: 'Trusted, metered, audited, stoppable. **Agents a team can hand work to.**',
   } as Beat,

@@ -1,0 +1,16 @@
+{{- /* The partner call: a card with a title, a message (markdown) and link buttons, from
+       params.partner. Rendered by the partner-card shortcode on the home and status pages. */ -}}
+{{- with site.Params.partner -}}
+<aside class="anr-partner" aria-labelledby="anr-partner-title">
+  <span class="anr-partner-mark" aria-hidden="true">🤝</span>
+  <div class="anr-partner-body">
+    <p id="anr-partner-title" class="anr-partner-title">{{ .title }}</p>
+    <p class="anr-partner-text">{{ $.page.RenderString .message }}</p>
+    <p class="anr-partner-links">
+      {{- range $i, $l := .links }}
+      <a class="anr-partner-btn{{ if eq $i 0 }} anr-partner-btn-primary{{ end }}" href="{{ $l.url }}" rel="noopener">{{ $l.name }}</a>
+      {{- end }}
+    </p>
+  </div>
+</aside>
+{{- end -}}

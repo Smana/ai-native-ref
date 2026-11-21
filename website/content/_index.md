@@ -7,8 +7,8 @@ description: "The AI platform of Cloud Native Reference: self-hosted model servi
 
 {{< hero-video clip="agent-factory" alt="The Agent Factory in 32 s: a labelled issue becomes a sandboxed agent run, watched and steered in a room; every call goes through agentgateway under the run's own identity and budget; the agent opens a pull request that a human reviews and merges." >}}
 
-{{< hextra/hero-badge >}}
-  Open source · Apache-2.0 · runs on a Cloud Native Reference cluster
+{{< hextra/hero-badge link="https://github.com/Smana/ai-native-ref/releases/tag/v4.0.0" >}}
+  🚀 Agent Factory v4 is out · Open source · Apache-2.0
 {{< /hextra/hero-badge >}}
 
 {{< hextra/hero-headline >}}
@@ -22,6 +22,9 @@ description: "The AI platform of Cloud Native Reference: self-hosted model servi
 {{< /hextra/hero-subtitle >}}
 
 {{< hextra/hero-button text="The AI platform" link="docs/get-started/" >}}
+{{< hextra/hero-button text="Watch a real run ↗" link="https://blog.ogenki.io/maku/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
 {{< hextra/hero-button text="The host: Cloud Native Ref ↗" link="https://cnref.ogenki.io/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
 
 {{< /hero-video >}}
+
+{{< partner-card >}}

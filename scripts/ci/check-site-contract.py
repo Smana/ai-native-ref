@@ -6,7 +6,7 @@ Rules checked here:
   tooling/base/agent-factory/helm-values-configmap.yaml.
 - active cluster: activeCluster (and any Active: <cluster> line) on
   website/content/docs/status.md equals factory in .github/agent-factory.yaml.
-- product name: "Agent Factory" outside release names (Agent Factory v0..v3) is
+- product name: "Agent Factory" outside release names (Agent Factory v0..v4) is
   refused outside decisions/.
 - maku version: a Maku version literal or versioned Maku GitHub URL is refused
   outside status.md and decisions/.
@@ -59,7 +59,7 @@ ACTIVE_CLUSTER_FM_RE = re.compile(r'^\s*activeCluster:\s*["\']?(\S+?)["\']?\s*(?
 ACTIVE_CLUSTER_BODY_RE = re.compile(r'^\s*(?:\*\*)?Active:(?:\*\*)?\s*`?((?:aws|gcp)-[0-9]+)`?\b')
 DIATAXIS_FM_RE = re.compile(r'^\s*diataxis:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$')
 
-PRODUCT_NAME_RE = re.compile(r"Agent Factory(?! \[?v[0-3]\b)")
+PRODUCT_NAME_RE = re.compile(r"Agent Factory(?! \[?v[0-4]\b)")
 MAKU_VERSION_TEXT_RE = re.compile(r"Maku v0\.\d+\.\d+")
 MAKU_VERSION_URL_RE = re.compile(r"Smana/maku/(?:blob|tree|releases/tag)/v0\.\d+\.\d+")
 RAW_MAKU_LINK_RE = re.compile(r"github\.com/Smana/maku/(?:blob|tree)/\S+")

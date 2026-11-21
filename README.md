@@ -6,6 +6,11 @@ and optional open-weights model serving onto a Kubernetes cluster managed with G
 manifests, admission and network policies, merge-gate resources, alerts, dashboards, runbooks and
 documentation ([airef.ogenki.io](https://airef.ogenki.io/)).
 
+> [!TIP]
+> **🚀 Agent Factory v4 is out.** The factory runs on its own, without our cluster's Crossplane, Kueue or octo-sts, and you drive it in plain words from a coding agent or Slack. [Release notes](https://github.com/Smana/ai-native-ref/releases/tag/v4.0.0) · [Watch a real run](https://blog.ogenki.io/maku/)
+>
+> **🤝 Looking for a partner company.** I've spent a lot of time on this project (and quite a few tokens 😅). Next, I want to put it to the test in the field: I'm looking for a partner company ready to try it with its teams, on real use cases. Interested? [Get in touch](https://blog.ogenki.io/about/) or find me on [Bluesky](https://bsky.app/profile/smana.dev).
+
 ## What you get
 
 | Capability | How | What it replaces |

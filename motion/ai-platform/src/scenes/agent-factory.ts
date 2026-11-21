@@ -56,7 +56,8 @@ export function agentFactory(assets: Assets): Scene {
   const eAsk = new Edge({ points: [[120, 270], [120, rowY]], color: H });
   const ePlan = new Edge({ points: [[230, rowY], [230, 270]], color: C, label: { text: L.edges.ask, x: 248, y: 330, align: 'left' } });
   const eFile = new Edge({ points: [[410, 175], [650, 175]], color: H, label: { text: L.edges.file, x: 530, y: 150 } });
-  const eReview = new Edge({ points: [[410, 230], [650, 230]], color: H, label: { text: L.edges.review, x: 530, y: 252 } });
+  // the review pill (38 px tall) rides at y 193–231, clear of the label below it
+  const eReview = new Edge({ points: [[410, 212], [650, 212]], color: H, label: { text: L.edges.review, x: 530, y: 252 } });
   const eIntake = new Edge({ points: [[895, 270], [895, rowY]], color: C });
   const eOpen = new Edge({ points: [[760, 460], [640, 460]], color: C, label: { text: L.edges.open, x: 700, y: 436 } });
   const eStart = new Edge({ points: [[790, 530], [790, 585]], color: C, label: { text: L.edges.start, x: 808, y: 560, align: 'left' } });

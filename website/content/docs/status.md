@@ -12,12 +12,13 @@ lastVerified: 2026-11-20
 Use this page to see what the platform can do and what is coming next. **Proven live** means
 demonstrated end to end on a real cluster; it does not describe the current deployment.
 
-**Current release:** the Agent Factory [v3.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v3.0.0); `main` is tagged up to `v3.27.9`.
-**Next:** v4.0.0 is in preparation. Its standalone runtime is proven on our GKE and EKS clusters; the installs listed under [Next plans](#later) remain.
+**Current release:** the Agent Factory [v4.0.0](https://github.com/Smana/ai-native-ref/releases/tag/v4.0.0): the factory runs on its own, without our cluster's Crossplane, Kueue or octo-sts, and you drive it in plain words from a coding agent or Slack. [Watch a real run](https://blog.ogenki.io/maku/).
 **On `main`:** Maku {{< maku-version >}} for every component.
 
 For installation, upgrades, restoration, and cluster operations, see
 [Day-2 operations]({{< relref "/docs/operate/day-2.md" >}}).
+
+{{< partner-card >}}
 
 <span id="clusters"></span><span id="rebuild"></span><span id="roadmap"></span><span id="v2-roadmap"></span>
 
@@ -97,7 +98,7 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 | Signed provenance and reviewed repository memory | Attest how a change was produced and capture what agents learn as reviewed instructions. |
 | Gemini as a provider | Add another public-work model with its own capability profile and cost checks. |
 | Serving improvements | GPU sharing, larger or denser models, and cost per tenant, each with its own measured trigger. [Serving]({{< relref "/docs/how-it-works/serving/_index.md" >}}) |
-| v4.0.0: anyone can run it | The standalone runtime is proven on GKE and EKS. Before the release: recorded GKE and kubeadm installs, and an outside user's laptop run. [Quickstart]({{< maku "docs/quickstart.md" >}}) |
+| Installs beyond our clusters | v4.0.0 is proven on our GKE and EKS clusters; recorded GKE and kubeadm installs and an outside user's laptop run come next. [Quickstart]({{< maku "docs/quickstart.md" >}}) |
 | Eval bench and open-weight bake-off | Fixed issues will compare acceptance and cost per accepted pull request when funded. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-eval-bench-design.md) |
 
 ## Known limitations {#before-v3}

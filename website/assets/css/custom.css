@@ -699,3 +699,53 @@ pre.mermaid { cursor: zoom-in; }
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* The partner call (layouts/_partials/custom/partner.html): unlike the sponsor note, a call to
+ * action. A gradient hairline in the brand hue, the copy at body size, and one primary button. */
+.anr-partner {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin: 2.5rem auto 0;
+  max-width: 56rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 0.875rem;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--anr-partner-bg), var(--anr-partner-bg)) padding-box,
+    linear-gradient(120deg, hsl(320deg 80% 60%), hsl(260deg 80% 68%), hsl(204deg 80% 58%)) border-box;
+  box-shadow: 0 12px 32px -18px rgb(99 102 241 / 0.45);
+}
+:root { --anr-partner-bg: #fff; }
+.dark { --anr-partner-bg: #0f172a; }
+.anr-partner-mark { font-size: 2rem; line-height: 1; padding-top: 0.15rem; }
+.anr-partner-body { min-width: 0; }
+.anr-partner p { margin: 0; }
+.anr-partner-title { font-weight: 700; font-size: 1.125rem; margin-bottom: 0.35rem !important; }
+.anr-partner-text { line-height: 1.6; }
+.anr-partner-links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem !important; }
+.anr-partner-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid rgb(148 163 184 / 0.45);
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.anr-partner-btn-primary {
+  border-color: transparent;
+  background: linear-gradient(120deg, hsl(320deg 75% 50%), hsl(260deg 70% 58%));
+  color: #fff;
+}
+.anr-partner-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px -8px rgb(99 102 241 / 0.6); }
+@media (max-width: 640px) {
+  .anr-partner { flex-direction: column; gap: 0.5rem; padding: 1rem 1.1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .anr-partner-btn { transition: none; }
+  .anr-partner-btn:hover { transform: none; }
+}

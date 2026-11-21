@@ -95,6 +95,16 @@ params:
     displayToggle: true
   # The sponsor note (layouts/_partials/custom/sponsor.html): message is the footer line on every
   # page, card the status page's card ({{< sponsor-card >}}). [text][sponsor] links to url.
+  # The partner call (layouts/_partials/custom/partner.html), on the home and status pages
+  # ({{< partner-card >}}). Each link is a button; the first is the primary one.
+  partner:
+    title: "Looking for a partner company"
+    message: "I've spent a lot of time on this project (and quite a few tokens 😅). Next, I want to put it to the test in the field: I'm looking for a **partner company** ready to try it with its teams, on real use cases. Interested? Get in touch."
+    links:
+      - name: "Message me on LinkedIn"
+        url: "https://www.linkedin.com/in/sma%C3%AFne-kahlouch-44374110/"
+      - name: "Bluesky"
+        url: "https://bsky.app/profile/smana.dev"
   sponsor:
     url: "https://github.com/sponsors/Smana"
     message: "One person maintains this reference and pays for the AWS, GCP and model-API time that verifies it; [sponsoring][sponsor] helps cover that."

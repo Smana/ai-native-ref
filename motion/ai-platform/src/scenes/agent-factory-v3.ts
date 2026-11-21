@@ -29,12 +29,12 @@ export function agentFactoryV3(_assets: Assets): Scene {
 
   // ---- layout ---------------------------------------------------------------
   // Left column: the roles in run order. Right column: what a role asks or calls.
-  const cluster = new Region({ x: 14, y: 290, w: 1026, h: 870, label: L.cluster, color: C, icon: 'cluster', labelAlign: 'right' });
+  const cluster = new Region({ x: 14, y: 290, w: 1026, h: 870, label: L.cluster, color: C, icon: 'cluster', labelAlign: 'left' });
 
   const maintainer = new Node({ x: 30, y: 120, w: 380, h: 130, title: L.maintainer.title, sub: [L.maintainer.sub], color: H, icon: 'person', subSize: 22 });
   const github = new Node({ x: 650, y: 120, w: 380, h: 130, title: L.github.title, sub: [L.github.sub], color: H, icon: 'github', subSize: 24 });
   const workflow = new Node({
-    x: 40, y: 330, w: 640, h: 90, title: '', color: C, titleSize: 32,
+    x: 380, y: 340, w: 640, h: 90, title: '', color: C, titleSize: 32,
     segments: L.workflows.map((w) => ({ title: w })),
   });
   const scoper = new Node({ x: 40, y: 460, w: 660, h: 110, title: L.scoper.title, sub: [L.scoper.sub], color: J, icon: 'scope', subSize: 22 });
@@ -51,7 +51,8 @@ export function agentFactoryV3(_assets: Assets): Scene {
 
   const eLabel = new Edge({ points: [[410, 160], [650, 160]], color: H, label: { text: L.edges.label, x: 530, y: 136 } });
   const eReview = new Edge({ points: [[410, 210], [650, 210]], color: H, label: { text: L.edges.review, x: 530, y: 232 } });
-  const eIntake = new Edge({ points: [[665, 250], [665, 330]], color: C });
+  // the selector sits right, under GitHub, and the region label left: a packet never covers the label
+  const eIntake = new Edge({ points: [[840, 250], [840, 340]], color: C });
   const eQuestion = new Edge({ points: [[700, 515], [740, 515]], color: J, dashed: true });
   const eTask = new Edge({ points: [[600, 570], [600, 620]], color: J, label: { text: L.edges.task, x: 616, y: 595, align: 'left' } });
   const eSearch = new Edge({ points: [[700, 665], [740, 665]], color: C, both: true });

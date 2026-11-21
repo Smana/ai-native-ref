@@ -1,74 +1,74 @@
-// The editable part of the v3 clip: beats, timings and wording.
-// Wrap words in **…** to accent them; \u00a0 keeps two words on one line.
+// The editable part of the roles clip (Agent Factory v4): beats, timings and wording.
+// Wrap words in **…** to accent them;   keeps two words on one line.
 
 import type { Beat } from './beat.js';
 
 // No title card: the clip is meant for a docs page, where the heading does that job.
-// Beats map to the runbook layers: scoper (1), judge and loop policy (2), search (4),
-// splitter (5), tester (6).
+// A workflow picks the roles (quick, standard, careful); the merge gate ends every task.
 
 export const labels = {
   cluster: 'Kubernetes',
   maintainer: { title: 'Maintainer', sub: 'labels · approves' },
   github: { title: 'GitHub', sub: 'issue · pull request' },
   readyLabel: 'factory/ready',
-  scoper: { title: 'Scoper', sub: 'read-only · before any code' },
-  task: { title: 'Bounded task', sub: 'touches · plan · acceptance checks' },
-  parts: ['Part 1', 'Part 2', 'Part 3'],
-  splitCommand: '/factory split',
-  implementer: { title: 'Implementer', sandbox: 'gVisor sandbox', inside: 'one writer · one branch' },
-  search: { title: 'Search', sub: ['in-process', 'read-only'] },
-  checks: 'runs the repo checks before pushing',
-  tester: 'Tester \u00b7 test first',
-  needsAuthor: 'factory/needs-author',
-  legend: 'docs: scoper \u00b7 judge \u00b7 search  |  scripts: scoper \u00b7 split \u00b7 judge  |  docs-links: implementer \u2192 gate',
-  stall: 'no commit by step N → stop',
-  judge: { title: 'Judge', sub: 'a call, not a run · no tools' },
-  verdicts: 'met · not yet · impossible',
+  workflows: ['quick', 'standard', 'careful'],
+  picks: ['workflow:quick', 'default', 'workflow:careful'],
+  scoper: { title: 'Scoper', sub: 'read-only · bounds the task' },
+  author: { title: 'Author', sub: 'one question' },
+  tester: 'Tester · failing tests first',
+  testerTag: 'if testFirst',
+  implementer: { title: 'Implementer', sandbox: 'gVisor sandbox', inside: 'one branch: agent/<task>' },
+  checks: 'runs the repo’s checks before pushing',
+  search: { title: 'Search', sub: 'read-only' },
+  judge: { title: 'Judge', sub: 'a call, not a run' },
+  verdicts: 'met · not yet',
   reviewer: { title: 'Reviewer', sub: 'fresh context · the diff, not the story' },
-  evidence: 'cites the checks\u2019 output',
-  gate: { title: 'Merge gate', sub: 'decides · low-risk classes · breaker' },
+  gate: { title: 'Merge gate', sub: 'maku/merge-gate · reads the diff' },
+  policies: {
+    live: 'live → merges · daily cap',
+    shadow: 'shadow → records only',
+    human: 'else → one approval merges',
+  },
   edges: {
     label: 'labels issue',
     review: 'approves =\nthe merge',
-    question: 'one question to the author',
-    oneAtATime: 'next part after the merge',
-    finished: 'finished',
-    notYet: 'not yet',
-    met: 'met',
+    task: 'bounded task',
     pr: 'merger App\nmerges',
-    openPR: 'branch · PR',
-    escalate: 'escalates to\na maintainer',
   },
 };
 
 export const beats = {
-  scoper: {
+  intake: {
     start: 0,
-    end: 7,
-    caption: 'Before any code, a **scoper** bounds the task. Or asks the author **one\u00a0question**.',
+    end: 4.5,
+    caption: 'A **workflow** picks the roles: from the handoff form, a **label** or the repository’s default.',
   } as Beat,
-  split: {
-    start: 7,
-    end: 13,
-    caption: 'Too big? **Split** into parts a maintainer approves, landed **one\u00a0by\u00a0one**.',
+  quick: {
+    start: 4.5,
+    end: 9,
+    caption: '**quick**: the implementer alone. Small, obvious fixes and scheduled tasks.',
   } as Beat,
-  implement: {
-    start: 13,
-    end: 20,
-    caption: 'The implementer runs the repo\u2019s **own\u00a0checks**, asks **search** and **stops if it wanders**.',
+  standard: {
+    start: 9,
+    end: 14,
+    caption: '**standard**, the default: the implementer, then a fresh-context **reviewer**.',
   } as Beat,
-  judge: {
-    start: 20,
-    end: 27,
-    caption: 'A fresh-context **judge** says done. A fresh-context **reviewer** cites the **checks**.',
+  scope: {
+    start: 14,
+    end: 20.5,
+    caption: '**careful**: a **scoper** bounds the task first, or asks the author **one question**.',
   } as Beat,
-  outro: {
-    start: 27,
-    end: 33,
-    caption: 'Each stage is a per-class switch, off by default. **Link fixes merge alone; one approval merges the rest.**',
+  build: {
+    start: 20.5,
+    end: 26,
+    caption: 'The implementer **searches** the repo; a **judge** call says done before the reviewer.',
+  } as Beat,
+  gate: {
+    start: 26,
+    end: 34,
+    caption: 'Policies judge the **diff**. A **live** policy merges alone; otherwise **one approval** merges.',
   } as Beat,
 };
 
 /** The last second fades to the background, so the loop restarts on an empty cluster. */
-export const duration = beats.outro.end;
+export const duration = beats.gate.end;

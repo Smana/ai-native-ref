@@ -6,7 +6,7 @@ linkTitle: Status
 weight: 60
 description: "What is proven live, what awaits validation, what is in progress, and what is planned next."
 activeCluster: aws-0
-lastVerified: 2026-11-20
+lastVerified: 2026-11-21
 ---
 
 Use this page to see what the platform can do and what is coming next. **Proven live** means
@@ -85,13 +85,24 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 | Untrusted-input hardening | H1–H5 follow H0: audit, enforced non-code outputs, enforced pushes, filtered reads, and readiness. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-07-untrusted-input-hardening-design.md) |
 | Workflow and model trials | The comparison is built; the reference trial was turned off ([#414](https://github.com/Smana/ai-native-ref/pull/414)) before it recorded a task. It will compare quick, standard, and careful workflows by cost per merged pull request and merge rate. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-14-workflows-review-design.md) |
 
+## Next: v5, proven in the field {#v5}
+
+v4 lets anyone run the factory. v5 is about one development team, in a company, using it on its own
+repositories, and what that teaches.
+
+| Goal | What it takes |
+|---|---|
+| **A company runs a proof of concept** | A development team at a partner company uses the factory on its own repositories, in a real environment; what it needs becomes v5's backlog. [Get in touch](https://blog.ogenki.io/about/) |
+| **kagent and Agent Substrate, challenged again** | Both are gaining adoption. Rerun [ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}})'s comparison against their current releases and its reconsideration triggers, then adopt, borrow from, or keep deferring each. |
+| **OpenCode as the harness** | Replace OpenHands with OpenCode inside the sandbox, once it matches OpenHands on the factory's tasks and checks. [Evaluation](https://github.com/Smana/ai-native-ref/pull/404) |
+| **A spec format for issues** | Define the spec a GitHub issue carries for spec-driven development: what the planner writes, what the scoper and judge check against, and what the reviewer verifies. |
+
 ## Next plans {#later}
 
 <span id="v4"></span><span id="v4-core"></span><span id="v4-increments"></span><span id="serving-roadmap"></span>
 
 | Plan | Why it matters |
 |---|---|
-| **OpenCode as a second harness** | Evaluate OpenCode beside OpenHands without changing the default; replacement requires parity and measured benefit. [Specification and plans](https://github.com/Smana/ai-native-ref/pull/404) |
 | Outcome analytics and reviewer calibration | Compare merge rate, rework, reverts, duration, and cost by class, model, role, and repository. |
 | Verification on real services and a review inbox | Test real dependencies before a pull request and give maintainers one risk-ranked review queue. |
 | Continuation loop, event triggers, and fleet campaigns | Fix CI and reviews, start work from alerts or schedules, and roll a change out across repositories. |

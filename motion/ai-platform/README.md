@@ -1,6 +1,6 @@
 # AI Platform explainers
 
-Short animated clips about the Agent Factory, the bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor, octo-sts…) behind the AI Platform, for LinkedIn and the docs. `POST.md` holds the
+Short animated clips about the Agent Factory, the bundle of open-source tools (Maku, agentgateway, OpenHands, gVisor…) behind the AI Platform, for LinkedIn and the docs. `POST.md` holds the
 post caption draft. `out/` is ignored by git. The docs homepage serves a web encode from `website/static/media/` (see [Publish on the site](#publish-on-the-site)). Each clip is a
 TypeScript scene drawn on a canvas, rendered frame by frame in headless Chromium and
 encoded with ffmpeg. The project depends only on `typescript`, `tsx` and `playwright`.

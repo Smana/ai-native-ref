@@ -6,7 +6,7 @@ linkTitle: Status
 weight: 60
 description: "What is proven live, what awaits validation, what is in progress, and what is planned next."
 activeCluster: aws-0
-lastVerified: 2026-11-21
+lastVerified: 2026-11-22
 ---
 
 Use this page to see what the platform can do and what is coming next. **Proven live** means
@@ -87,15 +87,16 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 
 ## Next: v5, proven in the field {#v5}
 
-v4 lets anyone run the factory. v5 is about one development team, in a company, using it on its own
-repositories, and what that teaches.
+v4 lets anyone run the factory. v5 proves Maku with one external GitHub and Kubernetes team on its own private repositories — as an Apache-2.0 open-source collaboration (bootstrap support, with optional freelance integration days) rather than a commercial product.
 
 | Goal | What it takes |
 |---|---|
-| **A company runs a proof of concept** | A development team at a partner company uses the factory on its own repositories, in a real environment; what it needs becomes v5's backlog. [Get in touch](https://blog.ogenki.io/about/) |
-| **kagent and Agent Substrate, challenged again** | Both are gaining adoption. Rerun [ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}})'s comparison against their current releases and its reconsideration triggers, then adopt, borrow from, or keep deferring each. |
-| **OpenCode as the harness** | Replace OpenHands with OpenCode inside the sandbox, once it matches OpenHands on the factory's tasks and checks. [Evaluation](https://github.com/Smana/ai-native-ref/pull/404) |
-| **A spec format for issues** | Define the spec a GitHub issue carries for spec-driven development: what the planner writes, what the scoper and judge check against, and what the reviewer verifies. |
+| **Pre-pitch readiness** | Private-repository planning, one recorded generic Kubernetes Helm install, outside-user laptop quickstart checks ([Quickstart]({{< maku "docs/quickstart.md" >}})), a standalone `Smana/maku` front door, a two-minute real-run video, and a static room replay. |
+| **External team pilot on private repositories** | One GitHub and Kubernetes team runs a Tier-1 Pilot (one GitHub App, shadow merge gate, standard OIDC/Ingress, mandatory gVisor) and lands at least ten merged pull requests. Hardening (H1–H5), team RBAC (`write` access and GitHub Teams), and per-repository runtime images land alongside the team's stack. [Get in touch](https://blog.ogenki.io/about/) |
+| **Pluggable harnesses, OpenCode default** | Make `AgentRun.spec.harness` a three-tier contract: OpenCode as the slim default once parity passes ([Evaluation](https://github.com/Smana/ai-native-ref/pull/404)), OpenHands as the proven fallback, and best-effort bring-your-own Claude Code. |
+| **Spec-driven development intake** | Ingest open markdown specs (GitHub Spec Kit, OpenSpec, or EARS sections in issues or `specs/`) natively when present, falling back to a minimal compatible Maku spec written by the planner and scoper. |
+| **Outcome analytics and live merge proof** | Join merge rate, revert rate, human wait time, and USD cost per merged pull request into one view by repository, policy, model, and workflow; prove at least one class beyond `docs-links` (`deps-patch` or `docs`) live with a revert drill and a second-family reviewer ([ADR-0058]({{< relref "/docs/decisions/0058-reviewer-on-another-model.md" >}})). |
+| **Time-boxed `kagent` and Agent Substrate check** | After the first external team pilot ships, run a strict two-day check against [ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}})'s reconsideration triggers, then adopt, borrow, or keep deferring each. |
 
 ## Next plans {#later}
 
@@ -103,13 +104,14 @@ repositories, and what that teaches.
 
 | Plan | Why it matters |
 |---|---|
-| Outcome analytics and reviewer calibration | Compare merge rate, rework, reverts, duration, and cost by class, model, role, and repository. |
-| Verification on real services and a review inbox | Test real dependencies before a pull request and give maintainers one risk-ranked review queue. |
-| Continuation loop, event triggers, and fleet campaigns | Fix CI and reviews, start work from alerts or schedules, and roll a change out across repositories. |
+| PR continuation loop, cloud-to-local takeover, and review inbox | Partner-triggered v5.x fast-follows: fix inline review comments and merge conflicts, pull stalled runs locally (`maku takeover`), and give maintainers one risk-ranked review queue. |
+| Reviewer calibration and verification on real services | Measure judge and reviewer agreement against real merge outcomes and test live dependencies before opening a pull request. |
+| GitLab, Jira, and Linear integrations | Deferred until after PoC #1 proves the core GitHub and Kubernetes loop. |
+| Event triggers and fleet campaigns | Start work from CI failures, alerts, or schedules, and roll a change out across repositories once hardening is live. |
 | Signed provenance and reviewed repository memory | Attest how a change was produced and capture what agents learn as reviewed instructions. |
 | Gemini as a provider | Add another public-work model with its own capability profile and cost checks. |
 | Serving improvements | GPU sharing, larger or denser models, and cost per tenant, each with its own measured trigger. [Serving]({{< relref "/docs/how-it-works/serving/_index.md" >}}) |
-| Installs beyond our clusters | v4.0.0 is proven on our GKE and EKS clusters; recorded GKE and kubeadm installs and an outside user's laptop run come next. [Quickstart]({{< maku "docs/quickstart.md" >}}) |
+| Dedicated Maku documentation site | Keep `Smana/maku`'s README and docs as the standalone front door through PoC #1; spin up a dedicated site only after field validation. |
 | Eval bench and open-weight bake-off | Fixed issues will compare acceptance and cost per accepted pull request when funded. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-eval-bench-design.md) |
 
 ## Known limitations {#before-v3}

@@ -6,7 +6,7 @@ linkTitle: Status
 weight: 60
 description: "What is proven live, what awaits validation, what is in progress, and what is planned next."
 activeCluster: aws-0
-lastVerified: 2026-11-22
+lastVerified: 2026-11-23
 ---
 
 Use this page to see what the platform can do and what is coming next. **Proven live** means
@@ -91,9 +91,11 @@ v4 lets anyone run the factory. v5 proves Maku with one external GitHub and Kube
 
 | Goal | What it takes |
 |---|---|
-| **Pre-pitch readiness** | Private-repository planning, one recorded generic Kubernetes Helm install, outside-user laptop quickstart checks ([Quickstart]({{< maku "docs/quickstart.md" >}})), a standalone `Smana/maku` front door, a two-minute real-run video, and a static room replay. |
-| **External team pilot on private repositories** | One GitHub and Kubernetes team runs a Tier-1 Pilot (one GitHub App, shadow merge gate, standard OIDC/Ingress, mandatory gVisor) and lands at least ten merged pull requests. Hardening (H1–H5), team RBAC (`write` access and GitHub Teams), and per-repository runtime images land alongside the team's stack. [Get in touch](https://blog.ogenki.io/about/) |
+| **Pre-pitch readiness** | Private-repository planning, Tier-1 hardened bundled PostgreSQL (PVC, TLS, automatic three-role bootstrap, optional S3 backups) plus a one-step Tier-2 CNPG or external-database bootstrapper, one recorded generic Kubernetes Helm install, outside-user laptop quickstart checks ([Quickstart]({{< maku "docs/quickstart.md" >}})), a standalone `Smana/maku` front door, a two-minute real-run video, and a static room replay. |
+| **External team pilot on private repositories** | One GitHub and Kubernetes team runs a Tier-1 Pilot (one GitHub App, shadow merge gate, bundled PostgreSQL, standard OIDC/Ingress or Slack Socket Mode, mandatory gVisor) and lands at least ten merged pull requests. Hardening (H1–H5), team RBAC (`write` access and GitHub Teams), and per-repository runtime images land alongside the team's stack. [Get in touch](https://blog.ogenki.io/about/) |
 | **Pluggable harnesses, OpenCode default** | Make `AgentRun.spec.harness` a three-tier contract: OpenCode as the slim default once parity passes ([Evaluation](https://github.com/Smana/ai-native-ref/pull/404)), OpenHands as the proven fallback, and best-effort bring-your-own Claude Code. |
+| **Harness visual verification (screenshots)** | Add an opt-in browser sidecar (`maku-browser`) inside gVisor pods for `implementer` and `tester` runs, speaking Playwright MCP over loopback (`127.0.0.1`) only so agents verify local UI and docs builds visually without bloating the base image or widening egress; human-visible pull-request and room screenshots follow in a second phase. |
+| **Slack security model and Socket Mode** | Evolve the Slack app to personal-bound principals over one workspace bot (no personal Slack user tokens): direct-message intake with dynamic per-user repository access and per-person USD budgets, strict author-only thread isolation, Socket Mode as the zero-public-ingress default, and broker-verified `X-Slack-Signature` closing the Slack deputy residual in Events API mode while keeping live steering on the room page. |
 | **Spec-driven development intake** | Ingest open markdown specs (GitHub Spec Kit, OpenSpec, or EARS sections in issues or `specs/`) natively when present, falling back to a minimal compatible Maku spec written by the planner and scoper. |
 | **Outcome analytics and live merge proof** | Join merge rate, revert rate, human wait time, and USD cost per merged pull request into one view by repository, policy, model, and workflow; prove at least one class beyond `docs-links` (`deps-patch` or `docs`) live with a revert drill and a second-family reviewer ([ADR-0058]({{< relref "/docs/decisions/0058-reviewer-on-another-model.md" >}})). |
 | **Time-boxed `kagent` and Agent Substrate check** | After the first external team pilot ships, run a strict two-day check against [ADR-0062]({{< relref "/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md" >}})'s reconsideration triggers, then adopt, borrow, or keep deferring each. |

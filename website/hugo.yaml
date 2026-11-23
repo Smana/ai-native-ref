@@ -98,11 +98,13 @@ params:
   # The partner call (layouts/_partials/custom/partner.html), on the home and status pages
   # ({{< partner-card >}}). Each link is a button; the first is the primary one.
   partner:
-    title: "Looking for a partner company"
-    message: "I've spent a lot of time on this project (and quite a few tokens 😅). Next, I want to put it to the test in the field: I'm looking for a **partner company** ready to try it with its teams, on real use cases. Interested? Get in touch."
+    title: "Pilot Maku with your engineering team"
+    message: "Maku is Apache-2.0 open source and runs on any Kubernetes cluster with GitHub (Cloud or Enterprise Server). I'm looking for a **partner team** to run a Tier-1 Pilot on real private repositories — you own your cluster and model keys, and I help bootstrap and co-build against your stack."
     links:
       - name: "Get in touch"
         url: "https://blog.ogenki.io/about/"
+      - name: "Maku on GitHub ↗"
+        url: "https://github.com/Smana/maku"
       - name: "Bluesky"
         url: "https://bsky.app/profile/smana.dev"
   sponsor:

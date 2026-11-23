@@ -1,6 +1,6 @@
 # v5: proven in the field — positioning, partner pilot, and roadmap
 
-**Date:** 2026-11-22 · **Status:** roadmap approved by the owner 2026-11-22 (decisions [Q1 to Q14](#owner-decisions-2026-11-22)) · **Follows:** the [v4 roadmap](2026-10-31-v4-roadmap-design.md), released as `v4.0.0` on 2026-11-21 · **Research:** the [v5 positioning research](2026-11-22-v5-positioning-research.md)
+**Date:** 2026-11-22 (amended 2026-11-23) · **Status:** roadmap approved by the owner 2026-11-22 (decisions [Q1 to Q14](#owner-decisions-2026-11-22)), amended 2026-11-23 ([Q15 to Q17](#owner-decisions-2026-11-23)) · **Follows:** the [v4 roadmap](2026-10-31-v4-roadmap-design.md), released as `v4.0.0` on 2026-11-21 · **Research:** the [v5 positioning research](2026-11-22-v5-positioning-research.md)
 
 ## Outcome and positioning
 
@@ -31,6 +31,16 @@ Each decision below was settled during the 2026-11-22 roadmap review and governs
 | **Q13** | **How v5 is judged** | Five falsifiable Go criteria covering external private-repo PRs, generic K8s + stranger quickstarts, OpenCode default + SDD live proof, live auto-merge expansion, and the post-PoC 2-day `kagent`/Substrate check (details [below](#how-v5-is-judged)). |
 | **Q14** | **Website split (phased)** | Protect the 2–3 week pre-pitch bar: keep `Smana/maku`'s GitHub README + `docs/` as the standalone product front door (using GitHub Pages strictly for the static Room Replay), apply a light homepage/CTA refresh on `airef.ogenki.io` separating Maku standalone from the reference deployment + GPU serving, and defer a dedicated `maku.ogenki.io` Hugo site until after PoC #1. |
 
+## Owner decisions, 2026-11-23 (roadmap challenge) {#owner-decisions-2026-11-23}
+
+Three candidate v5 additions were challenged and settled through an owner grill interview on 2026-11-23, each recorded in its own design specification:
+
+| # | Area | Decision | Spec |
+|---|---|---|---|
+| **Q15** | **Database adoption** | **Keep PostgreSQL-only** (rejecting SQLite + Litestream and dual-dialect maintenance to preserve T12 DB-enforced immutability and avoid rewriting Maku's 12.3k-LOC store). Cut Week-1 install friction in **Phase 0** by unlocking a **hardened bundled PostgreSQL StatefulSet for Tier-1 Pilot** (1 replica, PVC, TLS, auto-bootstrapped 3 roles, optional S3/GCS backup) plus a **1-step Tier-2 CNPG/external-PG bootstrapper**. | [v5 database adoption design](2026-11-23-v5-database-adoption-design.md) |
+| **Q16** | **Harness visual verification (screenshots)** | Add opt-in **Playwright MCP** visual verification in **Phase 2 (v5 Core)** via a dedicated **`maku-browser` sidecar container** inside gVisor `AgentRun` pods (`implementer` + `tester`, per-`Repository` opt-in, **loopback-only** `127.0.0.1`, keeping the ~277 MB OpenCode image slim). **Phase A:** in-loop agent vision self-verification first; **Phase B:** human-visible PR/Room screenshots deferred to a safe-output artifact follow-up. | [v5 harness screenshots design](2026-11-23-v5-harness-screenshots-design.md) |
+| **Q17** | **Slack security model** | Evolve `maku-slack` in **Phase 2 (v5 Core)** (Socket Mode pull-forward eligible in Phase 1 if PoC #1 uses Slack) to a **hybrid "personal-bound principal, team-visible rooms"** model: one bot (`xoxb-` only, never Amp-style `xoxp-` user tokens), DM/App Home personal intake + per-person USD budgets + strict author-only thread isolation, **Socket Mode** as Tier-1/sovereign default (zero public ingress; unsigned `forge.push` buttons off by default), **Events API** with **broker-verified raw `X-Slack-Signature`** closing the T12 `maku-slack` forging-deputy residual, and **Invariant 8** (no live steering from Slack) preserved. | [v5 Slack security model design](2026-11-23-v5-slack-security-model-design.md) |
+
 ---
 
 ## Phase 0 · Pre-pitch readiness bar (~2–3 weeks)
@@ -42,6 +52,7 @@ Everything required before active partner outreach starts. No feature outside th
 | Item | Outcome | Closes |
 |---|---|---|
 | **Private-repository planner** | `handoff` (MCP/CLI) and Slack planning read private repositories via scoped, short-lived read-only GitHub App tokens and route planning calls over the `internal` model-gateway listener | [status.md](../../../website/content/docs/status.md) known limitation; PoC #1 Day-0 blocker |
+| **Tier-1 bundled Postgres & Tier-2 bootstrapper** | Unlock hardened bundled PostgreSQL 16+ StatefulSet (PVC + TLS + auto-3-roles + optional S3 backup) for `profile: pilot`, plus 1-step CNPG/external-PG bootstrapper for Tier-2 (Q15) | [v5 database adoption design](2026-11-23-v5-database-adoption-design.md); removes Day-1 DB friction for `V11` |
 | **Generic Kubernetes Helm install** | One recorded Tier-1 install from `Smana/maku`'s umbrella Helm chart on a vanilla cluster (`k3s`, `kubeadm`, or plain EKS/GKE outside `cloud-native-ref`) with both Flux and Argo CD examples, passing smoke tests from the docs alone | v4 roadmap `V11` / `D23` |
 | **Outside-user quickstart validation** | At least 2–3 platform engineers other than the owner complete the laptop quickstart from `Smana/maku` docs and log friction; every blocking stumble is fixed | v4 roadmap `V20` |
 
@@ -65,7 +76,8 @@ Splitting adoption into two explicit profiles removes Week-1 corporate friction 
 | **Sandbox isolation** | **gVisor strictly mandatory** on private repositories (non-negotiable) | Dedicated gVisor node pool + warm headroom (`agents-headroom`) |
 | **GitHub identity** | **1 GitHub App** (`apps.merger.mode: factory`) | **3 separated GitHub Apps** (Agents, Factory, dedicated Merger App) |
 | **Merge posture** | **100% human-approved merges**; `MergePolicy` in **shadow mode** only | Earned **live auto-merge** on proven classes with daily caps + revert breaker |
-| **Ingress & TLS** | Standard Kubernetes Ingress or Gateway API `HTTPRoute` with org TLS | Private tailnet / internal Gateway + PKI certificates |
+| **Database** | **Hardened bundled PostgreSQL 16+** StatefulSet (1 replica, PVC, TLS, auto-3-roles, T12 intact, optional S3/VolumeSnapshot backup) (Q15) | **External HA PostgreSQL 16+** (CNPG Cluster / RDS / Cloud SQL) via 1-step bootstrapper + multi-replica broker HA (T12 + HA) |
+| **Ingress & TLS** | Standard Kubernetes Ingress or Gateway API `HTTPRoute` with org TLS; **Slack Socket Mode** (zero public ingress, unsigned `forge.push` buttons off by default) (Q17) | Private tailnet / internal Gateway + PKI certificates; optional Slack **Events API** with broker-verified `X-Slack-Signature` (closes T12 Slack deputy) |
 | **Auth & team RBAC** | Existing OIDC (Okta, Entra ID, Keycloak, ZITADEL) or GitHub OAuth; GitHub `write` role / Teams / `CODEOWNERS` | Hardened OIDC + org group mapping + admin separation |
 | **Network egress** | Default-deny `NetworkPolicy` + egress proxy | Cilium FQDN egress policy (closes DNS-tunnelling residual) |
 | **Input hardening** | Co-enabled with partner during PoC (H1–H5) | Full H1–H5 enforcement + scheduled Promptfoo injection red-team drills |
@@ -93,6 +105,8 @@ Each track runs in dependency order alongside or immediately following Phase 0/1
 | **3. Outcome analytics & Day-30 ROI dashboard** | Join already-collected PR outcomes, duration, human wait, reverts, and role/identity USD costs into one Grafana/broker view by repository, policy class, model, and workflow (`quick` / `standard` / `careful`). Powers both the partner Day-30 readout and the public "100 Real PRs" empirical report (Q11). | Built on existing Maku metrics & [workflows review](2026-11-14-workflows-review-design.md) |
 | **4. Live auto-merge beyond `docs-links`** | Unblock M8 and prove at least one engineering class (`deps-patch` Renovate adoption or `docs`) in `live` mode with a recorded revert drill and a second-family reviewer (Q11). | [ADR-0058](../../../website/content/docs/decisions/0058-reviewer-on-another-model.md), [results](../../runbooks/agent-factory/results-aws-0-2026-11-16.md) |
 | **5. Time-boxed `kagent` & Agent Substrate check** | Strictly **after PoC #1 ships**, spend at most **2 days** re-evaluating current releases against [ADR-0062](../../../website/content/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md)'s triggers (non-bypassable OSS auth, attributed rooms, delegated approvers, EKS/GKE Spot recovery, net code deletion). Adopt, borrow, or keep deferring (Q5). | [ADR-0062](../../../website/content/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md) |
+| **6. Harness visual verification (screenshots)** | Opt-in `maku-browser` sidecar inside gVisor pods (`implementer` + `tester`, per-`Repository` opt-in, loopback-only `127.0.0.1`, Playwright MCP `--isolated`, zero base-image bloat). Phase A: in-loop vision self-verification; Phase B: human-visible PR/Room screenshots deferred (Q16). | [v5 harness screenshots design](2026-11-23-v5-harness-screenshots-design.md), [OpenCode design](2026-11-15-opencode-harness-design.md) |
+| **7. Slack security model & personal-bound principals** | Hybrid "personal-bound principal, team-visible rooms": bot-only (`xoxb-`), DM/App Home intake + dynamic per-user repos + per-person USD budgets, strict author-only thread isolation, Socket Mode default (zero public ingress) + Events API broker-verified `X-Slack-Signature` closing T12 deputy, Invariant 8 preserved (Q17). | [v5 Slack security model design](2026-11-23-v5-slack-security-model-design.md), [Slack push-approval design](2026-11-05-v3x-slack-push-approval-design.md) |
 
 ---
 
@@ -102,7 +116,7 @@ Each track runs in dependency order alongside or immediately following Phase 0/1
 flowchart TB
   subgraph p0["Phase 0 · Pre-pitch bar (2-3 weeks)"]
     direction LR
-    t1["Private-repo planner<br/>+ generic K8s Helm (V11)<br/>+ stranger quickstarts (V20)"]
+    t1["Private-repo planner<br/>+ Tier-1 bundled PG (Q15)<br/>+ generic K8s Helm (V11)<br/>+ stranger quickstarts (V20)"]
     t2["Smana/maku front door<br/>+ 2-min real video<br/>+ static Room Replay<br/>+ Pilot offer"]
   end
   subgraph p1["Phase 1 · Partner PoC #1 (Tier-1 Pilot)"]
@@ -112,8 +126,8 @@ flowchart TB
   end
   subgraph p2["Phase 2 · v5 Core tracks"]
     direction LR
-    v1["Pluggable harness<br/>(OpenCode default +<br/>OpenHands + BYO Claude)"]
-    v2["SDD open-spec intake<br/>+ Maku fallback spec"]
+    v1["Pluggable harness<br/>(OpenCode default) +<br/>Browser sidecar screenshots (Q16)"]
+    v2["SDD open-spec intake +<br/>Slack security & Socket Mode (Q17)"]
     v3["Outcome analytics ROI +<br/>Live auto-merge (>docs-links)"]
   end
   subgraph p3["Post-PoC check"]

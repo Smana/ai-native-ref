@@ -1,6 +1,6 @@
 # Merge policies: a gate you can trust, a decision you can read, a promotion in one click
 
-**Date:** 2026-11-24 · **Status:** design, owner decisions of 2026-11-24 ([MT1 to MT4](#owner-decisions)), awaiting the owner's review of this text · **Track:** [v5 roadmap](2026-11-22-v5-roadmap-design.md) track 4 (live auto-merge beyond `docs-links`) and Go criterion 1 (an external team must understand these pages unaided) · **Builds on:** [merge policies review](2026-11-14-merge-policies-review-design.md) · **Facts read on:** Maku `origin/main` `2e0c6fd3` (v0.53.11), ai-native-ref `origin/main` `822fed7`
+**Date:** 2026-11-24 · **Status:** design, owner decisions of 2026-11-24 ([MT1 to MT4](#owner-decisions)), approved by the owner 2026-11-24 · **Track:** [v5 roadmap](2026-11-22-v5-roadmap-design.md) track 4 (live auto-merge beyond `docs-links`) and Go criterion 1 (an external team must understand these pages unaided) · **Builds on:** [merge policies review](2026-11-14-merge-policies-review-design.md) · **Facts read on:** Maku `origin/main` `2e0c6fd3` (v0.53.11), ai-native-ref `origin/main` `822fed7`
 
 ## Outcome
 

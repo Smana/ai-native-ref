@@ -1,58 +1,50 @@
 # 27 — Workflow comparison: `standard` vs `careful`
 
-Measures whether `careful` (the scoper, the completion judge and the search tool together, at
-`frontier`) lands more accepted pull requests per dollar than `standard` (`pair` at `standard` with
-repository checks) on real issues of `Smana/ai-native-ref`. Design:
-[workflows review](../../superpowers/specs/2026-11-14-workflows-review-design.md) (WF9).
+The comparison is not running. This is the procedure for a later one, and it is no longer a
+precondition for step-up or per-role measurement (the workflows and roles redesign's first owner
+ruling, WR-O1). Design:
+[workflows review](../../superpowers/specs/2026-11-14-workflows-review-design.md) (WF8).
 
 ## 1. The overlay
 
-`tooling/aws-0/agent-factory/resources/factory-evaluation.yaml` patches the `aws-0` `Factory`:
+Add a `Factory` strategic-merge patch under the target cluster's overlay (the file does not exist
+until someone starts a comparison):
 
 ```yaml
 spec:
-  evaluation:
-    controlPercent: 70
-    treatment: careful
+  evaluation: {controlPercent: 50, treatment: careful, mode: observe}
 ```
 
-Every task on `Smana/ai-native-ref` that would take the repository's default workflow (`standard`), with
-no `workflow:` label, is assigned deterministically by `SHA-256(repository + "#" + issueNumber)`: 30%
-run `careful` (`status.cohort: treatment`) and 70% run `standard` (`status.cohort: control`). A task
-with a `workflow:` label, a scheduled task or an investigation is `status.cohort: none` and is not
-counted in either arm.
+Every unlabelled task that would take the repository's default workflow is assigned deterministically
+by FNV-32a of `evaluation/<task name>` modulo 100: below `controlPercent` is `control`, otherwise
+`treatment`. A pinned task is `labeled` and is not counted in either arm.
 
 ## 2. The cohort
 
-40 unlabelled default tasks on `Smana/ai-native-ref` (about 12 `treatment` and 28 `control`). Do not
-add `workflow:` labels to issues you want in the comparison.
+30 ended tasks per arm (60 total) on the target repository. Do not add `workflow:` labels to issues
+you want in the comparison.
 
 ## 3. Reading the arms
 
-From the room broker's outcome page or the factory's tasks:
+List tasks with their workflow, source and cohort:
 
 ```bash
 kubectl -n agent-system get tasks.maku.ogenki.io \
-  -o custom-columns='NAME:.metadata.name,ISSUE:.spec.issue,WORKFLOW:.spec.harnessProfile,COHORT:.status.cohort,PHASE:.status.phase,COST:.status.costMicroUSD'
+  -o custom-columns='NAME:.metadata.name,ISSUE:.spec.issue,WORKFLOW:.status.profile.name,SOURCE:.status.profile.source,COHORT:.status.profile.cohort,PHASE:.status.phase'
 ```
 
-Record the four numbers in [results-workflow-comparison-1.md](results-workflow-comparison-1.md):
+Read dollars per cohort from `agent_factory_task_usd_total` grouped by `cohort`, filtered to
+`source=~"control|treatment"`.
 
-| Arm | Tasks | Merged without a human commit | Median time to merge | Cost per accepted PR |
-|---|---|---|---|---|
-| `control` (`standard`) | | | | |
-| `treatment` (`careful`) | | | | |
+Record the numbers in a results file beside this runbook (see
+[results-workflow-comparison-1.md](results-workflow-comparison-1.md) for the closed first run).
 
 ## 4. Decision rule
 
-- `careful` keeps its place in the three-workflow table if its acceptance rate is at least 15 percentage
-  points higher than `standard`'s on tasks that touch more than three files, or its cost per accepted
-  pull request across the cohort is no higher than 1.5x `standard`'s.
-- Otherwise, Comparison 2 tests which piece of `careful` (`scoper`, `judge` or `search`) pays for
-  itself, using a one-field `-trial` workflow under the same `evaluation` block.
+30 ended tasks per arm. Better or worse is at least 15 percentage points of merge rate, or 20% of
+cost per merged pull request with the merge rate no worse.
 
 ## 5. Ending the comparison
 
-Delete `tooling/aws-0/agent-factory/resources/factory-evaluation.yaml` and its entry in
-`tooling/aws-0/agent-factory/resources/kustomization.yaml` in the commit that records the table in
-`results-workflow-comparison-1.md`.
+Delete the evaluation patch file and its entry in that cluster overlay's `kustomization.yaml` in the
+commit that records the comparison's results.

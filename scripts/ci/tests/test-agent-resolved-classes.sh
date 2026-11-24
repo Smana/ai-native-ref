@@ -70,6 +70,25 @@ PY
   else
     echo "FAIL  $cloud: factory_config.py and Maku resolve differently: $out"; fails=$((fails + 1))
   fi
+  if guard_out="$(python3 - "$cloud" <<'PY'
+import sys
+sys.path.insert(0, "scripts/ci")
+import factory_config
+
+cloud = sys.argv[1]
+missing = []
+for repo in factory_config.config(cloud=cloud)["repositories"]:
+    for name, cl in sorted((repo.get("classes") or {}).items()):
+        if "^scripts/ci/" not in (cl.get("protectedFiles") or []):
+            missing.append(f"{repo['name']}:{name}")
+print(", ".join(missing))
+sys.exit(1 if missing else 0)
+PY
+)"; then
+    echo "ok    $cloud: every bound policy protects ^scripts/ci/"
+  else
+    echo "FAIL  $cloud: resolved protectedFiles lacks ^scripts/ci/: $guard_out"; fails=$((fails + 1))
+  fi
 done
 [ "$fails" -eq 0 ] || { echo "$fails failure(s)"; exit 1; }
 echo PASS

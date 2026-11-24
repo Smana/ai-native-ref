@@ -4,7 +4,7 @@ kind: Kustomization
 # The factory's Slack App (factory interfaces part 2). Not wired here (D4, R30, L3'): no kustomization
 # but a cloud's own lists this directory. Each cloud applies tooling/<cloud>/agent-factory/slack-app
 # (runbooks 18 and 22), whose broker declares its webhook and whose factory its sponsored principal.
-# Every file here is a gate path (.policy.yml): agents never change it.
+# Every file here is protected by Factory.spec.mergeGuardrails.protectedFiles.
 resources:
   - serviceaccount.yaml
   - rbac.yaml

@@ -1,7 +1,6 @@
 # The third repository, RunLore's knowledge base (RK3; Maku factory resources): its settings, its merge
-# rules and the merge policies it binds. RK3: RunLore drafts, the merge gate merges verified entries;
-# shadow until 20 decisions (K8). The repository has no `.policy.yml` in this tree: the parity suite
-# skips it, and that repository's own file holds the fence, which names aws-0. Read live.
+# rules and the merge policies it binds. RK3: RunLore drafts, maku/merge-gate evaluates entries;
+# kb-entries needs five clean decisions at evidence low (K8). Its own fence names aws-0. Read live.
 apiVersion: maku.ogenki.io/v1alpha1
 kind: Repository
 metadata:

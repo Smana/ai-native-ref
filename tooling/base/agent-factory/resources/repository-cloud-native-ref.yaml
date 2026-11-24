@@ -18,21 +18,9 @@ spec:
   # checks: true in Factory.spec.workflows.
   checks: {egress: [pypi]}
   schedules:
-    - name: link-rot
-      cron: "0 6 * * 1"  # Mondays, 06:00 UTC
-      workflow: quick
-      # R52: the gate accepts only Markdown link targets ([text](url), [ref]: url); a URL in a
-      # code block or in prose is held as class_mismatch (runbook 12, 2026-10-18).
-      text: |
-        Find broken external Markdown link targets ([text](url) or [ref]: url) under docs/
-        and website/content/, outside docs/superpowers/, docs/specs/ and
-        website/content/docs/decisions/. Fix those with an obvious replacement on the same
-        host, changing only the link target: leave code blocks, prose and link text alone,
-        change fewer than 21 lines in total and add or delete no file. If none is broken,
-        change nothing and open no pull request.
     # dead-links' intake (MC6): the findings two consecutive nightly runs of the host's
-    # dead-links.yaml agree on become one task. link-rot stays beside it until the
-    # revert proof (runbook 15 §3) is done: a host change removes it (M4).
+    # dead-links.yaml agree on become one task. The duplicate link-rot schedule left after the
+    # passed breaker and drill-revert proof (runbook 15 §3, 2026-10-30).
     - name: dead-links
       cron: "0 7 * * *"  # daily, after the 04:23 UTC scan
       class: dead-links
@@ -69,23 +57,45 @@ spec:
     leakScanCheck: "Security scanning 🔒"  # R42: TruffleHog's check run, in both lists above
     fluxSource: flux-system/flux-system  # the GitRepository deps-patch and deps-minor's monitors watch (Q14)
   # The policies this repository binds (B3), each with its mode and the parameters it supplies.
+  # protectedFiles repeats the host-only part of its retired policy-bot gate on every policy; the
+  # Factory's guardrails carry the paths both repositories share.
   mergePolicies:
     # Live: the one class that merges unattended here (runbook 12, design D4). revert is live
     # with it, or an auto-merge waits on a human to merge its own revert (D5).
-    - {name: docs-links, mode: live, holdoutChecks: ["Check the documentation links 🔗"]}
-    - {name: revert, mode: live, holdoutChecks: ["Check the documentation links 🔗"]}
-    - {name: alert-rules, mode: shadow, allowedFiles: ['^observability/.+\.ya?ml$']}
-    # Shadow since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed. Its fence
-    # repeats the host's `low-risk: docs-links` rule, which approves its pull requests until
-    # `low-risk: dead-links` lands with the live switch.
+    - name: docs-links
+      mode: live
+      holdoutChecks: ["Check the documentation links 🔗"]
+      protectedFiles: &host-gate-paths
+        - '^infrastructure/base/(kueue|kueue-queues)/'
+        - '^infrastructure/(aws-0|gcp-0)/kueue/'
+        - '^infrastructure/base/crossplane/configuration-(aws|gcp)/'
+        - '^infrastructure/(aws-0|gcp-0)/crossplane/configuration/'
+        - '^opentofu/aws/openbao/management/(mounts\.tf|policies/(agents-secrets|merge-gate-secrets|external-secrets)\.hcl)$'
+        - '^opentofu/aws/eks/configure/openbao\.tf$'
+        - '^docs/platform-constitution\.md$'
+    - name: revert
+      mode: live
+      holdoutChecks: ["Check the documentation links 🔗"]
+      protectedFiles: *host-gate-paths
+    - name: docs
+      mode: shadow
+      protectedFiles: *host-gate-paths
+    - name: alert-rules
+      mode: shadow
+      allowedFiles: ['^observability/.+\.ya?ml$']
+      protectedFiles: *host-gate-paths
+    # Shadow since the gcp-0 session of 2026-10-27 (runbook 15 §2): decided, never armed.
     - name: dead-links
       mode: shadow
       allowedFiles: ['^(docs|website/content)/.+\.md$']
       oracleWorkflow: dead-links.yaml
+      protectedFiles: *host-gate-paths
     # Shadow since the gcp-0 session of 2026-10-27 (runbook 16): adopted, judged, never merged by the factory.
     - name: deps-patch
       mode: shadow
       allowedFiles: ['^(apps|flux|infrastructure|observability|security|tooling)/.+\.ya?ml$']
+      protectedFiles: *host-gate-paths
     - name: deps-minor
       mode: shadow
       allowedFiles: ['^(apps|flux|infrastructure|observability|security|tooling)/.+\.ya?ml$']
+      protectedFiles: *host-gate-paths

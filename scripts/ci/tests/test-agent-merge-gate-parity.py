@@ -142,7 +142,7 @@ if renovate_path.is_file():
                     fails.append(f"{lane}: never-automerge {rule.get('matchPackageNames') or rule.get('matchFileNames')} reaches {path}, which the lane would take")
     deps = host_classes.get("deps-patch")
     if deps is not None:
-        probe = dict(deps, protectedFiles=[p for p in deps.get("protectedFiles", []) if "zitadel" not in p])
+        probe = dict(deps, protectedFiles=[])
         if all(refused(p, probe) for r in never_automerge(renovate) for p in reached(r)):
             fails.append("self-test: a dropped protectedFiles entry went unnoticed")
 

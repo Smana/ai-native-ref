@@ -1,57 +1,60 @@
-# The second repository (v2 design D9), this one (Maku factory resources): its settings, its merge
-# rules and the merge policies it binds (reusable merge policies, B2 and B3). Every class is review or
-# shadow: nothing arms until its own clean decisions, five at evidence low and 20 at standard.
-# maku/merge-gate reads these objects; no policy-bot approval rule participates. Read live.
 apiVersion: maku.ogenki.io/v1alpha1
 kind: Repository
 metadata:
   name: ai-native-ref
   namespace: agent-system
 spec:
+  checks:
+    egress:
+    - golang
+    - pypi
   factoryRef: ${cluster_name}
+  maintainers:
+  - Smana
+  merge:
+    breaker:
+      maxReverts: 0
+      window: 0
+    checkReruns: 0
+    fixRuns: 1
+    leakScanCheck: lint
+    maxPerDay: 2
+    mergerLogin: ""
+    paused:
+      reason: 'live drill 2026-11-25 (gcp-0): pause opens a PR, never merges'
+    policyBotLogin: ""
+    requiredChecks:
+    - validate
+    - lint
+    revertWindow: 0s
+    verifyChecks:
+    - validate
+    - lint
+    verifyFor: 0s
+  mergePolicies:
+  - allowedFiles:
+    - ^website/content/.+\.md$
+    maxModifiedLines: 60
+    mode: shadow
+    name: docs
+  - allowedFiles:
+    - ^(docs|website/content)/.+\.md$
+    mode: shadow
+    name: dead-links
+    oracleWorkflow: dead-links.yaml
   repository: Smana/ai-native-ref
-  maintainers: [Smana]
+  schedules:
+  - class: dead-links
+    cron: 15 7 * * *
+    name: ai-native-ref-dead-links
+    probe: dead-links
+    text: Fix the dead external links listed below.
+    workflow: quick
   triggerLabel: factory/ready
   workflow:
     default: standard
-    # A failed standard task runs once more as careful, without asking (Maku v0.54.0 step-up), and
-    # a plan-first task waits for its plan's approval.
-    stepUp: auto
     planGate: ask
-  # v3 feature 3: what a check-enabled run requests beyond github. standard and careful set
-  # checks: true in Factory.spec.workflows.
-  checks: {egress: [golang, pypi]}
-  schedules:
-    # dead-links' intake here (MC6, F3): what two nightly runs of this repository's
-    # dead-links.yaml agree on. Inert only if the class is off (MC14). The name keys every
-    # task it starts and is unique across repositories (the factory's strict parse refuses
-    # a second `dead-links`, the host's).
-    - name: ai-native-ref-dead-links
-      cron: "15 7 * * *"  # after the 04:41 scan; the host's slot is 07:00
-      class: dead-links
-      probe: dead-links
-      workflow: quick
-      text: Fix the dead external links listed below.
-  merge:
-    # The `main` ruleset's 2 contexts (app 15368): `gh api repos/Smana/ai-native-ref/rulesets/25225244`.
-    # ci.yaml runs both on push to main too; TruffleHog is a step of `lint`.
-    requiredChecks: [validate, lint]
-    verifyChecks: [validate, lint]
-    maxPerDay: 2
-    fixRuns: 1
-    checkReruns: 0  # a cancelled check goes to a human
-    leakScanCheck: lint
-  mergePolicies:
-    # No testFirst here (TO4): the tests live under the gate path scripts/ci/.
-    # docs-links comes from the chart's catalog, evaluated in shadow unbound: a binding would only
-    # repeat validate, already a required check.
-    - name: docs
-      mode: shadow
-      allowedFiles: ['^website/content/.+\.md$']
-      maxModifiedLines: 60
-    # Shadow (MC14, runbook 15 §6): its detector is this repository's dead-links.yaml. The shape
-    # and oracle bound the diff; evidence: low needs five clean decisions before promotion.
-    - name: dead-links
-      mode: shadow
-      allowedFiles: ['^(docs|website/content)/.+\.md$']
-      oracleWorkflow: dead-links.yaml
+    stepUp: auto
+status:
+  classCount: 0
+  liveCount: 0

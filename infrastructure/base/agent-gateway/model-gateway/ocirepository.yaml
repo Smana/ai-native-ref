@@ -11,8 +11,8 @@ spec:
   url: oci://ghcr.io/smana/charts/maku-gateway
   # Flux pulls the digest (it wins over the tag). Move it with maku-factory's pin.
   ref:
-    tag: "0.54.1"  # maku v0.54.1
-    digest: sha256:1c87e6a0ae928ebb1dea51d4ef010acf2412821a1716fb4365246f3d6ad9e765
+    tag: "0.54.3"  # maku v0.54.3
+    digest: sha256:59d53957f2855941c3fe79c95a2dff02ed7909c83f78b31071bc08c808072d73
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy

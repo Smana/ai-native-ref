@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Evaluate the aws-0 OpenCode vs OpenHands 50/50 harness trial against the frozen outcome gate.
+"""Evaluate the gcp-0 OpenCode vs OpenHands 50/50 harness trial against the frozen outcome gate.
 
-  python3 scripts/ops/harness-trial-report.py --context aws-0 [--namespace agent-system]
+  python3 scripts/ops/harness-trial-report.py --context gcp-0 [--namespace agent-system]
       [--since ISO8601] [--until ISO8601] [--vm-url URL] [--critical-regressions N] [--out FILE]
   python3 scripts/ops/harness-trial-report.py --fixtures DIR [--out FILE]
 
@@ -355,7 +355,7 @@ def _fmt_min(value):
     return "n/a" if value is None else f"{value:.1f} min"
 
 
-def render(result, *, cluster="aws-0", maku_version="unknown", window="all"):
+def render(result, *, cluster="gcp-0", maku_version="unknown", window="all"):
     ctrl = result["arms"]["control"]
     trt = result["arms"]["treatment"]
     rsc = result["arms"]["rescue"]
@@ -439,7 +439,7 @@ def _query_vm(promql, context, vm_url):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--context", default="aws-0", help="kubectl context name")
+    ap.add_argument("--context", default="gcp-0", help="kubectl context name")
     ap.add_argument("--namespace", default="agent-system", help="Task CR namespace")
     ap.add_argument("--maku-version", default="unknown", help="Maku release version/digest for report header")
     ap.add_argument("--since", help="UTC ISO-8601 window start (inclusive)")

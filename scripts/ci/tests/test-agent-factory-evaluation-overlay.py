@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # requires: python3 kustomize
-"""The workflow comparison is opt-in; no shipped cloud carries its evaluation overlay."""
+"""The workflow comparison is opt-in; no shipped cloud carries its evaluation overlay. gcp-0's harness trial
+(evaluation.treatmentHarness, held by test-agent-harness-trial-off.py) is not a workflow comparison."""
 import pathlib
 import re
 import subprocess
@@ -26,7 +27,8 @@ def factory(path):
 
 
 no_overlay = all(
-    "evaluation" not in factory(p)
+    "treatment" not in (factory(p).get("evaluation") or {})
+    and ("evaluation" not in factory(p) or "treatmentHarness" in factory(p)["evaluation"])
     for p in (
         "tooling/base/agent-factory/resources",
         "tooling/gcp-0/agent-factory/resources",

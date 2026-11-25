@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # requires: python3 kustomize
-"""OpenCode adopt plan Tasks 1 & 4 guard: OpenHands stays default in base/gcp-0, no unpinned OpenCode image,
-and any future aws-0 harness trial is strictly single-variable.
+"""OpenCode adopt plan Tasks 1 & 4 guard: OpenHands stays the default everywhere, no unpinned OpenCode image,
+and the one harness trial is strictly single-variable and runs on one cluster.
 
-Until Maku H (opt-in OpenCode) is pinned, base, gcp-0, and aws-0 must carry neither `defaults.harness` nor
-`evaluation.treatmentHarness`, and any `runController.images.opencode.tag` must carry a `@sha256:` digest.
+No Factory anywhere sets `defaults.harness`. Base and every cluster but TRIAL_CLUSTER carry neither
+`evaluation.treatmentHarness` nor `evaluation.treatment`. TRIAL_CLUSTER (gcp-0, the owner's decision of
+2026-11-25: aws-0 is torn down) may carry exactly `{controlPercent: 50, treatmentHarness: opencode}` and no
+workflow treatment. Any `runController.images.opencode.tag` carries a `@sha256:` digest.
 """
 import copy
 import pathlib
@@ -16,6 +18,8 @@ import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 DIGEST_TAG = re.compile(r"^[^@\s]+@sha256:[a-f0-9]{64}$")
+TRIAL_CLUSTER = "gcp-0"
+TRIAL = {"controlPercent": 50, "treatmentHarness": "opencode"}
 
 
 def render(path):
@@ -35,48 +39,31 @@ def broker_releases(objects):
     return [o for o in objects if o.get("kind") == "HelmRelease" and o.get("metadata", {}).get("name") == "room-broker"]
 
 
-def problems(base, gcp, aws, broker_objs, *, allow_aws_trial=False):
+def problems(clusters, broker_objs, *, trial_cluster=None):
+    """clusters maps a label ("base", "gcp-0", "aws-0") to its rendered objects."""
     errs = []
-    for label, objs in (("base", base), ("gcp-0", gcp)):
+    for label, objs in clusters.items():
         for f in factories(objs):
             spec = f.get("spec") or {}
             if "harness" in (spec.get("defaults") or {}):
                 errs.append(f"{label} Factory sets defaults.harness={spec['defaults']['harness']!r}")
             ev = spec.get("evaluation") or {}
-            if "treatmentHarness" in ev:
-                errs.append(f"{label} Factory sets evaluation.treatmentHarness={ev['treatmentHarness']!r}")
             if "treatment" in ev:
-                errs.append(f"{label} Factory sets evaluation.treatment={ev['treatment']!r}")
+                errs.append(f"{label} Factory sets evaluation.treatment={ev['treatment']!r}: no workflow trial beside the harness")
+            if "treatmentHarness" not in ev:
+                continue
+            if label != trial_cluster:
+                errs.append(f"{label} Factory sets evaluation.treatmentHarness={ev['treatmentHarness']!r}: only {trial_cluster} runs the trial")
+            elif ev != TRIAL:
+                errs.append(f"{label} harness trial must be {TRIAL!r} and nothing else, got {ev!r}")
 
-    for f in factories(aws):
-        spec = f.get("spec") or {}
-        if "harness" in (spec.get("defaults") or {}):
-            errs.append(f"aws-0 Factory sets defaults.harness={spec['defaults']['harness']!r}")
-        ev = spec.get("evaluation") or {}
-        if not allow_aws_trial:
-            if "treatmentHarness" in ev:
-                errs.append(f"aws-0 Factory enables evaluation.treatmentHarness before trial authorization: {ev!r}")
-        elif "treatmentHarness" in ev:
-            if "treatment" in ev:
-                errs.append("aws-0 harness trial cannot run simultaneously with a workflow treatment")
-            if ev.get("controlPercent") != 50 or ev.get("treatmentHarness") != "opencode":
-                errs.append(f"aws-0 harness trial must be {{controlPercent: 50, treatmentHarness: opencode}}, got {ev!r}")
-
-    if allow_aws_trial:
-        base_repos = {r["metadata"]["name"]: r for r in repositories(base)}
-        for r in repositories(aws):
+    if trial_cluster in clusters:
+        base_repos = {r["metadata"]["name"]: r for r in repositories(clusters.get("base", []))}
+        for r in repositories(clusters[trial_cluster]):
             name = r["metadata"]["name"]
             spec = r.get("spec") or {}
-            if spec.get("workflow", {}).get("default") != "careful":
-                continue
-            if spec.get("workflow", {}).get("testFirst") is not True:
-                errs.append(f"aws-0 trial repository {name}: workflow.testFirst must be true")
-            if not (spec.get("merge") or {}).get("contractCheck"):
-                errs.append(f"aws-0 trial repository {name}: merge.contractCheck must be set")
-            if name in base_repos:
-                base_spec = base_repos[name].get("spec") or {}
-                if spec.get("models") != base_spec.get("models") or spec.get("effort") != base_spec.get("effort"):
-                    errs.append(f"aws-0 trial repository {name}: models/effort must match shipped base repository")
+            if name in base_repos and spec != (base_repos[name].get("spec") or {}):
+                errs.append(f"{trial_cluster} trial repository {name}: differs from base, so the arms would not be the platform's")
 
     for hr in broker_releases(broker_objs):
         images = (((hr.get("spec") or {}).get("values") or {}).get("runController") or {}).get("images") or {}
@@ -92,44 +79,56 @@ def problems(base, gcp, aws, broker_objs, *, allow_aws_trial=False):
     return errs
 
 
-base = render("tooling/base/agent-factory/resources") + render("tooling/base/agent-factory")
-gcp = render("tooling/gcp-0/agent-factory/resources") + render("tooling/gcp-0/agent-factory")
-aws = render("tooling/aws-0/agent-factory/resources") + render("tooling/aws-0/agent-factory")
+clusters = {
+    "base": render("tooling/base/agent-factory/resources") + render("tooling/base/agent-factory"),
+    "gcp-0": render("tooling/gcp-0/agent-factory/resources") + render("tooling/gcp-0/agent-factory"),
+    "aws-0": render("tooling/aws-0/agent-factory/resources") + render("tooling/aws-0/agent-factory"),
+}
 broker = render("infrastructure/base/room-broker")
 
-errors = problems(base, gcp, aws, broker, allow_aws_trial=False)
+errors = problems(clusters, broker, trial_cluster=TRIAL_CLUSTER)
+gcp_ev = (factories(clusters[TRIAL_CLUSTER])[0].get("spec") or {}).get("evaluation")
+if gcp_ev != TRIAL:
+    errors.append(f"{TRIAL_CLUSTER} runs the harness trial {TRIAL!r} (owner decision 2026-11-25), got {gcp_ev!r}")
 
-# Self-tests: prove the guard bites on accidental default, unpinned digest, or confounded trial.
+# Self-tests: prove the guard bites on accidental default, unpinned digest, a misplaced or confounded trial.
 s_base = [{"apiVersion": "maku.ogenki.io/v1alpha1", "kind": "Factory", "metadata": {"name": "f"}, "spec": {"defaults": {"dataClass": "public"}}}]
 s_broker_ok = [{
     "kind": "HelmRelease",
     "metadata": {"name": "room-broker"},
     "spec": {"values": {"runController": {"images": {"opencode": {
         "repository": "ghcr.io/smana/maku-opencode",
-        "tag": "v0.54.0@sha256:" + "a" * 64,
+        "tag": "v0.54.1@sha256:" + "a" * 64,
     }}}}},
 }]
-assert not problems(s_base, s_base, s_base, s_broker_ok), "valid digest-pinned opt-in should pass"
+off = {"base": s_base, "gcp-0": s_base, "aws-0": s_base}
+assert not problems(off, s_broker_ok, trial_cluster="gcp-0"), "valid digest-pinned opt-in should pass"
 
 bad_default = copy.deepcopy(s_base)
 bad_default[0]["spec"]["defaults"]["harness"] = "opencode"
-assert problems(bad_default, s_base, s_base, s_broker_ok), "defaults.harness in base must fail"
+assert problems({**off, "base": bad_default}, s_broker_ok, trial_cluster="gcp-0"), "defaults.harness in base must fail"
+assert problems({**off, "gcp-0": bad_default}, s_broker_ok, trial_cluster="gcp-0"), "defaults.harness on the trial cluster must fail"
 
 bad_tag = copy.deepcopy(s_broker_ok)
-bad_tag[0]["spec"]["values"]["runController"]["images"]["opencode"]["tag"] = "v0.54.0"
-assert problems(s_base, s_base, s_base, bad_tag), "tag-only opencode image pin must fail"
+bad_tag[0]["spec"]["values"]["runController"]["images"]["opencode"]["tag"] = "v0.54.1"
+assert problems(off, bad_tag, trial_cluster="gcp-0"), "tag-only opencode image pin must fail"
 
 valid_trial = copy.deepcopy(s_base)
-valid_trial[0]["spec"]["evaluation"] = {"controlPercent": 50, "treatmentHarness": "opencode"}
-assert not problems(s_base, s_base, valid_trial, s_broker_ok, allow_aws_trial=True), "single-variable aws-0 trial should pass when enabled"
-assert problems(s_base, valid_trial, valid_trial, s_broker_ok, allow_aws_trial=True), "trial in gcp-0 must fail"
+valid_trial[0]["spec"]["evaluation"] = dict(TRIAL)
+assert not problems({**off, "gcp-0": valid_trial}, s_broker_ok, trial_cluster="gcp-0"), "single-variable gcp-0 trial should pass"
+assert problems({**off, "aws-0": valid_trial}, s_broker_ok, trial_cluster="gcp-0"), "trial on aws-0 must fail"
+assert problems({**off, "base": valid_trial}, s_broker_ok, trial_cluster="gcp-0"), "trial in base must fail"
 
 confounded = copy.deepcopy(valid_trial)
-confounded[0]["spec"]["evaluation"]["treatment"] = "careful-trial"
-assert problems(s_base, s_base, confounded, s_broker_ok, allow_aws_trial=True), "confounded workflow+harness trial must fail"
+confounded[0]["spec"]["evaluation"]["treatment"] = "careful"
+assert problems({**off, "gcp-0": confounded}, s_broker_ok, trial_cluster="gcp-0"), "confounded workflow+harness trial must fail"
+
+skewed = copy.deepcopy(valid_trial)
+skewed[0]["spec"]["evaluation"]["controlPercent"] = 80
+assert problems({**off, "gcp-0": skewed}, s_broker_ok, trial_cluster="gcp-0"), "a trial other than 50/50 must fail"
 
 for err in errors:
     print(f"FAIL: {err}")
 if errors:
     sys.exit(1)
-print("PASS: harness trial is off everywhere, OpenHands stays default, and single-variable/digest guards hold")
+print("PASS: OpenHands stays default everywhere, the 50/50 harness trial runs on gcp-0 alone, single-variable and digest guards hold")

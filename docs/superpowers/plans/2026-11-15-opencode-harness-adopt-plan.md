@@ -6,6 +6,15 @@
 
 **Architecture:** Base pins Maku and leaves `defaults.harness` and `evaluation.treatmentHarness` absent, so OpenHands remains default. The aws-0 overlay alone enables provider smoke tasks and the 50/50 harness cohort. Both arms use the same careful workflow, models, efforts, limits, repositories, and test-contract settings. Rescue uses a separate cohort and never erases the failed arm.
 
+> **Owner decision, 2026-11-25: the trial runs on gcp-0.** aws-0 is torn down. Every "aws-0" below that names
+> where the trial or its live steps run now reads gcp-0: `tooling/gcp-0/agent-factory/resources/factory-harness-trial.yaml`
+> sets `evaluation: {controlPercent: 50, treatmentHarness: opencode}`, base and aws-0 carry none, and
+> `defaults.harness` stays unset (openhands) everywhere; `test-agent-harness-trial-off.py` holds it, and
+> `scripts/ops/harness-trial-report.py` reads `--context gcp-0` by default. The participating repositories keep
+> their own workflow (`standard` by default, no `testFirst`) in both arms rather than switching to `careful`:
+> the arms stay identical, which is the single-variable rule, at a quarter of `careful`'s ceiling per task.
+> Switching them to `careful` with `testFirst` is a later owner call.
+
 **Tech Stack:** Flux Kustomizations and HelmReleases, Maku CRDs, kustomize overlays, Kubernetes Task objects, gVisor, VictoriaMetrics/Traces/Logs, Python CI suites, Hugo.
 
 **Spec:** [`docs/superpowers/specs/2026-11-15-opencode-harness-design.md`](../specs/2026-11-15-opencode-harness-design.md). The Maku half is [`2026-11-15-opencode-harness-maku-plan.md`](2026-11-15-opencode-harness-maku-plan.md).
@@ -14,7 +23,7 @@
 
 - Work in a git worktree branched from `origin/main`; rebase onto freshly fetched `origin/main` before every push. Run `task check` before every commit.
 - This plan starts only in the platform v5.x programme, after Maku's offline parity release and the current workflow/cache/cost comparisons are complete.
-- Base never selects OpenCode and never carries a harness trial. Only aws-0 may carry an explicitly enabled trial; gcp-0 remains unchanged.
+- Base never selects OpenCode and never carries a harness trial. Only gcp-0 carries the enabled trial (owner decision 2026-11-25; it was aws-0 before aws-0 was torn down); aws-0 carries none.
 - Rebuilding or resuming aws-0 requires a separate owner authorization recorded in the live PR. No `task check`, script, or implementation step performs it automatically.
 - Both trial arms use identical workflow, models, efforts, repository checks, tester settings, limits, and traffic exclusions. Only `evaluation.treatmentHarness` differs.
 - No duplicate historical tasks and no automatic mid-task harness switch. Rescue is `/factory retry harness=openhands`, recorded under `rescue`.

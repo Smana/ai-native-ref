@@ -10,7 +10,7 @@ cluster-level evidence goes in a `results-gcp-0-<date>.md`, as in
 
 On 2026-10-29 the factory moved off `gcp-0` for a phase of work on `aws-0`, then returned to `gcp-0` on
 2026-11-11 to prove Maku's runtime; which cluster is active now and which Maku release `main` pins live on
-the [status page](https://airef.ogenki.io/docs/status/#clusters). Runs are Maku's run-controller's
+the [status page](https://web.archive.org/web/20260101000000/https://airef.ogenki.io/docs/). Runs are Maku's run-controller's
 (`run-<id>` AgentRuns, gVisor, NetworkPolicies and the egress proxy, per-run git tokens from the factory,
 model calls through `model-gateway`): no Kueue, octo-sts or identity-proxy. A rebuild is fresh, on CRD group
 `maku.ogenki.io`: no cluster may still run `rooms.agents.ogenki.io` Rooms, or Flux prunes them.

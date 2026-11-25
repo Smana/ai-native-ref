@@ -3,7 +3,7 @@
 """This repository as the agent factory's second repository (second-repository design D7, D9).
 
 - No octo-sts trust policy: the factory mints each run's git token (R3), so none is served here.
-- The fence names aws-0, the only live factory.
+- The fence names the live factory, the status page's activeCluster (aws-0 or gcp-0).
 - Factory.spec.mergeGuardrails.protectedFiles is the gate list maku/merge-gate reads. Every sentinel
   below must match it, including the factory's own resources and the CI gates.
 
@@ -32,8 +32,12 @@ if trust := sorted(p.name for p in (OWN / ".github/chainguard").glob("*.sts.yaml
     fails.append(f"octo-sts trust policies are retired, found {trust}")
 
 fence = OWN / ".github/agent-factory.yaml"
-if not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": "aws-0"}:
-    fails.append(".github/agent-factory.yaml: must be exactly `factory: aws-0`")
+status = OWN / "website/content/docs/status.md"
+active = (yaml.safe_load(status.read_text().split("---")[1]) or {}).get("activeCluster") if status.is_file() else None
+if active not in ("aws-0", "gcp-0"):
+    fails.append(f"website/content/docs/status.md: activeCluster must be aws-0 or gcp-0, got {active!r}")
+elif not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": active}:
+    fails.append(f".github/agent-factory.yaml: must be exactly `factory: {active}` (the status page's activeCluster)")
 
 sys.path.insert(0, str(OWN / "scripts/ci"))
 import factory_config  # the values file with the Factory, Repository and MergePolicy objects over it

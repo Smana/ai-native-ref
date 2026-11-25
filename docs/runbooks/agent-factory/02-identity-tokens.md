@@ -2,7 +2,7 @@
 
 > **Retired (2026-11-14).** It probes `agent-router`'s listeners, the in-pod identity-proxy and
 > octo-sts audiences, none of which a run uses since R3: runs call the model gateway with their own
-> token ([Maku's gateway identity model](https://github.com/Smana/maku/blob/main/docs/gateway.md)), and
+> token ([Maku's gateway identity model](https://github.com/ogenki/maku/blob/main/docs/gateway.md)), and
 > [01](01-runtime-sandbox.md) and [03](03-egress.md) cover the run's tokens and network. Kept as the
 > record of what was proven; do not run it.
 

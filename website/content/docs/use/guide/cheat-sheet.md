@@ -17,6 +17,11 @@ row says otherwise; only a maintainer's count.
 | `factory/stop` | Ends the task's runs; its branch stays. On the pinned control issue, it stops every task |
 | `factory/revert` | On a pull request merged automatically, within 7 days: opens the revert |
 | `factory/publish` | On a RunLore proposal's stub issue (`factory/proposed`): files the fix issue ([RunLore]({{< relref "/docs/how-it-works/runlore.md" >}})) |
+| `plan-first` | The scoper writes a plan and waits for a maintainer's approval before any change |
+| `report` | Findings on the issue, no branch |
+| `factory/review` | On a person's pull request: one review verdict, no push |
+| `workflow:thorough` | Implementer, security reviewer, reviewer; this repository only |
+| `harness:opencode` | Runs the task on the OpenCode harness; opt-in |
 
 ## Comments you write {#comments}
 
@@ -24,6 +29,8 @@ row says otherwise; only a maintainer's count.
 |---|---|
 | `/factory retry` | Tries a failed or escalated task again, or proceeds on the scoper's assumption |
 | `/factory split` | Accepts a proposed split; the parts then open one at a time |
+| `/factory retry deeper` | Retries on the next workflow up: quick → standard → careful |
+| `/factory fix` | On a `report` issue: files a change task from the findings |
 
 ## On the pull request {#pull-request}
 

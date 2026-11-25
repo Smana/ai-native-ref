@@ -1,4 +1,4 @@
-# 27 — Workflow comparison: `standard` vs `careful`
+# 32 — Workflow comparison: `standard` vs `careful`
 
 The comparison is not running. This is the procedure for a later one, and it is no longer a
 precondition for step-up or per-role measurement (the workflows and roles redesign's first owner

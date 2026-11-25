@@ -8,6 +8,9 @@ description: "Every label, comment command, Slack action, coding-agent tool and 
 Every way to talk to Maku, on one page. Labels and comments go on the GitHub issue unless the
 row says otherwise; only a maintainer's count.
 
+How a shadow merge policy is promoted to a live one is on the
+[merge-policy promotion page]({{< relref "/docs/use/guide/merge-policy-promotion.md" >}}).
+
 ## Labels you put on {#labels}
 
 | Label | What happens |

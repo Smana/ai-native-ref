@@ -438,6 +438,15 @@ def _query_vm(promql, context, vm_url):
 
 
 def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    if not argv:
+        print(
+            "usage: harness-trial-report.py --context CONTEXT [--namespace NAMESPACE] [--out FILE] | "
+            "--fixtures DIR [--out FILE]   (input: JSON lines of ended Task CRs, e.g. tasks.jsonl)",
+            file=sys.stderr,
+        )
+        return 2
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--context", default="gcp-0", help="kubectl context name")
     ap.add_argument("--namespace", default="agent-system", help="Task CR namespace")

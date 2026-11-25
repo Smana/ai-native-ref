@@ -31,11 +31,12 @@ fails = []
 if trust := sorted(p.name for p in (OWN / ".github/chainguard").glob("*.sts.yaml")):
     fails.append(f"octo-sts trust policies are retired, found {trust}")
 
+STATUS_PAGE = "website/content/docs/status.md"
 fence = OWN / ".github/agent-factory.yaml"
-status = OWN / "website/content/docs/status.md"
+status = OWN / STATUS_PAGE
 active = (yaml.safe_load(status.read_text().split("---")[1]) or {}).get("activeCluster") if status.is_file() else None
 if active not in ("aws-0", "gcp-0"):
-    fails.append(f"website/content/docs/status.md: activeCluster must be aws-0 or gcp-0, got {active!r}")
+    fails.append(f"{STATUS_PAGE}: activeCluster must be aws-0 or gcp-0, got {active!r}")
 elif not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": active}:
     fails.append(f".github/agent-factory.yaml: must be exactly `factory: {active}` (the status page's activeCluster)")
 

@@ -33,7 +33,7 @@ import room_broker_chart  # noqa: E402
 
 SECRET = "room-broker-github-link"  # pragma: allowlist secret
 READER = "zitadel-reader"  # any Secret, volume or mount naming it is the reader reappearing
-SKIP_AUTH = {"GET=^/\\.well-known/roomctl$", "GET=^/link/github/callback$"}
+SKIP_AUTH = {"GET=^/\\.well-known/maku$", "GET=^/link/github/callback$"}
 CLOUDS = ("aws-0", "gcp-0")
 
 
@@ -85,7 +85,7 @@ for cloud in CLOUDS:
         and data == {k: {"key": "github-link", "property": k} for k in ("client_id", "client_secret")})
 
     proxy = find(docs, "HelmRelease", "rooms-oauth2-proxy")["spec"]["values"]["extraArgs"]
-    checks[f"{cloud}: oauth2-proxy skips auth for the callback and roomctl's discovery alone"] = (
+    checks[f"{cloud}: oauth2-proxy skips auth for the callback and maku's discovery alone"] = (
         set(proxy.get("skip-auth-route", "").split(",")) == SKIP_AUTH)
 
     egress = find(docs, "CiliumNetworkPolicy", "room-broker")["spec"]["egress"]

@@ -5,8 +5,8 @@ aliases:
 linkTitle: Status
 weight: 60
 description: "What is proven live, what awaits validation, what is in progress, and what is planned next."
-activeCluster: aws-0
-lastVerified: 2026-11-23
+activeCluster: gcp-0
+lastVerified: 2026-11-25
 ---
 
 Use this page to see what the platform can do and what is coming next. **Proven live** means

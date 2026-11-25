@@ -19,7 +19,7 @@ Grouped by purpose; the number is the order they were written in.
 | Runbook | Proves (SC / Q / R) | Needs an owner action? | Est. time |
 |---|---|---|---|
 | [00](#runbook-00-one-time-cluster-setup) (below, this file) | — (setup only) | Yes — 1–4 (see checklist) | 10 min + owner actions |
-| [14-gcp-0-session.md](14-gcp-0-session.md) | The ordered gcp-0 session (historical): gcp-0 up alone, the v2.1 blockers live, runbook 11 as the full test, v2 on gcp-0, the Substrate spike | Yes — Google auth, the quota request, the identity-provider topology, the agents keys, the go-live commit | a day, plus the spike's two |
+| [14-gcp-0-session.md](./14-gcp-0-session.md) | The ordered gcp-0 session (historical): gcp-0 up alone, the v2.1 blockers live, runbook 11 as the full test, v2 on gcp-0, the Substrate spike | Yes — Google auth, the quota request, the identity-provider topology, the agents keys, the go-live commit | a day, plus the spike's two |
 
 **Platform**
 

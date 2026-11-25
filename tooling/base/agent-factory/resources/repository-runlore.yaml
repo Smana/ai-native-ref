@@ -1,5 +1,5 @@
 # The fourth repository, RunLore itself (Smana/runlore: public, default branch main): its settings,
-# its merge rules and the two required policies, both shadow (K8). maku/merge-gate reads this object;
+# its merge rules, and the chart's catalog policies in shadow (K8). maku/merge-gate reads this object;
 # the repository's own fence names gcp-0 (Smana/runlore#617).
 apiVersion: maku.ogenki.io/v1alpha1
 kind: Repository
@@ -13,6 +13,10 @@ spec:
   triggerLabel: factory/ready
   workflow:
     default: standard
+    # A failed standard task runs once more as careful, without asking (Maku v0.54.0 step-up), and
+    # a plan-first task waits for its plan's approval.
+    stepUp: auto
+    planGate: ask
   merge:
     # RunLore's only required check is `build`, so it is the holdout of each class and the one check
     # the merge and its verification wait on.
@@ -24,6 +28,5 @@ spec:
     # The factory's validation (R42) wants a leak check in both lists above. RunLore has no
     # separate scan job: `build` is its one required check, so a red `build` is what escalates.
     leakScanCheck: build
-  mergePolicies:
-    - {name: docs-links, mode: shadow, holdoutChecks: [build]}
-    - {name: revert, mode: shadow, holdoutChecks: [build]}
+  # No binding: the chart's catalog policies (docs-links, docs) are evaluated in shadow unbound, and
+  # build, the one holdout either binding named, is already a required check.

@@ -1,5 +1,6 @@
 # gcp-0's copy of ../../base/room-broker/config.yaml, plus human.mcp.sponsored,
-# human.slackLink and human.slackDecide (runbook 18) and webhooks (runbook 18): the overlay's generator replaces the base
+# human.slackLink and human.slackDecide (runbook 18), webhooks (runbook 18), human.roomActs and
+# human.intake.wholePlans (Maku v0.54.0): the overlay's generator replaces the base
 # file, since a ConfigMap key is one string no patch can extend.
 # test-room-broker-config-parity.py fails when it differs from base in anything but those.
 # The broker's one config file (agent-platform internal/config), Flux-substituted.
@@ -108,6 +109,14 @@ human:
       reasoningEffort: low       # glm-5.3 always reasons: at its default a plan needs over 20 s (Maku #372)
       dailyPlans: 50
       fallback: "off"
+    # A confirmed plan of several issues files every one, in order, each linking the issues it waits
+    # for (Maku v0.54.0, phase H). Off, start files the first issue only. Needs the planner above.
+    wholePlans: true
+  # The acts a room member takes on the room page (Maku v0.54.0, phase G): answer a question, retry
+  # (or run again deeper), accept or decline a split, approve, revise or split a plan, stop the task,
+  # and file a new task through the planner. Unset is [answer, retry]; each act is checked again by
+  # the factory with the caller's own token.
+  roomActs: [answer, retry, split, plan, stop, file]
   # needs/v1 (CD21, CD28): one list, read by /api/needs and by the CLI. Read-only, so it ships on.
   needs:
     enabled: true

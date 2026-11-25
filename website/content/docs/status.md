@@ -54,7 +54,7 @@ These capabilities were demonstrated end to end on a real cluster.
 
 <span id="class-modes"></span>
 
-Only link fixes and their reverts currently merge without a person. Other classes are being evaluated
+Only link fixes, and the factory's reverts of them, currently merge without a person. Other classes are being evaluated
 in shadow, and every other change still requires review.
 
 ## Implemented, awaiting validation {#experimental}
@@ -71,6 +71,10 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 | Multi-repository integration runtime | Exact-commit worktrees and the typed integration result are built and inert. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-05-v4-multi-repo-coordination-design.md) |
 | Untrusted-input hardening | H0's contracts are built and switched off. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-07-untrusted-input-hardening-design.md) |
 | The factory on a laptop | The Maku demo and quickstart are built; outside-user validation remains. [Quickstart]({{< maku "docs/quickstart.md" >}}) |
+| Workflows as stage lists, one step up, and custom read-only roles | On: a `standard` task that fails runs once more as `careful`, and a `thorough` workflow adds a security reviewer. Needs live proof. [Harness reference]({{< relref "/docs/reference/harness.md#templates" >}}) |
+| Plan first, review only and findings only | On, with acts on the room page and whole multi-issue plans filed at once. Needs live proof. [Scope and split]({{< relref "/docs/how-it-works/factory.md" >}}) |
+| Promotion by pull request and the factory's own reverts | The promotion button opens its pull request on one repository's manifest; reverts of an unattended merge merge themselves. Needs live proof. [Merge policies]({{< relref "/docs/use/guide/merge-policies.md#promote-a-policy" >}}) |
+| OpenCode as an opt-in harness | A maintainer's `harness:opencode` label runs one task on OpenCode; OpenHands stays the default. Needs live proof. [Harness reference]({{< relref "/docs/reference/harness.md#composition" >}}) |
 | Per-person caps and more auto-merge classes | Daily caps are counted in shadow; additional classes are evaluated before promotion. [Caps](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week), [classes](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/16-deps-patch.md) |
 
 ## In progress {#v3x}

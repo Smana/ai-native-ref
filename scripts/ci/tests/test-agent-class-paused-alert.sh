@@ -58,7 +58,7 @@ tests:
         values: '1x11600'
       - series: 'maku_factory_class_paused{repository="Smana/ai-native-ref",class="docs-links"}'
         values: '1x11600'
-      # a live class paused 8 days fires
+      # revert is no class since merge.autoRevert replaced its binding: no alert
       - series: 'maku_factory_class_paused{repository="Smana/cloud-native-ref",class="revert"}'
         values: '1x11600'
     alert_rule_test:
@@ -69,12 +69,6 @@ tests:
             exp_annotations:
               summary: "docs-links on Smana/cloud-native-ref has been paused for 7 days"
               description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter); factory/drill lifts it only if added before factory/revert, or on a rebuilt factory. Read the window: scripts/shadow-merge-tally.sh --repo Smana/cloud-native-ref --class docs-links --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
-              runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md#know-before-the-go"
-              dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
-          - exp_labels: {severity: warning, repository: Smana/cloud-native-ref, class: revert}
-            exp_annotations:
-              summary: "revert on Smana/cloud-native-ref has been paused for 7 days"
-              description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter); factory/drill lifts it only if added before factory/revert, or on a rebuilt factory. Read the window: scripts/shadow-merge-tally.sh --repo Smana/cloud-native-ref --class revert --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
               runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md#know-before-the-go"
               dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
       - eval_time: 6d

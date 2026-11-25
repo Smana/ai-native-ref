@@ -28,7 +28,8 @@ def one(objects, kind, name):
 def run_images():
     hr = one(render("infrastructure/base/room-broker"), "HelmRelease", "room-broker")
     images = hr["spec"]["values"]["runController"]["images"]
-    return {f"{image['repository']}:{image['tag']}" for image in images.values()}
+    # The opt-in OpenCode image runs only a labelled task: the headroom pre-pulls the default harness's.
+    return {f"{image['repository']}:{image['tag']}" for name, image in images.items() if name != "opencode"}
 
 
 def headroom_images(objects):

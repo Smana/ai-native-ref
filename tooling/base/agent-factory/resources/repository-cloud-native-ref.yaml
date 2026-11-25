@@ -14,6 +14,10 @@ spec:
   triggerLabel: factory/ready
   workflow:
     default: standard
+    # The host carries the class that merges alone: a deeper run, and a plan-first task's go, are
+    # a maintainer's call.
+    stepUp: ask
+    planGate: ask
   # v3 feature 3: what a check-enabled run requests beyond github. standard and careful set
   # checks: true in Factory.spec.workflows.
   checks: {egress: [pypi]}
@@ -55,13 +59,17 @@ spec:
     # human. Above 0 the merger App needs actions: write.
     checkReruns: 1
     leakScanCheck: "Security scanning 🔒"  # R42: TruffleHog's check run, in both lists above
+    # The factory merges its own green revert of a live class's merge, only at the head GitHub
+    # created (Maku v0.53.x): it replaces the live `revert` binding, so an auto-merge never waits
+    # on a human to merge its own revert (D5).
+    autoRevert: true
     fluxSource: flux-system/flux-system  # the GitRepository deps-patch and deps-minor's monitors watch (Q14)
   # The policies this repository binds (B3), each with its mode and the parameters it supplies.
   # protectedFiles repeats the host-only part of its retired policy-bot gate on every policy; the
   # Factory's guardrails carry the paths both repositories share.
   mergePolicies:
-    # Live: the one class that merges unattended here (runbook 12, design D4). revert is live
-    # with it, or an auto-merge waits on a human to merge its own revert (D5).
+    # Live: the one class that merges unattended here (runbook 12, design D4). Its reverts are
+    # merge.autoRevert's, above.
     - name: docs-links
       mode: live
       holdoutChecks: ["Check the documentation links 🔗"]
@@ -73,10 +81,6 @@ spec:
         - '^opentofu/aws/openbao/management/(mounts\.tf|policies/(agents-secrets|merge-gate-secrets|external-secrets)\.hcl)$'
         - '^opentofu/aws/eks/configure/openbao\.tf$'
         - '^docs/platform-constitution\.md$'
-    - name: revert
-      mode: live
-      holdoutChecks: ["Check the documentation links 🔗"]
-      protectedFiles: *host-gate-paths
     - name: docs
       mode: shadow
       protectedFiles: *host-gate-paths

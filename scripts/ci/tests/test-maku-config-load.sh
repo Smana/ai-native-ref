@@ -98,6 +98,10 @@ sys.path.insert(0, f"{root}/scripts/ci")
 import factory_config
 for name, cloud in (("base", None), ("aws-0", "aws-0"), ("gcp-0", "gcp-0")):
     open(f"{out}/factory-{name}.yaml", "w").write(sub(yaml.safe_dump(factory_config.config(root, cloud))))
+    # Each custom role's brief, where the chart projects it beside the config (maku-factory.roleBriefs).
+    for brief, text in (factory_config.values(root, cloud)["maku-factory"].get("roleBriefs") or {}).items():
+        os.makedirs(f"{out}/roles", exist_ok=True)
+        open(f"{out}/roles/{brief}", "w").write(text)
 # The App's config is base's, the declaration's rendering (each cloud mounts it unchanged).
 app = sub(open(f"{root}/tooling/base/agent-factory/slack-app/config.yaml").read())
 open(f"{out}/slack-base.yaml", "w").write(app)

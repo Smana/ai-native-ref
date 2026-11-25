@@ -16,14 +16,34 @@ data:
       agentRunPolicies:
         creators: [system:serviceaccount:agent-system:agent-factory]
     # The factory subchart must be enabled: its Deployment and the four-policy catalog are behind
-    # this gate. Without it the factory runs no Maku controller and docs/docs-links/revert do not exist.
+    # this gate. Without it the factory runs no Maku controller and docs and docs-links do not exist.
     maku-factory:
       enabled: true
       image:
         repository: ghcr.io/smana/maku-factory
-        # maku v0.53.11, the chart's appVersion.
+        # maku v0.54.0, the chart's appVersion.
         # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
-        tag: "v0.53.11@sha256:58ff7f6d4828af28088b4ba4cfec3ea70a572dfef6653fee44d67c707b2711a2"
+        tag: "v0.54.0@sha256:db80954d71ed4b64a0e040b14685960e37d32f266bd63f90eea255ef57c1be18"
+      # Each custom role's brief (Factory.spec.roles, resources/factory.yaml), projected at
+      # /etc/agent-factory/config/roles/<file>. A brief is text the role's run reads: no credential,
+      # no host name.
+      roleBriefs:
+        security-reviewer.md: |
+          You are a security reviewer. You read the pull request's diff and nothing else; you never
+          push, comment on style, or ask for changes outside the diff.
+
+          Report only these, each with the file and line:
+          - a secret, token, private key or credential-shaped string added to the diff;
+          - RBAC widened: a new verb, resource, wildcard or ClusterRole binding;
+          - a network policy opened: a new egress or ingress peer, port, entity or FQDN;
+          - an image or a GitHub Action referenced without a digest or a pinned version;
+          - a security context weakened: privileged, root, added capabilities, host paths;
+          - a hardcoded credential where the platform reads one from a secret store.
+
+          Do not report style, naming, tests, or scope the task did not ask for.
+
+          Saying nothing is a complete answer: when the diff holds none of the above, approve with no
+          comment.
       # The post-merge monitor's read-only ClusterRole (get gitrepositories, list kustomizations and
       # helmreleases): gcp-0's factory reads the host's Flux, aws-0 renders the same role. No class
       # declares `monitor.flux` yet, so nothing reads through it.
@@ -142,10 +162,18 @@ data:
           throttleQuery: '_time:2m kubernetes.pod_namespace:"agent-gateway" AND kubernetes.pod_labels.gateway.networking.k8s.io/gateway-name:"model-gateway" | unpack_json | filter log.http.status:429 AND log.reason:RateLimit | stats by (log.x_ar_agent) count() hits'
         # Task spans (R46) to the trace collector's platform port (observability plan O20).
         tracing: {otlpEndpoint: agent-traces-collector.observability.svc.cluster.local:4317}
-    # The umbrella's four-policy catalog (merge policies review MR1, MR2): docs-links, revert and docs
-    # come from the chart with maku.ogenki.io/catalog: "true"; deps-patch stays in resources/ so it
-    # keeps its protectedFiles and its monitor.flux.
+    # The umbrella's three-policy catalog (merge policies review MR1, MR2; Maku v0.53.x dropped revert
+    # for merge.autoRevert): docs-links and docs come from the chart with maku.ogenki.io/catalog: "true";
+    # deps-patch stays in resources/ so it keeps its protectedFiles and its monitor.flux.
     mergePolicies:
       catalog:
         enabled: true
         exclude: [deps-patch]
+    # The chart's factory default-deny is on by default since Maku v0.54.0; this platform keeps its own,
+    # ../network-policy.yaml, a CiliumNetworkPolicy. The chart's admits the run API (:8082) from the
+    # broker alone, so it would cut the tailnet gateway's run-request API and RunLore's POST /v1/tasks,
+    # and its render fails until the in-cluster meter, logs and OTLP URLs name their pods. Two
+    # policies on one pod would also allow only what both allow.
+    networkPolicies:
+      factory:
+        enabled: false

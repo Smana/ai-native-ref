@@ -13,7 +13,7 @@ resources:
   - repository-runlore-kb.yaml
   - repository-runlore.yaml
   # The merge policies (reusable merge policies, B1): one class each, bound by the Repositories above.
-  # docs-links, revert and docs come from the chart's catalog (mergePolicies.catalog.enabled: true).
+  # docs-links and docs come from the chart's catalog (mergePolicies.catalog.enabled: true).
   - mergepolicy-alert-rules.yaml
   - mergepolicy-dead-links.yaml
   - mergepolicy-deps-patch.yaml

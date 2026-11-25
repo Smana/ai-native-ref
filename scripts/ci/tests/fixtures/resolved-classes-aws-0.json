@@ -107,42 +107,6 @@
       "maxPatchFiles": 10,
       "maxModifiedLines": 20,
       "diffShape": "links-only",
-      "holdoutChecks": [
-        "validate"
-      ],
-      "maxPerDay": 5,
-      "evidence": "low"
-    },
-    "revert": {
-      "description": "A revert whose diff changes link targets only.",
-      "shadow": true,
-      "protectedFiles": [
-        "^\\.github/",
-        "^\\.policy\\.yml$",
-        "^CODEOWNERS$",
-        "(^|/)(AGENTS|CLAUDE)\\.md$",
-        "^\\.(agents|claude)/",
-        "^clusters/",
-        "^flux/",
-        "^security/",
-        "^infrastructure/base/(agent-sandbox|karpenter-nodepools-agents|runtimeclass-gvisor|agent-runtime|agent-router|agent-mcp|room-broker|agent-model-routing|agentgateway|agent-gateway)/",
-        "^infrastructure/(aws-0|gcp-0)/(agent-mcp|agent-router|room-broker|agentgateway|agent-gateway|agentgateway-poc)/",
-        "^infrastructure/aws-0/agent-model-routing/",
-        "^observability/base/agent-platform/",
-        "^observability/base/runlore-factory/",
-        "^observability/(aws-0|gcp-0)/agent-platform/",
-        "^tooling/base/(agent-factory|policy-bot)/",
-        "^tooling/(aws-0|gcp-0)/agent-factory/",
-        "^scripts/ci/",
-        "^(HOST_REF|taskfile\\.yaml|\\.pre-commit-config\\.yaml|\\.secrets\\.baseline|\\.gitignore)$"
-      ],
-      "modifyOnly": true,
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 20,
-      "diffShape": "links-only",
-      "holdoutChecks": [
-        "validate"
-      ],
       "maxPerDay": 5,
       "evidence": "low"
     }
@@ -188,7 +152,10 @@
           "within": "2h0m0s"
         },
         "followUpWindow": "2h0m0s"
-      }
+      },
+      "requires": [
+        "plan"
+      ]
     },
     "dead-links": {
       "shadow": true,
@@ -449,46 +416,6 @@
       ],
       "maxPerDay": 5,
       "evidence": "low"
-    },
-    "revert": {
-      "description": "A revert whose diff changes link targets only.",
-      "live": true,
-      "protectedFiles": [
-        "^infrastructure/base/(kueue|kueue-queues)/",
-        "^infrastructure/(aws-0|gcp-0)/kueue/",
-        "^infrastructure/base/crossplane/configuration-(aws|gcp)/",
-        "^infrastructure/(aws-0|gcp-0)/crossplane/configuration/",
-        "^opentofu/aws/openbao/management/(mounts\\.tf|policies/(agents-secrets|merge-gate-secrets|external-secrets)\\.hcl)$",
-        "^opentofu/aws/eks/configure/openbao\\.tf$",
-        "^docs/platform-constitution\\.md$",
-        "^\\.github/",
-        "^\\.policy\\.yml$",
-        "^CODEOWNERS$",
-        "(^|/)(AGENTS|CLAUDE)\\.md$",
-        "^\\.(agents|claude)/",
-        "^clusters/",
-        "^flux/",
-        "^security/",
-        "^infrastructure/base/(agent-sandbox|karpenter-nodepools-agents|runtimeclass-gvisor|agent-runtime|agent-router|agent-mcp|room-broker|agent-model-routing|agentgateway|agent-gateway)/",
-        "^infrastructure/(aws-0|gcp-0)/(agent-mcp|agent-router|room-broker|agentgateway|agent-gateway|agentgateway-poc)/",
-        "^infrastructure/aws-0/agent-model-routing/",
-        "^observability/base/agent-platform/",
-        "^observability/base/runlore-factory/",
-        "^observability/(aws-0|gcp-0)/agent-platform/",
-        "^tooling/base/(agent-factory|policy-bot)/",
-        "^tooling/(aws-0|gcp-0)/agent-factory/",
-        "^scripts/ci/",
-        "^(HOST_REF|taskfile\\.yaml|\\.pre-commit-config\\.yaml|\\.secrets\\.baseline|\\.gitignore)$"
-      ],
-      "modifyOnly": true,
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 20,
-      "diffShape": "links-only",
-      "holdoutChecks": [
-        "Check the documentation links 🔗"
-      ],
-      "maxPerDay": 5,
-      "evidence": "low"
     }
   },
   "Smana/runlore": {
@@ -550,42 +477,6 @@
       "maxPatchFiles": 10,
       "maxModifiedLines": 20,
       "diffShape": "links-only",
-      "holdoutChecks": [
-        "build"
-      ],
-      "maxPerDay": 5,
-      "evidence": "low"
-    },
-    "revert": {
-      "description": "A revert whose diff changes link targets only.",
-      "shadow": true,
-      "protectedFiles": [
-        "^\\.github/",
-        "^\\.policy\\.yml$",
-        "^CODEOWNERS$",
-        "(^|/)(AGENTS|CLAUDE)\\.md$",
-        "^\\.(agents|claude)/",
-        "^clusters/",
-        "^flux/",
-        "^security/",
-        "^infrastructure/base/(agent-sandbox|karpenter-nodepools-agents|runtimeclass-gvisor|agent-runtime|agent-router|agent-mcp|room-broker|agent-model-routing|agentgateway|agent-gateway)/",
-        "^infrastructure/(aws-0|gcp-0)/(agent-mcp|agent-router|room-broker|agentgateway|agent-gateway|agentgateway-poc)/",
-        "^infrastructure/aws-0/agent-model-routing/",
-        "^observability/base/agent-platform/",
-        "^observability/base/runlore-factory/",
-        "^observability/(aws-0|gcp-0)/agent-platform/",
-        "^tooling/base/(agent-factory|policy-bot)/",
-        "^tooling/(aws-0|gcp-0)/agent-factory/",
-        "^scripts/ci/",
-        "^(HOST_REF|taskfile\\.yaml|\\.pre-commit-config\\.yaml|\\.secrets\\.baseline|\\.gitignore)$"
-      ],
-      "modifyOnly": true,
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 20,
-      "diffShape": "links-only",
-      "holdoutChecks": [
-        "build"
-      ],
       "maxPerDay": 5,
       "evidence": "low"
     }
@@ -649,9 +540,6 @@
       "maxPatchFiles": 10,
       "maxModifiedLines": 20,
       "diffShape": "links-only",
-      "holdoutChecks": [
-        "validate"
-      ],
       "maxPerDay": 5,
       "evidence": "low"
     },
@@ -703,39 +591,6 @@
         "^log\\.md$"
       ],
       "requiredLabel": "ready-to-merge"
-    },
-    "revert": {
-      "description": "A revert whose diff changes link targets only.",
-      "shadow": true,
-      "protectedFiles": [
-        "^\\.github/",
-        "^\\.policy\\.yml$",
-        "^CODEOWNERS$",
-        "(^|/)(AGENTS|CLAUDE)\\.md$",
-        "^\\.(agents|claude)/",
-        "^clusters/",
-        "^flux/",
-        "^security/",
-        "^infrastructure/base/(agent-sandbox|karpenter-nodepools-agents|runtimeclass-gvisor|agent-runtime|agent-router|agent-mcp|room-broker|agent-model-routing|agentgateway|agent-gateway)/",
-        "^infrastructure/(aws-0|gcp-0)/(agent-mcp|agent-router|room-broker|agentgateway|agent-gateway|agentgateway-poc)/",
-        "^infrastructure/aws-0/agent-model-routing/",
-        "^observability/base/agent-platform/",
-        "^observability/base/runlore-factory/",
-        "^observability/(aws-0|gcp-0)/agent-platform/",
-        "^tooling/base/(agent-factory|policy-bot)/",
-        "^tooling/(aws-0|gcp-0)/agent-factory/",
-        "^scripts/ci/",
-        "^(HOST_REF|taskfile\\.yaml|\\.pre-commit-config\\.yaml|\\.secrets\\.baseline|\\.gitignore)$"
-      ],
-      "modifyOnly": true,
-      "maxPatchFiles": 10,
-      "maxModifiedLines": 20,
-      "diffShape": "links-only",
-      "holdoutChecks": [
-        "validate"
-      ],
-      "maxPerDay": 5,
-      "evidence": "low"
     }
   }
 }

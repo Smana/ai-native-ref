@@ -13,6 +13,10 @@ spec:
   triggerLabel: factory/ready
   workflow:
     default: standard
+    # A failed standard task runs once more as careful, without asking (Maku v0.54.0 step-up), and
+    # a plan-first task waits for its plan's approval.
+    stepUp: auto
+    planGate: ask
   merge:
     requiredChecks: [validate, leak-scan]
     verifyChecks: [validate, leak-scan]
@@ -24,8 +28,8 @@ spec:
     # would otherwise escalate as secret_scan_red and post "found a live credential".
     leakScanCheck: leak-scan
   mergePolicies:
-    - {name: docs-links, mode: shadow, holdoutChecks: [validate]}
-    - {name: revert, mode: shadow, holdoutChecks: [validate]}
+    # docs-links comes from the chart's catalog, evaluated in shadow unbound: a binding would only
+    # repeat validate, already a required check.
     - name: kb-entries
       mode: shadow
       allowedFiles: ['^incidents/[^/]+\.md$']

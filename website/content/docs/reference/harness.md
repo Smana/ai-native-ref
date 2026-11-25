@@ -3,8 +3,8 @@ title: Harness reference
 aliases:
   - /docs/platform/ai-platform/agents/tune/harness-reference/
 weight: 10
-description: "The tier budgets, templates, workflows, concurrency caps, loop rows, run-controller mounts and OpenHands harness values set on this platform."
-lastVerified: 2026-11-15
+description: "The tier budgets, workflows, roles, concurrency caps, run-controller mounts and harness values set on this platform."
+lastVerified: 2026-11-25
 diataxis: reference
 ---
 
@@ -17,8 +17,8 @@ Every run on this platform is bounded by the `Factory` catalogue in
 [Harness tuning]({{< relref "/docs/operate/tune-a-run.md" >}}).
 
 - [Factory: tiers](#tiers)
-- [Factory: templates, workflows and triage](#templates)
-- [Factory: caps, budgets and loops](#caps)
+- [Factory: workflows, roles and triage](#templates)
+- [Factory: caps and budgets](#caps)
 - [Factory: what a brief holds](#brief)
 - [Run API and AgentRun values](#run-api)
 - [Run-controller and harness values](#composition)
@@ -38,29 +38,33 @@ Every priced run is held to `runUSD` and `taskUSD` at the rates in `spec.prices`
 and `taskTokens` cap a run only when the meter cannot price its model. The model gateway's per-run
 token budget is the hard backstop ([gateways]({{< relref "/docs/how-it-works/gateways.md#budgets" >}})).
 
-## Factory: templates, workflows and triage {#templates}
+## Factory: workflows, roles and triage {#templates}
 
-Example (the reference host), `spec.templates`, `spec.workflows`, `spec.defaults` and `spec.triage` in
-`tooling/base/agent-factory/resources/factory.yaml`:
+<span id="workflows"></span>
+
+Example (the reference host), `spec.workflows`, `spec.roles`, `spec.outcomes`, `spec.defaults` and
+`spec.triage` in `tooling/base/agent-factory/resources/factory.yaml`. A workflow is an ordered list of
+stages and a `budget`, the tier its runs take:
 
 | Setting | Value on this platform | Notes |
 |---|---|---|
-| `templates.solo` | `{roles: [implementer]}` | Used by the `quick` workflow and scheduled tasks |
-| `templates.pair` | `{roles: [implementer, reviewer], maxReviewRounds: 2, reviewerModel: kimi-frontier}` | Used by `standard` and `careful`; the `frontier` reviewer runs on Kimi K3.1 Pro ([providers]({{< relref "/docs/how-it-works/providers.md" >}})) |
-| `templates.investigate` | `{roles: [triager]}` | Forced `internal` for RunLore findings; never writes code |
-| `workflows.quick` | `{template: solo, tier: standard}` | Implementer alone; used by scheduled runs and `workflow:quick` |
-| `workflows.standard` | `{template: pair, tier: standard, checks: true, stallSteps: 80, continuations: 2, judge: tier-light}` | Every repository's default (`Repository.spec.workflow.default: standard`) |
-| `workflows.careful` | `{template: pair, tier: frontier, checks: true, stallSteps: 80, continuations: 2, judge: tier-light}` | Scoper first (`loops.careful`), implementer with `search` and checks, then reviewer |
-| `defaults` / `triage.controlPercent` | `{dataClass: public}` / `0` | Triage picks `workflow:<name>` label, schedule workflow, `evaluation` arm (`treatment: careful` at 30%), or `Repository.spec.workflow.default` (`standard`) |
+| `workflows.quick` | Maku's shipped entry: `budget: standard`, one implementer that stops a stalled run | Scheduled runs and `workflow:quick`; steps up to `standard` |
+| `workflows.standard` | `budget: standard`, `stepUp: careful`; implementer (`checks`, `stall`), reviewer (`maxRounds: 2`) | Every repository's default (`Repository.spec.workflow.default: standard`) |
+| `workflows.careful` | `budget: frontier`; scoper (`split: {maxParts: 4}`, `gate: {when: plan-first}`), tester (`when: repository.testFirst`), implementer (`checks`, `search`, `stall`, `judge: evidence`), reviewer | `workflow:careful`, or one step up from `standard` |
+| `workflows.thorough` | `budget: frontier`; tester, implementer, `security-reviewer`, reviewer | Reached only by the label `workflow:thorough` |
+| `roles.security-reviewer` | `{capability: read, brief: roles/security-reviewer.md}` | A custom role reads the diff with the reviewer's read-only token; the built-in reviewer still decides |
+| `outcomes` | `[change, plan-first, review, report]` | The labels `plan-first`, `factory/review` and `report` pick the other three |
+| `scoper.planTier` | `frontier` | The scoper plans on the strong model |
+| `defaults` / `triage.controlPercent` | `{dataClass: public}` / `0` | Triage picks a `workflow:<name>` label, the schedule's workflow, or `Repository.spec.workflow.default` (`standard`) |
 
 The reviewer runs on **the other tier** (`frontier` for a `standard` or `light` implementer, `standard`
 for a `frontier` one) with that tier's `runUSD` cap, keeping the implementer's `runTokens` and
 `runMinutes`.
 
-## Factory: caps, budgets and loops {#caps}
+## Factory: caps and budgets {#caps}
 
 Example (the reference host), `spec.caps`, `spec.budgets`, `spec.resume`, `spec.facts`, `spec.brief`
-and `spec.loops` in `tooling/base/agent-factory/resources/factory.yaml`:
+and `spec.scoper` in `tooling/base/agent-factory/resources/factory.yaml`:
 
 | Key | Value on this platform | Effect here |
 |---|---|---|
@@ -68,23 +72,21 @@ and `spec.loops` in `tooling/base/agent-factory/resources/factory.yaml`:
 | `budgets` | `{enforceTask: true, enforcePrincipal: false, factoryDailyUSD: 42.50, humanDailyUSD: 8.50, perPerson: {enabled: true}}` | Task and run USD caps enforced; fleet and per-person daily caps counted in shadow |
 | `resume` | `{maxPerTask: 2}` | Resumes `Disrupted` and `PodLost` runs up to twice within `taskTokens`; never resumes `PodFailed` |
 | `facts.finalSpend` · `brief.ciEvidence` | `true` · `true` | Posts one final spend fact after settle; inlines reviewer comments and failing check annotations in revision briefs |
-| `loops.default` | `{scope: "off"}` | `quick` and `standard` run without the scoper |
-| `loops.careful` | `{scope: scoper, search: true, split: {maxChildren: 5, familyUSD: 20.40, childTier: standard, anyTier: true}}` | Runs the scoper, enables the `search` tool, and bounds splits to 5 parts and `$20.40` across the family |
 | `scoper.nudgeAt` / `scoper.maxToolCalls` | `25` / `40` (Maku defaults; unset in `factory.yaml`) | Nudges the scoper at 25 tool calls and stops it at 40 (`budget_calls`) |
 
 ## Factory: what a brief holds {#brief}
 
-`loops.<workflow>.scope` selects what the factory places in each run's brief (`scoper` on `careful`,
-`off` on `quick` and `standard`):
+A workflow's stages select what the factory places in each run's brief (a scoper on `careful`, none
+on `quick`, `standard` and `thorough`):
 
-- **Scoper (`scope: scoper`):** preamble, repository steering note (`.github/agent-factory/steering/<workflow>.md`,
+- **Scoper:** preamble, repository steering note (`.github/agent-factory/steering/<workflow>.md`,
   fenced as trusted), sanitised issue snapshot (fenced as untrusted), and instructions to scope, ask one
   question, or propose a split.
 - **Implementer:** preamble, steering note, scoper handoff, and issue snapshot (inlined up to 16 KiB, or
   fetched via `room_read`). Revisions, CI fixes, retries and resumes prepend steering and scope ahead
   of up to 13 KiB of room log.
 - **Judge and reviewer:** the completion judge reads the scoper's acceptance checks (or the issue's
-  acceptance section when `scope: off`); the reviewer reads the pull request and room handoff without
+  acceptance section when no scoper ran); the reviewer reads the pull request and room handoff without
   the implementer's transcript.
 
 ## Run API and AgentRun values {#run-api}
@@ -113,4 +115,5 @@ and [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}
 | RuntimeClass and egress | `gvisor`, isolated via `egressProxy` to GitHub, the model gateway (`:8080` public, `:8081` internal) and allowed package registries | `infrastructure/base/room-broker/helmrelease.yaml` |
 | Model and git credentials | Per-run projected gateway token (`LLM_API_KEY_FILE`) and per-run `<run>-git` Secret (`GIT_TOKEN_FILE`) | `infrastructure/base/room-broker/helmrelease.yaml`, `tooling/base/agent-factory/helm-values-configmap.yaml` |
 | Loop and call bounds | `reasoning_effort: high` (unset in env), 300 s call timeout (1 retry before first token), 3 retries on 503/reset (never 429), `max_iterations: 500`, stuck detector over last 20 events, condenser at 80 events (keeps first 4), 30,000-char event truncation | [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}}), [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}}) |
+| Harness | OpenHands for every run. The OpenCode image is pinned by digest and admitted, so a maintainer's `harness:opencode` label on an issue runs that task on OpenCode; `/factory retry harness=openhands` moves it back | `infrastructure/base/room-broker/helmrelease.yaml` (`runController.images.opencode`) |
 | Tools, checks and telemetry | Terminal, file editor, task tracker, room MCP (`:8090`), optional `search` child (40 iterations, 300k tokens, 300 s, max 6/run at `low` effort), `.github/agent-checks.yaml` pre-push and end-of-run check, 15 s step batches, SIGTERM checkpoint commit, OTLP spans without prompt text | [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}}) |

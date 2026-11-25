@@ -119,7 +119,6 @@ Example (the reference host), the policies and what they cover:
 | Policy | Covers |
 |---|---|
 | `docs-links` | Markdown link targets only, nothing else in the diff (shipped in the chart catalog) |
-| `revert` | The factory's own revert of a merge it made (shipped in the chart catalog) |
 | `docs` | Documentation Markdown files within a repository's allowed paths and line cap (shipped in the chart catalog) |
 | `dead-links` | Dead external links, replaced by their archived copy |
 | `deps-patch`, `deps-minor` | Renovate's patch and minor bumps, adopted from Renovate's own pull requests |

@@ -65,6 +65,7 @@ Grouped by purpose; the number is the order they were written in.
 | [27-six-tools-and-slack-acts.md](27-six-tools-and-slack-acts.md) | Six tools (`handoff`, `start`, `inbox`, `task`, `wait`, `answer`), `maku setup <client>`, the four default Slack transitions and one end line edited in place, and `stop`, `retry` and `answer` from a Slack thread on `aws-0` (L1–L17) | Yes — the owner's go for the `slackStop`, `slackRetry` and `slackAnswer` switch-ons | ~2 h |
 | [27-workflow-comparison.md](27-workflow-comparison.md) | Procedure for a workflow comparison; none is running ([results](results-workflow-comparison-1.md)) | No | — |
 | [28-v4-aws-validation.md](28-v4-aws-validation.md) | Shipped workflow and merge-policy functional validation on aws-0, adjacent regression, one live merge-policy safety chain, and issue #394's two OpenCode screencasts from one ai-native-ref task | Yes — the owner's approved matrix; valid promotion evidence for the live chain | Multiple sessions within existing daily caps |
+| [29-maku-v054-live-checks.md](29-maku-v054-live-checks.md) | Maku v0.54.0's switches, live: one step up, plan-first, review and report outcomes, the room's acts, whole plans, the `thorough` workflow, one OpenCode task, the factory's own reverts, pause and promotion by pull request | Yes — scratch issues and pull requests on the fenced cluster | ~3 h |
 
 **Media**
 

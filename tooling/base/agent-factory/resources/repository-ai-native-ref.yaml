@@ -14,6 +14,10 @@ spec:
   triggerLabel: factory/ready
   workflow:
     default: standard
+    # A failed standard task runs once more as careful, without asking (Maku v0.54.0 step-up), and
+    # a plan-first task waits for its plan's approval.
+    stepUp: auto
+    planGate: ask
   # v3 feature 3: what a check-enabled run requests beyond github. standard and careful set
   # checks: true in Factory.spec.workflows.
   checks: {egress: [golang, pypi]}
@@ -39,8 +43,8 @@ spec:
     leakScanCheck: lint
   mergePolicies:
     # No testFirst here (TO4): the tests live under the gate path scripts/ci/.
-    - {name: docs-links, mode: shadow, holdoutChecks: [validate]}
-    - {name: revert, mode: shadow, holdoutChecks: [validate]}
+    # docs-links comes from the chart's catalog, evaluated in shadow unbound: a binding would only
+    # repeat validate, already a required check.
     - name: docs
       mode: shadow
       allowedFiles: ['^website/content/.+\.md$']

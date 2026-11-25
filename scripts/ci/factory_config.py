@@ -10,8 +10,8 @@ when `mergePolicies.catalog.enabled` is true. `config()` lays one over the other
 merges them, so a suite reads one config whichever side a key lives on. It does not validate:
 scripts/ci/validate-factory-config.sh runs the pinned Maku's own `maku config validate` on both.
 
-    render <cloud> <manifests.yaml> <out dir>   writes config.yaml and manifests.yaml, the Flux
-                                                variables substituted with placeholders
+    render <cloud> <manifests.yaml> <out dir>   writes config.yaml, manifests.yaml and roles/<brief>, the
+                                                Flux variables substituted with placeholders
     config <cloud>                              prints the config the factory reads, in the file's shape,
                                                 the same placeholders in (for `maku policy diff --config`)
 """
@@ -28,22 +28,16 @@ VALUES_NAME = "agent-factory-helm-values"
 CATALOG_LABEL = "maku.ogenki.io/catalog"
 # Maku's resources.CatalogueKeys: the file's top-level keys a Factory replaces.
 CATALOGUE = ("control", "defaults", "tiers", "templates", "caps", "budgets", "facts", "brief", "resume",
-             "scoper", "loops", "harnessProfiles", "workflows", "mergeGuardrails", "evaluation", "mergeDefaults")
+             "scoper", "loops", "harnessProfiles", "workflows", "roles", "outcomes", "mergeGuardrails", "evaluation",
+             "mergeDefaults")
 REPOSITORY_KEYS = ("maintainers", "triggerLabel", "checks", "schedules", "workflow", "classAuthority", "privateCode")
 # The Flux variables these files read, as placeholders the factory's parser accepts.
 PLACEHOLDERS = {"private_domain_name": "priv.example.test", "identity_provider_url": "https://auth.example.test"}
 
-# The four MergePolicy specs in Maku's charts/agent-factory/templates/merge-policies-catalog.yaml (MR1).
+# The three MergePolicy specs in Maku's charts/agent-factory/templates/merge-policies-catalog.yaml (MR1).
 CATALOG_POLICIES = {
     "docs-links": {
         "description": "Link targets in Markdown, nothing else.",
-        "diffShape": "links-only",
-        "modifyOnly": True,
-        "maxModifiedLines": 20,
-        "evidence": "low",
-    },
-    "revert": {
-        "description": "A revert whose diff changes link targets only.",
         "diffShape": "links-only",
         "modifyOnly": True,
         "maxModifiedLines": 20,
@@ -173,7 +167,7 @@ def resolve(policy, binding, merge, guardrails=None, name=None, defaults=True):
     fill-once parameter from where it is set, the additive lists unioned, the lower cap, the
     repository's Flux source, then the guardrails (with their defaults, Maku v0.50.0). A binding's
     allowedFiles over a policy's narrows it (narrowedFiles: a path must match both)."""
-    cl = {k: v for k, v in (policy or {}).items() if k != "requires"}
+    cl = dict(policy or {})
     cl = yaml.safe_load(yaml.safe_dump(cl))  # a deep copy: consumers never share a list
     mode = binding.get("mode")
     if mode == "live":
@@ -284,6 +278,12 @@ def render(cloud, manifests, out):
     have = {d["metadata"]["name"] for d in docs if d.get("kind") == "MergePolicy"}
     docs += [o for o in catalog_objects(vals) if o["metadata"]["name"] not in have]
     (out / "manifests.yaml").write_text(substitute(yaml.safe_dump_all(docs, allow_unicode=True), cloud))
+    # Each custom role's brief, where the chart projects it beside config.yaml (maku-factory.roleBriefs).
+    briefs = vals["maku-factory"].get("roleBriefs") or {}
+    if briefs:
+        (out / "roles").mkdir(exist_ok=True)
+        for name, text in briefs.items():
+            (out / "roles" / name).write_text(text)
 
 
 if __name__ == "__main__":

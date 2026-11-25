@@ -4,7 +4,7 @@ aliases:
   - /docs/platform/ai-platform/agents/how-it-works/providers/
 weight: 50
 description: "Moonshot (Kimi K3.1 Pro) and Mistral (Medium, Small) as selectable providers for public work: what they are, where data is processed, and how a class switches them on."
-lastVerified: 2026-10-29
+lastVerified: 2026-11-25
 diataxis: explanation
 ---
 
@@ -30,21 +30,23 @@ a class's choice to public tasks only.
 
 ## Switch a class on
 
-No class names one today: the `loops` map in the `Factory`, `tooling/base/agent-factory/resources/factory.yaml`,
-holds only `default: {scope: "off"}`. A class opts in with one key on its `loops` row:
-`models.<role>.<tier>` is the alias that role runs on for a public task of that tier, as this sketch shows:
+No workflow names one: no entry of `spec.workflows` in the `Factory`,
+`tooling/base/agent-factory/resources/factory.yaml`, sets `models`. A workflow opts in with one key:
+`models.<role>` is the alias a role other than the implementer runs on for a public task, as this
+sketch shows:
 
 ```yaml
-loops:
-  default: {scope: "off"}
-  docs: {scope: scoper, …, models: {implementer: {standard: mistral-standard}, reviewer: {frontier: kimi-frontier}}}
+workflows:
+  standard:
+    # budget, stepUp and stages as written
+    models: {reviewer: kimi-frontier}
 ```
 
 | Rule | Why |
 |---|---|
 | Each alias serves its own tier only; the factory refuses one on another tier at config load | The run caps stay the tier's, and the gateway's hourly token limit stays above a run's cap spent on cache reads |
 | A role or tier without an entry keeps today's model | No default changes |
-| `loops.<class>.judge` may name `mistral-light` | The judge's field is already an alias |
+| An implementer stage's `judge` may name `mistral-light` | The judge's field is already an alias |
 | Each run is priced at the provider's list price, cache reads included (`meter.prices`) | The run's dollar cap and spend per identity stay true |
 
 **Mistral reasons with `reasoning_effort: "none"`.** agentgateway v1.6.0 parses a Chat Completions

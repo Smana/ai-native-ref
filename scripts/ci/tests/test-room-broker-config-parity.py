@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # requires: python3 kustomize helm
 """The room broker's config copies stay base's but for the session and Slack switches: gcp-0's copy
-differs in webhooks, human.mcp, human.slackLink, human.intake and human.slackDecide alone, and aws-0's
+differs in webhooks, human.mcp, human.slackLink, human.intake, human.slackDecide and human.roomActs alone, and aws-0's
 in the same keys plus human.slackStop, human.slackRetry, human.slackAnswer and coordination (plan mode
 only). No copy declares suspend, which this platform
 does not run (owner ruling Q10, R3). The broker's own RBAC (the maku chart's, as its postRenderer
@@ -39,14 +39,16 @@ for name, cfg in (("base", config), ("gcp-0", gcp)):
 
 def minus_switches(cfg):
     """The config without the keys a session may declare: webhooks, human.mcp, human.slackLink,
-    human.intake and the Slack routes (human.slackDecide, human.slackStop, human.slackRetry, human.slackAnswer)."""
+    human.intake, human.roomActs and the Slack routes (human.slackDecide, human.slackStop, human.slackRetry,
+    human.slackAnswer)."""
     out = {k: v for k, v in cfg.items() if k != "webhooks"}
     out["human"] = {k: v for k, v in out["human"].items()
-                    if k not in ("mcp", "slackLink", "intake", "slackDecide", "slackStop", "slackRetry", "slackAnswer")}
+                    if k not in ("mcp", "slackLink", "intake", "roomActs", "slackDecide", "slackStop", "slackRetry",
+                                 "slackAnswer")}
     return out
 
 
-checks["gcp-0's broker config is base's but for webhooks, human.mcp, human.slackLink, human.intake and human.slackDecide"] = (
+checks["gcp-0's broker config is base's but for webhooks, human.mcp, human.slackLink, human.intake, human.slackDecide and human.roomActs"] = (
     minus_switches(gcp) == minus_switches(config))
 checks["gcp-0's human.mcp stays enabled"] = (gcp["human"]["mcp"].get("enabled") is True)
 

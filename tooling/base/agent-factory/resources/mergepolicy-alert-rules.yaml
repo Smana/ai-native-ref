@@ -10,4 +10,7 @@ metadata:
   name: alert-rules
   namespace: agent-system
 spec:
+  # A change to an alert rule is small and its blast radius is not (WR6): every task touching this
+  # class's paths runs the scoper first, whatever its workflow.
+  requires: [plan]
   monitor: {verification: {within: 2h}, followUpWindow: 2h}

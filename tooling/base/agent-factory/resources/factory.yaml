@@ -49,21 +49,57 @@ spec:
     # R41: 1 revert in the last 10 merges demotes a class; human path AM7: 3 clean mature merges
     # after the bad one lift it (half-open), and a maintainer's factory/drill revert never counts (AM6).
     breaker: {window: 10, maxReverts: 1, maxFollowUps: 1, recoverAfter: 3}
-  # The three shipped workflows (workflows review WF1, WF2): Maku fills quick in, and standard and
-  # careful set checks: true here (a repository with no .github/agent-checks.yaml is a no-op).
+  # The workflows (Maku v0.54.0 list form, WR11): each one an ordered stage list and a budget, the
+  # tier a person reads. Maku fills quick in (one implementer, stepping up to standard). A standard
+  # task that stalls, runs out of budget or of review rounds runs once more as careful (stepUp);
+  # Repository.spec.workflow.stepUp says whether it asks first. careful's scoper waits for an
+  # approval on a plan-first task (gate) and may split a task into four parts, one at a time.
   workflows:
     standard:
-      template: pair
-      checks: true
       description: "An implementer and a reviewer. The default."
+      budget: standard
+      stepUp: careful
+      stages:
+        - {role: implementer, checks: true, stall: true}
+        - {role: reviewer, maxRounds: 2}
     careful:
-      template: pair
-      tier: frontier
-      loop: careful
-      checks: true
-      description: "Scoped first, judged before review. For wide or unclear tasks."
+      description: "Planned first, judged before review. For wide or unclear tasks."
+      budget: frontier
+      stages:
+        - {role: scoper, split: {maxParts: 4}, gate: {when: plan-first}}
+        - {role: tester, when: repository.testFirst}
+        - {role: implementer, checks: true, search: true, stall: true, judge: evidence}
+        - {role: reviewer, maxRounds: 2}
+    # One custom workflow (WR11): a second, read-only reviewer for security before the built-in
+    # reviewer, which still decides. No repository defaults to it: the label workflow:thorough does.
+    thorough:
+      description: "Tests first, then two reviews: correctness and security."
+      budget: frontier
+      stages:
+        - {role: tester, when: repository.testFirst}
+        - {role: implementer, checks: true, stall: true}
+        - {role: security-reviewer}
+        - {role: reviewer, maxRounds: 2}
+  # Custom roles (WR11): read-only, with a brief the chart projects from maku-factory.roleBriefs in
+  # ../helm-values-configmap.yaml to /etc/agent-factory/config/roles/. A custom role runs with the
+  # reviewer's read-only token and never pushes.
+  roles:
+    security-reviewer:
+      capability: read
+      brief: roles/security-reviewer.md
+  # The task outcomes this factory offers (phase F): a change (the default), a plan to approve
+  # before any code (label plan-first), a review of a person's pull request (label factory/review)
+  # and findings only (label report).
+  outcomes: [change, plan-first, review, report]
+  # The scoper plans on the strong model (WR6): frontier's model and run caps.
+  scoper: {planTier: frontier}
+  # A promotion opens its pull request on this file, changing one binding's mode line; Maku never
+  # merges it. Maku v0.54.0 reads one file holding one Repository, so the button works for this
+  # repository's own policies; another repository's promotion is refused (the file names another
+  # repository), and a maintainer opens that one-line pull request by hand.
+  gitops: {repository: Smana/ai-native-ref, path: tooling/base/agent-factory/resources/repository-ai-native-ref.yaml}
   control: {repository: Smana/cloud-native-ref, issue: 2188}  # factory/stop here stops every repository
-  # The template comes from the workflow (workflows review WF1); no default template or tier (R8).
+  # The stages come from the workflow (workflows review WF1); no default template or tier (R8).
   defaults: {dataClass: public, predictedClass: review}
   triage:
     # No classifierURL: the classifier (C7) was never deployed, and the scoper replaced it (R8).
@@ -78,10 +114,6 @@ spec:
     light:    {model: agent-default, runTokens: 300000,  taskTokens: 600000,  runMinutes: 20, runUSD: 0.51, taskUSD: 1.02}
     standard: {model: agent-default, runTokens: 1500000, taskTokens: 3000000, runMinutes: 45, runUSD: 2.55, taskUSD: 5.10}
     frontier: {model: agent-default, runTokens: 4000000, taskTokens: 8000000, runMinutes: 90, runUSD: 6.80, taskUSD: 13.60}
-  templates:
-    solo: {roles: [implementer]}
-    pair: {roles: [implementer, reviewer], maxReviewRounds: 2}
-    investigate: {roles: [triager]}  # R38: proposes a public issue text, never writes
   # CD22: a revision of another task runs before new intake. One wait reason, no reservation; the review
   # WIP cap and the run slot are still checked first.
   caps: {activeTasks: 3, concurrentRuns: 4, tasksPerDay: 20, maxTextBytes: 14336, awaitingHumanWIP: 5, preferRevisions: true}
@@ -108,10 +140,6 @@ spec:
   # Disruption design §4: a run lost to a reclaim or an eviction resumes on its own, twice per task
   # at most, and only with a RunTokens left under the task's TaskTokens (enforced on that path).
   resume: {maxPerTask: 2}
-  # Loop policy (workflows review WF2): Maku fills the careful row in ({scope: scoper, stallSteps: 60,
-  # continuations: 2, judge: tier-light, search: true}); default stays off for workflows without a loop.
-  loops:
-    default: {scope: "off"}
   # The price overlay (plan J.1), meter.prices in the file: one row per model a backend in
   # infrastructure/base/agent-gateway pins, so no agentgateway release moves a price
   # without a commit here. AG10 fails a pinned model without its row. A model with no

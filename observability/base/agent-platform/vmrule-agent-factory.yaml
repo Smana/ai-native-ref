@@ -48,7 +48,7 @@ spec:
           # that goes live there fails the test until this regex follows. A static regex, not a
           # recording rule: a rule would need the same list. The gauge can be absent for a paused
           # class with no decision and no watched merge: absent means not reported, never not paused.
-          expr: max by (repository, class) (maku_factory_class_paused{repository="Smana/cloud-native-ref", class=~"docs-links|revert"}) == 1
+          expr: max by (repository, class) (maku_factory_class_paused{repository="Smana/cloud-native-ref", class=~"docs-links"}) == 1
           for: 7d
           labels:
             severity: warning
@@ -56,6 +56,31 @@ spec:
             summary: "{{ $labels.class }} on {{ $labels.repository }} has been paused for 7 days"
             description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter); factory/drill lifts it only if added before factory/revert, or on a rebuilt factory. Read the window: scripts/shadow-merge-tally.sh --repo {{ $labels.repository }} --class {{ $labels.class }} --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md#know-before-the-go"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        # Maku v0.54.0's two Repository alerts, copied from its chart (files/rules/factory.yaml): this
+        # platform keeps its own VMRule rather than the chart's PrometheusRule. Both read the
+        # Repository's conditions through kube-state-metrics' custom-resource state, which the host
+        # exports for AgentRun only today: until it adds Repository, neither series exists and
+        # neither alert can fire.
+        - alert: AgentFactoryBindingRefused
+          expr: max by (namespace, name) (kube_customresource_status_condition{customresource_group="maku.ogenki.io", customresource_kind="Repository", type="BindingsValid", status="false"}) == 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Repository {{ $labels.name }} has had a refused merge-policy binding for 15 minutes"
+            description: "The Repository's BindingsValid condition names the binding and the fix: kubectl get repository -n agent-system {{ $labels.name }} -o yaml. The last good policy may keep serving; Ready is false until the generation and every binding resolve."
+            runbook_url: "https://github.com/Smana/maku/blob/v0.54.0/docs/operations/failures.md#factory-alerts"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
+        - alert: AgentFactoryPolicyPausedLong
+          expr: max by (namespace, name) (kube_customresource_status_condition{customresource_group="maku.ogenki.io", customresource_kind="Repository", type="Paused", status="true"}) == 1
+          for: 24h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Repository {{ $labels.name }} has had merge policies paused for 24 hours"
+            description: "An operator set spec.merge.paused. Read the reason in the Paused condition; resume by removing the block (maku policy resume opens that pull request). A maintainer's approve-to-merge still works while it is paused."
+            runbook_url: "https://github.com/Smana/maku/blob/v0.54.0/docs/operations/failures.md#factory-alerts"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryDailyBudgetHigh
           # Truthful costs TC8: the day in USD (the USD gauges since agent-platform v0.16.0, pinned here at v0.33.1). spent is unclamped, so a day

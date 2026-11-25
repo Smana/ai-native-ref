@@ -32,7 +32,7 @@ sys.path.insert(0, str(ROOT / "scripts/ci"))
 import factory_config  # noqa: E402
 
 SWITCHES = ("read", "simulation", "dualEvaluation", "repositoryAuthority", "approvalMemory", "promotion")
-BUILT_IN_SHAPE = ("docs-links", "revert")
+BUILT_IN_SHAPE = ("docs-links",)
 DELETED_POLICIES = ("docs-links", "revert", "docs", "dashboards", "scripts", "tests", "review")
 WORKFLOW_FIELDS = ("harness", "harnessAllowed", "escalation", "testFirst", "checks")
 fails = []
@@ -95,8 +95,8 @@ cat_cfg = (all_vals.get("mergePolicies") or {}).get("catalog") or {}
 check("mergePolicies.catalog: enabled is true and exclude is [deps-patch]",
       cat_cfg.get("enabled") is True and cat_cfg.get("exclude") == ["deps-patch"])
 cat = chart_catalog()
-check("chart_catalog(): renders docs-links, revert and docs",
-      set(cat) == {"docs-links", "revert", "docs"})
+check("chart_catalog(): renders docs-links and docs (Maku v0.53.x dropped revert for merge.autoRevert)",
+      set(cat) == {"docs-links", "docs"})
 
 res_dir = ROOT / "tooling/base/agent-factory/resources"
 for gone in DELETED_POLICIES:
@@ -129,8 +129,9 @@ def over(spec):
 all_policies = policies(docs)
 for name, spec in all_policies.items():
     check(f"MergePolicy/{name}: within the guardrails {over(spec) or ''}", not over(spec))
-    check(f"MergePolicy/{name}: no requires or workflow fields",
-          "requires" not in spec and not any(k in spec for k in WORKFLOW_FIELDS))
+    check(f"MergePolicy/{name}: no workflow fields, and requires only on alert-rules (a plan first)",
+          spec.get("requires") == (["plan"] if name == "alert-rules" else None)
+          and not any(k in spec for k in WORKFLOW_FIELDS))
 
 repos = repositories(docs)
 for name, spec in repos.items():
@@ -139,6 +140,7 @@ for name, spec in repos.items():
     for b in spec.get("mergePolicies") or []:
         where = f"Repository/{name} binding {b['name']}"
         check(f"{where}: names a known MergePolicy (catalog or resources/)", b["name"] in all_policies)
+        check(f"{where}: no revert binding (merge.autoRevert replaces it)", b["name"] != "revert")
         check(f"{where}: mode is live or shadow (no off or disabled bindings remain)",
               b.get("mode") in ("live", "shadow"))
         check(f"{where}: within the guardrails {over(b) or ''}", not over(b))
@@ -156,16 +158,18 @@ check("Repository/ai-native-ref: binds docs in shadow narrowed to ^website/conte
       })
 
 cnr_modes = {b["name"]: b["mode"] for b in repos["cloud-native-ref"].get("mergePolicies") or []}
-check("Repository/cloud-native-ref: binds docs-links and revert live; docs, dead-links, deps-patch, deps-minor and alert-rules shadow",
+check("Repository/cloud-native-ref: binds docs-links live; docs, dead-links, deps-patch, deps-minor and alert-rules shadow",
       cnr_modes == {
           "docs-links": "live",
-          "revert": "live",
           "docs": "shadow",
           "alert-rules": "shadow",
           "dead-links": "shadow",
           "deps-patch": "shadow",
           "deps-minor": "shadow",
       })
+
+check("Repository/cloud-native-ref: merge.autoRevert, the live class's rollback",
+      (repos["cloud-native-ref"].get("merge") or {}).get("autoRevert") is True)
 
 print(f"==> merge policy surface: {len(fails)} problem(s)")
 sys.exit(1 if fails else 0)

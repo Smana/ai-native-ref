@@ -60,7 +60,9 @@ built-in reviewer's verdict only.
 Label one small issue `harness:opencode` (a maintainer applies it). Expected: `Task.status.profile`
 shows `harness: opencode, harnessSource: labeled`; the run pod's image is `ghcr.io/smana/maku-opencode`
 by digest and the admission policy admits it. If it escalates, `/factory retry harness=openhands`
-moves it back (`cohort: rescue`). Do not set `defaults.harness` or `evaluation.treatmentHarness`.
+moves it back (`cohort: rescue`). Never set `defaults.harness`. The 50/50 trial
+(`evaluation.treatmentHarness`, gcp-0 only) is the adoption plan's Task 5: read it with
+`python3 scripts/ops/harness-trial-report.py --context gcp-0` once each arm has 30 ended tasks.
 
 ## 6. Merge policies
 

@@ -1,2 +1,2 @@
 # Names the agent factory that may act on this repository (ownership fence); the status page's activeCluster must equal this value.
-factory: aws-0
+factory: gcp-0

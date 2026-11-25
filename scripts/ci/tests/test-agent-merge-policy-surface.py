@@ -156,10 +156,11 @@ check("Repository/ai-native-ref: binds docs in shadow narrowed to ^website/conte
       })
 
 cnr_modes = {b["name"]: b["mode"] for b in repos["cloud-native-ref"].get("mergePolicies") or []}
-check("Repository/cloud-native-ref: binds docs-links and revert live, and dead-links, deps-patch, deps-minor, alert-rules shadow",
+check("Repository/cloud-native-ref: binds docs-links and revert live; docs, dead-links, deps-patch, deps-minor and alert-rules shadow",
       cnr_modes == {
           "docs-links": "live",
           "revert": "live",
+          "docs": "shadow",
           "alert-rules": "shadow",
           "dead-links": "shadow",
           "deps-patch": "shadow",

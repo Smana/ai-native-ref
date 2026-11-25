@@ -4,9 +4,8 @@
 
 - No octo-sts trust policy: the factory mints each run's git token (R3), so none is served here.
 - The fence names aws-0, the only live factory.
-- .policy.yml: every agent rule excludes the whole gate list, and every sentinel is a gate path.
-  An agent rule approves without a review only as `low-risk: <class>` of a class this repository
-  declares and has not made live (R50: shadow approves, the merger merges nothing).
+- Factory.spec.mergeGuardrails.protectedFiles is the gate list maku/merge-gate reads. Every sentinel
+  below must match it, including the factory's own resources and the CI gates.
 
 run-tests.sh runs this from .composite/ (the host's .github/ stays there) with cwd = this repo."""
 import pathlib
@@ -16,7 +15,6 @@ import sys
 import yaml
 
 OWN = pathlib.Path.cwd()
-REPO = "Smana/ai-native-ref"
 SENTINELS = [
     ".policy.yml", ".github/agent-factory.yaml", ".github/chainguard/agent-implementer.sts.yaml",
     ".github/workflows/ci.yaml", "AGENTS.md", ".claude/settings.json", ".agents/skills/x",
@@ -37,34 +35,35 @@ fence = OWN / ".github/agent-factory.yaml"
 if not fence.is_file() or (yaml.safe_load(fence.read_text()) or {}) != {"factory": "aws-0"}:
     fails.append(".github/agent-factory.yaml: must be exactly `factory: aws-0`")
 
-rules = yaml.safe_load((OWN / ".policy.yml").read_text()).get("approval_rules", [])
-canon = next((r for r in rules if r.get("name") == "agent change approved by a maintainer"), None)
-if canon is None:
-    fails.append(".policy.yml: no rule 'agent change approved by a maintainer'")
-else:
-    gates = canon["if"]["no_changed_files"]["paths"]
-    if canon.get("requires", {}).get("users") != ["Smana"] or canon["requires"].get("count", 0) < 1:
-        fails.append(".policy.yml: the agent rule must require Smana's review")
-    sys.path.insert(0, str(OWN / "scripts/ci"))
-    import factory_config  # the values file with the Factory, Repository and MergePolicy objects over it
-    own_classes = next(r for r in factory_config.config(OWN)["repositories"]
-                       if r["name"] == REPO).get("classes") or {}
-    unreviewed = {f"low-risk: {n}" for n, c in own_classes.items() if not c.get("live")}
-    for r in rules:
-        users = (r.get("if", {}).get("has_author_in") or {}).get("users", [])
-        if any(u.endswith("[bot]") for u in users):
-            have = set((r["if"].get("no_changed_files") or {}).get("paths", []))
-            if missing := [g for g in gates if g not in have]:
-                fails.append(f".policy.yml: rule '{r['name']}' lacks gate paths {missing}")
-            if "requires" not in r and r["name"] not in unreviewed:
-                fails.append(f".policy.yml: agent rule '{r['name']}' approves without a review (only a declared, "
-                             f"not live class's low-risk rule may)")
-    for s in SENTINELS:
-        if not any(re.search(g, s) for g in gates):
-            fails.append(f".policy.yml: sentinel {s} is not a gate path")
+sys.path.insert(0, str(OWN / "scripts/ci"))
+import factory_config  # the values file with the Factory, Repository and MergePolicy objects over it
 
-for x in fails:
-    print("FAIL", x)
+config = factory_config.config(OWN)
+gates = (config.get("mergeGuardrails") or {}).get("protectedFiles") or []
+if not gates:
+    fails.append("Factory.spec.mergeGuardrails.protectedFiles is unset")
+for sentinel in SENTINELS:
+    if not any(re.search(gate, sentinel) for gate in gates):
+        fails.append(f"Factory.spec.mergeGuardrails.protectedFiles: sentinel {sentinel} is not a gate path")
+
+# The Factory applies to the host too. Its former policy-bot-only paths live on every host binding,
+# so neither a live policy nor a later promotion can bypass one.
+HOST_SENTINELS = [
+    "infrastructure/base/kueue/x", "infrastructure/aws-0/kueue/x",
+    "infrastructure/base/crossplane/configuration-aws/x",
+    "infrastructure/aws-0/crossplane/configuration/x", "flux/sources/ocirepo-kueue.yaml",
+    "opentofu/aws/openbao/management/mounts.tf", "opentofu/aws/eks/configure/openbao.tf",
+    "scripts/ci/check-policy-gate-coverage.sh", "docs/platform-constitution.md",
+]
+host = next(r for r in config["repositories"] if r["name"] == "Smana/cloud-native-ref")
+for name, cl in sorted((host.get("classes") or {}).items()):
+    protected = cl.get("protectedFiles") or []
+    for sentinel in HOST_SENTINELS:
+        if not any(re.search(gate, sentinel) for gate in protected):
+            fails.append(f"cloud-native-ref policy {name}: host sentinel {sentinel} is not protected")
+
+for failure in fails:
+    print("FAIL", failure)
 if fails:
     sys.exit(1)
 print("PASS")

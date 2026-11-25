@@ -2,8 +2,8 @@
 # Repository binds it under spec.mergePolicies with its own mode and parameters. Read live; a
 # refused edit keeps the last accepted generation serving every consumer.
 # Retargets the dead external links a detector found (merge gate classes MC14, runbook 15 §2).
-# Each consumer names its own fence and its own dead-links.yaml; a repository's .policy.yml
-# `low-risk: dead-links` rule repeats the fence (test-agent-merge-gate-parity.py holds the two).
+# Each consumer names its own fence and its own dead-links.yaml. maku/merge-gate decides the diff;
+# evidence: low needs five clean decisions because the shape and oracle check it mechanically.
 apiVersion: maku.ogenki.io/v1alpha1
 kind: MergePolicy
 metadata:
@@ -20,3 +20,4 @@ spec:
   # deploys nothing. The monitor records a verdict and never reverts.
   monitor: {oracleRuns: 2, followUpWindow: 168h}
   maxPerDay: 1
+  evidence: low

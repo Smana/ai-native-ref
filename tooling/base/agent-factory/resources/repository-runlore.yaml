@@ -1,6 +1,6 @@
 # The fourth repository, RunLore itself (Smana/runlore: public, default branch main): its settings,
-# its merge rules and the two required policies, both shadow (K8). Like runlore-kb, it has no
-# `.policy.yml` in this tree, and its own file holds the fence, which names gcp-0 (Smana/runlore#617).
+# its merge rules and the two required policies, both shadow (K8). maku/merge-gate reads this object;
+# the repository's own fence names gcp-0 (Smana/runlore#617).
 apiVersion: maku.ogenki.io/v1alpha1
 kind: Repository
 metadata:

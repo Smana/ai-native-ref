@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# The agent factory (SP3). Every file here is a gate path (.policy.yml): agents never change it.
+# The agent factory (SP3). Every file here is protected by Factory.spec.mergeGuardrails.protectedFiles.
 resources:
   - helm-values-configmap.yaml
   - helmrelease.yaml

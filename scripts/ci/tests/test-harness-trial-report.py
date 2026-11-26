@@ -174,6 +174,61 @@ check("every exclusion category is itemized",
       res["exclusions"] == {"adopted": 1, "integration": 1, "labeled": 1, "not_ended": 1, "scheduled": 1},
       res["exclusions"])
 
+def make_real_task(name, *, phase, outcome, reason=None, created="2026-11-20T10:00:00Z", ended_at=None):
+    return {
+        "apiVersion": "maku.ogenki.io/v1alpha1",
+        "kind": "Task",
+        "metadata": {
+            "name": name,
+            "creationTimestamp": created,
+            "labels": {},
+        },
+        "spec": {},
+        "status": {
+            "phase": phase,
+            "outcome": outcome,
+            "startedAt": created,
+            **({"endedAt": ended_at} if ended_at else {}),
+            **({"reason": reason} if reason else {}),
+            "profile": {
+                "cohort": "control",
+                "harness": "openhands",
+                "harnessSource": "cohort",
+                "workflow": "careful",
+            },
+            "costMicroUSD": 2_000_000,
+            "tokens": {"input": 10000, "output": 2000, "cacheRead": 5000, "cacheWrite": 1000},
+        },
+    }
+
+
+print("real Task CR status fields")
+res = htr.summarize([make_real_task(
+    "real-merged",
+    phase="Done",
+    outcome="accepted",
+    reason="merged",
+    ended_at="2026-11-20T10:30:00Z",
+)])
+check("phase Done + outcome accepted + reason merged + endedAt counts as ended and merged (30min duration)",
+      res["arms"]["control"]["ended"] == 1 and res["arms"]["control"]["merged"] == 1
+      and res["arms"]["control"]["median_duration_min"] == 30.0, res["arms"]["control"])
+
+res = htr.summarize([make_real_task("real-merged-human", phase="Done", outcome="merged_human",
+                                    ended_at="2026-11-20T10:30:00Z")])
+check("outcome merged_human with endedAt counts as merged",
+      res["arms"]["control"]["ended"] == 1 and res["arms"]["control"]["merged"] == 1, res["arms"]["control"])
+
+res = htr.summarize([make_real_task("real-noop", phase="NoOp", outcome="no_op",
+                                    ended_at="2026-11-20T10:30:00Z")])
+check("phase NoOp + outcome no_op with endedAt counts as ended but not merged",
+      res["arms"]["control"]["ended"] == 1 and res["arms"]["control"]["merged"] == 0, res["arms"]["control"])
+
+res = htr.summarize([make_real_task("real-running", phase="Running", outcome="")])
+check("phase Running without endedAt is excluded as not_ended",
+      res["arms"]["control"]["ended"] == 0 and res["exclusions"] == {"not_ended": 1},
+      (res["arms"]["control"], res["exclusions"]))
+
 with tempfile.TemporaryDirectory() as td:
     d = pathlib.Path(td)
     (d / "tasks.json").write_text(json.dumps({"items": tasks_with_noise}))

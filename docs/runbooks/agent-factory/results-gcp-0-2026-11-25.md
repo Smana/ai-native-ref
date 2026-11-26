@@ -6,7 +6,7 @@ v4.1.1), v0.54.3 (v4.1.2), v0.54.4 (v4.1.3) and v0.54.5 (v4.1.4) as the fixes be
 v0.54.2 was tagged but not deployed. A check that failed and passed on a later release names the
 fix. `NOT RUN` says why. `Date` is when the result was observed.
 
-Results over the runbook's 31 checks: **PASS** 7, **PARTIAL** 5, **FAIL** 4, **NOT RUN** 15. The
+Results over the runbook's 31 checks: **PASS** 11, **PARTIAL** 5, **FAIL** 4, **NOT RUN** 11. The
 merge-policy safety drills in [section 6b](#6b-merge-policy-safety-drills) add 4 PASS and one
 NOT RUN row.
 

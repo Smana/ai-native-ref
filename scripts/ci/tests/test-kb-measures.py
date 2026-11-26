@@ -5,7 +5,9 @@
 Fixtures: two RunLore stubs (the first published and merged by the owner, the second merged by the
 factory's merger App), a follow-up the monitor filed and a stub from another source (neither is an
 incident), and three knowledge-base PRs of which one is merged and two are open."""
+import contextlib
 import importlib.util
+import io
 import json
 import pathlib
 import sys
@@ -50,6 +52,34 @@ check("the oldest open is the backlog's", w["oldest_open_days"] > 90)
 table = kb.render(m)
 check("one Markdown table", table.count("\n| ") >= 7 and table.startswith("| "))
 check("--fixtures reads a directory", kb.main(["--since", "2026-11-01", "--fixtures", str(FIX)]) == 0)
+
+
+def usage_error(name, args, *needles):
+    err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(err):
+            kb.main(args)
+    except SystemExit as e:
+        check(name, e.code == 2 and all(n in err.getvalue() for n in needles)
+              and "Traceback" not in err.getvalue())
+        return
+    check(name, False)
+
+
+usage_error("a --since that is not a real date is a usage error",
+            ["--since", "2026-13-01", "--fixtures", str(FIX)], "--since", "YYYY-MM-DD")
+usage_error("an --until that is not a real date is a usage error",
+            ["--since", "2026-11-01", "--until", "2026-02-30", "--fixtures", str(FIX)], "--until", "YYYY-MM-DD")
+usage_error("an --until before --since is a usage error",
+            ["--since", "2026-11-10", "--until", "2026-11-01", "--fixtures", str(FIX)],
+            "--until must be after --since")
+usage_error("an --until equal to --since is a usage error",
+            ["--since", "2026-11-10", "--until", "2026-11-10", "--fixtures", str(FIX)],
+            "--until must be after --since")
+valid = io.StringIO()
+with contextlib.redirect_stdout(valid):
+    code = kb.main(["--since", "2026-11-10", "--until", "2026-11-20", "--fixtures", str(FIX)])
+check("a valid call still prints its table", code == 0 and valid.getvalue().startswith("| Measure | Value |"))
 if failures:
     sys.exit(1)
 print("PASS: kb-measures")

@@ -140,16 +140,28 @@ def from_github(since, until):
     return stubs, events, prs
 
 
+def ymd(value):
+    """A real YYYY-MM-DD date, as argparse's type: a 2026-13-01 or a 2026-11-1 is a usage error, not a traceback."""
+    try:
+        d = datetime.strptime(value, "%Y-%m-%d")
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{value} is not a real date, expected YYYY-MM-DD")
+    if d.strftime("%Y-%m-%d") != value:  # strptime tolerates 2026-11-1; the format does not
+        raise argparse.ArgumentTypeError(f"{value} is not a real date, expected YYYY-MM-DD")
+    return d.replace(tzinfo=timezone.utc)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--since", required=True, help="YYYY-MM-DD")
-    ap.add_argument("--until", help="YYYY-MM-DD, default tomorrow")
+    ap.add_argument("--since", required=True, type=ymd, help="YYYY-MM-DD")
+    ap.add_argument("--until", type=ymd, help="YYYY-MM-DD, default tomorrow")
     ap.add_argument("--fixtures", help="read DIR/{stubs,events,kb-prs}.json instead of GitHub")
     a = ap.parse_args(argv)
-    since = datetime.strptime(a.since, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-    until = (datetime.strptime(a.until, "%Y-%m-%d").replace(tzinfo=timezone.utc) if a.until
-             else datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-             + timedelta(days=1))
+    since = a.since
+    until = a.until or (datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+                        + timedelta(days=1))
+    if until <= since:
+        ap.error("--until must be after --since")
     if a.fixtures:
         d = pathlib.Path(a.fixtures)
         stubs, events, prs = (json.loads((d / f"{n}.json").read_text()) for n in ("stubs", "events", "kb-prs"))

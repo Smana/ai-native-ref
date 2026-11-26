@@ -6,3 +6,7 @@ resources:
   - ../../../base/agent-gateway/model-gateway
   # The proxy's Google identity, for Gemini on Vertex AI (Gemini design G1).
   - workloadidentity.yaml
+
+patches:
+  # Gemini on Vertex AI: the vertex provider, its two public aliases and their prices.
+  - path: helmrelease-vertex.yaml

@@ -21,9 +21,9 @@ data:
       enabled: true
       image:
         repository: ghcr.io/smana/maku-factory
-        # maku v0.54.9, the chart's appVersion.
+        # maku v0.55.0, the chart's appVersion.
         # renovate: datasource=docker depName=ghcr.io/smana/maku-factory
-        tag: "v0.54.9@sha256:052023207bbefcb36c850d6aae1b14193c096b08cbbc94fc4f087a3674013c80"
+        tag: "v0.55.0@sha256:9731fd16458185fa7638a7be6a2b06fb9816f379fc5a1d84cfedba8f8df5a305"
       # Each custom role's brief (Factory.spec.roles, resources/factory.yaml), projected at
       # /etc/agent-factory/config/roles/<file>. A brief is text the role's run reads: no credential,
       # no host name.

@@ -91,6 +91,24 @@ data:
               }
             }
           }
+        },
+        "gcp.vertex_ai": {
+          "models": {
+            "gemini-4-neon": {
+              "rates": {
+                "input": "3.30",
+                "output": "16.50",
+                "cacheRead": "0.165"
+              }
+            },
+            "gemini-4-hydrogen": {
+              "rates": {
+                "input": "1.65",
+                "output": "8.25",
+                "cacheRead": "0.0825"
+              }
+            }
+          }
         }
       }
     }

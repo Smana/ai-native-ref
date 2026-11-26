@@ -10,3 +10,5 @@ resources:
 patches:
   # Gemini on Vertex AI: the vertex provider, its two public aliases and their prices.
   - path: helmrelease-vertex.yaml
+  # TEST WINDOW ONLY: the planner on Neon (runbook 30, L2). Revert this line and its file after L2.
+  - path: helmrelease-planner-gemini.yaml

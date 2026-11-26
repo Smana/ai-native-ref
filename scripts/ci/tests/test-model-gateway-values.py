@@ -12,6 +12,9 @@ this ties the copies:
       Secret, by the same name and key, from agent-system.
   M4  The budgets overlay charges agent-router's server, domain and cost, so a run, the fleet and
       Anthropic each keep one bucket across both Gateways.
+  M6  The planner (design L2, plan B5): base's is Z.ai glm-5.3; gcp-0's is that, or Neon on vertex
+      for the test window, nothing else; the test window's patch is its own file, so reverting it
+      is one line.
   M5  Gemini (design G1, G6, G7) is gcp-0's alone: its overlay adds the vertex provider (no key,
       public only), gemini-standard and gemini-light on the public listener, their meter.prices
       rows to the catalog and the two aliases to the run-controller's public list. Base and aws-0
@@ -140,6 +143,17 @@ for path, name in (("infrastructure/aws-0/agent-gateway/model-gateway", "model-g
                    ("infrastructure/aws-0/room-broker", "room-broker"), ("infrastructure/base/room-broker", "room-broker")):
     if "gemini" in str(released(path, name)) or "vertex" in str(values):
         problems.append(f"M5: {path} or base's model gateway names Gemini; only gcp-0 reaches Vertex AI")
+
+# M6
+ZAI = {"enabled": True, "provider": "zai", "model": "glm-5.3"}
+if values["clients"]["planner"] != ZAI:
+    problems.append(f"M6: base's planner is {values['clients']['planner']}, not {ZAI}")
+if gcp["clients"]["planner"] not in (ZAI, {"enabled": True, "provider": "vertex", "model": "gemini-4-neon"}):
+    problems.append(f"M6: gcp-0's planner is {gcp['clients']['planner']}: Z.ai glm-5.3, or Neon for the test window")
+kz = yaml.safe_load((ROOT / "infrastructure/gcp-0/agent-gateway/model-gateway/kustomization.yaml").read_text())
+if gcp["clients"]["planner"]["provider"] == "vertex" and \
+        {"path": "helmrelease-planner-gemini.yaml"} not in (kz.get("patches") or []):
+    problems.append("M6: the Neon planner must come from helmrelease-planner-gemini.yaml alone, so reverting it is one line")
 
 for p in problems:
     print(f"FAIL {p}")

@@ -3,7 +3,8 @@
 A paired trial: the same small task given twice to the factory, once per harness, with the
 `standard` workflow and the same model tier (`glm-5.3`). Round 1 ran on Maku v0.54.5,
 [round 2](#round-2-opencode-on-v0547) on v0.54.7. Data read from the Task and AgentRun objects, the
-room logs and the pull requests on 2026-11-26.
+room logs and the pull requests on 2026-11-26. The [recommendation](#recommendation-not-yet-with-conditions)
+is at the end.
 
 > **Round 1 measures OpenCode with a handicap.** The `maku-opencode` image of v0.54.5 shipped
 > without `bash` and without the GNU userland. The repository's `agent-checks` needs `bash`, so
@@ -170,10 +171,11 @@ before the 50/50 trial produces a verdict.
 
 ## Round 2: OpenCode on v0.54.7
 
-Round 2 gives both harnesses two new pairs on Maku v0.54.7, whose `maku-opencode` image carries
-`bash` and the GNU userland. Every run of t1 and t2, implementer and reviewer, reports
-`factoryVersion: v0.54.7` in its provenance. The t5 pair, queued during round 1, ran later on
-v0.54.5 and is recorded [on its own](#t5-the-last-pair-on-v0545).
+Round 2 gives both harnesses four new pairs on a fixed image: Maku v0.54.7 and later, whose
+`maku-opencode` image carries `bash` and the GNU userland. t1, t2 and the OpenHands t8 run report
+`factoryVersion: v0.54.7` in every run's provenance; t7 and the OpenCode t8 run report v0.54.8,
+which ships the same images. The t5 pair, queued during round 1, ran later on v0.54.5 and is
+recorded [on its own](#t5-the-last-pair-on-v0545).
 
 ### Results per pair
 
@@ -181,11 +183,15 @@ v0.54.5 and is recorded [on its own](#t5-the-last-pair-on-v0545).
 |---|---|---|---|
 | t1 harness-trial-report: ended and merged from the real Task status | #579, task `3fwok2p2`: $0.196, 454k tokens, 18 min active (29 wall) | #580, task `davmfk3s`: $0.132, 315k tokens, 13 min active (23 wall) | #579 |
 | t2 harness-trial-report: cost and tokens from `status.usage` | #578, task `q6isxrf5`: $0.278, 742k tokens, 14 min active (15 wall) | #577, task `yyzhww52`: $0.308, 871k tokens, 30 min active (30 wall) | #578 |
+| t7 cohort-results: extract `arm_summary()` and `ARMS` | #595, task `h4w45inn`: $0.196, 480k tokens, 15 min active (19 wall) | #597, task `acui76um`: $0.185, 447k tokens, 16 min active (21 wall) | #595 |
+| t8 cheat-sheet: the harness label and the rescue comment | #596, task `2b374w2q`: $0.260, 688k tokens, 15 min active (19 wall) | #581, task `vpunyqq2`: $0.090, 247k tokens, 17 min active (32 wall) | #596 |
 
-All four pull requests changed only the two allowed files and passed CI (`validate`, `lint`,
-`prerelease`). The reviewer agent approved each, and the merge gate handed each to a human
-(`no_policy_matched`). Each cost includes one reviewer run that the factory discarded; see
-[Reviewer verdicts](#reviewer-verdicts). Without it, #579 cost $0.156 and #577 $0.263.
+All eight pull requests changed only the allowed files and passed CI (`validate`, `lint`,
+`prerelease`). The reviewer agent approved each. The merge gate handed the six script changes to a
+human (`no_policy_matched`); for the two t8 pages the `docs` policy, in shadow, would have merged
+them (`shadow_would_arm`). The t1 and t2 costs each include one reviewer run that the factory
+discarded; see [Reviewer verdicts](#reviewer-verdicts). Without it, #579 cost $0.156 and #577
+$0.263.
 
 #### t1 — kept #579 (OpenCode)
 
@@ -222,34 +228,63 @@ does not happen: the hunks do not overlap. `git merge-tree` of #578 and #579 is 
 `test-harness-trial-report.py` passes on the merged tree. The `main` ruleset does not require an
 up-to-date branch, so neither pull request needs a rebase.
 
-### Totals (t1 and t2, v0.54.7)
+#### t7 — kept #595 (OpenCode)
+
+The two refactors are line for line the same: `ARMS = "ABC"`, an `arm_summary(rows)` holding the
+old loop body, and `main()` returning 0. Both show `cmp` reporting identical output before and after.
+
+- #595's new check builds two rows, one accepted and one rejected, so `accepted == 1` tells a
+  counted verdict from an ignored one. It compares the output on the real 45-row cohort CSV in
+  `docs/superpowers/specs/`, and gives `arm_summary()` a docstring.
+- #597's check calls `arm_summary(rows[:2])` on two fixture rows that are both unaccepted, so
+  `accepted == 0` would also pass if the function counted nothing. Its comparison runs on a
+  seven-row synthetic CSV.
+
+Kept #595 for the sharper check, at 1.06 times the cost.
+
+#### t8 — kept #596 (OpenCode)
+
+Both add the two rows in the right places, in the table's style, and change nothing else. The
+`/factory retry harness=openhands` rows are identical.
+
+- #596's `harness:<name>` row says "a maintainer picks", as the task asks: only a maintainer's
+  label selects a harness. Its description notes that the page's existing `harness:opencode` row
+  stays as it is.
+- #581's row drops "a maintainer", so a reader cannot tell who may set the label.
+
+Kept #596 for that fact, at 2.9 times the cost. For two table rows, OpenCode used 688k tokens to
+OpenHands' 247k: the widest cost gap of round 2.
+
+### Totals (t1, t2, t7, t8)
 
 | Measure | OpenCode | OpenHands |
 |---|---|---|
-| Pull requests opened and approved by the reviewer | 2 of 2 | 2 of 2 |
-| Kept after judging | 2 | 0 |
-| Implementer runs out of budget (`budget-run`) | 0 of 2 | 0 of 2 |
-| Cost, total / per success | $0.474 / $0.237 | $0.440 / $0.220 |
-| Tokens, total | 1.20M | 1.19M |
-| Active time, median (range) | 16 min (14–18) | 22 min (13–30) |
-| Wall time, median (range) | 22 min (15–29) | 27 min (23–30) |
+| Pull requests opened and approved by the reviewer | 4 of 4 | 4 of 4 |
+| Kept after judging | 4 | 0 |
+| Implementer runs out of budget (`budget-run`) | 0 of 4 | 0 of 4 |
+| Cost, total / per success | $0.930 / $0.233 | $0.715 / $0.179 |
+| Tokens, total | 2.36M | 1.88M |
+| Active time, median (range) | 15 min (14–18) | 16.5 min (13–30) |
+| Wall time, median (range) | 19 min (15–29) | 26.5 min (21–32) |
 
 ### Against round 1
 
-| OpenCode ÷ OpenHands | Round 1 (v0.54.5) | Round 2 (v0.54.7) |
+| OpenCode ÷ OpenHands | Round 1 (v0.54.5) | Round 2 (fixed image) |
 |---|---|---|
-| Cost per success | 5.0× | 1.08× |
-| Tokens | 5.6× | 1.01× |
-| Implementer runs out of budget | 2 of 3 against 0 of 3 | 0 of 2 against 0 of 2 |
-| Pull requests kept | 1 of 3 | 2 of 2 |
+| Cost per success | 5.0× | 1.30× |
+| Tokens | 5.6× | 1.26× |
+| Implementer runs out of budget | 2 of 3 against 0 of 3 | 0 of 4 against 0 of 4 |
+| Pull requests kept | 1 of 3 | 4 of 4 |
+| Active time, median | 25 min against 17 | 15 min against 16.5 |
 
-The image fix closes the gap. On v0.54.7 OpenCode cost and used tokens within 10 % of OpenHands,
-no run ran out of budget, and both kept pull requests are OpenCode's. Two pairs are a small sample:
-read this as "the round-1 gap was the image", not as a verdict for the 50/50 trial.
+The image fix closes most of the gap. On the fixed image OpenCode costs 30 % more per success,
+against five times as much before, and no run ran out of budget. All four kept pull requests are
+OpenCode's, each on a concrete difference, though t7's was narrow. Most of the remaining cost gap
+is t8; on t1, t2 and t7 together OpenCode cost $0.670 against $0.625 (1.07×).
 
-Neither OpenCode implementer worked around the sandbox. #578's harness logged "checks on
-60b0e6d3b2dc: 6 pass (the agent's own run)". #579's agent noted "agent-checks all pass"; its
-harness recorded no check result for that head. The two OpenHands heads logged "6 pass".
+No OpenCode implementer worked around the sandbox. Three of the four OpenCode heads logged "6 pass"
+from the harness; for #579 the agent noted "agent-checks all pass" and the harness recorded no
+result. All four OpenHands heads logged "6 pass".
 
 ### t5: the last pair on v0.54.5
 
@@ -281,25 +316,53 @@ each), 0 of 4.
 
 ### Reviewer verdicts
 
-**Empty verdicts.** In round 1, 5 of the 6 reviewer approvals had no text. In round 2 all 10
-reviewer verdict comments, on t1, t2, t5 and t8 and across both harnesses, are empty: a heading
-"Agent review: approved" over an empty code block. That makes 15 of 16 over the trial. The next
+**Empty verdicts.** In round 1, 5 of the 6 reviewer approvals had no text. In round 2 all 13
+reviewer verdict comments, on t1, t2, t5, t7 and t8 and across both harnesses, are empty: a heading
+"Agent review: approved" over an empty code block. That makes 18 of 19 over the trial. The next
 human reviewer learns nothing from the agent review except that it approved.
 
-**Invented commit hashes.** Three of the 10 verdicts name a commit that shares the head's first 12
+**Invented commit hashes.** Three of the 13 verdicts name a commit that shares the head's first 12
 hex digits but not the rest. For #579, `6b47574ccb0d22306548…` against the head
 `6b47574ccb0d880e0a41…`. The factory recorded those runs as verdict `none` (stage effect
 `approve_overruled`) and started another reviewer run: one extra on #579 (OpenCode, $0.040) and on
 #577 (OpenHands, $0.045). The reviewer seems to extend the 12-digit short hash it was given into a
 full one by guessing; the factory's check caught it each time.
 
-### To come
+## Recommendation: not yet, with conditions
 
-| Task | OpenCode (`[trial A]`) | OpenHands (`[trial B]`) |
+Do not make OpenCode the default yet. Keep OpenHands as the factory default, and keep OpenCode
+selectable per issue with `harness:opencode`. The paired trial removes the case against OpenCode,
+but it does not make the case for it that the design's
+[strict decision rule](../../superpowers/specs/2026-11-15-opencode-harness-design.md#93-strict-decision-rule)
+asks for.
+
+| Rule (design §9.3) | Round 2 reading | Holds? |
 |---|---|---|
-| t7 cohort-results refactor | #566, task `h4w45inn`: queued | #567, task `acui76um`: queued |
-| t8 cheat-sheet docs rows | #568, task `2b374w2q`: queued | #581, task `vpunyqq2`: $0.090, 247k tokens, 17 min active (32 wall); open, merge gate `shadow_would_arm` |
+| Zero critical security, audit or recovery regressions | None on the fixed image; on v0.54.5 OpenCode downloaded and ran an unpinned binary | Not yet: egress still allows it |
+| Merge rate no more than 5 points lower | All 8 pull requests met their acceptance and passed CI; judged, OpenCode's were kept 4 of 4 | Yes, on a small sample |
+| Cost per merged PR no more than 10 % higher | 1.30× (1.07× without t8) | No |
+| A material win: ≥ 15 % lower cost or median duration | Active time 9 % lower; wall time 28 % lower, which depends on the factory's load | Not shown |
 
-The first t7 and t8 tasks were rejected by the daily task cap and re-filed. The new ones wait in
-`Queued` with `waiting_review_wip` until the review queue has room. #581 stays open until its pair
-finishes.
+Four pairs of small, well-specified tasks on one model (`glm-5.3`) cannot settle a rule written for
+30 ended tasks per arm. They show that the round-1 gap was the image, and that OpenCode now writes
+pull requests at least as good as OpenHands', for somewhat more tokens.
+
+What must hold before a cutover PR sets `defaults.harness: opencode`:
+
+1. **The image contract stays enforced.** Maku #736 gave both runner images one userland contract
+   (`bash`, the GNU tools) that each image's test stage runs. Every Maku release the factory pins
+   must keep it; the v0.54.5 failure mode returns the day it slips.
+2. **Run egress is tightened.** The round-1 runs fetched a static `bash` from GitHub release assets
+   and ran it, through the always-on `github` egress profile. Maku #742 (spec, open) moves the
+   release-asset hosts out of that profile. It must be built and deployed first: a default harness
+   that reaches for tools when it lacks them must not be able to fetch them.
+3. **The 50/50 live comparison reaches its gate.** Design §9.2: 30 ended tasks per arm, read with
+   `scripts/ops/harness-trial-report.py` now that #578 and #579 make it read real Tasks. Include
+   larger tasks and documentation tasks: t8 shows OpenCode spending most on the smallest change.
+4. **The provider smoke tests pass.** Design §9.2 asks for one live OpenCode task each on
+   GLM/Z.ai, Anthropic, Kimi and Mistral; this trial used GLM only.
+5. **The rescue path is proven once.** `/factory retry harness=openhands` on an escalated OpenCode
+   task, end to end, since it is the rollback for every task during the 30-day soak (design §9.4).
+
+One finding does not gate the harness choice but needs a fix on its own: the reviewer agent's
+verdicts are empty, and it invents full commit hashes, on both harnesses.

@@ -1,0 +1,28 @@
+# The fifth repository, Smana/image-gallery (public, default branch main): a Go service with a
+# Postgres database and an HTML/CSS/JS frontend. It is the factory's application repository: real
+# code, database-backed tests and a UI, where developer-style tasks are tried. Its fence names gcp-0.
+apiVersion: maku.ogenki.io/v1alpha1
+kind: Repository
+metadata:
+  name: image-gallery
+  namespace: agent-system
+spec:
+  factoryRef: ${cluster_name}
+  repository: Smana/image-gallery
+  maintainers: [Smana]
+  triggerLabel: factory/ready
+  workflow:
+    default: standard
+    stepUp: ask
+    planGate: ask
+  merge:
+    # The CI workflow's summary job is the one gate: it needs lint, govulncheck, tests and the build.
+    requiredChecks: ["CI Validation Complete"]
+    verifyChecks: ["CI Validation Complete"]
+    maxPerDay: 3
+    fixRuns: 1
+    checkReruns: 0
+    # No separate secret-scan job: the CI gate is what escalates a red head.
+    leakScanCheck: "CI Validation Complete"
+  # No binding: the chart's catalog policies (docs-links, docs) are evaluated in shadow, so every
+  # merge stays a maintainer's.

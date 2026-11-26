@@ -50,6 +50,7 @@ Neon facts that shape the design [G1, V1]:
   - Fixed quota is "Not supported".
   - The knowledge cutoff is March 2026.
   - The Chat Completions endpoint is supported [V1].
+- **Confirmed live on 2026-11-26** (project `ogenki-435905`, the Agent Platform API, formerly the Vertex AI API, enabled that day): `google/gemini-4-neon` answers the OpenAI-compatible `endpoints/openapi/chat/completions` in `eu` (host `aiplatform.eu.rep.googleapis.com`) and in `global`, with an OAuth access token and no key. `max_tokens` counts reasoning tokens: a 20-token cap returned empty content after 20 reasoning tokens, so the preset must not set a small cap.
 - **Not confirmed:** the Vertex price for Neon. The Vertex pricing page did not render for us. Plan task B1 reads it before any price row lands.
 
 Google's benchmark claim puts Neon ahead of Claude Opus 5.5 on the Artificial Analysis index (61
@@ -410,4 +411,4 @@ record the agreement. This feeds v5 track 4's "second-family reviewer".
 - **[V3]** Vertex AI thought signatures: <https://docs.cloud.google.com/vertex-ai/generative-ai/docs/thought-signatures>
 - **[B1]** Google blog, "New developer tools for Google AI Pro and Ultra subscribers" (2026-01-27): <https://blog.google/innovation-and-ai/technology/developers-tools/gdp-premium-ai-pro-ultra/>
 - **[P1]** Press, launch coverage: <https://9to5google.com/2026/11/18/gemini-4-neon-announcement/>, <https://www.digitaltrends.com/computing/google-says-gemini-4-neon-can-hang-with-claude-opus-5-5-and-gpt-6-2-sol-for-less/>
-- **[P2]** Independent write-ups, not authoritative: <https://www.datacamp.com/blog/gemini-4-neon>, <https://www.mindstudio.ai/blog/google-gemini-4-model-lineup>
+- **[P2]** Independent write-up, not authoritative: <https://www.mindstudio.ai/blog/google-gemini-4-model-lineup>

@@ -12,8 +12,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 # maku-linux-amd64 of the release, from its maku.sha256 asset.
-MAKU_PIN="v0.54.3"
-MAKU_SHA256="8bfb0836143101d80147c8093f689c0b3c8caeb7c648e50378e5ec845f4983b8"  # pragma: allowlist secret
+MAKU_PIN="v0.54.4"
+MAKU_SHA256="f1c7624fb0297ad582a45d4887802036a4815c6f61443d713738aba5ed54a272"  # pragma: allowlist secret
 
 python3 -c 'import yaml' 2>/dev/null || { echo "FAIL: PyYAML is not installed" >&2; exit 1; }
 values="tooling/base/agent-factory/helm-values-configmap.yaml"

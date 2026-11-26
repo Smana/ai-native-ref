@@ -67,24 +67,24 @@ spec:
       namespaces: [agents]
     runController:
       enabled: true
-      # maku v0.54.3, by digest, as the broker's image.
+      # maku v0.54.4, by digest, as the broker's image.
       image:
         repository: ghcr.io/smana/maku-run-controller
-        tag: "v0.54.3@sha256:e59e1824cdc458e07cc68f6274cf2a2795db4c1e6fb3dd6073a498e145f6f82e"
+        tag: "v0.54.4@sha256:a9e195007da123c0354c53ad5dea6027dba1110ce9c4da4ff3a6463ff01944bf"
       images:
         harness:
           repository: ghcr.io/smana/maku-harness
-          tag: "v0.54.3@sha256:351bd5b2bd3782a6a61222887d92622906722500bb5a117184b5cf0d8da28fff"
+          tag: "v0.54.4@sha256:de95df0965004112348843ae3c5069cfee0142fe30da185b454d57851b8f4f5a"
         bridge:
           repository: ghcr.io/smana/maku-bridge
-          tag: "v0.54.3@sha256:6a1f149a757cbdb875f0914766e03b44c72a87c8b8d18150c5aafd0e14e43faf"
+          tag: "v0.54.4@sha256:cf6ca78ad120ca98d89e53c4cc2a5044282059fed3b3201996bd419744aa0222"
         # The opt-in OpenCode harness (Maku v0.54.0): pinned, the chart renders images.opencode and adds
         # this repository to the run-pod admission policy. Nothing selects it but a maintainer's
         # harness:opencode label on one issue: no Factory sets defaults.harness or
         # evaluation.treatmentHarness (test-agent-harness-trial-off.py).
         opencode:
           repository: ghcr.io/smana/maku-opencode
-          tag: "v0.54.3@sha256:941be662deafeb90cef68f61532194cee85199533aab18a108750a09ad85f0fc"
+          tag: "v0.54.4@sha256:9e1e801c1943b950260c4df039982bde9b3169ef6696eccf365f147ea61b9370"
       # Runs call the model gateway (agent-gateway/model-gateway, the maku-gateway release) with their
       # own projected token: no provider key in agents. The aliases are that release's aliases.
       model:
@@ -107,8 +107,8 @@ spec:
     broker:
       image:
         repository: ghcr.io/smana/maku-broker
-        # maku v0.54.3, by digest. Move it with ocirepository.yaml (the chart) and crd-rooms.yaml together.
-        tag: "v0.54.3@sha256:fb441cad2fea28ddbe30b3e7bbfcda54d344a1fcd95471a30d4f49d46d5e4ed2"
+        # maku v0.54.4, by digest. Move it with ocirepository.yaml (the chart) and crd-rooms.yaml together.
+        tag: "v0.54.4@sha256:97c8f47e76071353525576d15a18fecec8f76476bb5a11e494c6563392cb801f"
       # Two (§9): the leader lease picks the controller, and every replica serves humans through the
       # LISTEN/NOTIFY hub (ruling AT). pdb.yaml keeps one through a drain.
       replicas: 2
@@ -210,7 +210,7 @@ spec:
         - {name: webhook-slack-app, mountPath: /etc/room-broker/webhooks/slack-app, readOnly: true}
         - {name: webhook-runlore, mountPath: /etc/room-broker/webhooks/runlore, readOnly: true}
         - {name: github-link, mountPath: /etc/room-broker/github-link-client, readOnly: true}
-  # What v0.54.3's values cannot say. Each patch tests what it replaces, so a chart that moves it
+  # What v0.54.4's values cannot say. Each patch tests what it replaces, so a chart that moves it
   # fails the release instead of patching the wrong field.
   postRenderers:
     - kustomize:

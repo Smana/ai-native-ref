@@ -57,13 +57,14 @@ spec:
             description: "The breaker holds the class. Three clean mature merges lift it (recoverAfter); factory/drill lifts it only if added before factory/revert, or on a rebuilt factory. Read the window: scripts/shadow-merge-tally.sh --repo {{ $labels.repository }} --class {{ $labels.class }} --outcomes --since <date> in Smana/maku. The gauge keeps its last value, so a class with no monitor can stay at 1 after it recovered: it clears at the class's next decision or watched merge. Check the class's labels and recent PRs before acting."
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md#know-before-the-go"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
-        # Maku v0.54.0's two Repository alerts, copied from its chart (files/rules/factory.yaml): this
+        # Maku's two Repository alerts, as its chart renders them since Maku #738: this
         # platform keeps its own VMRule rather than the chart's PrometheusRule. Both read the
         # Repository's conditions through kube-state-metrics' custom-resource state, which the host
         # exports for AgentRun only today: until it adds Repository, neither series exists and
-        # neither alert can fire.
+        # neither alert can fire. kube-state-metrics carries a condition's status as the value (True 1,
+        # False or Unknown 0), never as a status label.
         - alert: AgentFactoryBindingRefused
-          expr: max by (namespace, name) (kube_customresource_status_condition{customresource_group="maku.ogenki.io", customresource_kind="Repository", type="BindingsValid", status="false"}) == 1
+          expr: max by (namespace, name) (kube_customresource_status_condition{customresource_group="maku.ogenki.io", customresource_kind="Repository", type="BindingsValid"}) == 0
           for: 15m
           labels:
             severity: warning
@@ -73,7 +74,7 @@ spec:
             runbook_url: "https://github.com/Smana/maku/blob/v0.54.0/docs/operations/failures.md#factory-alerts"
             dashboard: "https://grafana.${private_domain_name}/d/agent-factory"
         - alert: AgentFactoryPolicyPausedLong
-          expr: max by (namespace, name) (kube_customresource_status_condition{customresource_group="maku.ogenki.io", customresource_kind="Repository", type="Paused", status="true"}) == 1
+          expr: max by (namespace, name) (kube_customresource_status_condition{customresource_group="maku.ogenki.io", customresource_kind="Repository", type="Paused"}) == 1
           for: 24h
           labels:
             severity: warning

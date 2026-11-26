@@ -1,5 +1,7 @@
 # 22 — Slack: configure
 
+Part of the [agent-factory runbooks](README.md).
+
 The one-time set-up of the factory's Slack App, in order, with a check after each step. It is the
 short path for an operator. [Runbook 18](18-factory-interfaces.md) is the switch-on of the whole
 second interface set (host listener, broker webhooks, the PR that turns it on); this page is what

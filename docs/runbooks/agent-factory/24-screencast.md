@@ -1,5 +1,7 @@
 # 24 — Screencast: a side task, handed off from the terminal
 
+Part of the [agent-factory runbooks](README.md).
+
 The script for recording a 7–9 min screencast of the Agent Factory on aws-0: OpenCode, the room page
 (Maku), GitHub and the Grafana dashboards, one real `docs` task end to end. It proves nothing new: it
 shows what [runbook 19](19-factory-from-your-agent.md) proved, plus the human path's approve-to-merge

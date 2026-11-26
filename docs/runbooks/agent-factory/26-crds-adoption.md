@@ -1,5 +1,7 @@
 # 26 — Hand the factory's CRDs to `agent-factory-crds`
 
+Part of the [agent-factory runbooks](README.md).
+
 Moves the six `maku.ogenki.io` CRDs (Rooms, AgentRuns, Tasks, Factories, Repositories,
 MergePolicies) to their own Helm release, `agent-factory-crds` in `agent-system`
 (`tooling/base/agent-factory/crds`). Maku v4 step 8 needs it: the factory's chart stops carrying

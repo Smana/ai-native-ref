@@ -895,7 +895,8 @@ CHART_RENDER = [d for d in yaml.safe_load_all((HERE / "maku-gateway-render.yaml"
 B6_CHART = 'jwt.aud.exists(a, a.startsWith("maku-gateway.internal.")) ? "anthropic" : "none"'
 # The chart's prices are the real meter.prices; the world's are PRICES, so price what the chart serves.
 CHART_PRICES = {**PRICES, "glm-5.3-flashx": {"input": 0.37, "cacheRead": 0.075, "output": 1.25, **ZAI_PAGE},
-                "claude-sonnet-5-5": {"input": 2, "cacheRead": 0.1, "cacheWrite": 2.5, "output": 10, **CLAUDE_PAGE}}
+                "claude-sonnet-5-5": {"input": 2, "cacheRead": 0.1, "cacheWrite": 2.5, "output": 10, **CLAUDE_PAGE},
+                "gemini-4-neon": {"input": 3, "cacheRead": 0.3, "output": 15, **PAGE}}
 
 
 def charted_world():
@@ -979,6 +980,52 @@ expect_chart("a budget keyed on a claim no listener requires fails", lambda o: f
     ["entries"][0].update({"expression": "jwt.email"}), "AG8", "email")
 expect_chart("a priced row missing for a chart model fails", lambda o: find(o, "AgentgatewayBackend", "zai-tier-light")
              ["spec"]["policies"]["ai"]["modelAliases"].update({"tier-light": "glm-9"}), "AG10", "glm-9")
+
+
+def add_vertex(objs, listener="public", provider=None, auth=None, name="vertex-gemini-standard"):
+    """gcp-0's vertex alias as the chart renders it (Maku's vertex preset): the native vertexai provider, the
+    proxy's own Google identity, and its route and audience Require on the listener, cloned from Mistral's."""
+    alias = "gemini-standard"
+    b = copy.deepcopy(find(objs, "AgentgatewayBackend", "mistral-mistral-light"))
+    b["metadata"]["name"] = name
+    b["spec"]["ai"] = {"provider": provider or {"vertexai": {"projectId": "ogenki-435905", "region": "eu"}}}
+    b["spec"]["policies"] = {"auth": {"gcp": {"type": "AccessToken"}} if auth is None else auth, "ai": {
+        "routes": {"/v1/chat/completions": "Completions"}, "modelAliases": {alias: "gemini-4-neon"},
+        "transformations": [{"field": "model", "expression": f'"{alias}"'}]}}
+    r = copy.deepcopy(find(objs, "HTTPRoute", "maku-models-public-mistral-light"))
+    r["metadata"]["name"] = f"maku-models-{listener}-{alias}"
+    r["spec"]["parentRefs"][0]["sectionName"] = listener
+    r["spec"]["rules"][0]["backendRefs"][0]["name"] = name
+    r["spec"]["rules"][0]["matches"][0]["path"]["value"] = f"/m/{alias}/v1/chat/completions"
+    p = copy.deepcopy(find(objs, "AgentgatewayPolicy", "maku-models-public-mistral-light"))
+    p["metadata"]["name"] = r["metadata"]["name"]
+    p["spec"]["targetRefs"][0]["name"] = r["metadata"]["name"]
+    run = 'jwt.sub.matches("^system:serviceaccount:agents:run-[a-z2-7]{8}$")'
+    p["spec"]["traffic"]["authorization"]["policy"]["matchExpressions"] = [f'"maku-gateway.{listener}.{alias}" in jwt.aud', run]
+    objs += [b, r, p]
+
+
+v = gate.run((lambda o: (add_vertex(o), o)[1])(charted_world()))
+check("Gemini on vertex, public, with the proxy's own Google identity, passes", v == [], f"got {v}")
+expect_chart("Gemini on vertex reached from internal fails", lambda o: add_vertex(o, listener="internal"),
+             "AG15", "reaches Google from internal")
+expect_chart("a vertex backend holding a key fails", lambda o: add_vertex(
+    o, auth={"gcp": {"type": "AccessToken"}, "secretRef": {"name": "agents-gemini-api-key", "key": "apiKey"}}),
+    "AG15", "no secretRef")
+expect_chart("a vertex backend without the gcp AccessToken auth fails", lambda o: add_vertex(
+    o, auth={"secretRef": {"name": "agents-gemini-api-key", "key": "apiKey"}}), "AG15", "gcp AccessToken")
+expect_chart("a vertex backend asking for an IdToken fails", lambda o: add_vertex(o, auth={"gcp": {"type": "IdToken"}}),
+             "AG15", "gcp AccessToken")
+expect_chart("a chart backend of an unknown provider fails closed", lambda o: add_vertex(
+    o, provider={"openai": {}}, name="other-llm"), "AG15", "unknown provider")
+expect_chart("an unknown provider on the internal listener fails closed too", lambda o: add_vertex(
+    o, listener="internal", provider={"custom": {"providerOverride": "x", "formats": [{"type": "Completions", "path": "/v1/chat/completions"}]},
+                                       "host": "llm.example.test", "port": 443},
+    name="other-llm"), "AG15", "unknown provider")
+expect_chart("the Gemini API's host on internal fails", lambda o: add_vertex(
+    o, listener="internal", provider={"custom": {"providerOverride": "gemini", "formats": [
+        {"type": "Completions", "path": "/v1beta/openai/chat/completions"}]}, "host": "generativelanguage.googleapis.com", "port": 443}, auth={"secretRef": {"name": "agents-gemini-api-key", "key": "apiKey"}},
+    name="gemini-gemini-standard"), "AG15", "reaches Google from internal")
 
 print("main")
 with tempfile.TemporaryDirectory() as d:

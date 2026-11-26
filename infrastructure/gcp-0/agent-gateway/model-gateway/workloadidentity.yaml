@@ -1,0 +1,21 @@
+# The model gateway's Google identity on gcp-0 (Gemini design G1 to G3): its proxy calls Gemini on
+# Vertex AI as this ServiceAccount, so no Google key exists in OpenBao, a Secret or a pod.
+#
+# The ServiceAccount is the one agentgateway's controller gives the proxy: the Gateway's name,
+# model-gateway (Maku docs/gateway.md, "Gemini on Vertex AI"; probe P7). GKE Workload Identity binds
+# by SUBJECT, ns/<this claim's namespace>/sa/<name>, so the claim stays in agent-gateway and the
+# ServiceAccount needs no annotation.
+#
+# TWO-SIDED CONTRACT: ${gcp_vertex_predict_role} is the host's xplane_vertex_predict role
+# (aiplatform.endpoints.predict only, cloud-native-ref opentofu/gcp/gke/init/iam.tf), which its
+# crossplane_grantable_roles allowlists. Any other role is refused at the provider with a bare 403.
+apiVersion: cloud.ogenki.io/v1alpha1
+kind: GCPWorkloadIdentity
+metadata:
+  name: xplane-model-gateway
+  namespace: agent-gateway
+spec:
+  serviceAccount:
+    name: model-gateway
+  roles:
+    - "${gcp_vertex_predict_role}"

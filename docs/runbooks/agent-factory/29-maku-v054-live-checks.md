@@ -4,7 +4,7 @@ What the Maku v0.54.0 adoption turned on, checked one feature at a time on the c
 name. Each check is one scratch issue or pull request; keep its URL, the task name, the head SHA and
 the `maku/merge-gate` decision in a results file beside this runbook
 (`results-<cluster>-<date>.md`). Nothing here raises a cap or merges a scratch pull request by an
-administrator bypass.
+administrator bypass. The gcp-0 results are in [results-gcp-0-2026-11-25.md](results-gcp-0-2026-11-25.md).
 
 Sources: the [usability adoption plan](../../superpowers/plans/2026-11-24-merge-policies-usability-adopt-plan.md)
 (Tasks 4 and 5) and the workflows and roles adoption plan, phases C, E, F, G, H and I.

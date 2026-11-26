@@ -3,7 +3,8 @@
 """Tests for scripts/ci/check-reader-first.py, the gate that keeps session history off the site.
 
 Each case writes pages into a temporary website/content/docs/ and checks what the gate reports:
-a clean page, one finding per rule, and every place the text is allowed to sit.
+a clean page, one finding per rule, every place the text is allowed to sit, and both output
+formats.
 
 Run: python3 scripts/ci/tests/test-check-reader-first.py
 """
@@ -32,8 +33,12 @@ def rules(text):
     return [rule for _, rule, _ in gate.scan(text)]
 
 
-def run(pages, root_files=None):
-    """main() over a tree holding these pages: (exit code, output)."""
+def run(pages, root_files=None, fmt="text", root_first=True):
+    """main() over a tree holding these pages: (exit code, output).
+
+    The gate runs over the tree with --format fmt, the tree's path before or after the option;
+    pass a different argument list to run() through run_argv().
+    """
     with tempfile.TemporaryDirectory() as tmp:
         for rel, text in pages.items():
             page = pathlib.Path(tmp, "website/content/docs", rel)
@@ -43,10 +48,17 @@ def run(pages, root_files=None):
             f = pathlib.Path(tmp, rel)
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(text, encoding="utf-8")
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            code = gate.main(["check-reader-first.py", tmp])
-        return code, out.getvalue()
+        argv = ["check-reader-first.py", "--format", fmt, tmp] if root_first \
+            else ["check-reader-first.py", tmp, "--format", fmt]
+        return run_argv(argv)
+
+
+def run_argv(argv):
+    """main() with this argument list: (exit code, output)."""
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = gate.main(argv)
+    return code, out.getvalue()
 
 
 CLEAN = """---
@@ -121,6 +133,34 @@ print("the repository README")
 code, out = run({}, {"README.md": "# X\n\nThe factory runs on aws-0 since 2026-10-30.\n"})
 check("README.md is scanned",
       code == 1 and "README.md:3\tcluster name\taws-0" in out and "README.md:3\tdate\t2026-10-30" in out, out)
+
+print("the --format option")
+GITHUB = "The factory runs\non one cluster:\naws-0.\n"
+code, out = run({"use/bad.md": GITHUB}, fmt="github")
+check("the github format prints a workflow command", code == 1
+      and "::error file=website/content/docs/use/bad.md,line=3,title=reader-first::cluster name: aws-0" in out, out)
+check("the github format keeps the text format's finding out of the output",
+      "use/bad.md:3" not in out, out)
+code, out = run({}, {"README.md": "# X\n\nThe factory runs on aws-0.\n"}, fmt="github")
+check("the github format scans README.md too",
+      code == 1 and "::error file=README.md,line=3,title=reader-first::cluster name: aws-0" in out, out)
+code, out = run({"use/bad.md": GITHUB}, fmt="github", root_first=False)
+check("the option works before ROOT too", code == 1
+      and "::error file=website/content/docs/use/bad.md,line=3,title=reader-first::cluster name: aws-0" in out, out)
+code_text, out_text = run({"use/first-task.md": CLEAN})
+code_gh, out_gh = run({"use/first-task.md": CLEAN}, fmt="github")
+check("a clean tree exits 0 in both formats", code_text == 0 and code_gh == 0, out_text + out_gh)
+check("a clean tree prints the same summary in both formats", out_text == out_gh
+      == "==> No session history on the site's pages.\n", out_text + out_gh)
+code_text, out_text = run({"use/bad.md": BAD})
+code_gh, out_gh = run({"use/bad.md": BAD}, fmt="github")
+check("a failing tree has the same summary and exit code in both formats",
+      (code_text, out_text.split("==>")[1]) == (code_gh, out_gh.split("==>")[1]), out_text + out_gh)
+default_root = str(pathlib.Path(gate.__file__).resolve().parents[2])
+code_none, out_none = run_argv(["check-reader-first.py"])
+check("no arguments defaults to the text format and this repository",
+      (code_none, out_none) == run_argv(["check-reader-first.py", "--format", "text", default_root]),
+      out_none)
 
 print()
 if FAILURES:

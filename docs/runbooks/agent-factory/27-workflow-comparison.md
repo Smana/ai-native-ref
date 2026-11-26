@@ -1,5 +1,7 @@
 # 27 — Workflow comparison: `standard` vs `careful`
 
+Part of the [agent-factory runbooks](README.md).
+
 The comparison is not running. This is the procedure for a later one, and it is no longer a
 precondition for step-up or per-role measurement (the workflows and roles redesign's first owner
 ruling, WR-O1). Design:

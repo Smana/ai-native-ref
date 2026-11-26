@@ -292,10 +292,12 @@ PHASES = ["Pending", "Running", "Succeeded", "Failed", "BudgetExhausted", "Revok
 def check_ksm():
     cm = find(VM_VALUES, "ConfigMap", "vm-common-helm-values")
     ksm = yaml.safe_load(cm.get("data", {}).get("values.yaml", "{}")).get("kube-state-metrics", {})
-    # Both AgentRun groups while runs move off cloud.ogenki.io (cnref #2839: maku.ogenki.io).
-    check(ksm.get("rbac", {}).get("extraRules") == [{"apiGroups": [g], "resources": ["agentruns"], "verbs": ["list", "watch"]}
-                                                    for g in ("cloud.ogenki.io", "maku.ogenki.io")],
-          "KSM reads agentruns, list and watch only")
+    # Both AgentRun groups while runs move off cloud.ogenki.io (cnref #2839: maku.ogenki.io), and
+    # Maku's Repository conditions (cnref #2918).
+    check(ksm.get("rbac", {}).get("extraRules") == [
+        {"apiGroups": ["cloud.ogenki.io"], "resources": ["agentruns"], "verbs": ["list", "watch"]},
+        {"apiGroups": ["maku.ogenki.io"], "resources": ["agentruns", "repositories"], "verbs": ["list", "watch"]}],
+          "KSM reads agentruns and Maku's repositories, list and watch only")
     crs = ksm.get("customResourceState", {})
     res = (crs.get("config", {}).get("spec", {}).get("resources") or [{}])[0]
     check(crs.get("enabled") is True and res.get("groupVersionKind") == {"group": "cloud.ogenki.io", "version": "v1alpha1", "kind": "AgentRun"},

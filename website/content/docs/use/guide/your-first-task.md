@@ -59,7 +59,8 @@ It should link to 18-factory-interfaces.md.
 proposal. Example (the reference host):
 
 ```text
-Proposal v1 · sha256:5e0c9a41… · by @you
+Plan v1
+sha256:5e0c9a41… · by @you
 
 Repository
 Smana/ai-native-ref

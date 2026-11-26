@@ -29,6 +29,9 @@ row says otherwise; only a maintainer's count.
 |---|---|
 | `/factory retry` | Tries a failed or escalated task again, or proceeds on the scoper's assumption |
 | `/factory split` | Accepts a proposed split; the parts then open one at a time |
+| `/factory plan approve` | Starts the implementer on the proposed plan |
+| `/factory plan revise <comment>` | The scoper re-plans once with that comment |
+| `/factory plan split` | Splits the plan into parts |
 | `/factory retry deeper` | Retries on the next workflow up: quick → standard → careful |
 | `/factory fix` | On a `report` issue: files a change task from the findings |
 

@@ -33,6 +33,7 @@ spec:
       workflow: quick
       text: Fix the dead external links listed below.
   merge:
+    paused: {reason: "drill: runbook 29 section 6.2 (2026-11-26)"}
     # The `main` ruleset's 2 contexts (app 15368): `gh api repos/Smana/ai-native-ref/rulesets/25225244`.
     # ci.yaml runs both on push to main too; TruffleHog is a step of `lint`.
     requiredChecks: [validate, lint]

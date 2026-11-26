@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# requires: python3
+# requires: python3 kustomize
 """The model gateway's values (infrastructure/base/agent-gateway/model-gateway) serve what agent-router serves.
 
 Until follow-up 5 deletes agent-router's model files, the two Gateways hold the same facts twice, so
@@ -12,6 +12,10 @@ this ties the copies:
       Secret, by the same name and key, from agent-system.
   M4  The budgets overlay charges agent-router's server, domain and cost, so a run, the fleet and
       Anthropic each keep one bucket across both Gateways.
+  M5  Gemini (design G1, G6, G7) is gcp-0's alone: its overlay adds the vertex provider (no key,
+      public only), gemini-standard and gemini-light on the public listener, their meter.prices
+      rows to the catalog and the two aliases to the run-controller's public list. Base and aws-0
+      name none of it, and base's catalog leaves the rows out (the chart refuses a price no alias serves).
 
 Run: python3 scripts/ci/tests/test-model-gateway-values.py
 """
@@ -51,7 +55,8 @@ problems = []
 # M1
 factory = find(docs(ROOT / "tooling/base/agent-factory/resources/factory.yaml"), "Factory", "${cluster_name}")
 meter = {m: {f: r[f] for f in RATES if f in r} for m, r in factory["spec"]["prices"].items()}
-if values["modelCatalog"]["prices"] != meter:
+GEMINI = {"gemini-4-neon", "gemini-4-hydrogen"}
+if values["modelCatalog"]["prices"] != {m: r for m, r in meter.items() if m not in GEMINI}:
     problems.append(f"M1: modelCatalog.prices {values['modelCatalog']['prices']} is not meter.prices' rates {meter}")
 
 # M2, M3
@@ -104,6 +109,37 @@ if o.get("local") != t.get("local"):
     problems.append(f"M4: the local backstop {o.get('local')} is not agent-router's {t.get('local')}")
 if ours["spec"]["targetRefs"] != [{"group": "gateway.networking.k8s.io", "kind": "Gateway", "name": values["name"]}]:
     problems.append(f"M4: the budgets target {ours['spec']['targetRefs']}, not Gateway {values['name']}")
+
+# M5
+def build(path):
+    import subprocess
+    out = subprocess.run(["kustomize", "build", str(ROOT / path)], capture_output=True, text=True, check=True).stdout
+    return [d for d in yaml.safe_load_all(out) if isinstance(d, dict)]
+
+
+def released(path, name):
+    return find(build(path), "HelmRelease", name)["spec"]["values"]
+
+
+gemini = {"gemini-standard": {"provider": "vertex", "model": "gemini-4-neon"},
+          "gemini-light": {"provider": "vertex", "model": "gemini-4-hydrogen"}}
+gcp = released("infrastructure/gcp-0/agent-gateway/model-gateway", "model-gateway")
+if gcp["providers"].get("vertex") != {"preset": "vertex", "projectId": "ogenki-435905", "region": "eu",
+                                      "dataClasses": ["public"]}:
+    problems.append(f"M5: gcp-0's providers.vertex is {gcp['providers'].get('vertex')}")
+if {a: t for a, t in gcp["aliases"]["public"].items() if a in gemini} != gemini \
+        or any(t["provider"] == "vertex" for t in gcp["aliases"]["internal"].values()):
+    problems.append("M5: gcp-0 must serve gemini-standard and gemini-light on public, and vertex on no internal alias")
+if {m: r for m, r in gcp["modelCatalog"]["prices"].items() if m in GEMINI} != {m: meter[m] for m in GEMINI}:
+    problems.append("M5: gcp-0's catalog does not carry meter.prices' Gemini rows")
+broker = released("infrastructure/gcp-0/room-broker", "room-broker")["runController"]["model"]["gateway"]["aliases"]
+if not set(gemini) <= set(broker["public"]) or set(gemini) & set(broker["internal"]):
+    problems.append(f"M5: gcp-0's run-controller aliases {broker} must hold the Gemini aliases on public only")
+# The budgets' cost map prices every meter.prices row on every cluster; the values must name none.
+for path, name in (("infrastructure/aws-0/agent-gateway/model-gateway", "model-gateway"),
+                   ("infrastructure/aws-0/room-broker", "room-broker"), ("infrastructure/base/room-broker", "room-broker")):
+    if "gemini" in str(released(path, name)) or "vertex" in str(values):
+        problems.append(f"M5: {path} or base's model gateway names Gemini; only gcp-0 reaches Vertex AI")
 
 for p in problems:
     print(f"FAIL {p}")

@@ -1,0 +1,26 @@
+# Gemini on Vertex AI, gcp-0 only (Gemini design G1, G4 to G7; plan B4): Maku's vertex preset, the
+# proxy's own Google identity (workloadidentity.yaml), so no key; region eu, the EU multi-region,
+# for data residency (G4). Public data only and never a default: two selectable aliases, named
+# like Mistral's. Base stays provider-neutral, since aws-0 has no Google identity.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: model-gateway
+  namespace: agent-gateway
+spec:
+  values:
+    # projectId is gcp-0's project spelled out, not ${project_id}: the bundle renders a HelmRelease
+    # before Flux's substitution, and maku-gateway 0.55.0's schema pattern refuses "${project_id}".
+    # Back to the variable once the chart admits it.
+    providers:
+      vertex: {preset: vertex, projectId: ogenki-435905, region: eu, dataClasses: [public]}
+    aliases:
+      public:
+        gemini-standard: {provider: vertex, model: gemini-4-neon}
+        gemini-light: {provider: vertex, model: gemini-4-hydrogen}
+    # meter.prices' Gemini rows (tooling/base/agent-factory/resources/factory.yaml), which base's
+    # catalog leaves out: the chart refuses a price no alias serves.
+    modelCatalog:
+      prices:
+        gemini-4-neon: {input: 3.30, cacheRead: 0.165, output: 16.50}
+        gemini-4-hydrogen: {input: 1.65, cacheRead: 0.0825, output: 8.25}

@@ -9,6 +9,7 @@ would leave the broker watching one run kind while the chart grants and admits a
 run-controller's model gateway and aliases are agent-gateway/model-gateway's, and so is the planner's
 clients route: each config's human.intake.plan names what broker.modelGateway derives."""
 import pathlib
+import subprocess
 import sys
 
 try:
@@ -23,6 +24,7 @@ import room_broker_chart  # noqa: E402
 
 checks = {}
 plans = {}
+run_aliases = {}
 for cloud in ("aws-0", "gcp-0"):
     try:
         docs = room_broker_chart.build(ROOT, f"infrastructure/{cloud}/room-broker")
@@ -34,6 +36,7 @@ for cloud in ("aws-0", "gcp-0"):
     values, config = release["spec"]["values"], yaml.safe_load(cm["data"]["config.yaml"])
     runs, broker = values["runs"], values["broker"]
     plans[cloud] = ((config.get("human") or {}).get("intake") or {}).get("plan") or {}
+    run_aliases[cloud] = values["runController"]["model"]["gateway"]["aliases"]
     pattern = f"^system:serviceaccount:{runs['namespace']}:{runs['namePrefix']}([a-z2-7]{{8}})$"
     issuers = config.get("runIssuers") or []
     checks[f"{cloud}: config runs is the values' runs"] = config.get("runs") == runs
@@ -52,8 +55,17 @@ model = values["runController"]["model"]
 checks["the runs call the model gateway release, by its name and namespace"] = (
     model["mode"] == "gateway" and model["gateway"]["service"] == gw_values["name"]
     and model["gateway"]["namespace"] == gw["metadata"]["namespace"])
-checks["they name exactly the aliases each of its listeners serves"] = all(
-    sorted(model["gateway"]["aliases"][c]) == sorted(gw_values["aliases"][c]) for c in ("public", "internal"))
+# Per cloud: gcp-0's gateway also serves the Gemini aliases (infrastructure/gcp-0/agent-gateway/model-gateway).
+def gateway_aliases(cloud):
+    out = subprocess.run(["kustomize", "build", str(ROOT / f"infrastructure/{cloud}/agent-gateway/model-gateway")],
+                         capture_output=True, text=True, check=True).stdout
+    hr = next(d for d in yaml.safe_load_all(out) if isinstance(d, dict) and d.get("kind") == "HelmRelease")
+    return hr["spec"]["values"]["aliases"]
+
+
+checks["each cloud's runs name exactly the aliases each listener of its gateway serves"] = all(
+    sorted(run_aliases[cloud][c]) == sorted(gateway_aliases(cloud)[c])
+    for cloud in run_aliases for c in ("public", "internal"))
 checks["it admits exactly these runs"] = (
     gw_values["runs"] == {"namespace": runs["namespace"], "namePrefix": runs["namePrefix"]})
 

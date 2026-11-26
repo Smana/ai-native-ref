@@ -42,3 +42,23 @@ if fails:
     print("FAIL:", fails, "\n" + out)
     sys.exit(1)
 print("PASS")
+
+# Fractional seconds in the timestamps: any number of digits (1-6), no printed minute moves.
+fractional = dict(t, timestamps=dict(t["timestamps"], **{"labelled": "2026-11-26T01:00:00.5Z",
+                                                          "pr_opened": "2026-11-26T01:12:30.999Z"}))
+with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+    json.dump(fractional, f)
+out = subprocess.run([sys.executable, SUBJECT, f.name], capture_output=True, text=True, check=True).stdout
+if "| PR opened | 01:12 | 12 |" not in out:
+    print("FAIL: fractional-second timestamps\n" + out)
+    sys.exit(1)
+
+# A transcript with no tokens key says so instead of crashing.
+no_tokens = {k: v for k, v in t.items() if k != "tokens"}
+with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+    json.dump(no_tokens, f)
+out = subprocess.run([sys.executable, SUBJECT, f.name], capture_output=True, text=True, check=True).stdout
+if "tokens unknown." not in out or "tokens in total" in out:
+    print("FAIL: tokens unknown\n" + out)
+    sys.exit(1)
+print("PASS: fractional and no-tokens transcripts render")

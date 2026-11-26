@@ -15,7 +15,9 @@ STEPS = [("labelled", "A maintainer labels the issue"), ("started_comment", "The
 
 
 def when(s):
-    return datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ")
+    """A Kubernetes-style timestamp, with or without fractional seconds; the fraction never
+    changes a printed minute."""
+    return datetime.strptime(re.sub(r"\.(\d{1,6})Z$", "Z", s), "%Y-%m-%dT%H:%M:%SZ")
 
 
 def main(path):
@@ -28,7 +30,8 @@ def main(path):
             at = when(ts[key])
             print(f"| {label} | {at:%H:%M} | {int((at - start).total_seconds() // 60)} |")
     roles = " → ".join(f"{r['role']} ({r['trigger']})" for r in t["runs"])
-    print(f"\nRuns: {roles}. Template `{t['template']}`, tier `{t['tier']}`, {t['tokens'] // 1000}k tokens in total.\n")
+    tokens = f"{t['tokens'] // 1000}k tokens in total" if "tokens" in t else "tokens unknown"
+    print(f"\nRuns: {roles}. Template `{t['template']}`, tier `{t['tier']}`, {tokens}.\n")
     print("```mermaid\nsequenceDiagram\n  actor M as Maintainer\n  participant GH as GitHub\n  participant F as agent-factory\n"
           "  participant R as room\n  participant A as agent runs")
     for _, lines in sorted(events(t), key=lambda e: e[0]):

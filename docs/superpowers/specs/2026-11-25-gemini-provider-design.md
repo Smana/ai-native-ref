@@ -399,6 +399,26 @@ record the agreement. This feeds v5 track 4's "second-family reviewer".
   | Gemini as a model provider | `gemini` (API key) and `vertex` (Vertex AI with the proxy's own Google identity, no key) gateway presets, thought signatures carried through both harnesses, a `model:<alias>` pin, `evaluation.treatmentModel` and `maku stages --by model`; selectable and public-only, then a paired comparison against the default model on the reference deployment ([design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-25-gemini-provider-design.md)) |
   ```
 
+## Probe P7 findings (2026-11-26)
+
+Maku's gateway probe (`charts/maku-gateway/tests/probe`, P7) ran the chart's own `gemini` and
+`vertex` backends through agentgateway v1.6.0 on k3d, against a fake Gemini that enforces thought
+signatures and a fake GKE metadata server. One live call settled the thinking question. Where this
+design guessed otherwise, the findings win:
+
+| Design said | Found |
+|---|---|
+| The native `vertexai` provider may call `endpoints/openapi`; if not, fall back to `custom` | It calls `generateContent` on `publishers/google/models/<model>` and translates Chat Completions itself. No fallback is needed: the translation carries signatures better than `openapi` does |
+| `eu` dials `eu-aiplatform.googleapis.com` | `eu` and `us` dial `aiplatform.<region>.rep.googleapis.com`, `global` `aiplatform.googleapis.com`, a region `<region>-aiplatform.googleapis.com` |
+| G8: signatures ride in `extra_content`, so every hop must keep it | On `vertex`, agentgateway puts each signature inside the tool call id (`<id>__thought__<sig>`). A caller that drops every unknown field still round-trips it, so G8 needs neither (b) nor (c). On `gemini` (the Gemini API's OpenAI endpoint), the gateway passes `extra_content` both ways, and a caller that drops it gets a 400 on its second tool turn |
+| G10: pass `reasoning_effort` through | agentgateway 1.6 turns `reasoning_effort` into a `thinkingBudget` for every model but `gemini-3*`, and Gemini 4 answers 400 to a budget (checked live on Vertex `eu`: "Thinking budget is not supported for this model"). The `vertex` preset therefore sets `thinking_config` from `reasoning_effort` (low, none and minimal map to `low`, medium to `medium`, anything else to `high`) |
+| A3: the catalog key comes from the probe | `gcp.vertex_ai`. Thinking tokens count as output and are priced at the output rate: 100 input and 20 + 10 output tokens on Neon at 3.00/15.00 cost 0.00075 |
+| A4: which ServiceAccount the proxy runs as | `model-gateway`, the Gateway's name, in the release namespace |
+| B1: the Vertex price is not confirmed | Read on the pricing page on 2026-11-26 (it renders for `curl`): a **non-global** endpoint, which `eu` is, pays 10 % over global. Neon 3.30 / 0.165 / 16.50 and Hydrogen 1.65 / 0.0825 / 8.25 USD per million input / cache-read / output tokens; output includes reasoning. `gemini-4-hydrogen` answered on Vertex `eu` the same day |
+
+Maku [#750](https://github.com/Smana/maku/pull/750) built the presets on these findings, and the
+probe is in its `charts/maku-gateway/tests/probe`.
+
 ## Sources
 
 - **[G1]** Gemini 4 Neon model page: <https://aistudio.google.com/docs/models/gemini-4-neon>

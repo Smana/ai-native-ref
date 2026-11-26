@@ -41,6 +41,7 @@ ZAI = "https://docs.z.ai/guides/overview/pricing"
 ANTHROPIC = "https://platform.claude.com/docs/en/about-claude/pricing"
 KIMI = "https://platform.kimi.ai/docs/pricing/chat"
 MISTRAL = "https://mistral.ai/pricing"
+VERTEX = "https://cloud.google.com/vertex-ai/generative-ai/pricing"
 
 # Each meter.prices row's key in each catalog, and the provider page a human confirms it on (the
 # row's `source` replaces `page` once rows carry one). genai-prices and models.dev keys are
@@ -67,6 +68,10 @@ MAPPING = {
                           "LiteLLM": "claude-sonnet-5-5", "models.dev": "anthropic/claude-sonnet-5-5"},
     "claude-haiku-5-5": {"page": ANTHROPIC, "genai-prices": "anthropic/claude-haiku-5-5",
                          "LiteLLM": "claude-haiku-5-5", "models.dev": "anthropic/claude-haiku-5-5"},
+    "gemini-4-neon": {"page": VERTEX, "genai-prices": "google/gemini-4-neon", "LiteLLM": "vertex_ai/gemini-4-neon",
+                      "models.dev": "google-vertex/gemini-4-neon"},
+    "gemini-4-hydrogen": {"page": VERTEX, "genai-prices": "google/gemini-4-hydrogen",
+                          "LiteLLM": "vertex_ai/gemini-4-hydrogen", "models.dev": "google-vertex/gemini-4-hydrogen"},
 }
 # Rows a catalog does not list, checked 2026-10-22. No finding while the key stays absent; the
 # night it appears, one, so the entry is dropped here and the row compared.
@@ -79,7 +84,12 @@ ABSENT = {
 TIERS = {"claude-haiku-5-5": 100_000}
 # Accepted deviations: (row, catalog, field) -> (the catalog value accepted, why). Any other value
 # of that field is a finding again.
-ACCEPTED: dict = {}
+# Gemini rows are Vertex AI's non-global rate, which gcp-0's eu multi-region pays; every catalog lists
+# the global one, 10 % lower (checked 2026-11-26).
+_VERTEX_GLOBAL = {"gemini-4-neon": {"input": "3", "cacheRead": "0.15", "output": "15"},
+                  "gemini-4-hydrogen": {"input": "1.5", "cacheRead": "0.075", "output": "7.5"}}
+ACCEPTED: dict = {(model, catalog, field): (value, "Vertex AI's global rate; the eu multi-region pays the non-global one")
+                  for model, row in _VERTEX_GLOBAL.items() for catalog in CATALOGS for field, value in row.items()}
 
 # Each catalog's name for a field. genai-prices and models.dev are in USD per million tokens,
 # LiteLLM in USD per token.

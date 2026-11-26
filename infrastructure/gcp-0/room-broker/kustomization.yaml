@@ -92,3 +92,20 @@ patches:
         value:
           toEntities:
             - all
+  # Gemini on Vertex AI (Gemini design G6, G7): the model gateway serves its two aliases on gcp-0's
+  # public listener (infrastructure/gcp-0/agent-gateway/model-gateway), so the run-controller may
+  # mint a public run's token for them. Never internal, never a default. `test` pins the list.
+  - target:
+      group: helm.toolkit.fluxcd.io
+      kind: HelmRelease
+      name: room-broker
+    patch: |-
+      - op: test
+        path: /spec/values/runController/model/gateway/aliases/public/6
+        value: mistral-light
+      - op: add
+        path: /spec/values/runController/model/gateway/aliases/public/-
+        value: gemini-standard
+      - op: add
+        path: /spec/values/runController/model/gateway/aliases/public/-
+        value: gemini-light

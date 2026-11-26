@@ -161,6 +161,11 @@ spec:
     k3.1-pro: {input: 2.00, cacheRead: 0.20, cacheWrite: 2.00, output: 10.00, source: "https://platform.kimi.ai/docs/pricing/chat", checkedAt: "2026-10-28"}
     mistral-medium-2604: {input: 1.50, cacheRead: 0.15, output: 7.50, source: "https://mistral.ai/pricing", checkedAt: "2026-10-28"}
     mistral-small-2603: {input: 0.15, cacheRead: 0.015, output: 0.60, source: "https://mistral.ai/pricing", checkedAt: "2026-10-28"}
+    # Gemini (gcp-0 only, public only: Gemini design G6, G7) at Vertex AI's non-global rate, which the
+    # eu multi-region pays (10 % over global). Thinking is billed as output. No cacheWrite: Gemini 4
+    # caches implicitly only, and an implicit cache write is not billed.
+    gemini-4-neon: {input: 3.30, cacheRead: 0.165, output: 16.50, source: "https://cloud.google.com/vertex-ai/generative-ai/pricing", checkedAt: "2026-11-26"}
+    gemini-4-hydrogen: {input: 1.65, cacheRead: 0.0825, output: 8.25, source: "https://cloud.google.com/vertex-ai/generative-ai/pricing", checkedAt: "2026-11-26"}
     claude-opus-5-5: {input: 4.00, cacheRead: 0.20, cacheWrite: 5.00, output: 20.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
     claude-sonnet-5-5: {input: 2.00, cacheRead: 0.10, cacheWrite: 2.50, output: 10.00, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}
     claude-haiku-5-5: {input: 0.50, cacheRead: 0.05, cacheWrite: 0.625, output: 2.50, source: "https://platform.claude.com/docs/en/about-claude/pricing", checkedAt: "2026-10-16"}

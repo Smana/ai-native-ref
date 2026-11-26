@@ -29,8 +29,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: factory-slack-app
-          # maku v0.54.5, by digest, with the factory's and the broker's pins.
-          image: ghcr.io/smana/maku-slack:v0.54.5@sha256:2a09d3fb4bde01d1905e28732f9ffc59853ee5d279256040bbcfeafd56c9a365
+          # maku v0.54.7, by digest, with the factory's and the broker's pins.
+          image: ghcr.io/smana/maku-slack:v0.54.7@sha256:6085a36715d4532fa8536956a3dd361b4cade93e1a3a84e1538763813aca6c9f
           args: ["--config", "/etc/factory-slack-app/config/config.yaml"]
           ports:
             - {name: events, containerPort: 8080}

@@ -41,4 +41,29 @@ if -1 in at or at != sorted(at):
 if fails:
     print("FAIL:", fails, "\n" + out)
     sys.exit(1)
+
+# Fractional-second timestamps: a Kubernetes-style `labelled` and `pr_opened`.
+frac = dict(t)
+frac["timestamps"] = dict(t["timestamps"], labelled="2026-11-26T01:00:00.5Z", pr_opened="2026-11-26T01:12:30.999Z")
+frac["comments"] = [started("2026-11-26T01:01:00Z", "aaaaaaaa"), started("2026-11-26T01:13:00Z", "bbbbbbbb"),
+                    started("2026-11-26T01:21:00Z", "cccccccc"),
+                    {"at": "2026-11-26T01:25:00Z", "body": "Agent factory task `3buqdlot`: run `cccccccc` stopped because the sandbox "
+                     "was lost (spot reclaim or eviction); resuming automatically (1/2)."},
+                    started("2026-11-26T01:25:02Z", "dddddddd")]
+with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+    json.dump(frac, f)
+frac_out = subprocess.run([sys.executable, SUBJECT, f.name], capture_output=True, text=True, check=True).stdout
+if "| PR opened | 01:12 | 12 |" not in frac_out:
+    print("FAIL: fractional seconds\n" + frac_out)
+    sys.exit(1)
+
+# A transcript without a `tokens` key.
+no_tokens = {k: v for k, v in t.items() if k != "tokens"}
+with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+    json.dump(no_tokens, f)
+nt_out = subprocess.run([sys.executable, SUBJECT, f.name], capture_output=True, text=True, check=True).stdout
+if "tokens unknown." not in nt_out or "tokens in total" in nt_out:
+    print("FAIL: tokens unknown\n" + nt_out)
+    sys.exit(1)
+
 print("PASS")

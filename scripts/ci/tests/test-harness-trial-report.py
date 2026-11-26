@@ -186,6 +186,52 @@ with tempfile.TemporaryDirectory() as td:
     check("CLI exits 0 and writes markdown report with verdict",
           rc == 0 and "**Verdict:** `passes`" in md and "Rescue (`openhands`)" in md and md == buf.getvalue(),
           (rc, md[:200]))
+    check("report renders a Total tokens row immediately after Cache-write tokens",
+          md.splitlines()[md.splitlines().index([l for l in md.splitlines() if l.startswith("| Cache-write tokens")][0]) + 1].startswith("| Total tokens"),
+          md)
+
+print("status.usage cost and total tokens")
+usage_task = make_task(
+    "trt-usage-only",
+    cohort="treatment",
+    harness="opencode",
+    outcome="merged",
+    cost_usd=0.0,
+    tokens={},
+)
+del usage_task["status"]["costMicroUSD"]
+usage_task["status"]["usage"] = {"costMicroUSD": 696292, "tokens": 1931412}
+res = htr.summarize([usage_task])
+check("a Task priced only via status.usage.costMicroUSD costs $0.696292 and is not unpriced",
+      res["arms"]["treatment"]["usd"] == 0.696292 and res["arms"]["treatment"]["unpriced"] == 0,
+      res["arms"]["treatment"])
+check("status.usage.tokens adds 1,931,412 to the arm total tokens",
+      res["arms"]["treatment"]["tokens"]["total"] == 1931412,
+      res["arms"]["treatment"]["tokens"])
+
+both_task = make_task(
+    "ctrl-both",
+    cohort="control",
+    outcome="merged",
+    cost_usd=1.25,
+    tokens={"input": 100, "output": 20, "cacheRead": 0, "cacheWrite": 0},
+)
+both_task["status"]["usage"] = {"costMicroUSD": 500000, "tokens": 999}
+res = htr.summarize([both_task])
+check("status.costMicroUSD takes precedence over status.usage.costMicroUSD",
+      res["arms"]["control"]["usd"] == 1.25, res["arms"]["control"])
+check("status.usage.tokens takes precedence over the tokens map for the total",
+      res["arms"]["control"]["tokens"]["total"] == 999, res["arms"]["control"]["tokens"])
+
+split_task = make_task(
+    "ctrl-split",
+    cohort="control",
+    outcome="merged",
+    tokens={"input": 100, "output": 20, "cacheRead": 30, "cacheWrite": 10},
+)
+res = htr.summarize([split_task])
+check("without status.usage.tokens the total is the sum of the four token keys",
+      res["arms"]["control"]["tokens"]["total"] == 160, res["arms"]["control"]["tokens"])
 
 if fails:
     print("FAIL\n  " + "\n  ".join(fails))

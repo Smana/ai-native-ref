@@ -45,6 +45,7 @@ VM_PROXY = "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-
 ENDED_PHASES = {"merged", "closed", "escalated", "failed", "aborted", "cancelled", "succeeded", "completed"}
 MERGED_OUTCOMES = {"merged"}
 TOKEN_KEYS = ("input", "output", "cacheRead", "cacheWrite")
+TOTAL_KEY = "total"
 
 
 def parse_ts(value):
@@ -102,13 +103,22 @@ def _cost_usd(task):
         return float(status["spendMicroUSD"]) / MICRO
     if "usd" in status and status["usd"] is not None:
         return float(status["usd"])
+    usage = status.get("usage") or {}
+    if "costMicroUSD" in usage and usage["costMicroUSD"] is not None:
+        return float(usage["costMicroUSD"]) / MICRO
     return None
 
 
 def _tokens(task):
     status = task.get("status") or {}
     tok = status.get("tokens") or {}
-    return {k: int(tok.get(k) or 0) for k in TOKEN_KEYS}
+    toks = {k: int(tok.get(k) or 0) for k in TOKEN_KEYS}
+    usage = status.get("usage") or {}
+    if "tokens" in usage and usage["tokens"] is not None:
+        toks["total"] = int(usage["tokens"])
+    else:
+        toks["total"] = sum(toks.values())
+    return toks
 
 
 def _exclusion_reason(task, since=None, until=None):
@@ -145,7 +155,7 @@ def _empty_arm():
         "usd": 0.0,
         "unpriced": 0,
         "durations_min": [],
-        "tokens": {k: 0 for k in TOKEN_KEYS},
+        "tokens": {k: 0 for k in TOKEN_KEYS + (TOTAL_KEY,)},
     }
 
 
@@ -228,7 +238,7 @@ def summarize(tasks, *, vm_tokens=None, since=None, until=None, critical_regress
                 arms["rescue"]["usd"] += rescue_cost
             if dur is not None:
                 arms["rescue"]["durations_min"].append(dur)
-            for k in TOKEN_KEYS:
+            for k in TOKEN_KEYS + (TOTAL_KEY,):
                 arms["rescue"]["tokens"][k] += toks[k]
             continue
 
@@ -246,7 +256,7 @@ def summarize(tasks, *, vm_tokens=None, since=None, until=None, critical_regress
             bucket["usd"] += cost
         if dur is not None:
             bucket["durations_min"].append(dur)
-        for k in TOKEN_KEYS:
+        for k in TOKEN_KEYS + (TOTAL_KEY,):
             bucket["tokens"][k] += toks[k]
 
     # Merge optional VictoriaMetrics token readings when provided by arm.
@@ -383,6 +393,7 @@ def render(result, *, cluster="gcp-0", maku_version="unknown", window="all"):
         f"| Output tokens | {ctrl['tokens']['output']:,} | {trt['tokens']['output']:,} | {rsc['tokens']['output']:,} |",
         f"| Cache-read tokens | {ctrl['tokens']['cacheRead']:,} | {trt['tokens']['cacheRead']:,} | {rsc['tokens']['cacheRead']:,} |",
         f"| Cache-write tokens | {ctrl['tokens']['cacheWrite']:,} | {trt['tokens']['cacheWrite']:,} | {rsc['tokens']['cacheWrite']:,} |",
+        f"| Total tokens | {ctrl['tokens'][TOTAL_KEY]:,} | {trt['tokens'][TOTAL_KEY]:,} | {rsc['tokens'][TOTAL_KEY]:,} |",
         f"| Critical security/audit/recovery regressions | — | {result['critical_regressions']} | — |",
         "",
         "## Frozen Gate Checks",

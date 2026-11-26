@@ -39,5 +39,5 @@ spec:
           annotations:
             summary: "A run tried to download from a GitHub release host after its toolchain install"
             description: "The egress proxy refused it; nothing was downloaded. Find the run and read its steps for the download it tried: kubectl -n agent-system logs -l app.kubernetes.io/name=egress-proxy --prefix | grep install_closed"
-            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/30-github-egress-drill.md"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/31-github-egress-drill.md"
             dashboard: "https://grafana.${private_domain_name}/d/agent-fleet"

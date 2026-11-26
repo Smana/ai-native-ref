@@ -1,4 +1,4 @@
-# 30 — GitHub egress: the install window, live
+# 31 — GitHub egress: the install window, live
 
 Maku's [GitHub egress tightening](https://github.com/Smana/maku/blob/main/docs/superpowers/specs/2026-11-26-github-egress-tightening-design.md)
 takes GitHub's release and raw hosts off every run's allow-list. A check-enabled run reaches them

@@ -14,10 +14,10 @@ NOT RUN row.
 
 | Check | Issue or PR | Result | Date | Notes |
 |---|---|---|---|---|
-| `Factory` is `Accepted` and `Ready` with no deprecation warning (no `templates`) | | NOT RUN | | `Ready` was read on the v4.0.0 / Maku v0.53.11 baseline only; no condition reading is recorded after the v0.54.0 adoption ([#496]). |
-| Every `Repository` is `Ready` with `BindingsValid` true | | NOT RUN | | Not recorded. The `Repository` status read for safety item 8 shows cloud-native-ref serving `merge.autoRevert: true` with no `revert` binding. |
-| The brief ConfigMap holds `security-reviewer.md` | | NOT RUN | | Not read directly; the `security-reviewer` stage did run (section 4). |
-| Factory, broker and run-controller image digests recorded | | NOT RUN | | Run pods ran by digest under gVisor with no `shareProcessNamespace`; the three control-plane digests are not recorded. The broker's `/.well-known/maku` reported v0.54.5 at the end. |
+| `Factory` is `Accepted` and `Ready` with no deprecation warning (no `templates`) | | PASS | 2026-11-26 | `gcp-0`: `Accepted=True`, `Ready=True`, no `templates`, no `Deprecated` event; read on Maku v0.54.5. |
+| Every `Repository` is `Ready` with `BindingsValid` true | | PASS | 2026-11-26 | ai-native-ref, cloud-native-ref, runlore, runlore-kb: `Ready=True`, `BindingsValid=True`. |
+| The brief ConfigMap holds `security-reviewer.md` | | PASS | 2026-11-26 | `agent-factory-role-briefs` holds `security-reviewer.md`. |
+| Factory, broker and run-controller image digests recorded | | PASS | 2026-11-26 | v0.54.5: factory `sha256:5d37c521…`, broker `sha256:39f649a8…`, run-controller `sha256:06fb56be…`. |
 
 ## 1. Step up once
 

@@ -102,6 +102,9 @@ def _cost_usd(task):
         return float(status["spendMicroUSD"]) / MICRO
     if "usd" in status and status["usd"] is not None:
         return float(status["usd"])
+    usage = status.get("usage") or {}
+    if "costMicroUSD" in usage and usage["costMicroUSD"] is not None:
+        return float(usage["costMicroUSD"]) / MICRO
     return None
 
 
@@ -109,6 +112,14 @@ def _tokens(task):
     status = task.get("status") or {}
     tok = status.get("tokens") or {}
     return {k: int(tok.get(k) or 0) for k in TOKEN_KEYS}
+
+
+def _total_tokens(task):
+    status = task.get("status") or {}
+    usage = status.get("usage") or {}
+    if "tokens" in usage and usage["tokens"] is not None:
+        return int(usage["tokens"])
+    return sum(_tokens(task).values())
 
 
 def _exclusion_reason(task, since=None, until=None):
@@ -146,6 +157,7 @@ def _empty_arm():
         "unpriced": 0,
         "durations_min": [],
         "tokens": {k: 0 for k in TOKEN_KEYS},
+        "total_tokens": 0,
     }
 
 
@@ -163,6 +175,7 @@ def _finalize_arm(arm):
         "median_duration_min": statistics.median(durations) if durations else None,
         "unpriced": arm["unpriced"],
         "tokens": dict(arm["tokens"]),
+        "total_tokens": arm["total_tokens"],
     }
 
 
@@ -230,6 +243,7 @@ def summarize(tasks, *, vm_tokens=None, since=None, until=None, critical_regress
                 arms["rescue"]["durations_min"].append(dur)
             for k in TOKEN_KEYS:
                 arms["rescue"]["tokens"][k] += toks[k]
+            arms["rescue"]["total_tokens"] += _total_tokens(task)
             continue
 
         if cohort not in ("control", "treatment"):
@@ -248,6 +262,7 @@ def summarize(tasks, *, vm_tokens=None, since=None, until=None, critical_regress
             bucket["durations_min"].append(dur)
         for k in TOKEN_KEYS:
             bucket["tokens"][k] += toks[k]
+        bucket["total_tokens"] += _total_tokens(task)
 
     # Merge optional VictoriaMetrics token readings when provided by arm.
     if isinstance(vm_tokens, dict):
@@ -257,6 +272,10 @@ def summarize(tasks, *, vm_tokens=None, since=None, until=None, critical_regress
                 for k in TOKEN_KEYS:
                     if k in src and src[k] is not None:
                         arms[arm_name]["tokens"][k] = int(src[k])
+                if "total" in src and src["total"] is not None:
+                    arms[arm_name]["total_tokens"] = int(src["total"])
+                else:
+                    arms[arm_name]["total_tokens"] = sum(arms[arm_name]["tokens"].values())
 
     summary_arms = {name: _finalize_arm(data) for name, data in arms.items()}
     total_critical = int(critical_regressions) + inferred_critical
@@ -383,6 +402,7 @@ def render(result, *, cluster="gcp-0", maku_version="unknown", window="all"):
         f"| Output tokens | {ctrl['tokens']['output']:,} | {trt['tokens']['output']:,} | {rsc['tokens']['output']:,} |",
         f"| Cache-read tokens | {ctrl['tokens']['cacheRead']:,} | {trt['tokens']['cacheRead']:,} | {rsc['tokens']['cacheRead']:,} |",
         f"| Cache-write tokens | {ctrl['tokens']['cacheWrite']:,} | {trt['tokens']['cacheWrite']:,} | {rsc['tokens']['cacheWrite']:,} |",
+        f"| Total tokens | {ctrl['total_tokens']:,} | {trt['total_tokens']:,} | {rsc['total_tokens']:,} |",
         f"| Critical security/audit/recovery regressions | — | {result['critical_regressions']} | — |",
         "",
         "## Frozen Gate Checks",

@@ -12,10 +12,12 @@ this ties the copies:
       Secret, by the same name and key, from agent-system.
   M4  The budgets overlay charges agent-router's server, domain and cost, so a run, the fleet and
       Anthropic each keep one bucket across both Gateways.
-  M5  Gemini (design G1, G6, G7) is gcp-0's alone: its overlay adds the vertex provider (no key,
-      public only), gemini-standard and gemini-light on the public listener, their meter.prices
-      rows to the catalog and the two aliases to the run-controller's public list. Base and aws-0
-      name none of it, and base's catalog leaves the rows out (the chart refuses a price no alias serves).
+  M5  Gemini (design G1, G6, G7) is in both cloud overlays, never in base: each adds the vertex
+      provider (no key, public only), gemini-standard and gemini-light on the public listener, their
+      meter.prices rows to the catalog and the two aliases to the run-controller's public list. aws-0's
+      are gcp-0's but for the project variable, plus the external credential (gcpCredentials) and the
+      aws-creds sidecar; gcp-0 stays on the metadata server. Base names none of it, and its catalog
+      leaves the rows out (the chart refuses a price no alias serves).
 
 Run: python3 scripts/ci/tests/test-model-gateway-values.py
 """
@@ -123,23 +125,36 @@ def released(path, name):
 
 gemini = {"gemini-standard": {"provider": "vertex", "model": "gemini-4-neon"},
           "gemini-light": {"provider": "vertex", "model": "gemini-4-hydrogen"}}
-gcp = released("infrastructure/gcp-0/agent-gateway/model-gateway", "model-gateway")
-if gcp["providers"].get("vertex") != {"preset": "vertex", "projectId": "${project_id}", "region": "eu",
-                                      "dataClasses": ["public"]}:
-    problems.append(f"M5: gcp-0's providers.vertex is {gcp['providers'].get('vertex')}")
-if {a: t for a, t in gcp["aliases"]["public"].items() if a in gemini} != gemini \
-        or any(t["provider"] == "vertex" for t in gcp["aliases"]["internal"].values()):
-    problems.append("M5: gcp-0 must serve gemini-standard and gemini-light on public, and vertex on no internal alias")
-if {m: r for m, r in gcp["modelCatalog"]["prices"].items() if m in GEMINI} != {m: meter[m] for m in GEMINI}:
-    problems.append("M5: gcp-0's catalog does not carry meter.prices' Gemini rows")
-broker = released("infrastructure/gcp-0/room-broker", "room-broker")["runController"]["model"]["gateway"]["aliases"]
-if not set(gemini) <= set(broker["public"]) or set(gemini) & set(broker["internal"]):
-    problems.append(f"M5: gcp-0's run-controller aliases {broker} must hold the Gemini aliases on public only")
-# The budgets' cost map prices every meter.prices row on every cluster; the values must name none.
-for path, name in (("infrastructure/aws-0/agent-gateway/model-gateway", "model-gateway"),
-                   ("infrastructure/aws-0/room-broker", "room-broker"), ("infrastructure/base/room-broker", "room-broker")):
-    if "gemini" in str(released(path, name)) or "vertex" in str(values):
-        problems.append(f"M5: {path} or base's model gateway names Gemini; only gcp-0 reaches Vertex AI")
+GEMINI_VERTEX = {"preset": "vertex", "region": "eu", "dataClasses": ["public"]}
+for cloud, project in (("gcp-0", "${project_id}"), ("aws-0", "${gcp_project_id}")):
+    vals = released(f"infrastructure/{cloud}/agent-gateway/model-gateway", "model-gateway")
+    if vals["providers"].get("vertex") != {**GEMINI_VERTEX, "projectId": project}:
+        problems.append(f"M5: {cloud}'s providers.vertex is {vals['providers'].get('vertex')}")
+    if {a: t for a, t in vals["aliases"]["public"].items() if a in gemini} != gemini \
+            or any(t["provider"] == "vertex" for t in vals["aliases"]["internal"].values()):
+        problems.append(f"M5: {cloud} must serve gemini-standard and gemini-light on public, and vertex on no internal alias")
+    if {m: r for m, r in vals["modelCatalog"]["prices"].items() if m in GEMINI} != {m: meter[m] for m in GEMINI}:
+        problems.append(f"M5: {cloud}'s catalog does not carry meter.prices' Gemini rows")
+    broker = released(f"infrastructure/{cloud}/room-broker", "room-broker")["runController"]["model"]["gateway"]["aliases"]
+    if not set(gemini) <= set(broker["public"]) or set(gemini) & set(broker["internal"]):
+        problems.append(f"M5: {cloud}'s run-controller aliases {broker} must hold the Gemini aliases on public only")
+    want_creds = {"source": "external", "configMap": "model-gateway-gcp-credentials"} if cloud == "aws-0" else None
+    if vals.get("gcpCredentials") != want_creds:
+        problems.append(f"M5: {cloud}'s gcpCredentials is {vals.get('gcpCredentials')}, want {want_creds}")
+aws_proxy = released("infrastructure/aws-0/agent-gateway/model-gateway", "model-gateway").get("proxy", {})
+side = [c for c in aws_proxy.get("sidecars", []) if c.get("name") == "aws-creds"]
+if len(side) != 1 or "@sha256:" not in side[0].get("image", "") \
+        or not all(k in side[0] for k in ("resources", "readinessProbe", "livenessProbe")) \
+        or side[0].get("securityContext", {}).get("readOnlyRootFilesystem") is not True \
+        or side[0].get("securityContext", {}).get("capabilities") != {"drop": ["ALL"]}:
+    problems.append(f"M5: aws-0's aws-creds sidecar must be pinned by digest, with resources, both probes and a restricted context: {side}")
+if {"name": "AWS_REGION", "value": "${region}"} not in aws_proxy.get("env", []):
+    problems.append("M5: aws-0's proxy must carry AWS_REGION (google-cloud-auth reads it before any URL)")
+# Base names no Gemini: the budgets' cost map prices every meter.prices row on every cluster.
+if "gemini" in str(values) or "vertex" in str(values):
+    problems.append("M5: base's model gateway names Gemini; only the cloud overlays reach Vertex AI")
+if "gemini" in str(released("infrastructure/base/room-broker", "room-broker")):
+    problems.append("M5: base's run-controller names a Gemini alias")
 
 for p in problems:
     print(f"FAIL {p}")

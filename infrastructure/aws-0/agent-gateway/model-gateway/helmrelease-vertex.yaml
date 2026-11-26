@@ -1,0 +1,64 @@
+# Gemini on Vertex AI on aws-0: the same vertex preset, aliases and prices as gcp-0's
+# helmrelease-vertex.yaml (test-model-gateway-values M5 holds them equal). Only the token's origin
+# differs: GKE's metadata server there, Workload Identity Federation here, through the
+# external_account credential (gcp-credentials.yaml) and the aws-creds sidecar, which serves the
+# proxy the Pod Identity session of EPI xplane-model-gateway (epi.yaml). No key on either cloud.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: model-gateway
+  namespace: agent-gateway
+spec:
+  values:
+    providers:
+      vertex: {preset: vertex, projectId: "${gcp_project_id}", region: eu, dataClasses: [public]}
+    aliases:
+      public:
+        gemini-standard: {provider: vertex, model: gemini-4-neon}
+        gemini-light: {provider: vertex, model: gemini-4-hydrogen}
+    # meter.prices' Gemini rows (tooling/base/agent-factory/resources/factory.yaml), which base's
+    # catalog leaves out: the chart refuses a price no alias serves.
+    modelCatalog:
+      prices:
+        gemini-4-neon: {input: 3.30, cacheRead: 0.165, output: 16.50}
+        gemini-4-hydrogen: {input: 1.65, cacheRead: 0.0825, output: 8.25}
+    # Maku's chart (gcpCredentials, proxy): the credential file, and what produces its subject token.
+    gcpCredentials:
+      source: external
+      configMap: model-gateway-gcp-credentials
+    proxy:
+      env:
+        # google-cloud-auth's AWS source reads the region here before any URL.
+        - {name: AWS_REGION, value: "${region}"}
+      volumes:
+        - name: aws-creds
+          configMap:
+            name: model-gateway-aws-creds
+      sidecars:
+        - name: aws-creds
+          image: gcr.io/distroless/python3-debian12:nonroot@sha256:7d1042ce588ab97019fe95c24ffca7bc5a82ccdac572511d5e09bda4435c89c5
+          args: ["/opt/aws-creds/server.py"]
+          env:
+            - {name: LISTEN_PORT, value: "8099"}
+          volumeMounts:
+            - {name: aws-creds, mountPath: /opt/aws-creds, readOnly: true}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+            seccompProfile: {type: RuntimeDefault}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          # Exec, not httpGet: the server listens on loopback only, which kubelet cannot reach.
+          readinessProbe:
+            exec:
+              command: ["/usr/bin/python3.11", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/healthz', timeout=2)"]
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["/usr/bin/python3.11", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/healthz', timeout=2)"]
+            periodSeconds: 20
+            failureThreshold: 3

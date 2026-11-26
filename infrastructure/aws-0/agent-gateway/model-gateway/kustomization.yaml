@@ -4,3 +4,25 @@ kind: Kustomization
 # A render root per cloud (GCP parity GP-14) over the shared base.
 resources:
   - ../../../base/agent-gateway/model-gateway
+  # Gemini on Vertex AI through Workload Identity Federation (cloud-native-ref's
+  # aws-vertex-federation design): the proxy's AWS identity, its Google credential, and the
+  # sidecar's one egress.
+  - epi.yaml
+  - gcp-credentials.yaml
+  - network-policy-aws-creds.yaml
+
+# The aws-creds sidecar's code. No name hash: the HelmRelease names it, and kustomize does not
+# rewrite names inside Helm values. A change to server.py rolls the proxy only with the next
+# chart or values change.
+configMapGenerator:
+  - name: model-gateway-aws-creds
+    namespace: agent-gateway
+    files:
+      - aws-creds/server.py
+    options:
+      disableNameSuffixHash: true
+
+patches:
+  # Gemini on Vertex AI: the vertex provider, its two public aliases and their prices, the
+  # external credential and the aws-creds sidecar.
+  - path: helmrelease-vertex.yaml

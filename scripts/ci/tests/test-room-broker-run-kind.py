@@ -44,6 +44,12 @@ for cloud in ("aws-0", "gcp-0"):
         (config.get("roomTools") or {}).get("auth", "key") == broker["roomTools"].get("auth", "key"))
     checks[f"{cloud}: the run-controller runs maku.ogenki.io runs"] = (
         values["runController"]["enabled"] is True and runs["group"] == "maku.ogenki.io")
+    # Per cloud: each cloud's overlay adds its own aliases (Gemini) to both releases.
+    gw_cloud = next(d for d in room_broker_chart.build(ROOT, f"infrastructure/{cloud}/agent-gateway/model-gateway")
+                    if d["kind"] == "HelmRelease" and d["metadata"]["name"] == "model-gateway")["spec"]["values"]
+    model_cloud = values["runController"]["model"]["gateway"]["aliases"]
+    checks[f"{cloud}: the run-controller names exactly the aliases each of its gateway's listeners serves"] = all(
+        sorted(model_cloud[c]) == sorted(gw_cloud["aliases"][c]) for c in ("public", "internal"))
 
 # The runs call agent-gateway/model-gateway: the run-controller's gateway and aliases are that release's.
 gw = yaml.safe_load((ROOT / "infrastructure/base/agent-gateway/model-gateway/helmrelease.yaml").read_text())
@@ -52,8 +58,6 @@ model = values["runController"]["model"]
 checks["the runs call the model gateway release, by its name and namespace"] = (
     model["mode"] == "gateway" and model["gateway"]["service"] == gw_values["name"]
     and model["gateway"]["namespace"] == gw["metadata"]["namespace"])
-checks["they name exactly the aliases each of its listeners serves"] = all(
-    sorted(model["gateway"]["aliases"][c]) == sorted(gw_values["aliases"][c]) for c in ("public", "internal"))
 checks["it admits exactly these runs"] = (
     gw_values["runs"] == {"namespace": runs["namespace"], "namePrefix": runs["namePrefix"]})
 

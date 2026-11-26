@@ -67,6 +67,7 @@ Grouped by purpose; the number is the order they were written in.
 | [results-harness-paired-trial-2026-11-26.md](results-harness-paired-trial-2026-11-26.md) | OpenCode vs OpenHands on identical task pairs, round 1 (OpenCode on an image without `bash`); round 2 pending | — (results) | — |
 | [28-v4-aws-validation.md](28-v4-aws-validation.md) | Shipped workflow and merge-policy functional validation on aws-0, adjacent regression, one live merge-policy safety chain, and issue #394's two OpenCode screencasts from one ai-native-ref task | Yes — the owner's approved matrix; valid promotion evidence for the live chain | Multiple sessions within existing daily caps |
 | [29-maku-v054-live-checks.md](29-maku-v054-live-checks.md) | Maku v0.54.0's switches, live: one step up, plan-first, review and report outcomes, the room's acts, whole plans, the `thorough` workflow, one OpenCode task, the factory's own reverts, pause and promotion by pull request | Yes — scratch issues and pull requests on the fenced cluster | ~3 h |
+| [30-aws-0-vertex-federation.md](30-aws-0-vertex-federation.md) | Gemini on Vertex AI from aws-0 with no key: the federation pool, the Pod Identity role, the `aws-creds` sidecar, one call and an hour of token refresh | Yes — Vertex calls on aws-0 (cents) | ~1.5 h |
 
 **Media**
 

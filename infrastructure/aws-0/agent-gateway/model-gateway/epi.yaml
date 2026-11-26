@@ -1,0 +1,33 @@
+# The model gateway's AWS identity on aws-0, which GCP trusts for Gemini on Vertex AI (cloud-native-ref
+# docs/superpowers/specs/2026-11-26-aws-vertex-federation-design.md). The proxy never calls AWS with
+# it: it signs an STS GetCallerIdentity request that Google's STS replays, and GetCallerIdentity
+# needs no permission. So the policy denies everything: the role is an identity, nothing more.
+#
+# TWO-SIDED CONTRACT (HOST-CONTRACT H5, version 10): the composition names the role
+# <claim>-iam-role, and the host's Workload Identity Federation pool admits that ARN alone
+# (opentofu/shared/aws-gcp-federation/vertex.tf). Renaming this claim breaks the trust.
+apiVersion: cloud.ogenki.io/v1alpha1
+kind: EPI
+metadata:
+  name: xplane-model-gateway
+  namespace: agent-gateway
+spec:
+  clusters:
+    - name: "${cluster_name}"
+      region: "${region}"
+  # The ServiceAccount agentgateway's controller gives the proxy: the Gateway's name.
+  serviceAccount:
+    name: model-gateway
+    namespace: agent-gateway
+  policyDocument: |
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "IdentityOnly",
+                "Effect": "Deny",
+                "Action": "*",
+                "Resource": "*"
+            }
+        ]
+    }

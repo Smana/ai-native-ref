@@ -22,8 +22,10 @@ spec:
         name: eks-aws-0-vars
   # agentgateway: the controller and its CRDs. agent-secrets and agent-router: External Secrets and agent-system's
   # provider keys, which provider-keys.yaml copies. agent-gateway: the namespace's default-deny and
-  # the rate-limit server the budgets call.
+  # the rate-limit server the budgets call. eks-pod-identities: the EPI CRD of the proxy's AWS
+  # identity, which GCP trusts for Gemini on Vertex AI (H2).
   dependsOn:
+    - name: eks-pod-identities
     - name: agentgateway
     - name: agent-secrets
     - name: agent-router

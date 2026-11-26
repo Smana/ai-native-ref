@@ -42,8 +42,10 @@ MIN_WIN_IMPROVEMENT = 0.15
 MICRO = 1_000_000.0
 VM_PROXY = "/api/v1/namespaces/observability/services/vmsingle-victoria-metrics-k8s-stack:8428/proxy"
 
-ENDED_PHASES = {"merged", "closed", "escalated", "failed", "aborted", "cancelled", "succeeded", "completed"}
-MERGED_OUTCOMES = {"merged"}
+ENDED_PHASES = {"merged", "closed", "escalated", "failed", "aborted", "cancelled", "succeeded", "completed",
+                "done", "noop", "stopped"}
+MERGED_OUTCOMES = {"merged", "accepted", "merged_human"}
+MERGED_REASONS = {"merged"}
 TOKEN_KEYS = ("input", "output", "cacheRead", "cacheWrite")
 
 
@@ -77,18 +79,29 @@ def _task_outcome(task):
     return ""
 
 
+def _task_reason(task):
+    status = task.get("status") or {}
+    return str(status.get("reason") or "").strip().lower()
+
+
 def _is_ended(task):
     status = task.get("status") or {}
-    if status.get("finishedAt") or status.get("completedAt"):
+    if status.get("finishedAt") or status.get("completedAt") or status.get("endedAt"):
         return True
     return _task_phase(task) in ENDED_PHASES or _task_outcome(task) in ENDED_PHASES
+
+
+def _is_merged(task):
+    if _task_outcome(task) in MERGED_OUTCOMES:
+        return True
+    return _task_reason(task) in MERGED_REASONS
 
 
 def _duration_minutes(task):
     meta = task.get("metadata") or {}
     status = task.get("status") or {}
     start = parse_ts(status.get("startedAt") or meta.get("creationTimestamp"))
-    end = parse_ts(status.get("finishedAt") or status.get("completedAt"))
+    end = parse_ts(status.get("finishedAt") or status.get("completedAt") or status.get("endedAt"))
     if not start or not end or end < start:
         return None
     return (end - start).total_seconds() / 60.0
@@ -186,8 +199,7 @@ def summarize(tasks, *, vm_tokens=None, since=None, until=None, critical_regress
         profile = status.get("profile") or {}
         cohort = str(profile.get("cohort") or "").strip().lower()
         harness_source = str(profile.get("harnessSource") or "").strip().lower()
-        outcome = _task_outcome(task)
-        merged = outcome in MERGED_OUTCOMES
+        merged = _is_merged(task)
         dur = _duration_minutes(task)
         cost = _cost_usd(task)
         toks = _tokens(task)

@@ -187,6 +187,74 @@ with tempfile.TemporaryDirectory() as td:
           rc == 0 and "**Verdict:** `passes`" in md and "Rescue (`openhands`)" in md and md == buf.getvalue(),
           (rc, md[:200]))
 
+def make_maku_task(name, *, phase, outcome="", reason=None, ended_at=None, cohort="control"):
+    """A real maku.ogenki.io/v1alpha1 Task shape: phase/outcome/reason/endedAt, no finishedAt/startedAt."""
+    status = {
+        "phase": phase,
+        "outcome": outcome,
+        "profile": {
+            "cohort": cohort,
+            "harness": "openhands",
+            "harnessSource": "cohort",
+            "workflow": "careful",
+        },
+    }
+    if reason is not None:
+        status["reason"] = reason
+    if ended_at is not None:
+        status["endedAt"] = ended_at
+    return {
+        "apiVersion": "maku.ogenki.io/v1alpha1",
+        "kind": "Task",
+        "metadata": {
+            "name": name,
+            "creationTimestamp": "2026-11-20T10:00:00Z",
+            "labels": {},
+        },
+        "spec": {},
+        "status": status,
+    }
+
+
+print("real maku Task status fields")
+real_merged = make_maku_task(
+    "real-merged",
+    phase="Done",
+    outcome="accepted",
+    reason="merged",
+    ended_at="2026-11-20T10:30:00Z",
+)
+res = htr.summarize([real_merged])
+check("phase Done + outcome accepted + reason merged + endedAt 30min after creation counts as ended and merged with 30-min duration",
+      res["arms"]["control"]["ended"] == 1 and res["arms"]["control"]["merged"] == 1
+      and res["arms"]["control"]["median_duration_min"] == 30.0, res["arms"]["control"])
+
+real_merged_human = make_maku_task(
+    "real-merged-human",
+    phase="Done",
+    outcome="merged_human",
+    ended_at="2026-11-20T10:25:00Z",
+)
+res = htr.summarize([real_merged_human])
+check("outcome merged_human with endedAt set counts as merged",
+      res["arms"]["control"]["ended"] == 1 and res["arms"]["control"]["merged"] == 1, res["arms"]["control"])
+
+real_noop = make_maku_task(
+    "real-noop",
+    phase="NoOp",
+    outcome="no_op",
+    ended_at="2026-11-20T10:05:00Z",
+)
+res = htr.summarize([real_noop])
+check("phase NoOp + outcome no_op + endedAt set counts as ended and not merged",
+      res["arms"]["control"]["ended"] == 1 and res["arms"]["control"]["merged"] == 0, res["arms"]["control"])
+
+real_running = make_maku_task("real-running", phase="Running")
+res = htr.summarize([real_running])
+check("phase Running without endedAt is excluded as not_ended",
+      res["exclusions"] == {"not_ended": 1} and res["arms"]["control"]["ended"] == 0,
+      {"exclusions": res["exclusions"], "control": res["arms"]["control"]})
+
 if fails:
     print("FAIL\n  " + "\n  ".join(fails))
     sys.exit(1)

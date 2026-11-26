@@ -23,7 +23,9 @@ spec:
   # agentgateway: the controller and its CRDs. agent-secrets and agent-router: External Secrets and agent-system's
   # provider keys, which provider-keys.yaml copies. agent-gateway: the namespace's default-deny and
   # the rate-limit server the budgets call.
+  # crossplane-configuration: the GCPWorkloadIdentity CRD of the proxy's Google identity (H2).
   dependsOn:
+    - name: crossplane-configuration
     - name: agentgateway
     - name: agent-secrets
     - name: agent-router

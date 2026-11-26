@@ -4,3 +4,5 @@ kind: Kustomization
 # A render root per cloud (GCP parity GP-14) over the shared base.
 resources:
   - ../../../base/agent-gateway/model-gateway
+  # The proxy's Google identity, for Gemini on Vertex AI (Gemini design G1).
+  - workloadidentity.yaml

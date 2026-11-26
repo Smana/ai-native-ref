@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compares one UTC day's factory ledger with the cost agentgateway priced, per run (cost cross-check XC3, XC4).
 
-  python3 scripts/ops/cost-crosscheck.py --day YYYYMMDD [--namespace agent-system] [--vm-url URL]
+  python3 scripts/ops/cost-crosscheck.py --day YYYYMMDD [--namespace agent-system] [--vm-url URL] [--json]
 
 Ledger side: ConfigMap agent-factory-ledger-usd-<day>, read with kubectl: each `settled.<runId>` is the
 micro-USD the factory charged to that run that day. Gateway side: VictoriaMetrics' query API (through the
@@ -103,6 +103,19 @@ def render(day, rows, total, skipped, spent, settled_sum=None):
     return "\n".join(lines)
 
 
+def render_json(day, rows, total, skipped, spent, settled_sum=None):
+    """One JSON document with the same verdict as the table: USD amounts as 6-decimal strings, `runs` sorted
+    by run id, `skipped` the runs left out (XC7). `spent` and the settled-sum reference are not in it: they
+    are not additive and carry no verdict."""
+    usd = lambda d: f"{d:.6f}"
+    side = lambda l, g, ok: {"ledger": usd(l), "gateway": usd(g), "diff": usd(l - g), "ok": ok}
+    return json.dumps({"day": day,
+                       "ok": verdict(rows, total),
+                       "runs": [{"run": r, **side(l, g, ok)} for r, l, g, ok in rows],
+                       "total": side(*total),
+                       "skipped": sorted(skipped)})
+
+
 def window(day, now):
     """(end of the day or now, seconds from the day's start to it)."""
     start = datetime.strptime(day, "%Y%m%d").replace(tzinfo=timezone.utc)
@@ -124,7 +137,8 @@ def query(promql, at, vm_url):
     return kubectl_json("get", "--raw", f"{VM_PROXY}/api/v1/query?{qs}")
 
 
-def run(day, namespace, vm_url, now, fetch_ledger=None, fetch_query=None):
+def collect(day, namespace, vm_url, now, fetch_ledger=None, fetch_query=None):
+    """(day, rows, total, skipped, spent): the day's numbers, before any rendering."""
     fetch_ledger = fetch_ledger or (lambda: kubectl_json("get", "cm", "-n", namespace, f"agent-factory-ledger-usd-{day}", "-o", "json"))
     fetch_query = fetch_query or (lambda q, at: query(q, at, vm_url))
     end, secs = window(day, now)
@@ -135,7 +149,17 @@ def run(day, namespace, vm_url, now, fetch_ledger=None, fetch_query=None):
         f'sum by (ar_agent) (increase_pure(gen_ai_client_token_usage_sum{{ar_agent=~"{RUN_AGENT}", namespace!="agent-gateway"}}[{secs}s])) > 0', end))
     skipped = sorted(envoy)
     rows, total, ok = compare(ledger, gateway, skipped)
-    return render(day, rows, total, skipped, spent), ok
+    return day, rows, total, skipped, spent
+
+
+def verdict(rows, total):
+    """The day's ok: every row and the total agree."""
+    return total[2] and all(r[3] for r in rows)
+
+
+def run(day, namespace, vm_url, now, fetch_ledger=None, fetch_query=None):
+    data = collect(day, namespace, vm_url, now, fetch_ledger, fetch_query)
+    return render(*data), verdict(data[1], data[2])
 
 
 def main(argv):
@@ -143,16 +167,17 @@ def main(argv):
     p.add_argument("--day", required=True, help="UTC day, YYYYMMDD")
     p.add_argument("--namespace", default="agent-system")
     p.add_argument("--vm-url", help="VictoriaMetrics base URL; default: through the API server's service proxy")
+    p.add_argument("--json", action="store_true", help="print one JSON document instead of the table")
     a = p.parse_args(argv[1:])
     if not re.fullmatch(r"\d{8}", a.day):
         p.error("--day is YYYYMMDD")
     try:
-        text, ok = run(a.day, a.namespace, a.vm_url, datetime.now(timezone.utc))
+        data = collect(a.day, a.namespace, a.vm_url, datetime.now(timezone.utc))
     except (subprocess.CalledProcessError, OSError, ValueError, KeyError, ArithmeticError) as e:
         print(f"cost-crosscheck: {e}", file=sys.stderr)
         return 2
-    print(text)
-    return 0 if ok else 1
+    print(render_json(*data) if a.json else render(*data))
+    return 0 if verdict(data[1], data[2]) else 1
 
 
 if __name__ == "__main__":

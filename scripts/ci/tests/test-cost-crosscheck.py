@@ -12,6 +12,7 @@ import importlib.util
 import io
 import json
 import pathlib
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -124,24 +125,24 @@ def vm_body(value=None, status="success"):
     return body
 
 
-def main_with(ledger=lambda *a: ledger_cm, vm=lambda q, at, u: vm_gateway):
+def main_with(ledger=lambda *a: ledger_cm, vm=lambda q, at, u: vm_gateway, argv=("cost-crosscheck.py", "--day", "20261027")):
     saved = cc.kubectl_json, cc.query
     cc.kubectl_json, cc.query = ledger, vm
-    err = io.StringIO()
+    out, err = io.StringIO(), io.StringIO()
     try:
-        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
-            code = cc.main(["cost-crosscheck.py", "--day", "20261027"])
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = cc.main(list(argv))
     except Exception as e:  # a traceback is the failure
-        return f"raised {type(e).__name__}: {e}", err.getvalue()
+        return f"raised {type(e).__name__}: {e}", out.getvalue(), err.getvalue()
     finally:
         cc.kubectl_json, cc.query = saved
-    return code, err.getvalue()
+    return code, out.getvalue(), err.getvalue()
 
 
 for bad in ("NaN", "+Inf", "-Inf"):
-    code, err = main_with(vm=lambda q, at, u, bad=bad: vm_body(bad))
+    code, out, err = main_with(vm=lambda q, at, u, bad=bad: vm_body(bad))
     check(f"a VM value {bad} exits 2 with a message", code == 2 and "cost-crosscheck" in err, (code, err))
-code, err = main_with(vm=lambda q, at, u: vm_body(status="error"))
+code, out, err = main_with(vm=lambda q, at, u: vm_body(status="error"))
 check("a non-success VM body exits 2 with a message", code == 2 and "cost-crosscheck" in err, (code, err))
 
 print("empty sides")
@@ -151,7 +152,7 @@ def gone(*a):
     raise subprocess.CalledProcessError(1, "kubectl", stderr="not found")
 
 
-code, err = main_with(ledger=gone)
+code, out, err = main_with(ledger=gone)
 check("an empty day (no ledger ConfigMap) exits 2 with a message", code == 2 and "cost-crosscheck" in err, (code, err))
 empty = {"kind": "ConfigMap", "metadata": {"name": "x"}, "data": {}}
 text, ok = go(empty, lambda q, at: vm_body())
@@ -167,6 +168,70 @@ try:
     check("a bad --day is refused", False)
 except SystemExit as e:
     check("a bad --day is refused with usage (exit 2)", e.code == 2)
+
+
+print("--json")
+
+AMOUNT = re.compile(r"^\d+\.\d{6}$")
+
+
+def go_json(cm=ledger_cm, fetch=answer):
+    return cc.render_json(*cc.collect("20261027", "agent-system", None, NOW, fetch_ledger=lambda: cm, fetch_query=fetch))
+
+
+doc, (text, _) = go_json(), go()
+check("with --json the document is one line of JSON on stdout", "\n" not in doc.strip(), doc)
+d = json.loads(doc)
+check("the document's keys are exactly day, ok, runs, total, skipped", set(d) == {"day", "ok", "runs", "total", "skipped"}, d)
+check("the document's day is the day cross-checked and the verdict matches the table's",
+      d["day"] == "20261027" and d["ok"] is True, d)
+check("runs holds every non-skipped run, sorted by run id, with 6-decimal strings and a per-run verdict",
+      [r["run"] for r in d["runs"]] == ["aaa", "bbb"]
+      and all(set(r) == {"run", "ledger", "gateway", "diff", "ok"} for r in d["runs"])
+      and all(AMOUNT.match(r[k]) for r in d["runs"] for k in ("ledger", "gateway", "diff")) and d["runs"][0]["ok"] is True, d["runs"])
+check("the run's amounts match the table's", [r["ledger"] for r in d["runs"]] == ["0.500000", "0.200000"]
+      and [r["gateway"] for r in d["runs"]] == ["0.500000", "0.195000"]
+      and [r["diff"] for r in d["runs"]] == ["0.000000", "0.005000"], d["runs"])
+check("total's amounts are 6-decimal strings", all(AMOUNT.match(d["total"][k]) for k in ("ledger", "gateway", "diff")), d["total"])
+check("the total matches the table's TOTAL row (settled less the Envoy run)", d["total"] == {"ledger": "0.700000",
+      "gateway": "0.695000", "diff": "0.005000", "ok": True}, d["total"])
+check("skipped lists the Envoy runs (XC7), sorted", d["skipped"] == ["ccc"], d["skipped"])
+
+code, out, err = main_with(vm=lambda q, at, u: answer(q, at), argv=("cost-crosscheck.py", "--day", "20261027", "--json"))
+check("main() with --json on the fixture day prints the same document and exits as without --json",
+      code == 0 and json.loads(out) == d, (code, out))
+code, out, err = main_with(vm=lambda q, at, u: answer(q, at), argv=("cost-crosscheck.py", "--day", "20261027"))
+check("without --json the output is the table", "TOTAL" in out and out.splitlines() == text.splitlines(), out)
+
+cm = copy.deepcopy(ledger_cm)
+cm["data"]["settled.aaa"] = "600000"
+cm["data"]["settled.ccc"] = "200000"
+d = json.loads(go_json(cm))
+check("a failing run and day mark their ok false and skip nothing that failed",
+      d["ok"] is False and d["runs"][0]["ok"] is False and d["total"]["ok"] is False and d["skipped"] == ["ccc"], d)
+code, out, err = main_with(ledger=lambda *a: cm, vm=lambda q, at, u: answer(q, at),
+                           argv=("cost-crosscheck.py", "--day", "20261027", "--json"))
+code_text, out_text, _ = main_with(ledger=lambda *a: cm, vm=lambda q, at, u: answer(q, at),
+                                   argv=("cost-crosscheck.py", "--day", "20261027"))
+check("main() with --json exits 1 on a failing day, as without --json", code == code_text == 1, (code, code_text))
+d = json.loads(go_json(empty, lambda q, at: vm_body()))
+check("an empty day is a document too: no runs, all zeros, nothing skipped, agreement at zero",
+      d == {"day": "20261027", "ok": True, "runs": [], "total": {"ledger": "0.000000", "gateway": "0.000000",
+            "diff": "0.000000", "ok": True}, "skipped": []}, d)
+
+bad = "NaN"
+code, out, err = main_with(vm=lambda q, at, u, bad=bad: vm_body(bad), argv=("cost-crosscheck.py", "--day", "20261027", "--json"))
+check("with --json a VM value that is not a number still exits 2, no document on stdout",
+      code == 2 and not out, (code, out))
+code, out, err = main_with(ledger=gone, argv=("cost-crosscheck.py", "--day", "20261027", "--json"))
+check("with --json an unreadable ledger still exits 2, no document on stdout", code == 2 and not out, (code, out))
+err = io.StringIO()
+try:
+    with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+        cc.main(["cost-crosscheck.py", "--day", "yesterday", "--json"])
+    check("a bad --day is refused with --json too", False)
+except SystemExit as e:
+    check("a bad --day is refused with --json too with usage (exit 2)", e.code == 2)
 
 if fails:
     print(f"\n{len(fails)} failure(s)")

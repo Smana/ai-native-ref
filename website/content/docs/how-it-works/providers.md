@@ -12,7 +12,9 @@ Every run asks for `agent-default` unless its class picks otherwise: GLM-5.3 on 
 Claude for internal work. Two more providers are available **for public data only**, and selectable per class. Nothing changes by
 default. Each run's cost is metered at the provider's list price, like any other run. Mistral is **not
 recommended as an implementer**: it can spend a run's whole token budget on a small change. Their state
-is on the [status page]({{< relref "/docs/status.md#roadmap" >}}).
+is on the [status page]({{< relref "/docs/status.md#roadmap" >}}). The harness a task's agents run
+on is likewise opt-in per issue: a maintainer's `harness:opencode` label runs that one task on
+OpenCode, per the [harness reference]({{< relref "/docs/reference/harness.md#composition" >}}).
 
 | Alias | Model | Tier | Processed in |
 |---|---|---|---|

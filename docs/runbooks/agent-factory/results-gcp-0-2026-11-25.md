@@ -3,7 +3,7 @@
 The results of [runbook 29](29-maku-v054-live-checks.md) on gcp-0, run from 2026-11-25 to
 2026-11-26. The factory started on Maku v0.54.0 (ANR v4.1.0) and moved through v0.54.1 (ANR
 v4.1.1), v0.54.3 (v4.1.2), v0.54.4 (v4.1.3) and v0.54.5 (v4.1.4) as the fixes below shipped;
-v0.54.2 was tagged but not deployed. A check that failed and passed on a later release names the
+v0.54.2 was tagged but not deployed; [section 8](#8-v0548-verification) checks v0.54.8. A check that failed and passed on a later release names the
 fix. `NOT RUN` says why. `Date` is when the result was observed.
 
 Results over the runbook's 31 checks: **PASS** 15, **PARTIAL** 5, **FAIL** 6, **NOT RUN** 5. The
@@ -108,6 +108,42 @@ Each admission check ran as a server-side dry run (`--dry-run=server`), so nothi
 |---|---|---|---|---|
 | Scratch and promotion pull requests closed, scratch labels removed, paused repository resumed, every failure recorded | | PARTIAL | 2026-11-26 | Drill PRs #510, #511, #520–#522 and #524 closed unmerged; real fixes #498, #505 and #513 merged on review. No repository was paused (#506 never merged). Scratch labels are not recorded as removed. Every failure is above. The 2026-11-26 drills closed #525, #548, #549, #556 and #558 unmerged, closed issues #538, #540, #541, #550, #553 and #555, stopped their tasks, removed `factory/drill` from #505 and paused nothing; they spent about $0.60. |
 
+## 8. v0.54.8 verification
+
+On 2026-11-26 the factory moved to Maku v0.54.8 (factory `sha256:a5b85305…`), which carries the
+fixes for the failures above: [maku#730], [maku#732], [maku#733], [maku#737], [maku#740] and
+[maku#741]. Each fix was then checked live on gcp-0 with the v0.54.8 `maku` CLI. The checks that
+start a task ran once `tasksPerDay` read 40 (ANR v4.1.7, [cnref#2921]). Every scratch issue,
+pull request and `agent/*` branch was closed or deleted afterwards, and nothing was merged on
+`cloud-native-ref`. The drills spent about $0.34. Screenshots are named `v0548-*`.
+
+Results over 12 checks: **PASS** 9, **PARTIAL** 2, **NOT RUN** 1.
+
+| Check | Fix | Issue or PR | Result | Date | Notes |
+|---|---|---|---|---|---|
+| `maku policy drill Smana/ai-native-ref#505` opens a revert through the merger | [maku#740] | [#505], [#584] | PASS | 2026-11-26 | The CLI printed the URL of #584, opened by `app/ogenki-agent-merger` with the label `factory/drill`. Neither factory pod logs a successful drill; only refusals are logged. |
+| A merged drill revert is not counted by the breaker | [maku#740] | [#584] | PASS | 2026-11-26 | #584 was merged, then restored by #586. On the next evidence read (10:55 UTC), every class of ai-native-ref read `drill: passed`, and `docs` kept `bad 0`, `reverted 0`. Merging a drill revert removes the reverted change from `main`, so a drill on a real change needs a re-land pull request. |
+| `factory/revert` on a maintainer-merged pull request answers | [maku#740] | [#530] | PASS | 2026-11-26 | The factory removed the label within a minute and commented that it opened no revert, naming `maku policy drill Smana/ai-native-ref#530`. |
+| `maku policy resume` on a repository that is not paused | [maku#740] | | PASS | 2026-11-26 | With `--config` (the live `Factory`, with `spec.gitops`): `Smana/ai-native-ref is not paused (its manifest has no spec.merge.paused); nothing to resume`, exit 1, and no pull request opened. Without `--config` the command only prints `merge: paused: null`. |
+| Web **Retry** at a held `budget-task` cap: no plain Retry, new wording, matching card title | [maku#741] | [#519] | NOT RUN | 2026-11-26 | Room `4za2no42` was closed at 09:16 UTC, before the rollout. The sealed room shows no recovery card. Another `budget-task` escalation is needed to see the card. |
+| Rooms list: "N rooms ended in the last 30 days — show closed" | [maku#733] | | PASS | 2026-11-26 | `30 rooms ended in the last 30 days — show closed` (header `X-Rooms-Closed: 30`). **show closed** turns the Closed view on. `maku stages --repository Smana/nope` names its cause: `repository Smana/nope not found, or not readable by your linked GitHub account`. Screens `v0548-closed-hint-list.png`, `v0548-closed-hint-closed-view.png`. |
+| Ended runs leave no `Running` record | [maku#737] | [cnref#2922] | PASS | 2026-11-26 | Task `nel23efz` was stopped during its second implementer run `22ithp36`. The record reads `Revoked`, `finished` 11:53:29Z, `stopped_by_label`, and the `AgentRun` is gone. The tasks that ended after the rollout have no unfinished record. Older records (`xfav2em3`, `4za2no42`, …) stay `Running`, as the fix says. |
+| `maku start` files a whole plan in order | [maku#740] | [#587], [#588], [#589] | PASS | 2026-11-26 | "The plan holds 3 issues: this files all 3, in order", then `Started 3 issues`. #588 and #589 carry `maku depends-on` (#587 and #588 respectively) and their tasks waited `waiting_dependency`. #587 queued `waiting_review_wip`. All three were stopped with no run. `start` needs a terminal to confirm. |
+| An intake question gets a room; `maku needs` and `maku answer` | [maku#741] | [#591] | PARTIAL | 2026-11-26 | Room `y4i4wtyr` was made at the bounce (`needs_author`, no run). `maku needs` listed it. `maku answer y4i4wtyr "Acceptance: …"` answered "the task is restarting", but the new task `xqfnjydr` asked the same question again. The answer is written to the issue as `D1: Acceptance: … (@Smana)` under `## Decisions`. The intake guard (`acceptanceText`, `reconciler/ask.go`) reads only an `Acceptance` heading or a line that starts with `Acceptance:`, and the `D1: ` prefix hides it. Answering an intake question with `maku answer` therefore loops. Stopped and closed. |
+| Plan comment with a code fence in the acceptance; findings as plain Markdown | [maku#732] | [#593], [#594] | PASS | 2026-11-26 | #593 (`plan-first`): each check is its own list item, and the answer section (`/factory plan approve`, …) sits outside any code block. Each check's description is inside its block, so long lines scroll. **Split** is offered with no split proposed. #594 (`report`): the findings render as Markdown, commit and PR references sit in code spans, and the comment has no link or mention beyond GitHub's own. Screens `v0548-plan-comment-593.png`, `v0548-findings-594.png`. |
+| Mid-run notes and held commands | [maku#723], [maku#724] | [#593] | PARTIAL | 2026-11-26 | A note queued with `maku post ffogmecu --queue` at 11:25 was quoted in implementer `wo5iimp2`'s brief (`run-wo5iimp2-task`: "Queued message seq 8"), and the agent planned to follow it. The room never showed "used by run": the factory made no queue-consume call (no broker log), so the note stays queued for later runs. A `/factory retry` posted while implementing got "held `/factory retry`: it applies when the task is escalated" within 30 s. After the stop, the reply "the held `/factory retry` was not applied: the task ended stopped …" mentioned @Smana. Screen `v0548-note-used-ffogmecu.png`. |
+| Required plan on the host from the first diff | [maku#730] | [cnref#2922], [cnref#2923] | PASS | 2026-11-26 | Task `nel23efz` (`workflow:standard`, one alert summary under `observability/aws-0/`) ran the implementer first, which opened cnref#2923. After that diff the task read `requires {by: alert-rules, diffChecked: true, stages: [plan]}`, `scopeMode: scoper`, and the next run was the scoper. The room read "the class alert-rules requires a plan", **Will run** `scoper → implementer → …`. The task was stopped during the second implementer run, and the PR was closed unmerged. |
+
+Two bugs remain open:
+
+- **`maku answer` loops on an intake question.** The recorded `D1: Acceptance: …` line does not
+  satisfy the acceptance guard, so every restart asks again (#591).
+- **A queued note is never marked used.** The implementer's brief quotes the note, but the room
+  shows no "used by run" line and the note stays queued (#593).
+
+The cap is also a limit to know about: with seven `AwaitingHuman` tasks against
+`awaitingHumanWIP: 5` and three trial tasks implementing, a new task queued for up to 15 minutes.
+
 [#496]: https://github.com/Smana/ai-native-ref/pull/496
 [#497]: https://github.com/Smana/ai-native-ref/issues/497
 [#499]: https://github.com/Smana/ai-native-ref/issues/499
@@ -150,3 +186,23 @@ Each admission check ran as a server-side dry run (`--dry-run=server`), so nothi
 [#555]: https://github.com/Smana/ai-native-ref/issues/555
 [#493]: https://github.com/Smana/ai-native-ref/pull/493
 [maku#729]: https://github.com/Smana/maku/pull/729
+[#530]: https://github.com/Smana/ai-native-ref/pull/530
+[#584]: https://github.com/Smana/ai-native-ref/pull/584
+[#586]: https://github.com/Smana/ai-native-ref/pull/586
+[#587]: https://github.com/Smana/ai-native-ref/issues/587
+[#588]: https://github.com/Smana/ai-native-ref/issues/588
+[#589]: https://github.com/Smana/ai-native-ref/issues/589
+[#591]: https://github.com/Smana/ai-native-ref/issues/591
+[#593]: https://github.com/Smana/ai-native-ref/issues/593
+[#594]: https://github.com/Smana/ai-native-ref/issues/594
+[cnref#2921]: https://github.com/Smana/cloud-native-ref/pull/2921
+[cnref#2922]: https://github.com/Smana/cloud-native-ref/issues/2922
+[cnref#2923]: https://github.com/Smana/cloud-native-ref/pull/2923
+[maku#723]: https://github.com/Smana/maku/pull/723
+[maku#724]: https://github.com/Smana/maku/pull/724
+[maku#730]: https://github.com/Smana/maku/pull/730
+[maku#732]: https://github.com/Smana/maku/pull/732
+[maku#733]: https://github.com/Smana/maku/pull/733
+[maku#737]: https://github.com/Smana/maku/pull/737
+[maku#740]: https://github.com/Smana/maku/pull/740
+[maku#741]: https://github.com/Smana/maku/pull/741

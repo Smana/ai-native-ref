@@ -37,6 +37,8 @@ def make_task(
     cost_usd=2.0,
     duration_min=20,
     tokens=None,
+    usage=None,
+    legacy_status_usage=True,
     rescue_baseline_usd=None,
     counted_cohorts=None,
     extra_spec=None,
@@ -60,6 +62,12 @@ def make_task(
         "costMicroUSD": int(round(cost_usd * 1_000_000)),
         "tokens": tokens or {"input": 10000, "output": 2000, "cacheRead": 5000, "cacheWrite": 1000},
     }
+    if not legacy_status_usage:
+        # A real maku.ogenki.io/v1alpha1 Task prices and counts tokens via status.usage only.
+        status.pop("costMicroUSD")
+        status.pop("tokens")
+    if usage is not None:
+        status["usage"] = dict(usage)
     if finished:
         status["finishedAt"] = f"2026-11-20T{10 + end_hr:02d}:{end_m:02d}:00Z"
     if rescue_baseline_usd is not None:
@@ -159,6 +167,34 @@ check("rescue row records the post-rescue spend ($0.80) and merge separately",
 check("treatment spend includes failed original baseline ($1.50) without double-counting rescue spend",
       abs(res["arms"]["treatment"]["usd"] - (29 * 1.50 + 1.50)) < 1e-6, res["arms"]["treatment"])
 
+print("status.usage cost and tokens")
+res = htr.summarize([
+    make_task("u-ctrl-0", cohort="control", usage={"costMicroUSD": 696292, "tokens": 1931412}, legacy_status_usage=False),
+    make_task("u-trt-0", cohort="treatment", usage={"costMicroUSD": 500000, "tokens": 900000}, legacy_status_usage=False),
+])
+check("Task priced from status.usage.costMicroUSD is $0.696292 and not unpriced",
+      abs(res["arms"]["control"]["usd"] - 0.696292) < 1e-9 and res["arms"]["control"]["unpriced"] == 0,
+      res["arms"]["control"])
+check("Task with only status.usage.tokens adds 1,931,412 to its arm's total tokens",
+      res["arms"]["control"]["total_tokens"] == 1_931_412 and res["arms"]["treatment"]["total_tokens"] == 900_000,
+      {a: res["arms"][a]["total_tokens"] for a in ("control", "treatment")})
+check("per-token-key rows stay zero when the Task reports only status.usage",
+      res["arms"]["control"]["tokens"] == {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0},
+      res["arms"]["control"]["tokens"])
+
+res = htr.summarize([
+    make_task("both-0", cohort="control", cost_usd=2.0, usage={"costMicroUSD": 696292, "tokens": 12345}),
+])
+check("status.costMicroUSD keeps precedence over status.usage.costMicroUSD",
+      abs(res["arms"]["control"]["usd"] - 2.0) < 1e-9, res["arms"]["control"])
+
+res = htr.summarize([
+    make_task("sum-0", cohort="control", usage={"costMicroUSD": 696292},
+              tokens={"input": 10000, "output": 2000, "cacheRead": 5000, "cacheWrite": 1000}),
+])
+check("total tokens falls back to the sum of the four status.tokens keys when usage.tokens is absent",
+      res["arms"]["control"]["total_tokens"] == 18_000, res["arms"]["control"])
+
 print("exclusions and CLI fixtures")
 tasks_with_noise = list(cost_win) + [
     make_task("ex-labeled", cohort="labeled", harness="opencode"),
@@ -186,6 +222,80 @@ with tempfile.TemporaryDirectory() as td:
     check("CLI exits 0 and writes markdown report with verdict",
           rc == 0 and "**Verdict:** `passes`" in md and "Rescue (`openhands`)" in md and md == buf.getvalue(),
           (rc, md[:200]))
+    md_lines = md.splitlines()
+    cw_idx = next((i for i, line in enumerate(md_lines) if line.startswith("| Cache-write tokens |")), None)
+    check("report has a Total tokens row with thousands separators right after Cache-write tokens",
+          cw_idx is not None and cw_idx + 1 < len(md_lines) and md_lines[cw_idx + 1].startswith("| Total tokens |")
+          and "540,000" in md_lines[cw_idx + 1],  # 30 control tasks x (10000+2000+5000+1000)
+          None if cw_idx is None else md_lines[cw_idx:cw_idx + 2])
+
+def make_maku_task(name, *, phase, outcome="", reason=None, ended_at=None, cohort="control"):
+    """A real maku.ogenki.io/v1alpha1 Task shape: phase/outcome/reason/endedAt, no finishedAt/startedAt."""
+    status = {
+        "phase": phase,
+        "outcome": outcome,
+        "profile": {
+            "cohort": cohort,
+            "harness": "openhands",
+            "harnessSource": "cohort",
+            "workflow": "careful",
+        },
+    }
+    if reason is not None:
+        status["reason"] = reason
+    if ended_at is not None:
+        status["endedAt"] = ended_at
+    return {
+        "apiVersion": "maku.ogenki.io/v1alpha1",
+        "kind": "Task",
+        "metadata": {
+            "name": name,
+            "creationTimestamp": "2026-11-20T10:00:00Z",
+            "labels": {},
+        },
+        "spec": {},
+        "status": status,
+    }
+
+
+print("real maku Task status fields")
+real_merged = make_maku_task(
+    "real-merged",
+    phase="Done",
+    outcome="accepted",
+    reason="merged",
+    ended_at="2026-11-20T10:30:00Z",
+)
+res = htr.summarize([real_merged])
+check("phase Done + outcome accepted + reason merged + endedAt 30min after creation counts as ended and merged with 30-min duration",
+      res["arms"]["control"]["ended"] == 1 and res["arms"]["control"]["merged"] == 1
+      and res["arms"]["control"]["median_duration_min"] == 30.0, res["arms"]["control"])
+
+real_merged_human = make_maku_task(
+    "real-merged-human",
+    phase="Done",
+    outcome="merged_human",
+    ended_at="2026-11-20T10:25:00Z",
+)
+res = htr.summarize([real_merged_human])
+check("outcome merged_human with endedAt set counts as merged",
+      res["arms"]["control"]["ended"] == 1 and res["arms"]["control"]["merged"] == 1, res["arms"]["control"])
+
+real_noop = make_maku_task(
+    "real-noop",
+    phase="NoOp",
+    outcome="no_op",
+    ended_at="2026-11-20T10:05:00Z",
+)
+res = htr.summarize([real_noop])
+check("phase NoOp + outcome no_op + endedAt set counts as ended and not merged",
+      res["arms"]["control"]["ended"] == 1 and res["arms"]["control"]["merged"] == 0, res["arms"]["control"])
+
+real_running = make_maku_task("real-running", phase="Running")
+res = htr.summarize([real_running])
+check("phase Running without endedAt is excluded as not_ended",
+      res["exclusions"] == {"not_ended": 1} and res["arms"]["control"]["ended"] == 0,
+      {"exclusions": res["exclusions"], "control": res["arms"]["control"]})
 
 if fails:
     print("FAIL\n  " + "\n  ".join(fails))

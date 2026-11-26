@@ -49,6 +49,16 @@ check("unpriced", [s[a]["unpriced"] for a in "ABC"], [0, 0, 1])
 check("A by counter", s["A"]["escalations_by_counter"], {"budget-run": 1, "reviewRounds": 1})
 check("A fixable", s["A"]["fixable_escalations"], 1)
 
+# arm_summary() takes one arm's rows directly and returns that arm's summary.
+two = [
+    row(issue=1, arm="B", pr=31, usd=1.25, ended="pr", label_to_pr_min=7, verdict="merged-as-is"),
+    row(issue=2, arm="B", pr=32, usd=0.75, ended="pr", label_to_pr_min=9, verdict="rejected-wrong"),
+]
+a = cres.arm_summary(two)
+check("arm_summary rows", a["rows"], 2)
+check("arm_summary accepted", a["accepted"], 1)
+check("arm_summary usd", a["usd"], 2.0)
+
 text = cres.render(s)
 for want in ["A escalations by counter_exhausted: budget-run 1, reviewRounds 1",
              "A escalations with a counter out on a still-fixable PR: 1"]:

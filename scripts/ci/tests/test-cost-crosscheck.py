@@ -12,6 +12,7 @@ import importlib.util
 import io
 import json
 import pathlib
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -143,6 +144,59 @@ for bad in ("NaN", "+Inf", "-Inf"):
     check(f"a VM value {bad} exits 2 with a message", code == 2 and "cost-crosscheck" in err, (code, err))
 code, err = main_with(vm=lambda q, at, u: vm_body(status="error"))
 check("a non-success VM body exits 2 with a message", code == 2 and "cost-crosscheck" in err, (code, err))
+
+print("--json")
+
+
+def main_run(ledger=lambda *a: ledger_cm, vm=lambda q, at, u: answer(q, at), args=()):
+    saved = cc.kubectl_json, cc.query
+    cc.kubectl_json, cc.query = ledger, vm
+    out, err = io.StringIO(), io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = cc.main(["cost-crosscheck.py", "--day", "20261027", *args])
+    finally:
+        cc.kubectl_json, cc.query = saved
+    return code, out.getvalue(), err.getvalue()
+
+
+AMOUNT = r"-?\d+\.\d{6}"
+code, out, err = main_run(args=("--json",))
+doc = json.loads(out)
+check("main --json prints one JSON document, exiting like the table",
+      code == 0 and set(doc) == {"day", "ok", "runs", "total", "skipped"} and not err, (code, err, out))
+check("the day, the verdict and the skipped runs carry over from the table's world",
+      doc["day"] == "20261027" and doc["ok"] is True and doc["skipped"] == ["ccc"], doc)
+check("runs are sorted by run id, every amount a 6-decimal string, each run with its own verdict",
+      [r["run"] for r in doc["runs"]] == ["aaa", "bbb"]
+      and all(set(r) == {"run", "ledger", "gateway", "diff", "ok"} for r in doc["runs"])
+      and all(re.fullmatch(AMOUNT, r[k]) for r in doc["runs"] for k in ("ledger", "gateway", "diff"))
+      and doc["runs"][0] == {"run": "aaa", "ledger": "0.500000", "gateway": "0.500000", "diff": "0.000000", "ok": True}
+      and doc["runs"][1]["diff"] == "0.005000", doc["runs"])
+check("the total carries the day's ledger and gateway with its own verdict",
+      set(doc["total"]) == {"ledger", "gateway", "diff", "ok"} and doc["total"]["ledger"] == "0.700000"
+      and doc["total"]["gateway"] == "0.695000" and doc["total"]["diff"] == "0.005000"
+      and doc["total"]["ok"] is True, doc["total"])
+code_table, out_table, _ = main_run()
+table, _ = go()
+check("without --json the table is the table byte for byte, with the same exit code",
+      code == code_table and out_table == table + "\n", (code, code_table, out_table, table))
+bad = copy.deepcopy(ledger_cm)
+bad["data"]["settled.aaa"] = "600000"
+code_json, out_json, _ = main_run(ledger=lambda *a: bad, args=("--json",))
+code_table, out_table, _ = main_run(ledger=lambda *a: bad)
+doc = json.loads(out_json)
+check("a run outside the floor is ok false in JSON and fails the day, both exits 1",
+      code_json == code_table == 1 and doc["ok"] is False and doc["runs"][0]["ok"] is False
+      and doc["runs"][0]["diff"] == "0.100000" and "NO" in out_table, (code_json, code_table, doc))
+code, out, _ = main_run(vm=lambda q, at, u: vm_body() if "namespace!=" in q else vm_gateway, args=("--json",))
+doc = json.loads(out)
+check("no run left out makes skipped an empty list", doc["skipped"] == [], doc)
+code, out, err = main_run(vm=lambda q, at, u: vm_body(status="error"), args=("--json",))
+check("a source unreadable still exits 2 with --json, the error on stderr and no document",
+      code == 2 and "cost-crosscheck" in err and out == "", (code, err, out))
+usage = [l for l in cc.__doc__.splitlines() if "cost-crosscheck.py --day" in l][0]
+check("the docstring's usage line mentions [--json]", "[--json]" in usage, usage)
 
 print("empty sides")
 

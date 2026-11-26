@@ -14,6 +14,7 @@ row says otherwise; only a maintainer's count.
 |---|---|
 | `factory/ready` | Starts the issue as a task |
 | `workflow:<name>` | Before `factory/ready`: picks `workflow:quick` or `workflow:careful` (no label runs `standard`) |
+| `harness:<name>` | Before `factory/ready`: a maintainer picks `harness:opencode` or `harness:openhands` (no label runs the factory's default) |
 | `factory/stop` | Ends the task's runs; its branch stays. On the pinned control issue, it stops every task |
 | `factory/revert` | On a pull request merged automatically, within 7 days: opens the revert |
 | `factory/publish` | On a RunLore proposal's stub issue (`factory/proposed`): files the fix issue ([RunLore]({{< relref "/docs/how-it-works/runlore.md" >}})) |
@@ -28,6 +29,7 @@ row says otherwise; only a maintainer's count.
 | Comment | What happens |
 |---|---|
 | `/factory retry` | Tries a failed or escalated task again, or proceeds on the scoper's assumption |
+| `/factory retry harness=openhands` | On an escalated OpenCode task, alone on a line: keeps the failed attempt counted, then reruns the task on OpenHands on the same branch |
 | `/factory split` | Accepts a proposed split; the parts then open one at a time |
 | `/factory plan approve` | Starts the implementer on the proposed plan |
 | `/factory plan revise <comment>` | The scoper re-plans once with that comment |

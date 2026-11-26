@@ -22,8 +22,9 @@ names its listeners, audiences, caller namespace and route namespace:
   AG5  Every route on the Gateway sets sectionName and lives in the route
        namespace; a Z.ai backend is reachable from `public` only and an
        Anthropic one from `internal` only (ADR-0054); a rule sends to one
-       backend; no policy other than the listener ones carries
-       jwtAuthentication. A Z.ai backend uses the custom provider: 1.6 keeps
+       backend, and a backend of a provider PROVIDER_LISTENERS does not
+       know fails rather than passing unjudged; no policy other than the
+       listener ones carries jwtAuthentication. A Z.ai backend uses the custom provider: 1.6 keeps
        `openai` for the OpenAI API; on the required Gateway it sets providerOverride: zai, the key
        agent-model-catalog prices it under and the series' provider label.
   AG6  Every MCP authorization is an Allow list whose expressions are each one
@@ -110,7 +111,9 @@ names its listeners, audiences, caller namespace and route namespace:
        Requiring exactly the listener's subject and audience prefix; every
        LLM route Required to its own audience and the subject again, unless
        a directResponse answers it; each provider on its data class's
-       listeners only (ADR-0054, the clients listener serving public data);
+       listeners only (ADR-0054, the clients listener serving public data),
+       a provider PROVIDER_LISTENERS does not know failing closed; a Vertex
+       AI backend (Gemini) on the gcp AccessToken auth, with no secretRef;
        each LLM backend one provider and one alias, the `model`
        transformation forcing that alias. The chart renders its objects with
        no namespace: they are read in their HelmRelease's. AG3, AG8 and AG9
@@ -148,7 +151,8 @@ SHUTDOWN = {"min": 10, "max": 660}
 UNTYPED_ROUTES = {"Detect", "Passthrough"}
 ROUTE_KINDS = ("HTTPRoute", "GRPCRoute")
 # ADR-0054: the listeners each provider may serve.
-PROVIDER_LISTENERS = {"Z.ai": {"public"}, "Anthropic": {"internal"}, "Moonshot": {"public"}, "Mistral": {"public"}}
+PROVIDER_LISTENERS = {"Z.ai": {"public"}, "Anthropic": {"internal"}, "Moonshot": {"public"}, "Mistral": {"public"},
+                      "Google": {"public"}}
 # The providers agentgateway has no built-in for: each uses provider.custom, and its providerOverride is the
 # catalog key agent-model-catalog prices it under (gen-prices.py PROVIDERS) and the series' provider label.
 CUSTOM_PROVIDERS = {"Z.ai": "zai", "Moonshot": "moonshot", "Mistral": "mistral"}
@@ -182,7 +186,7 @@ AGENT_MODELS = ("agent-default", "tier-light", "tier-standard", "tier-frontier")
 # Feature 15: the selectable providers' own aliases, one tier each, public listener only. A backend serves
 # exactly its names: Z.ai and Anthropic the four agent names, Kimi Code and Mistral their own.
 BACKEND_MODELS = {"Z.ai": AGENT_MODELS, "Anthropic": AGENT_MODELS, "Moonshot": ("kimi-frontier",),
-                  "Mistral": ("mistral-light", "mistral-standard")}
+                  "Mistral": ("mistral-light", "mistral-standard"), "Google": ("gemini-light", "gemini-standard")}
 MODEL_HEADER = "x-ar-model"
 
 
@@ -426,9 +430,20 @@ def is_anthropic(backend):
     return any("anthropic" in p or str(p.get("host", "")).endswith("anthropic.com") for p in providers(backend))
 
 
+def is_vertex(backend):
+    return any("vertexai" in p for p in providers(backend))
+
+
+def is_google(backend):
+    """Gemini: Vertex AI's native provider, or the Gemini API's host (Maku's gemini preset)."""
+    return is_vertex(backend) or any("gemini" in p for p in providers(backend)) \
+        or _host_or_name(backend, ("generativelanguage.googleapis.com",), "gemini")
+
+
 def provider_name(backend):
     return ("Z.ai" if is_zai(backend) else "Anthropic" if is_anthropic(backend)
-            else "Moonshot" if is_moonshot(backend) else "Mistral" if is_mistral(backend) else None)
+            else "Moonshot" if is_moonshot(backend) else "Mistral" if is_mistral(backend)
+            else "Google" if is_google(backend) else None)
 
 
 def check_gateway(objs):
@@ -545,14 +560,17 @@ def check_token_isolation(objs):
 
 def check_routes(objs):
     out = []
-    named = {key(b): provider_name(b) for b in kind(objs, "AgentgatewayBackend") if provider_name(b)}
+    named = {key(b): provider_name(b) for b in kind(objs, "AgentgatewayBackend") if providers(b)}
     for g, prof in profiled(objs):
         for r in routes_on(objs, g):
+            for b in sorted(b for b in backend_refs(r) if b in named and named[b] is None):
+                out.append(f"AG5: {ref(r)} reaches {b[0]}/{b[1]}, of an unknown provider: add it to "
+                           "PROVIDER_LISTENERS (ADR-0054) so its data class is known")
             if meta(r).get("namespace") != prof.routes_ns:
                 out.append(f"AG5: {ref(r)} attaches to {ref(g)} from outside {prof.routes_ns}")
             if any(not p.get("sectionName") for p in parents(r, g)):
                 out.append(f"AG5: {ref(r)} attaches to {ref(g)} without sectionName (it would bind every listener)")
-            for name in sorted({named[b] for b in backend_refs(r) if b in named}):
+            for name in sorted({named[b] for b in backend_refs(r) if named.get(b)}):
                 allowed = PROVIDER_LISTENERS[name]
                 if not listeners_of(r, g) <= allowed:
                     out.append(f"AG5: {ref(r)} reaches {name} from {sorted(listeners_of(r, g))}; "
@@ -1211,7 +1229,10 @@ def check_chart_gateway(objs):
             for listener in listeners_of(r, g):
                 cls = c.classes.get(listener)
                 for b in reached:
-                    if (name := provider_name(b)) and cls not in PROVIDER_LISTENERS[name]:
+                    if (name := provider_name(b)) is None:
+                        out.append(f"AG15: {ref(b)} is of an unknown provider, so no data class is known for it: "
+                                   "add it to PROVIDER_LISTENERS (ADR-0054) before any route reaches it")
+                    elif cls not in PROVIDER_LISTENERS[name]:
                         out.append(f"AG15: {ref(r)} reaches {name} from {listener} ({cls} data); "
                                    f"{name} serves {'/'.join(sorted(PROVIDER_LISTENERS[name]))} only")
                 pinned = [p for p in targeting if ((spec_of(p).get("traffic") or {}).get("authorization") or {})
@@ -1235,6 +1256,11 @@ def check_chart_gateway(objs):
                     or any("model" in (ai.get(f) or {}) for f in MODEL_MUTATIONS):
                 out.append(f"AG15: {ref(b)} must serve one provider and one alias, its `model` transformation "
                            "forcing that alias: any other name would buy another model with the key")
+            # Gemini design G1: Vertex AI is called as the proxy's own Workload Identity, so no key exists.
+            auth = (spec_of(b).get("policies") or {}).get("auth") or {}
+            if is_vertex(b) and ("secretRef" in auth or (auth.get("gcp") or {}).get("type") != "AccessToken"):
+                out.append(f"AG15: {ref(b)} is Vertex AI: it must authenticate with the gcp AccessToken auth "
+                           "(Workload Identity) and hold no secretRef")
     return out
 
 

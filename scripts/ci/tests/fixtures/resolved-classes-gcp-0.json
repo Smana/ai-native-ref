@@ -418,6 +418,69 @@
       "evidence": "low"
     }
   },
+  "Smana/image-gallery": {
+    "docs": {
+      "description": "Prose in Markdown files, small changes.",
+      "shadow": true,
+      "allowedFiles": [
+        "^.+\\.mdx?$"
+      ],
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$",
+        "(^|/)(AGENTS|CLAUDE)\\.md$",
+        "^\\.(agents|claude)/",
+        "^clusters/",
+        "^flux/",
+        "^security/",
+        "^infrastructure/base/(agent-sandbox|karpenter-nodepools-agents|runtimeclass-gvisor|agent-runtime|agent-router|agent-mcp|room-broker|agent-model-routing|agentgateway|agent-gateway)/",
+        "^infrastructure/(aws-0|gcp-0)/(agent-mcp|agent-router|room-broker|agentgateway|agent-gateway|agentgateway-poc)/",
+        "^infrastructure/aws-0/agent-model-routing/",
+        "^observability/base/agent-platform/",
+        "^observability/base/runlore-factory/",
+        "^observability/(aws-0|gcp-0)/agent-platform/",
+        "^tooling/base/(agent-factory|policy-bot)/",
+        "^tooling/(aws-0|gcp-0)/agent-factory/",
+        "^scripts/ci/",
+        "^(HOST_REF|taskfile\\.yaml|\\.pre-commit-config\\.yaml|\\.secrets\\.baseline|\\.gitignore)$"
+      ],
+      "maxPatchFiles": 5,
+      "maxModifiedLines": 100,
+      "maxPerDay": 2,
+      "evidence": "standard"
+    },
+    "docs-links": {
+      "description": "Link targets in Markdown, nothing else.",
+      "shadow": true,
+      "protectedFiles": [
+        "^\\.github/",
+        "^\\.policy\\.yml$",
+        "^CODEOWNERS$",
+        "(^|/)(AGENTS|CLAUDE)\\.md$",
+        "^\\.(agents|claude)/",
+        "^clusters/",
+        "^flux/",
+        "^security/",
+        "^infrastructure/base/(agent-sandbox|karpenter-nodepools-agents|runtimeclass-gvisor|agent-runtime|agent-router|agent-mcp|room-broker|agent-model-routing|agentgateway|agent-gateway)/",
+        "^infrastructure/(aws-0|gcp-0)/(agent-mcp|agent-router|room-broker|agentgateway|agent-gateway|agentgateway-poc)/",
+        "^infrastructure/aws-0/agent-model-routing/",
+        "^observability/base/agent-platform/",
+        "^observability/base/runlore-factory/",
+        "^observability/(aws-0|gcp-0)/agent-platform/",
+        "^tooling/base/(agent-factory|policy-bot)/",
+        "^tooling/(aws-0|gcp-0)/agent-factory/",
+        "^scripts/ci/",
+        "^(HOST_REF|taskfile\\.yaml|\\.pre-commit-config\\.yaml|\\.secrets\\.baseline|\\.gitignore)$"
+      ],
+      "modifyOnly": true,
+      "maxPatchFiles": 10,
+      "maxModifiedLines": 20,
+      "diffShape": "links-only",
+      "maxPerDay": 5,
+      "evidence": "low"
+    }
+  },
   "Smana/runlore": {
     "docs": {
       "description": "Prose in Markdown files, small changes.",

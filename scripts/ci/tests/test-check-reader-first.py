@@ -32,7 +32,7 @@ def rules(text):
     return [rule for _, rule, _ in gate.scan(text)]
 
 
-def run(pages, root_files=None):
+def run(pages, root_files=None, extra_args=()):
     """main() over a tree holding these pages: (exit code, output)."""
     with tempfile.TemporaryDirectory() as tmp:
         for rel, text in pages.items():
@@ -45,7 +45,7 @@ def run(pages, root_files=None):
             f.write_text(text, encoding="utf-8")
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            code = gate.main(["check-reader-first.py", tmp])
+            code = gate.main(["check-reader-first.py", tmp, *extra_args])
         return code, out.getvalue()
 
 
@@ -121,6 +121,53 @@ print("the repository README")
 code, out = run({}, {"README.md": "# X\n\nThe factory runs on aws-0 since 2026-10-30.\n"})
 check("README.md is scanned",
       code == 1 and "README.md:3\tcluster name\taws-0" in out and "README.md:3\tdate\t2026-10-30" in out, out)
+
+print("--format github")
+code, out = run({"use/bad.md": BAD}, extra_args=("--format", "github"))
+check("a page with history exits 1", code == 1, out)
+check("the finding is a workflow command",
+      "::error file=website/content/docs/use/bad.md,line=5,title=reader-first::cluster name: aws-0" in out, out)
+check("every rule is annotated",
+      "::error file=website/content/docs/use/bad.md,line=5,title=reader-first::date: 2026-10-29" in out
+      and "::error file=website/content/docs/use/bad.md,line=5,title=reader-first::handle: @Smana" in out
+      and "::error file=website/content/docs/use/bad.md,line=6,title=reader-first::proof ID: AG8" in out, out)
+check("the text finding line is gone", "website/content/docs/use/bad.md:5\t" not in out, out)
+check("the closing summary is the same as in text", out.rstrip().endswith("Do not add an allowlist."), out)
+code, out = run({"use/first-task.md": CLEAN}, extra_args=("--format", "github"))
+check("a clean page exits 0", code == 0, out)
+check("the no-findings line is the same", out == "==> No session history on the site's pages.\n", out)
+code, out = run({"use/bad.md": BAD}, extra_args=("--format", "text"))
+check("--format text is today's output",
+      code == 1 and "website/content/docs/use/bad.md:5\tcluster name\taws-0" in out
+      and "::error " not in out, out)
+code, out = run({}, {"README.md": "# X\n\nThe factory runs on aws-0 since 2026-10-30.\n"},
+                extra_args=("--format", "github"))
+check("README.md is annotated",
+      code == 1 and "::error file=README.md,line=3,title=reader-first::cluster name: aws-0" in out, out)
+
+print("the option and the root in either order")
+with tempfile.TemporaryDirectory() as tmp:
+    page = pathlib.Path(tmp, "website/content/docs", "use/bad.md")
+    page.parent.mkdir(parents=True, exist_ok=True)
+    page.write_text(BAD, encoding="utf-8")
+    for argv in (["check-reader-first.py", "--format", "github", tmp],
+                 ["check-reader-first.py", tmp, "--format", "github"]):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = gate.main(argv)
+        text = out.getvalue()
+        check(f"main({argv[1:3]!r}) annotates",
+              code == 1 and "::error file=website/content/docs/use/bad.md,line=5,title=reader-first::cluster name: aws-0" in text,
+              text)
+
+print("an invalid format is rejected")
+with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+    try:
+        code = gate.main(["check-reader-first.py", "--format", "pdf"])
+        code = 0 if code is None else code
+    except SystemExit as e:
+        code = e.code
+check("an invalid format exits 2", code == 2)
 
 print()
 if FAILURES:

@@ -16,10 +16,14 @@ by where the text sits, never a list of lines:
 - repository paths in backticks, the ones scripts/ci/verify-doc-paths.sh checks
   (`clusters/aws-0/…`).
 
-  python3 scripts/ci/check-reader-first.py [ROOT]
+  python3 scripts/ci/check-reader-first.py [ROOT] [--format {text,github}]
 
-Exit 0: no finding. Exit 1: each finding is printed as file:line, the rule and the match.
+Exit 0: no finding. Exit 1: each finding is printed as file:line, the rule and the match, or, with
+--format github, as a `::error file=<path>,line=<n>,title=reader-first::<rule>: <match>` workflow
+command GitHub Actions shows inline on the diff. The closing summary and the exit codes are the
+same in both formats.
 """
+import argparse
 import pathlib
 import re
 import sys
@@ -118,14 +122,28 @@ def scan(text):
     return findings
 
 
+def report(path, n, rule, hit, fmt):
+    """One finding, as text (file:line) or as a workflow command GitHub Actions annotates."""
+    if fmt == "github":
+        print(f"::error file={path},line={n},title=reader-first::{rule}: {hit}")
+    else:
+        print(f"{path}:{n}\t{rule}\t{hit}")
+
+
 def main(argv):
-    root = pathlib.Path(argv[1] if len(argv) > 1 else pathlib.Path(__file__).resolve().parents[2])
+    parser = argparse.ArgumentParser(description="Check the site's pages for session history.")
+    parser.add_argument("root", nargs="?", default=pathlib.Path(__file__).resolve().parents[2],
+                        type=pathlib.Path, help="the repository root to scan")
+    parser.add_argument("--format", choices=("text", "github"), default="text",
+                        help="text: file:line per finding (default); github: ::error workflow commands")
+    args = parser.parse_args(argv[1:])
+    root = args.root
     docs = root / DOCS
     count = 0
     readme = root / "README.md"
     if readme.is_file():
         for n, rule, hit in scan(readme.read_text(encoding="utf-8")):
-            print(f"README.md:{n}\t{rule}\t{hit}")
+            report("README.md", n, rule, hit, args.format)
             count += 1
     if docs.is_dir():
         for page in sorted(docs.rglob("*.md")):
@@ -133,7 +151,7 @@ def main(argv):
             if rel in RECORDS or rel.startswith(RECORDS):
                 continue
             for n, rule, hit in scan(page.read_text(encoding="utf-8")):
-                print(f"{DOCS / rel}:{n}\t{rule}\t{hit}")
+                report(DOCS / rel, n, rule, hit, args.format)
                 count += 1
     if count:
         print(f"\n==> {count} finding(s): the site carries session history. Rewrite the sentence for a reader")

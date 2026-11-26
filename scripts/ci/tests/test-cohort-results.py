@@ -48,6 +48,10 @@ check("median label_to_pr", [s[a]["median_label_to_pr_min"] for a in "ABC"], [25
 check("unpriced", [s[a]["unpriced"] for a in "ABC"], [0, 0, 1])
 check("A by counter", s["A"]["escalations_by_counter"], {"budget-run": 1, "reviewRounds": 1})
 check("A fixable", s["A"]["fixable_escalations"], 1)
+two = cres.arm_summary(rows[:2])
+check("arm_summary rows", two["rows"], 2)
+check("arm_summary accepted", two["accepted"], 0)
+check("arm_summary usd", two["usd"], 1.5)
 
 text = cres.render(s)
 for want in ["A escalations by counter_exhausted: budget-run 1, reviewRounds 1",

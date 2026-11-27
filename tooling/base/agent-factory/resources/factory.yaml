@@ -100,7 +100,10 @@ spec:
   gitops: {repository: Smana/ai-native-ref, path: tooling/base/agent-factory/resources/repository-ai-native-ref.yaml}
   control: {repository: Smana/cloud-native-ref, issue: 2188}  # factory/stop here stops every repository
   # The stages come from the workflow (workflows review WF1); no default template or tier (R8).
-  defaults: {dataClass: public, predictedClass: review}
+  # OpenCode is the default harness (the owner's decision of 2026-11-27, overriding the adopt design's
+  # 30-per-arm gate: docs/runbooks/agent-factory/results-harness-paired-trial-2026-11-26.md). A
+  # maintainer's harness:openhands label runs one task on OpenHands; reverting is this one key.
+  defaults: {dataClass: public, predictedClass: review, harness: opencode}
   triage:
     # No classifierURL: the classifier (C7) was never deployed, and the scoper replaced it (R8).
     # Unset, every task takes tier standard, classifier static, without a call (since v0.25.0).

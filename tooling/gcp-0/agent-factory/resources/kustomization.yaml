@@ -5,6 +5,3 @@ kind: Kustomization
 # Factory, Repositories and MergePolicies, named for this cluster by Flux's ${cluster_name}.
 resources:
   - ../../../base/agent-factory/resources
-# The OpenCode harness trial, gcp-0 only (owner decision 2026-11-25).
-patches:
-  - path: factory-harness-trial.yaml

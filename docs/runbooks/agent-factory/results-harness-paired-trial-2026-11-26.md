@@ -366,3 +366,22 @@ What must hold before a cutover PR sets `defaults.harness: opencode`:
 
 One finding does not gate the harness choice but needs a fix on its own: the reviewer agent's
 verdicts are empty, and it invents full commit hashes, on both harnesses.
+
+## Decision, 2026-11-27: OpenCode becomes the default
+
+The owner decided to make OpenCode the default now, overriding condition 3 (the 30-per-arm gate).
+Base's `Factory` sets `defaults.harness: opencode`, and the 50/50 trial patch on gcp-0 is removed.
+`test-agent-harness-default.py` holds that shape. Where each condition stood:
+
+| Condition | State on 2026-11-27 |
+|---|---|
+| 1. Image contract | Holds: every pinned release since v0.54.7 runs the userland check |
+| 2. Egress tightened | Holds: Maku v0.57.x closes the GitHub release hosts before the agent starts ([runbook 31 results](results-github-egress-drill-2026-11-27.md)), and v0.57.1 stops OpenCode's boot fetch of `models.opencode.ai` |
+| 3. 50/50 gate | Overridden. The trial collected 3 ended OpenCode tasks and 2 OpenHands ones, most tasks being labelled |
+| 4. Provider smoke tests | GLM/Z.ai and Anthropic run on OpenCode; Vertex/Gemini does not (Smana/maku#798): a Gemini-pinned task needs `harness:openhands` until Maku's fallback ships |
+| 5. Rescue path | `harness:openhands` on one issue, or `/factory retry harness=openhands`; not yet proven end to end |
+
+**Revert trigger.** Read `harness-trial-report.py` each week against OpenHands' history. Revert (one key in
+`factory.yaml`) if, over 30 ended tasks, OpenCode's cost per merged PR exceeds 1.3× OpenHands' or its merge
+rate is 5 points lower. The report still miscounts ended Tasks on Maku v0.58 (53 finished tasks read as
+`not_ended` on 2026-11-27); it is fixed before the first weekly read.

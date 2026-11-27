@@ -68,35 +68,31 @@ spec:
       creators: [system:serviceaccount:agent-system:agent-factory]
       factoryServiceAccount: agent-factory
       namespaces: [agents]
-    # Until Maku #812 ships, the chart leaves service sidecar images out of the run-pod policy's
-    # allow-list: name postgres here, or image-gallery's runs are refused at pod admission.
-    runPodPolicy:
-      extraImages: [docker.io/library/postgres]
     runController:
       enabled: true
-      # maku v0.58.0, by digest, as the broker's image.
+      # maku v0.58.1, by digest, as the broker's image.
       image:
         repository: ghcr.io/smana/maku-run-controller
-        tag: "v0.58.0@sha256:6090859da29acd111795768b134ff35bf5090e3222578f80a5f81778e005c6a7"
+        tag: "v0.58.1@sha256:58d75d7fc6bbb3314495ff34fd75c346a3b327b76c6caabc4e794a1433f0e507"
       images:
         harness:
           repository: ghcr.io/smana/maku-harness
-          tag: "v0.58.0@sha256:0767bba405be76fdfdd1249c3051f2e4a48ba698a2f06964e0ccc627c34e3d4f"
+          tag: "v0.58.1@sha256:efd9085e4b8e5a1e07c0ee9c82265b487c72467ead6c18e02e196c7b69239c59"
         bridge:
           repository: ghcr.io/smana/maku-bridge
-          tag: "v0.58.0@sha256:db1fecbc6ad1ec9d5ead0c593fa1dfbed020dc7100e13835bfa884f87d906b8d"
+          tag: "v0.58.1@sha256:d5649a54a279b5c6bf5903d1136ad5ee7cda317e73fa8951431a61e6bb111630"
         # The OpenCode harness, the factory's default since 2026-11-27 (the Factory's defaults.harness):
         # pinned, the chart renders images.opencode and adds this repository to the run-pod admission
         # policy. No Factory runs a harness trial (test-agent-harness-default.py).
         opencode:
           repository: ghcr.io/smana/maku-opencode
-          tag: "v0.58.0@sha256:41a7b669c3b1a5704042d97fd5aec9f015dbaf7839eef12fa5e1b970028a57cc"
+          tag: "v0.58.1@sha256:0158148cc4bc92c4abf0a90af8cab001b9fd8c96b09d4cf96bb017421a97ddf1"
         # The opt-in browser sidecar (Maku v0.56.0, harness screenshots): only a Repository with
         # spec.screenshots gets it, on implementer and tester runs; the chart adds it to the run-pod
         # admission policy. Pre-pulled by the headroom pod.
         browser:
           repository: ghcr.io/smana/maku-browser
-          tag: "v0.58.0@sha256:317c4b67288440c17351f247b7e313614a19ce4be5bee4e943eb216b953b3c76"
+          tag: "v0.58.1@sha256:f9b4f38bb82425dee9b3994aa0a0e7b077beaee9a3473360db38e8ea4aad3be3"
         # The postgres service sidecar (Maku v0.57.x, loopback 127.0.0.1:5432, empty at each run's start):
         # only a Repository with spec.runtime.services [postgres] gets it, today image-gallery. The
         # official image at the major version image-gallery's docker-compose.yml and atlas.hcl use (15),
@@ -133,8 +129,8 @@ spec:
     broker:
       image:
         repository: ghcr.io/smana/maku-broker
-        # maku v0.58.0, by digest. Move it with ocirepository.yaml (the chart) and crd-rooms.yaml together.
-        tag: "v0.58.0@sha256:98d0a4d60daf48db4754f936796ffea0c70075e0b6364d9e6fe78e0bb699d1a4"
+        # maku v0.58.1, by digest. Move it with ocirepository.yaml (the chart) and crd-rooms.yaml together.
+        tag: "v0.58.1@sha256:d95d8a5924a475a7e88cea47ee39c5657c13e76b3d135e125ed3f431f354343b"
       # Two (§9): the leader lease picks the controller, and every replica serves humans through the
       # LISTEN/NOTIFY hub (ruling AT). pdb.yaml keeps one through a drain.
       replicas: 2
@@ -236,7 +232,7 @@ spec:
         - {name: webhook-slack-app, mountPath: /etc/room-broker/webhooks/slack-app, readOnly: true}
         - {name: webhook-runlore, mountPath: /etc/room-broker/webhooks/runlore, readOnly: true}
         - {name: github-link, mountPath: /etc/room-broker/github-link-client, readOnly: true}
-  # What v0.58.0's values cannot say. Each patch tests what it replaces, so a chart that moves it
+  # What v0.58.1's values cannot say. Each patch tests what it replaces, so a chart that moves it
   # fails the release instead of patching the wrong field.
   postRenderers:
     - kustomize:

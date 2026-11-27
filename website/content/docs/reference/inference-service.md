@@ -128,7 +128,7 @@ package pinned at `infrastructure/base/crossplane/configuration-aws/configuratio
 
 | Field | Type | Notes |
 |---|---|---|
-| `minReplicas` | int | Defaults to 1. Never 0 — see [Autoscaling & GPUs]({{< relref "/docs/how-it-works/serving/autoscaling-and-gpu.md" >}}) for the deadlock that rules out scale-to-zero |
+| `minReplicas` | int | Defaults to 1. Never 0 — see [Autoscaling & GPUs]({{< relref "/docs/serving/autoscaling-and-gpu.md" >}}) for the deadlock that rules out scale-to-zero |
 | `maxReplicas` | int | 1 for FIM (always exactly one), 2 for the chat models, 3 for the guardrail |
 
 ### `spec.cache`
@@ -177,7 +177,7 @@ Four claims, read from the manifests:
 
 Every model defaults to `minReplicas: 1` — there is no scale-to-zero — and the
 `gpu-l4` NodePool caps the fleet at `nvidia.com/gpu: "4"`; see
-[Autoscaling & GPUs]({{< relref "/docs/how-it-works/serving/autoscaling-and-gpu.md" >}})
+[Autoscaling & GPUs]({{< relref "/docs/serving/autoscaling-and-gpu.md" >}})
 for the cost floor that implies.
 
 ## Adding a model
@@ -191,5 +191,5 @@ Two things to check before merging: the fleet fits within the four-GPU cap
 with the new model at `minReplicas`, and — if the model should be reachable
 through `model: MoM` rather than only by name — that a Semantic Router
 decision rule targets it. See
-[Gateways]({{< relref "/docs/how-it-works/gateways.md" >}});
+[AI Gateway]({{< relref "/docs/serving/ai-gateway.md" >}});
 two of the four models are reachable only by naming them explicitly.

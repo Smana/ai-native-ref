@@ -1,10 +1,12 @@
 ---
-title: Serving
+title: Model serving
+linkTitle: Serving
 aliases:
+  - /docs/how-it-works/serving/
   - /docs/platform/ai-platform/serving/
-weight: 90
+weight: 20
 description: An OpenAI-compatible vLLM serving platform behind Envoy AI Gateway, declared one model per Crossplane claim — off by default until three independent gates are all released.
-lastVerified: 2026-08-30
+lastVerified: 2026-11-27
 diataxis: explanation
 ---
 
@@ -130,6 +132,9 @@ What comes next for serving is on the
 [roadmap]({{< relref "/docs/status.md#serving-roadmap" >}}).
 
 {{< cards >}}
+  {{< card link="/docs/serving/autoscaling-and-gpu/" title="Autoscaling & GPUs" icon="chip" subtitle="Three KEDA triggers on leading vLLM signals, the scale-to-zero deadlock, the gpu-l4 NodePool and S3 Files weights." >}}
+  {{< card link="/docs/serving/ai-gateway/" title="AI Gateway" icon="switch-horizontal" subtitle="Envoy AI Gateway, Semantic Router (MoM), LoRA canaries, API keys and shadow budgets." >}}
+  {{< card link="/docs/serving/coding-clients/" title="Coding clients" icon="terminal" subtitle="Connect OpenCode, Continue, Copilot CLI and OpenWebUI to ai-gateway." >}}
+  {{< card link="/docs/serving/observability/" title="Observability" icon="chart-bar" subtitle="vLLM, KEDA and gateway telemetry in the shared Victoria stack and Grafana." >}}
   {{< card link="/docs/reference/inference-service/" title="The InferenceService claim" icon="document-text" subtitle="One model, one YAML file — a complete claim with its reasoning intact, what it renders, and every field it accepts." >}}
-  {{< card link="/docs/how-it-works/serving/autoscaling-and-gpu/" title="Autoscaling & GPUs" icon="chip" subtitle="Three KEDA triggers on leading vLLM signals, the scale-to-zero deadlock, the gpu-l4 NodePool and S3 Files weights." >}}
 {{< /cards >}}

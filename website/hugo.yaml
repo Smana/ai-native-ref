@@ -24,24 +24,24 @@ markup:
 
 menu:
   main:
-    - name: Get started
-      pageRef: /docs/get-started
+    - name: Serving
+      pageRef: /docs/serving
       weight: 1
-    - name: Use
-      pageRef: /docs/use
+    - name: Maku on CNR
+      pageRef: /docs/maku-deployment
       weight: 2
-    - name: How it works
-      pageRef: /docs/how-it-works
-      weight: 3
-    - name: Operate
-      pageRef: /docs/operate
-      weight: 4
     - name: Reference
       pageRef: /docs/reference
-      weight: 5
+      weight: 3
+    - name: Decisions
+      pageRef: /docs/decisions
+      weight: 4
     - name: Status
       pageRef: /docs/status
+      weight: 5
+    - name: Maku ↗
       weight: 6
+      url: "https://maku.ogenki.io/"
     # Cross-site link (split design §5): a relref cannot reach the host site, so the S4 link
     # check fetches it after each deploy.
     - name: Cloud Native Ref ↗
@@ -58,7 +58,7 @@ menu:
         type: search
 
 params:
-  description: "The AI platform of Cloud Native Reference: self-hosted model serving and an agent factory, shipped as one signed Flux artifact its host pins."
+  description: "Self-hosted GPU model serving and the Cloud Native Reference GitOps deployment of Maku, shipped as one signed Flux artifact."
   # Held equal to tooling/base/agent-factory/helm-values-configmap.yaml by scripts/ci/check-site-contract.py.
   makuVersion: v0.58.1
   navbar:
@@ -101,12 +101,12 @@ params:
     title: "Pilot Maku with your engineering team"
     message: "Maku is Apache-2.0 open source and runs on any Kubernetes cluster with GitHub (Cloud or Enterprise Server). I'm looking for a **partner team** to run a Tier-1 Pilot on real private repositories — you own your cluster and model keys, and I help bootstrap and co-build against your stack."
     links:
+      - name: "Maku website & demo ↗"
+        url: "https://maku.ogenki.io/"
       - name: "Get in touch"
         url: "https://blog.ogenki.io/about/"
       - name: "Maku on GitHub ↗"
         url: "https://github.com/Smana/maku"
-      - name: "Bluesky"
-        url: "https://bsky.app/profile/smana.dev"
   sponsor:
     url: "https://github.com/sponsors/Smana"
     message: "One person maintains this reference and pays for the AWS, GCP and model-API time that verifies it; [sponsoring][sponsor] helps cover that."

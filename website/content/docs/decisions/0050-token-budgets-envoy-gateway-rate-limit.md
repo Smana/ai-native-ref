@@ -6,7 +6,7 @@ description: Per-run, per-fleet, per-human and per-client daily token budgets ar
 lastVerified: 2026-10-07
 ---
 
-**Status**: Partly superseded by [ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}})
+**Status**: Partly superseded by [ADR-0053](https://maku.ogenki.io/docs/decisions/0053-agent-router-on-agentgateway/)
 **Partly superseded**: Option 1 (Envoy Gateway's global rate limit), for the agent router only. The budget model stands; `ai-gateway`'s budgets stay on Envoy Gateway.
 **Date**: 2026-09-25
 **Deciders**: Smana (Platform Owner)

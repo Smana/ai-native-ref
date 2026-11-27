@@ -68,6 +68,10 @@ spec:
       creators: [system:serviceaccount:agent-system:agent-factory]
       factoryServiceAccount: agent-factory
       namespaces: [agents]
+    # Until Maku #812 ships, the chart leaves service sidecar images out of the run-pod policy's
+    # allow-list: name postgres here, or image-gallery's runs are refused at pod admission.
+    runPodPolicy:
+      extraImages: [docker.io/library/postgres]
     runController:
       enabled: true
       # maku v0.58.0, by digest, as the broker's image.

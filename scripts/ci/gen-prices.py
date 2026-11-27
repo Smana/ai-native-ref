@@ -145,6 +145,7 @@ def load_prices(root, errors):
             continue
         for key in sorted(set(row) - set(FIELDS) - set(METADATA), key=str):
             errors.append(f"{where}: unknown key {key}; a row holds {', '.join(FIELDS + METADATA)}")
+        valid = {}
         for f in FIELDS:
             v = row.get(f)
             if f not in row:
@@ -152,6 +153,10 @@ def load_prices(root, errors):
                     errors.append(f"{where}: missing {f}")
             elif isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v <= 0:
                 errors.append(f"{where}: {f} must be a positive number of USD per million tokens, got {v!r}")
+            else:
+                valid[f] = Decimal(str(v))
+        if "cacheRead" in valid and "input" in valid and valid["cacheRead"] > valid["input"]:
+            errors.append(f"{where}: cacheRead {row['cacheRead']} exceeds input {row['input']}")
     return prices
 
 

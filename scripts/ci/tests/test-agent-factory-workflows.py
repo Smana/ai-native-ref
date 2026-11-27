@@ -79,8 +79,8 @@ for cloud in ("aws-0", "gcp-0"):
     outcomes = factory.get("outcomes") or []
     check(f"{cloud}: the outcomes offered hold change and only Maku's four",
           "change" in outcomes and set(outcomes) <= OUTCOMES)
-    check(f"{cloud}: no harness default on the Factory (OpenCode is a label's alone)",
-          "harness" not in (factory.get("defaults") or {}))
+    check(f"{cloud}: the Factory's harness default is OpenCode (owner decision 2026-11-27)",
+          (factory.get("defaults") or {}).get("harness") == "opencode")
 
 for d in docs:
         if d["kind"] == "MergePolicy":

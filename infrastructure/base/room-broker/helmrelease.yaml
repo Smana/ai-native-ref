@@ -85,10 +85,9 @@ spec:
         bridge:
           repository: ghcr.io/smana/maku-bridge
           tag: "v0.58.0@sha256:db1fecbc6ad1ec9d5ead0c593fa1dfbed020dc7100e13835bfa884f87d906b8d"
-        # The opt-in OpenCode harness (Maku v0.54.0): pinned, the chart renders images.opencode and adds
-        # this repository to the run-pod admission policy. Nothing selects it but a maintainer's
-        # harness:opencode label on one issue: no Factory sets defaults.harness or
-        # evaluation.treatmentHarness (test-agent-harness-trial-off.py).
+        # The OpenCode harness, the factory's default since 2026-11-27 (the Factory's defaults.harness):
+        # pinned, the chart renders images.opencode and adds this repository to the run-pod admission
+        # policy. No Factory runs a harness trial (test-agent-harness-default.py).
         opencode:
           repository: ghcr.io/smana/maku-opencode
           tag: "v0.58.0@sha256:41a7b669c3b1a5704042d97fd5aec9f015dbaf7839eef12fa5e1b970028a57cc"

@@ -10,8 +10,8 @@ diataxis: reference
 
 Every run on this platform is bounded by the `Factory` catalogue in
 `tooling/base/agent-factory/resources/factory.yaml`, the run-controller values in
-`infrastructure/base/room-broker/helmrelease.yaml`, and the OpenHands harness defaults in Maku's
-`maku-harness` image. For the full schema of every `Factory`, `AgentRun` and budget key, see Maku's
+`infrastructure/base/room-broker/helmrelease.yaml`, and the harness defaults in Maku's `maku-opencode` and
+`maku-harness` images. For the full schema of every `Factory`, `AgentRun` and budget key, see Maku's
 [configuration reference]({{< maku "docs/reference/config.md" >}}) and
 [budgets reference]({{< maku "docs/reference/budgets.md" >}}). How to tune these knobs is on
 [Harness tuning]({{< relref "/docs/operate/tune-a-run.md" >}}).
@@ -115,5 +115,5 @@ and [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}
 | RuntimeClass and egress | `gvisor`, isolated via `egressProxy` to GitHub, the model gateway (`:8080` public, `:8081` internal) and allowed package registries | `infrastructure/base/room-broker/helmrelease.yaml` |
 | Model and git credentials | Per-run projected gateway token (`LLM_API_KEY_FILE`) and per-run `<run>-git` Secret (`GIT_TOKEN_FILE`) | `infrastructure/base/room-broker/helmrelease.yaml`, `tooling/base/agent-factory/helm-values-configmap.yaml` |
 | Loop and call bounds | `reasoning_effort: high` (unset in env), 300 s call timeout (1 retry before first token), 3 retries on 503/reset (never 429), `max_iterations: 500`, stuck detector over last 20 events, condenser at 80 events (keeps first 4), 30,000-char event truncation | [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}}), [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}}) |
-| Harness | OpenHands by default. The OpenCode image is pinned by digest and admitted: a maintainer's `harness:opencode` label runs one task on OpenCode, and a trial (`evaluation: {controlPercent: 50, treatmentHarness: opencode}` on one cluster) runs half of the unlabelled tasks on it. `/factory retry harness=openhands` moves a task back | `infrastructure/base/room-broker/helmrelease.yaml` (`runController.images.opencode`) |
+| Harness | OpenCode by default (`defaults.harness: opencode` in `factory.yaml`). A maintainer's `harness:openhands` label runs one task on OpenHands, and `/factory retry harness=openhands` moves a task back. A task pinned to a Gemini/Vertex alias also needs `harness:openhands`: Vertex refuses OpenCode's tool schemas (Smana/maku#798). The OpenCode image is pinned by digest | `tooling/base/agent-factory/resources/factory.yaml` (`defaults.harness`), `infrastructure/base/room-broker/helmrelease.yaml` (`runController.images.opencode`) |
 | Tools, checks and telemetry | Terminal, file editor, task tracker, room MCP (`:8090`), optional `search` child (40 iterations, 300k tokens, 300 s, max 6/run at `low` effort), `.github/agent-checks.yaml` pre-push and end-of-run check, 15 s step batches, SIGTERM checkpoint commit, OTLP spans without prompt text | [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}}) |

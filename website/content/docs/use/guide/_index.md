@@ -47,6 +47,7 @@ flowchart TB
 | 9. [Work across repositories]({{< relref "multi-repository.md" >}}) | Plan one change that spans two repositories |
 | 10. [When things go wrong]({{< relref "when-things-go-wrong.md" >}}) | Fix a set-up problem, unstick a task, stop everything, and undo a merge |
 | 11. [Configure merge policies]({{< relref "merge-policies.md" >}}) | Change a class, check the change, and promote a shadow class to live |
+| 12. [Automate repository upkeep]({{< relref "upkeep-routines.md" >}}) | Browse the routine catalog, configure schedules and prompts, monitor yield, and check versions in Settings |
 
 Keep the [cheat sheet]({{< relref "cheat-sheet.md" >}}) at hand: every label, comment, Slack phrase,
 tool and command on one page.

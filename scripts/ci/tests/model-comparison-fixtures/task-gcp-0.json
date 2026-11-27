@@ -1,0 +1,64 @@
+{
+  "apiVersion": "maku.ogenki.io/v1alpha1",
+  "kind": "Task",
+  "metadata": {
+    "name": "2b374w2q",
+    "namespace": "agent-system",
+    "creationTimestamp": "2026-11-26T11:05:29Z"
+  },
+  "spec": {
+    "repository": "Smana/ai-native-ref",
+    "issue": 568,
+    "text": "# docs(cheat-sheet): add the harness label and the OpenHands rescue comment [tri",
+    "dataClass": "public",
+    "budget": {
+      "model": "agent-default",
+      "runMicroUSD": 2550000,
+      "runMinutes": 45,
+      "runTokens": 1500000,
+      "taskMicroUSD": 5100000,
+      "taskTokens": 3000000,
+      "tier": "standard"
+    }
+  },
+  "status": {
+    "phase": "Done",
+    "reason": "merged",
+    "outcome": "accepted",
+    "endedAt": "2026-11-26T12:10:31Z",
+    "usage": {
+      "costMicroUSD": 273143,
+      "tokens": 725055
+    },
+    "profile": {
+      "checks": true,
+      "cohort": "labeled",
+      "counted": true,
+      "harness": "opencode",
+      "harnessSource": "labeled",
+      "name": "standard",
+      "resolved": true,
+      "source": "repository"
+    },
+    "runs": [
+      {
+        "id": "puua3ywk",
+        "role": "implementer",
+        "trigger": "initial",
+        "reason": "agent_finished",
+        "verdict": null,
+        "tokens": 628011,
+        "costMicroUSD": 226863
+      },
+      {
+        "id": "qf55fwli",
+        "role": "reviewer",
+        "trigger": "review",
+        "reason": "agent_finished",
+        "verdict": "approve",
+        "tokens": 97044,
+        "costMicroUSD": 46280
+      }
+    ]
+  }
+}

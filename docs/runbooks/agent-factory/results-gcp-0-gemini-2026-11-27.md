@@ -7,8 +7,46 @@ the lead's record).
 | Item | Value |
 |---|---|
 | Cluster | gcp-0 (`gke_ogenki-435905_europe-west4-a_gcp-0`) |
-| Platform | ANR v4.1.9, Maku v0.55.0 for L1 and the L2 baseline |
+| Platform | ANR v4.1.9 and Maku v0.55.0 for L1 and the L2 baseline; ANR v4.1.11 and Maku v0.57.0 from L2's Neon run on |
 | L1 | Done by the lead before this ledger: T1 passed, the meter matched the list price exactly |
+
+## Close-out: the comparison is deferred
+
+The owner stopped the Gemini session at the integration test on 2026-11-27. The comparison is
+deferred and will be resumed later.
+
+| Step | Result |
+|---|---|
+| L1 · wire, identity, metering | **Passed.** Both aliases answered 200 through the gateway with the proxy's own Workload Identity and no key. The meter matched the list price exactly |
+| D0 · images | **Passed.** Both `gemini-standard` and `gemini-light` read a test image, so gcp-0's vision list carries them (ANR #618) |
+| L2 · the planner on Neon | **Failed.** 6 of 10 plans timed out at the 20 s deadline; p95 was 20.24 s against Z.ai's 11.96 s. About USD 0.023 a plan against 0.002. The planner patch (#610) was reverted (#621) |
+| L3 · roles | **Two blockers.** (1) OpenHands on `gemini-standard` at effort `high` was ended by the stall detector after 14 minutes. All 14 calls were 200, at 35 to 90 s each, and the room went quiet for 10 minutes (#622). (2) OpenCode cannot start: Vertex refuses `exclusiveMinimum` in three of OpenCode's built-in tool schemas (#623; Smana/maku#798, agentgateway/agentgateway#4242). The standalone-reviewer and tester legs could not run (Smana/maku#797; no `testFirst` repository) |
+| L4 · paired comparison | **Stopped, no verdict.** Three pairs completed (2, 3 and 5; blind packets prepared, key at the end). Pairs 1 and 4 have one pull request each; their queued halves (#625, #632) were closed as not planned. Batch 2 (pairs 6 to 10) was never filed. The open L4 pull requests are ordinary fixes for the owner |
+
+### Follow-ups
+
+| Issue | What |
+|---|---|
+| Smana/maku#797 | A `model:`/`harness:` pin on a review-only task (`factory/review`) |
+| Smana/maku#798 | OpenCode on a `vertex` alias: the `exclusiveMinimum` schemas. Fix upstream (agentgateway#4242, draft comment below); meanwhile refuse the pairing and say why |
+| Smana/maku#801 | Keep a run's harness event log after its pod is gone, so a stall like #622's can be diagnosed |
+
+### To resume later
+
+First, set what L3 showed:
+
+- **Effort.** Run Gemini's implementer at `reasoning_effort` `medium` or `low`, or widen the stall window for it. At `high`, a call takes about a minute.
+- **OpenCode.** Wait for the `exclusiveMinimum` fix (agentgateway#4242, or Maku#798's refusal), or keep both arms on OpenHands as L4 did.
+
+Then rerun L3 on OpenHands and expect no stall. File L4 afresh on the frozen rule below, unchanged:
+
+- B's merged count is at least A's minus one;
+- B's USD per merged task is at most 1.5 times A's;
+- B has zero signature 400s.
+
+Any change to effort applies to both arms, so the arms still differ only in model. Read the result
+with `model-comparison-report.py` and `maku stages --by model`. Report B's per-call latency next to
+its stall count.
 
 ## L2 · The planner
 
@@ -175,16 +213,17 @@ nothing makes the rule indecisive. The owner may override the rule; an override 
 Filed 2026-11-27 09:58:36 to 09:58:50 UTC, each pair back to back: `workflow:standard`,
 `harness:openhands` and `factory/ready` on both copies, `model:gemini-standard` on one. The titles
 carry the suffixes `[L4 v]` and `[L4 w]`. Which suffix is which arm is in the key at the end of this
-file. Five pairs today, five after 00:00 UTC (caps: tasksPerDay 20, activeTasks 3, awaitingHumanWIP 5;
-none raised).
+file. Caps: tasksPerDay 20, activeTasks 3, awaitingHumanWIP 5; none raised. Queued tasks waited on
+`waiting_active_tasks`, then `waiting_review_wip`, as the session's pull requests filled the review
+WIP. The second batch of five pairs was not filed (close-out above).
 
 | Pair | Task | `[L4 v]` | `[L4 w]` |
 |---|---|---|---|
-| 1 | kb-measures `--json` | #625 | #626 |
-| 2 | runbook 30 links back to the README | #627 | #628 |
-| 3 | gen-prices refuses `cacheRead` above `input` | #629 | #630 |
-| 4 | cost-crosscheck `--json` names its window | #631 | #632 |
-| 5 | runbook 32 says when to run a comparison | #633 | #634 |
+| 1 | kb-measures `--json` | #625 (closed, not planned) | #626 → PR #644 |
+| 2 | runbook 30 links back to the README | #627 → PR #641 | #628 → PR #642 |
+| 3 | gen-prices refuses `cacheRead` above `input` | #629 → PR #639 | #630 → PR #640 |
+| 4 | cost-crosscheck `--json` names its window | #631 → PR #638 | #632 (closed, not planned) |
+| 5 | runbook 32 says when to run a comparison | #633 → PR #636 | #634 → PR #643 |
 
 ## Appendix: the L2 prompts
 

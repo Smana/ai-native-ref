@@ -31,8 +31,8 @@ sign-on. Sign in once, so your account exists, then ask an admin (someone in `ag
 you to `agents-member`.
 
 **5. Your GitHub account linked to your sign-in.** You see a room only if GitHub lets you read its
-repository, so the platform must know who you are on GitHub. Link the accounts yourself, once, on the
-sign-in page.
+repository, so the platform must know who you are on GitHub. Link the accounts yourself, once: open
+`/link/github` on the room pages and press **Link GitHub**.
 
 ## Check it works {#check}
 

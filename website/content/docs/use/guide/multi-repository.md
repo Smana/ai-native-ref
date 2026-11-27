@@ -56,7 +56,7 @@ acceptance check of each, and the dependency between them.
 A coordination plan files nothing: no issue, no task, no run, no label. Both repositories must be public
 and on the planner's list, and you must be able to write the primary.
 
-Example (the reference host): the planner's list names `Smana/ai-native-ref`, `Smana/runlore-kb` and `Smana/runlore`, so a
+Example (the reference host): the planner's list names `Smana/ai-native-ref`, `Smana/runlore-kb`, `Smana/runlore` and `Smana/image-gallery`, so a
 plan may span any two of them.
 
 ## Confirm and run {#confirm}

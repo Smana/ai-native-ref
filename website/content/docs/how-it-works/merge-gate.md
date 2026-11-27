@@ -5,7 +5,7 @@ aliases:
 linkTitle: The merge gate
 weight: 15
 description: "Which gate status, GitHub Apps, approval rule and daily auto-merge caps this platform uses."
-lastVerified: 2026-11-15
+lastVerified: 2026-11-27
 diataxis: values
 ---
 
@@ -29,8 +29,8 @@ daily cap in `tooling/base/agent-factory/resources/repository-<name>.yaml`:
 | Factory App (issue narration and status) | `ogenki-agent-factory[bot]`, Secret `agent-factory-github` | `tooling/base/agent-factory/helm-values-configmap.yaml` |
 | Merger App (the only identity allowed to merge) | `ogenki-agent-merger[bot]`, `apps.merger.mode: separate`, Secret `agent-factory-merger` | `tooling/base/agent-factory/resources/factory.yaml`, `tooling/base/agent-factory/helm-values-configmap.yaml` |
 | Approve-to-merge | `approveToMerge: true` (one maintainer approval of the current commit triggers the merger App outside the daily cap) | `tooling/base/agent-factory/resources/factory.yaml` |
-| Daily auto-merge cap (`merge.maxPerDay`) | `1` on `Smana/cloud-native-ref` (`dead-links` also sets `maxPerDay: 1`, `deps-patch` `2`), `2` on `Smana/ai-native-ref`, `5` on `Smana/runlore-kb` and `Smana/runlore` | `tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml`, `tooling/base/agent-factory/resources/repository-ai-native-ref.yaml`, `tooling/base/agent-factory/resources/repository-runlore-kb.yaml`, `tooling/base/agent-factory/resources/repository-runlore.yaml` |
-| CI fix runs and check re-runs | `fixRuns: 2, checkReruns: 1` on `Smana/cloud-native-ref`; `fixRuns: 1, checkReruns: 0` on the other three repositories | `tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml`, `tooling/base/agent-factory/resources/repository-ai-native-ref.yaml` |
+| Daily auto-merge cap (`merge.maxPerDay`) | `1` on `Smana/cloud-native-ref` (`dead-links` also sets `maxPerDay: 1`, `deps-patch` `2`), `2` on `Smana/ai-native-ref`, `3` on `Smana/image-gallery`, `5` on `Smana/runlore-kb` and `Smana/runlore` | `tooling/base/agent-factory/resources/repository-<name>.yaml` |
+| CI fix runs and check re-runs | `fixRuns: 2, checkReruns: 1` on `Smana/cloud-native-ref`; `fixRuns: 1, checkReruns: 0` on the other four repositories | `tooling/base/agent-factory/resources/repository-cloud-native-ref.yaml`, `tooling/base/agent-factory/resources/repository-ai-native-ref.yaml` |
 
 Unlike Maku's default (`apps.merger.mode: factory` sharing one App), this platform isolates the right to
 merge in a dedicated third GitHub App (`ogenki-agent-merger[bot]`) so neither the agents App nor the

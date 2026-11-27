@@ -14,7 +14,8 @@ row says otherwise; only a maintainer's count.
 |---|---|
 | `factory/ready` | Starts the issue as a task |
 | `workflow:<name>` | Before `factory/ready`: picks `workflow:quick` or `workflow:careful` (no label runs `standard`) |
-| `harness:<name>` | Before `factory/ready`: a maintainer picks `harness:opencode` or `harness:openhands` (no label runs the factory's default) |
+| `harness:<name>` | Before `factory/ready`: a maintainer picks `harness:openhands` or `harness:opencode` (no label runs the factory's default, OpenCode) |
+| `model:<alias>` | Before `factory/ready`: a maintainer pins the implementer and the reviewer to one gateway alias, such as `mistral-standard`; a provider alias needs a public task |
 | `factory/stop` | Ends the task's runs; its branch stays. On the pinned control issue, it stops every task |
 | `factory/revert` | On a pull request merged automatically, within 7 days: opens the revert |
 | `factory/publish` | On a RunLore proposal's stub issue (`factory/proposed`): files the fix issue ([RunLore]({{< relref "/docs/how-it-works/runlore.md" >}})) |
@@ -22,7 +23,6 @@ row says otherwise; only a maintainer's count.
 | `report` | Findings on the issue, no branch |
 | `factory/review` | On a person's pull request: one review verdict, no push |
 | `workflow:thorough` | Implementer, security reviewer, reviewer; this repository only |
-| `harness:opencode` | Runs the task on the OpenCode harness; opt-in |
 
 ## Comments you write {#comments}
 
@@ -42,6 +42,8 @@ row says otherwise; only a maintainer's count.
 | You do | What happens |
 |---|---|
 | Request changes | A new run revises the same branch, with your review as its brief |
+| Nothing, when it conflicts with main | A rebase run, one of the task's CI fix runs, rebases the branch onto main; with none left, it waits for you |
+| Read **Try it**, at the end of the body | The `maku checkout` line for its branch, and the room's link |
 | Approve, from the web page | The commit you approved merges within a minute |
 | `gh api repos/<owner>/<repo>/pulls/<n>/reviews -f commit_id=<sha> -f event=APPROVE` | Approves exactly the commit you read |
 
@@ -98,10 +100,12 @@ maku doctor                       # every line should read ok
 maku rooms --mine                 # your tasks; also --needs-me, --all
 maku needs                        # what needs you, new since your last call
 maku status <task>                # brief, card, what needs you
+maku why <task>                   # why it stopped, and what to do next
 maku changes <task>               # what changed since your last call
 maku post <task> --queue "<note>" # a note for the next run
 maku checkout <task>              # the branch in a worktree beside the repo
 maku watch <task>                 # follow a room live
+maku help                         # the everyday commands; maku help <command> for one
 ```
 
 Every command and flag: [Reference › Commands]({{< relref "/docs/reference/commands.md" >}}).

@@ -3,27 +3,32 @@ title: Providers
 aliases:
   - /docs/platform/ai-platform/agents/how-it-works/providers/
 weight: 50
-description: "Moonshot (Kimi K3.1 Pro) and Mistral (Medium, Small) as selectable providers for public work: what they are, where data is processed, and how a class switches them on."
-lastVerified: 2026-11-25
+description: "Moonshot (Kimi K3.1 Pro), Mistral (Medium, Small) and Gemini on Vertex AI as selectable providers for public work: what they are, where data is processed, and how a workflow or a label picks one."
+lastVerified: 2026-11-27
 diataxis: explanation
 ---
 
 Every run asks for `agent-default` unless its class picks otherwise: GLM-5.3 on Z.ai for public work,
-Claude for internal work. Two more providers are available **for public data only**, and selectable per class. Nothing changes by
-default. Each run's cost is metered at the provider's list price, like any other run. Mistral is **not
+Claude for internal work. More providers are available **for public data only**: Kimi and Mistral,
+and Gemini on Vertex AI where the host runs on Google Cloud. A workflow selects one per role, or a
+maintainer pins one task with a `model:<alias>` label. Nothing changes by default.
+
+Each run's cost is metered at the provider's list price, like any other run. Mistral is **not
 recommended as an implementer**: it can spend a run's whole token budget on a small change. Their state
-is on the [status page]({{< relref "/docs/status.md#roadmap" >}}). The harness a task's agents run
-on is likewise opt-in per issue: a maintainer's `harness:opencode` label runs that one task on
-OpenCode, per the [harness reference]({{< relref "/docs/reference/harness.md#composition" >}}).
+is on the [status page]({{< relref "/docs/status.md#roadmap" >}}). The harness is chosen separately:
+OpenCode unless a maintainer labels the task `harness:openhands`, per the
+[harness reference]({{< relref "/docs/reference/harness.md#composition" >}}).
 
 | Alias | Model | Tier | Processed in |
 |---|---|---|---|
 | `kimi-frontier` | Kimi K3.1 Pro (`k3.1-pro`, Kimi Code subscription) | frontier | China |
 | `mistral-standard` | Mistral Medium 3.5 (`mistral-medium-2604`) | standard | EU |
 | `mistral-light` | Mistral Small 4 (`mistral-small-2603`) | light | EU |
+| `gemini-standard` | Gemini 4 Neon (`gemini-4-neon`), on Vertex AI | standard | EU (Vertex's `eu` multi-region) |
+| `gemini-light` | Gemini 4 Hydrogen (`gemini-4-hydrogen`), on Vertex AI | light | EU (Vertex's `eu` multi-region) |
 
 {{< callout type="warning" >}}
-**Public data only.** Both are processors approved for public repositories and tasks, not
+**Public data only.** All three are processors approved for public repositories and tasks, not
 for internal data. Internal tasks never get them, held three times: the model gateway serves them only
 on its `public` listener, the `AgentRun` refuses an internal run that names one
 ([what a run may call]({{< relref "/docs/how-it-works/roles.md#profiles" >}})), and the factory applies
@@ -56,6 +61,12 @@ message's `content` as a string only, and Mistral answers with a list of chunks 
 `mistral` backend forces `reasoning_effort` to `"none"` (`infrastructure/base/agent-gateway/mistral.yaml`).
 Kimi is unaffected.
 
+**Gemini needs no key.** The gateway calls Vertex AI with its own Google identity (GKE Workload
+Identity), so no key exists in a Secret or in OpenBao
+(`infrastructure/gcp-0/agent-gateway/model-gateway/helmrelease-vertex.yaml`). A task pinned to a
+Gemini alias runs on OpenHands, with one comment saying why: Vertex refuses OpenCode's tool schemas
+(Smana/maku#798).
+
 A run never switches model mid-conversation, and there is no failover to another provider: a
 provider's 429 ends the run, as Z.ai's does.
 
@@ -63,6 +74,8 @@ provider's 429 ends the run, as Z.ai's does.
 
 The agents' own keys, in OpenBao: `bao kv put -mount=agents moonshot api_key=-` and
 `bao kv put -mount=agents mistral api_key=-`. Set a spend cap for each key on its provider's console.
+Gemini needs the Vertex AI API enabled on the project and the gateway's ServiceAccount bound to a
+Google identity allowed to call it (`infrastructure/gcp-0/agent-gateway/model-gateway/workloadidentity.yaml`).
 A smoke test through the gateway is in
 [runbook 14](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/14-gcp-0-session.md#feature-15-providers-a-smoke-through-the-gateway).
 

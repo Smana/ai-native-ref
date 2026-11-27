@@ -2,7 +2,7 @@
 title: Commands
 weight: 15
 description: "This platform's room broker URL, OIDC sign-in command, MCP setup and hand-started run task, with a link to Maku's CLI reference."
-lastVerified: 2026-11-15
+lastVerified: 2026-11-27
 diataxis: values
 ---
 
@@ -22,7 +22,7 @@ ZITADEL issuer:
 maku configure \
   --url https://rooms.<private-domain> \
   --issuer https://zitadel.<private-domain> \
-  --client-id <roomctl-client-id> \
+  --client-id <maku-client-id> \
   --project-id <zitadel-project-id>
 maku login
 maku setup opencode   # or: claude, codex, gemini, cursor, copilot

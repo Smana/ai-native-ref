@@ -51,6 +51,7 @@ These capabilities were demonstrated end to end on a real cluster.
 | Model calls are authenticated, routed, and metered; Claude is available for internal work, and Kimi and Mistral for public work | [agentgateway]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}}), [providers]({{< relref "/docs/how-it-works/providers.md" >}}) |
 | A coding agent hands work off in plain words and a form confirms it; the merge gate chooses a policy from the diff, in shadow | [v4 validation](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/28-v4-aws-validation.md), [results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-aws-0-2026-11-16.md), [screencast](https://blog.ogenki.io/maku/) |
 | Gateway budgets, cache alerts, and cost by role or charged identity make spend visible | [Budgets and cache](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md), [cost cross-check](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-g--the-cost-cross-check) |
+| A run reaches GitHub's release-download hosts only while its pinned toolchain installs, before the agent starts; the closed window refuses later downloads | [GitHub egress drill](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/31-github-egress-drill.md), [results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-github-egress-drill-2026-11-27.md) |
 | Upkeep routines catalog, `/routines` UI, preview/ceiling validation, and `/settings` environment and version panel run live with least-privilege RBAC | [Upkeep routines]({{< relref "/docs/use/guide/upkeep-routines.md" >}}), [Maku v0.58.0](https://github.com/Smana/maku/releases/tag/v0.58.0) |
 
 <span id="class-modes"></span>
@@ -76,9 +77,12 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 | Plan first, review only and findings only | On, with acts on the room page and whole multi-issue plans filed at once. Needs live proof. [Scope and split]({{< relref "/docs/how-it-works/factory.md" >}}) |
 | Promotion by pull request and the factory's own reverts | The promotion button opens its pull request on one repository's manifest; reverts of an unattended merge merge themselves. Needs live proof. [Merge policies]({{< relref "/docs/use/guide/merge-policies.md#promote-a-policy" >}}) |
 | OpenCode, the default harness | Every unlabelled task runs on OpenCode since 2026-11-27, the owner's decision ahead of the 30-per-arm trial; a maintainer's `harness:openhands` label runs one task on OpenHands, and a task pinned to a Gemini/Vertex alias runs on OpenHands, with one comment on the issue saying so (Smana/maku#798). [Harness reference]({{< relref "/docs/reference/harness.md#composition" >}}) |
+| Gemini on Vertex AI | `gemini-standard` and `gemini-light` serve public work on `gcp-0` only, with the gateway's own Workload Identity (no key) and metered at list price. The integration test passed; the comparison against `agent-default` is deferred, and the planner stays on Z.ai (Gemini missed its 20 s deadline). [Providers]({{< relref "/docs/how-it-works/providers.md" >}}), [results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-gcp-0-gemini-2026-11-27.md) |
+| Developer additions from Maku v0.56–v0.58 | A pull request that conflicts with main gets one rebase run; the pull request body ends with **Try it**; `maku why` and `maku help`; the **New task** picker lists every served repository; `maven` and `node` egress profiles; a repository's own runtime image and size. Built and pinned; each needs live proof. [Cheat sheet]({{< relref "/docs/use/guide/cheat-sheet.md" >}}) |
+| Developers with write access start tasks | Maku's `access.start: write` is built and off here: it takes effect only once per-person caps are enforced. [Factory configuration]({{< relref "/docs/reference/factory-configuration.md" >}}) |
 | Per-person caps and more auto-merge classes | Daily caps are counted in shadow; additional classes are evaluated before promotion. [Caps](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week), [classes](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/16-deps-patch.md) |
 | Upkeep routines scheduled runs and yield breaker | All six starter `Routine` objects are accepted and inert on `gcp-0` with `/routines`, catalog, preview validation, and `routines.uiWrite: false` active; binding routines on repositories to measure live merge yield and breaker trips is next. [Upkeep routines]({{< relref "/docs/use/guide/upkeep-routines.md" >}}) |
-| Harness visual verification and service sidecars | Opt-in loopback `maku-browser` Playwright sidecar and loopback Postgres/Redis service sidecars are shipped in Maku v0.58.0 and ready for live repository runs. [Browser verification]({{< maku "docs/browser-verification.md" >}}) |
+| Harness visual verification and service sidecars | On: `ai-native-ref`'s implementer and tester runs get a loopback browser and keep their screenshots in the room, and `image-gallery`'s runs get a loopback Postgres, empty at each start. Both need live proof ([runbook 33](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/33-browser-verification.md)). [Browser verification]({{< maku "docs/browser-verification.md" >}}), [repository ready]({{< relref "/docs/use/make-your-repository-ready.md#services" >}}) |
 
 ## In progress {#v3x}
 
@@ -118,7 +122,12 @@ v4 lets anyone run the factory. v5 proves Maku with one external GitHub and Kube
 | GitLab, Jira, and Linear integrations | Deferred until after PoC #1 proves the core GitHub and Kubernetes loop. |
 | Event triggers and fleet campaigns | Start work from CI failures, alerts, or schedules, and roll a change out across repositories once hardening is live. |
 | Signed provenance and reviewed repository memory | Attest how a change was produced and capture what agents learn as reviewed instructions. |
-| Gemini as a provider | Add another public-work model with its own capability profile and cost checks. |
+| Gemini comparison | Rerun Gemini's roles at a lower reasoning effort, then the paired comparison against `agent-default` under its frozen rule. [Results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-gcp-0-gemini-2026-11-27.md#to-resume-later) |
+| OpenCode on Vertex | Run OpenCode on a Gemini alias once agentgateway translates its tool schemas' exclusive bounds (tracked in [maku#798](https://github.com/Smana/maku/issues/798)). |
+| An in-cluster Go module proxy | Give runs one in-cluster `GOPROXY` as their only route to Google Cloud Storage, then drop it from the `golang` profile (tracked in [maku#808](https://github.com/Smana/maku/issues/808)). |
+| CI logs through the room tools | A run reads a failing Actions job's log server-side, since runs cannot reach GitHub's log storage (tracked in [maku#804](https://github.com/Smana/maku/issues/804)). |
+| A run's harness event log after its pod is gone | Keep the log so a stalled run can be diagnosed (tracked in [maku#801](https://github.com/Smana/maku/issues/801)). |
+| Pins on a review-only task | Honour `model:` and `harness:` labels on a `factory/review` task (tracked in [maku#797](https://github.com/Smana/maku/issues/797)). |
 | Serving improvements | GPU sharing, larger or denser models, and cost per tenant, each with its own measured trigger. [Serving]({{< relref "/docs/how-it-works/serving/_index.md" >}}) |
 | Dedicated Maku documentation site | Keep `Smana/maku`'s README and docs as the standalone front door through PoC #1; spin up a dedicated site only after field validation. |
 | Eval bench and open-weight bake-off | Fixed issues will compare acceptance and cost per accepted pull request when funded. [Design](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-22-eval-bench-design.md) |
@@ -126,7 +135,9 @@ v4 lets anyone run the factory. v5 proves Maku with one external GitHub and Kube
 ## Known limitations {#before-v3}
 
 - The planner reads public repositories only; for a private repository, file the issue on GitHub.
-- A judge can quote a CI log only when the sandbox's egress policy allows GitHub's Actions log host.
+- A judge can quote a CI log only when the sandbox's egress policy allows GitHub's Actions log host ([maku#804](https://github.com/Smana/maku/issues/804)).
+- A queued task whose issue was closed still starts ([maku#811](https://github.com/Smana/maku/issues/811)).
+- A `factory/ready` label on a repository the factory does not serve gets no answer ([maku#784](https://github.com/Smana/maku/issues/784)).
 - Some final costs settle after the task status is written ([maku#279](https://github.com/Smana/maku/issues/279), [maku#280](https://github.com/Smana/maku/issues/280)); a few approval-binding edge cases remain ([maku#304](https://github.com/Smana/maku/issues/304)).
 - Mistral can spend an entire run budget on a small change, so it is not recommended as the implementer.
 - Semantic Router decisions are not yet available as VictoriaMetrics series.

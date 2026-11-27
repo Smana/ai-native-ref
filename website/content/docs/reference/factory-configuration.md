@@ -2,7 +2,7 @@
 title: Factory configuration
 weight: 12
 description: "The Factory, Repository, MergePolicy and Helm values set on this platform that differ from Maku's chart defaults."
-lastVerified: 2026-11-25
+lastVerified: 2026-11-27
 diataxis: values
 ---
 
@@ -32,7 +32,7 @@ every `task check`:
 | Human API and OIDC preset | `listen: ":8082"`, `preset: zitadel`, `access: {links: broker, ttl: 5m}` | `tooling/base/agent-factory/helm-values-configmap.yaml` |
 | Sponsored and internal principals | `slack-app` (`dailyUSD: 5`, `maxCostUSD: 2`) and `runlore` in the cluster overlays | `tooling/aws-0/agent-factory/helm-values-sponsored.yaml`, `tooling/gcp-0/agent-factory/helm-values-sponsored.yaml` |
 | Meter and throttle queries | VictoriaMetrics (`:8428`) `gen_ai_client_token_usage_sum` and VictoriaLogs (`:9428`) `reason:RateLimit` | `tooling/base/agent-factory/helm-values-configmap.yaml` |
-| Control issue, defaults and workflows | `control: {repository: Smana/cloud-native-ref, issue: 2188}`, `defaults: {dataClass: public, predictedClass: review}`, `triage.controlPercent: 0`, `outcomes: [change, plan-first, review, report]`, `scoper.planTier: frontier` | `tooling/base/agent-factory/resources/factory.yaml`, `tooling/base/agent-factory/resources/repository-*.yaml` |
+| Control issue, defaults and workflows | `control: {repository: Smana/cloud-native-ref, issue: 2188}`, `defaults: {dataClass: public, predictedClass: review, harness: opencode}`, `triage.controlPercent: 0`, `outcomes: [change, plan-first, review, report]`, `scoper.planTier: frontier` | `tooling/base/agent-factory/resources/factory.yaml`, `tooling/base/agent-factory/resources/repository-*.yaml` |
 | Workflows and roles | `standard` and `careful` as stage lists, `standard` stepping up to `careful`; a custom `thorough` with a read-only `security-reviewer` role, its brief in `maku-factory.roleBriefs`. Each Repository sets `workflow.default: standard`, `stepUp` (`ask` on `cloud-native-ref`, `auto` elsewhere) and `planGate: ask` | `tooling/base/agent-factory/resources/factory.yaml`, `tooling/base/agent-factory/resources/repository-*.yaml`, `tooling/base/agent-factory/helm-values-configmap.yaml` |
 | Policy pull requests | `gitops: {repository: Smana/ai-native-ref, path: tooling/base/agent-factory/resources/repository-ai-native-ref.yaml}` | `tooling/base/agent-factory/resources/factory.yaml` |
 | Merge defaults (`spec.mergeDefaults`) | `gateStatus: true`, `policyBot: false`, `approveToMerge: true`, `verifyFor: 30m`, `revertWindow: 168h`, `awaitingCIFor: 24h`, `breaker: {window: 10, maxReverts: 1, maxFollowUps: 1, recoverAfter: 3}` | `tooling/base/agent-factory/resources/factory.yaml` |

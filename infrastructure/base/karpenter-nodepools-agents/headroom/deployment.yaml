@@ -43,7 +43,7 @@ spec:
       # containers use the run images, so the kubelet pre-pulls what an R3 run pulls.
       initContainers:
         - name: harness-admission
-          image: ghcr.io/smana/maku-harness:v0.57.2@sha256:8cf29388e95967f585563dbfb8c6f7860a5cea2c48b745a93a89f8bf3bd797bb
+          image: ghcr.io/smana/maku-harness:v0.58.0@sha256:0767bba405be76fdfdd1249c3051f2e4a48ba698a2f06964e0ccc627c34e3d4f
           restartPolicy: Always
           command: ["tini", "--", "python3", "-c"]
           args:
@@ -80,7 +80,7 @@ spec:
             seccompProfile:
               type: RuntimeDefault
         - name: room-bridge
-          image: ghcr.io/smana/maku-bridge:v0.57.2@sha256:7c8496232df7ba78fc28e270177e8e28cb83b4e1daef8bc96c53796101089d6b
+          image: ghcr.io/smana/maku-bridge:v0.58.0@sha256:db1fecbc6ad1ec9d5ead0c593fa1dfbed020dc7100e13835bfa884f87d906b8d
           args: ["gate"]
           resources:
             requests: {cpu: 10m, memory: 16Mi}
@@ -90,7 +90,7 @@ spec:
         # The browser sidecar's image (harness screenshots): pulled here so an opted-in run does
         # not pay it. Its gate and browser never start: the container only sleeps.
         - name: browser
-          image: ghcr.io/smana/maku-browser:v0.57.2@sha256:9840bdc1e1d2b74a0150127169763c51b9bf3961f4c24fecfb5a6d9144146bab
+          image: ghcr.io/smana/maku-browser:v0.58.0@sha256:317c4b67288440c17351f247b7e313614a19ce4be5bee4e943eb216b953b3c76
           command: ["sleep", "infinity"]
           readinessProbe:
             exec: {command: ["true"]}
@@ -103,7 +103,7 @@ spec:
             limits: {cpu: 50m, memory: 32Mi}
           securityContext: *container-security
         - name: harness
-          image: ghcr.io/smana/maku-harness:v0.57.2@sha256:8cf29388e95967f585563dbfb8c6f7860a5cea2c48b745a93a89f8bf3bd797bb
+          image: ghcr.io/smana/maku-harness:v0.58.0@sha256:0767bba405be76fdfdd1249c3051f2e4a48ba698a2f06964e0ccc627c34e3d4f
           command: ["tini", "--", "sleep", "infinity"]
           readinessProbe:
             exec: {command: ["true"]}

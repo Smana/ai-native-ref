@@ -109,3 +109,13 @@ patches:
       - op: add
         path: /spec/values/runController/model/gateway/aliases/public/-
         value: gemini-light
+      # Both Gemini aliases answered drill D0's red image (2026-11-27), so their runs see screenshots.
+      - op: test
+        path: /spec/values/runController/model/gateway/vision/public/4
+        value: mistral-standard
+      - op: add
+        path: /spec/values/runController/model/gateway/vision/public/-
+        value: gemini-standard
+      - op: add
+        path: /spec/values/runController/model/gateway/vision/public/-
+        value: gemini-light

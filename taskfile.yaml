@@ -63,9 +63,10 @@ tasks:
     cmds: ["./scripts/ci/check-sources.sh"]
 
   docs:
-    desc: Build the site (an unresolved relref fails it), check every repository path it names and keep its pages free of session history
+    desc: Build the site (an unresolved relref fails it), generate cross-domain redirects, check every repository path it names and keep its pages free of session history
     cmds:
       - cd website && hugo --gc --minify
+      - python3 scripts/ci/build-redirects.py --public website/public --map website/data/redirects.yaml
       - ./scripts/ci/verify-doc-paths.sh
       - python3 scripts/ci/check-reader-first.py
       - python3 scripts/ci/check-site-contract.py

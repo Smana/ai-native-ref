@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Asks the agent factory for one AgentRun (SP3 §4). Since SP3 the factory is the only creator
 # (C3): it derives the branch, and the principal is your ZITADEL identity, proven by the token
-# `roomctl token` prints (run `roomctl login` once). The body never names the principal; it names
+# `maku token` prints (run `maku login` once). The body never names the principal; it names
 # a branch only to resume a run the stop object ended (--branch agent/<runId>, R35).
 #
 # usage: agent-run.sh --role <implementer|reviewer|tester|triager> --class <public|internal>
@@ -62,10 +62,10 @@ fi
 endpoint="${AGENT_FACTORY_URL:-https://factory.priv.aws.ogenki.io}/v1/runs"
 ca="${AGENT_FACTORY_CA:-}"
 [ -f "$ca" ] || { echo "AGENT_FACTORY_CA must name the private CA's PEM (cloud-native-ref: opentofu/aws/openbao/management/.tls/ca.pem)" >&2; exit 2; }
-# Without the trap, a missing roomctl or a logged-out session aborts raw under set -e
+# Without the trap, a missing maku or a logged-out session aborts raw under set -e
 # (bash's own error, or an empty-token 401); say what to run instead, as the 401 handler does.
-token="$(roomctl token)" || { echo "not authenticated: run roomctl login" >&2; exit 1; }
-auth_hdr="Authorization: Bearer $token"  # argv-ok: roomctl's own short-lived token, issued per-process; not a credential leak
+token="$(maku token)" || { echo "not authenticated: run maku login" >&2; exit 1; }
+auth_hdr="Authorization: Bearer $token"  # argv-ok: maku's own short-lived token, issued per-process; not a credential leak
 resp="$(printf '%s' "$body" | curl -sS --cacert "$ca" -X POST "$endpoint" \
   -H "$auth_hdr" -H "Content-Type: application/json" \
   --data-binary @- -w '\n%{http_code}')"
@@ -76,7 +76,7 @@ case "$code" in
   429) echo "refused: your daily token budget for runs is spent (resets at 00:00 UTC)" >&2; exit 1 ;;
   403) echo "refused: $(jq -r .error <<<"$json") (agents group, admin-only internal or triager, repository allowlist, a task's branch, or not your room)" >&2; exit 1 ;;
   409) echo "refused: $(jq -r .error <<<"$json"): a running run already holds that room or branch" >&2; exit 1 ;;
-  401) echo "refused: not authenticated; run roomctl login" >&2; exit 1 ;;
+  401) echo "refused: not authenticated; run maku login" >&2; exit 1 ;;
   *) echo "refused ($code): $(jq -r '.error // .' <<<"$json")" >&2; exit 1 ;;
 esac
 run="$(jq -r .runId <<<"$json")"

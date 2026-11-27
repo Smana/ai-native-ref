@@ -46,8 +46,8 @@ to inspect every shipped (`catalog`) and cluster-authored (`custom`) `Routine`.
 
 The configurator (`/routines/<owner>/<repo>/<routine>/edit`) walks through delivery mode, UTC cron
 schedule (with live local and UTC previews of the next three runs), bounds, and an optional
-repository-owned prompt (`.github/agent-factory/upkeep/<routine>.md`, validated live for size,
-sections, and a `## Verify` checklist).
+repository-owned prompt (placed in the target repository under .github/agent-factory/upkeep as
+`<routine>.md`, validated live for size, sections, and a `## Verify` checklist).
 
 ![Guided Routine Configurator showing delivery mode cards, UTC cron schedule with next runs preview, bounds, split-view prompt editor, and Check and Generate YAML button.](/images/screenshots/routines-configurator.png)
 

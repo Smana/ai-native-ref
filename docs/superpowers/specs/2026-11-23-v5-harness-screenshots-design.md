@@ -198,3 +198,23 @@ Attaching screenshots to the **Room UI** and **GitHub pull requests** is explici
 | **AC6** | **Cost & prompt-cache discipline** | Ephemeral vision window keeps prompt-cache read share within 5 percentage points of non-screenshot baseline runs and enforces `maxScreenshots` ceiling |
 | **AC7** | **Multi-harness parity** | Playwright MCP contract passes offline suites on both `OpenCode` and `OpenHands` drivers (and is documented for BYO `Claude Code`) |
 | **AC8** | **Vision metering accuracy** | `agentgateway` meters vision-turn token usage and USD cost accurately against configured provider pricing with zero unpriced fallbacks |
+
+---
+
+## 11. As built (Maku v0.56.0), 2026-11-27
+
+Built from the Maku plan [`docs/superpowers/plans/2026-11-26-harness-screenshots-plan.md`](https://github.com/Smana/maku/blob/main/docs/superpowers/plans/2026-11-26-harness-screenshots-plan.md) and its spike ledger. Phase B, deferred in §9, is built too, at the owner's request. Where the build departs from this spec:
+
+| Section | Spec | As built |
+|---|---|---|
+| §5.2, §8 (SSRF row) | "zero egress": the CNI drops the browser's packets | Network policy is per pod, so the sidecar shares the harness's egress. Three layers instead: the gate's literal loopback URL check, Chromium's dead proxy and resolver rules for every other host, and Playwright's `allowedOrigins` as hygiene only. A renderer exploit can reach what the pod reaches; the sidecar holds no credential. |
+| §5.1 | tools "explicitly disabled" | The Go gate (`maku-browser-gate`) serves a 19-tool allow-list, default deny, so `browser_evaluate`, `browser_run_code_unsafe`, `browser_file_upload`, `browser_drop` and every WebMCP tool are never served. |
+| §6.1, §6.2 | `capabilities.vision` in the gateway catalog; a `visionAlias` | The run-controller's `model.gateway.vision.{public,internal}` lists the aliases whose model sees images; no delegate alias. `glm-5.3` is text-only, so a public run on the default alias is not on it. |
+| §6.3 | no vision: no `browser_take_screenshot` | Owner decision: the tool stays; the gate keeps the screenshot for the room and answers the model with text only. A text-only model never receives an image. |
+| §4.3, §5.3 | `/workspace/.maku-screenshots/` copies; an ephemeral vision window | Not built (owner decision): no PNG is written to the workspace, and AC6 is measured in the drill first. |
+| §4.2 | the admission policy reads the AgentRun | It sees the pod only, so it keys on the run-controller's role label: a `browser` container is admitted on implementer and tester pods only, with its own `/tmp` and cache and no env from a source. |
+| §4.1 | a sidecar container | A native sidecar (init container with `restartPolicy: Always`), so the kubelet stops it with the harness. |
+| §9 | Phase B deferred: an `output_screenshot` safe output, a bucket | Built without a model-facing tool: the gate keeps each screenshot, the room-bridge (whose token never enters the harness container) relays it, and the broker re-encodes it and stores it in Postgres beside the room (deleted with it). The room UI shows a gallery per run. GitHub gets a link to the gallery in the verdict comment, never pixels (owner decision). |
+| — | images in the request (not in this spec) | Built: GitHub-hosted issue images are fetched by the factory, stored as the room's request images, and served to a vision run by `room_image`. |
+
+The gVisor contract (B1–B8) passes under runsc in Maku's CI. The live drill is [runbook 33](../../runbooks/agent-factory/33-browser-verification.md).

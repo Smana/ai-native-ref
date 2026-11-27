@@ -21,6 +21,9 @@ spec:
   # v3 feature 3: what a check-enabled run requests beyond github. standard and careful set
   # checks: true in Factory.spec.workflows.
   checks: {egress: [golang, pypi]}
+  # Harness screenshots (Maku v0.56.0): implementer and tester runs get a loopback-only headless
+  # browser to check the website they change, and every screenshot shows in the room. Ten a run.
+  screenshots: {enabled: true, roles: [implementer, tester], maxScreenshots: 10}
   schedules:
     # dead-links' intake here (MC6, F3): what two nightly runs of this repository's
     # dead-links.yaml agree on. Inert only if the class is off (MC14). The name keys every

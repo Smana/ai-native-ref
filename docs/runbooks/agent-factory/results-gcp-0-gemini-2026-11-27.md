@@ -76,6 +76,39 @@ Verdict: **L2 fails on its stop condition** (a timeout; p95 ≥ 15 s). The runbo
 the planner patch (#610) before anything else. Neon stays off the planner. The four Neon plans
 that answered are kept for the owner's blind ranking beside the ten Z.ai plans.
 
+## L3 · Roles on both harnesses
+
+| Run | Issue | Harness | State |
+|---|---|---|---|
+| Implementer, then reviewer (pinned together by `model:gemini-standard`) | #622 | OpenHands | filed |
+| Implementer, then reviewer | #623 | OpenCode | filed |
+
+Two legs of the runbook cannot run on v0.57.0 and are recorded as gaps, not stops:
+
+- **A standalone reviewer** (`factory/review` on a pull request): triage reads no `model:` or
+  `harness:` pin on a review outcome (Maku `Classify.pin` returns none for review), so the run would
+  not be on Gemini. The reviewer leg is the reviewer run of #622 and #623, which the pin moves with
+  the implementer and which must post through `room_verdict`.
+- **The tester**: no Repository on gcp-0 sets `testFirst` (ai-native-ref's says why, TO4), so no
+  workflow runs the tester.
+
+## L4 · The rule, frozen before the first pair is filed
+
+Frozen on 2026-11-27, before any L4 issue exists. B is `model:gemini-standard` on the implementer
+and the reviewer; A is the factory's default (`agent-default`). Everything else is identical: the same
+body, the same `workflow:standard` label, the OpenHands harness, the same efforts, caps and checks.
+
+**B earns a 30+30 `evaluation.treatmentModel` trial only if all three hold:**
+
+1. B's merged count is at least A's minus one.
+2. B's USD per merged task (total USD / merged) is at most 1.5 × A's.
+3. B has zero signature 400s: no run ends on one, and the gateway logs no 400 from `gcp.vertex_ai`
+   in the window.
+
+Read with `model-comparison-report.py --arm-a '[gemini A]' --arm-b '[gemini B]'`. A pair whose arms
+the classifier rated at different tiers is dropped (`--drop-mismatched`) and named. A arm merging
+nothing makes the rule indecisive. The owner may override the rule; an override is recorded here.
+
 ## Appendix: the L2 prompts
 
 1. Add a --json flag to scripts/ops/kb-measures.py that prints the measures as one JSON document instead of the table.

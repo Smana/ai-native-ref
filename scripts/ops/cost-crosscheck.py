@@ -17,10 +17,11 @@ charged to a person settles to the fleet (system:factory) and to that person bot
 meter `charged`), so it is printed per principal for reference only; the gateway has no principal label.
 Exit 2 also for a VictoriaMetrics body that is not a success or a value that is NaN or infinite.
 
-With --json, one JSON document is printed instead of the table: {"day", "ok", "runs", "total",
-"skipped"}, the amounts USD strings with six decimals (the table's precision), the runs sorted by
-run id and the skipped runs (XC7) as a list, empty when none. The verdict and the exit codes are
-the same either way.
+With --json, one JSON document is printed instead of the table: {"day", "window", "ok", "runs",
+"total", "skipped"}, the amounts USD strings with six decimals (the table's precision), the runs
+sorted by run id and the skipped runs (XC7) as a list, empty when none. `window` is the UTC day
+queried, {"start": "<day>T00:00:00Z", "end": "<next day>T00:00:00Z"}. The verdict and the exit
+codes are the same either way.
 """
 import argparse
 import json
@@ -112,11 +113,18 @@ def render(day, rows, total, skipped, spent, settled_sum=None):
     return "\n".join(lines)
 
 
+def day_window(day):
+    """{"start", "end"}: the UTC day the gateway side is read over, ISO 8601."""
+    start = datetime.strptime(day, "%Y%m%d").replace(tzinfo=timezone.utc)
+    return {"start": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "end": (start + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+
 def render_json(day, rows, total, skipped, ok):
     """The cross-check as one JSON document: the same verdict, the same amounts, 6-decimal strings."""
     def row(r):
         return {"run": r[0], "ledger": usd(r[1]), "gateway": usd(r[2]), "diff": usd(r[1] - r[2]), "ok": r[3]}
-    doc = {"day": day, "ok": ok,
+    doc = {"day": day, "window": day_window(day), "ok": ok,
            "runs": [row(r) for r in rows],
            "total": {"ledger": usd(total[0]), "gateway": usd(total[1]), "diff": usd(total[0] - total[1]), "ok": total[2]},
            "skipped": sorted(skipped)}

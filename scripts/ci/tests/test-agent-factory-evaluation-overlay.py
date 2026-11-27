@@ -37,7 +37,7 @@ no_overlay = all(
 )
 check("no cloud carries the workflow evaluation overlay", no_overlay)
 
-runbook = (REPO_ROOT / "docs/runbooks/agent-factory/27-workflow-comparison.md").read_text()
+runbook = (REPO_ROOT / "docs/runbooks/agent-factory/32-workflow-comparison.md").read_text()
 results = (REPO_ROOT / "docs/runbooks/agent-factory/results-workflow-comparison-1.md").read_text()
 
 stale_fields = [

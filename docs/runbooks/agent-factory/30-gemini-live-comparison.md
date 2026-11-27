@@ -6,6 +6,8 @@ live test. Write the ledger as you go, `results-gcp-0-gemini-<date>.md` beside t
 Maku version and digests, the window, every task name, and the query output behind each number. No
 number is an estimate.
 
+See [README.md](README.md) for the cluster prerequisites and the runbook table.
+
 Each step names its **pass** line and its **stop** condition. A stop ends the step: record it, do
 not work around it, and do not start the next step on a stop.
 

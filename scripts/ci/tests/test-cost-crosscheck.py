@@ -164,9 +164,11 @@ AMOUNT = r"-?\d+\.\d{6}"
 code, out, err = main_run(args=("--json",))
 doc = json.loads(out)
 check("main --json prints one JSON document, exiting like the table",
-      code == 0 and set(doc) == {"day", "ok", "runs", "total", "skipped"} and not err, (code, err, out))
+      code == 0 and set(doc) == {"day", "window", "ok", "runs", "total", "skipped"} and not err, (code, err, out))
 check("the day, the verdict and the skipped runs carry over from the table's world",
       doc["day"] == "20261027" and doc["ok"] is True and doc["skipped"] == ["ccc"], doc)
+check("the JSON names the UTC window the gateway side was read over",
+      doc["window"] == {"start": "2026-10-27T00:00:00Z", "end": "2026-10-28T00:00:00Z"}, doc["window"])
 check("runs are sorted by run id, every amount a 6-decimal string, each run with its own verdict",
       [r["run"] for r in doc["runs"]] == ["aaa", "bbb"]
       and all(set(r) == {"run", "ledger", "gateway", "diff", "ok"} for r in doc["runs"])

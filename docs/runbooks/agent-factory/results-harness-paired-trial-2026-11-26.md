@@ -378,7 +378,7 @@ Base's `Factory` sets `defaults.harness: opencode`, and the 50/50 trial patch on
 | 1. Image contract | Holds: every pinned release since v0.54.7 runs the userland check |
 | 2. Egress tightened | Holds: Maku v0.57.x closes the GitHub release hosts before the agent starts ([runbook 31 results](results-github-egress-drill-2026-11-27.md)), and v0.57.1 stops OpenCode's boot fetch of `models.opencode.ai` |
 | 3. 50/50 gate | Overridden. The trial collected 3 ended OpenCode tasks and 2 OpenHands ones, most tasks being labelled |
-| 4. Provider smoke tests | GLM/Z.ai and Anthropic run on OpenCode; Vertex/Gemini does not (Smana/maku#798): a Gemini-pinned task needs `harness:openhands` until Maku's fallback ships |
+| 4. Provider smoke tests | GLM/Z.ai and Anthropic run on OpenCode; Vertex/Gemini does not (Smana/maku#798): a task pinned to a Gemini/Vertex alias runs on OpenHands, with one comment on the issue (Maku v0.58.1) |
 | 5. Rescue path | `harness:openhands` on one issue, or `/factory retry harness=openhands`; not yet proven end to end |
 
 **Revert trigger.** Read `harness-trial-report.py` each week against OpenHands' history. Revert (one key in

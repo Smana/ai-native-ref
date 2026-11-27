@@ -44,6 +44,38 @@ Queries:
 
 The plans' text is kept for the owner's blind ranking, with each plan's arm hidden.
 
+### Neon on Vertex `eu` (#610 live, Maku v0.57.0, ANR v4.1.11) — **stop: planner timeouts**
+
+The planner backend `vertex-planner` maps `tier-frontier` to `gemini-4-neon` (read from the
+AgentgatewayBackend). The same ten prompts, the same way. Window: 2026-11-27 09:49:10 to 09:52:06
+UTC.
+
+| # | Broker `intake plan` (s) | Outcome | Gateway (ms) | Status | Output tokens (of which reasoning) | Gateway cost (USD) |
+|---|---|---|---|---|---|---|
+| 1 | 18.96 | asked | 14219 | 200 | 1412 (889) | 0.02753 |
+| 2 | 12.16 | asked | 12144 | 200 | 1123 (810) | 0.02277 |
+| 3 | 20.19 | refused `planner_timeout` | 20001 | — | — | — |
+| 4 | 10.51 | planned | 10450 | 200 | 1041 (726) | 0.02139 |
+| 5 | 20.24 | refused `planner_timeout` | 20001 | — | — | — |
+| 6 | 12.63 | planned | 12573 | 200 | 1014 (709) | 0.02093 |
+| 7 | 20.00 | refused `planner_timeout` | 20001 | — | — | — |
+| 8 | 20.00 | refused `planner_timeout` | 19948 | — | — | — |
+| 9 | 20.00 | refused `planner_timeout` | 19955 | — | — | — |
+| 10 | 20.00 | refused `planner_timeout` | 19958 | — | — | — |
+
+- **Six of ten plans timed out** at the broker's 20 s deadline. The gateway shows each of these
+  calls cut at about 20 s with no status and no usage.
+- The four plans that answered took 10.5 to 19.0 s. The median is 20.0 s and p95 is 20.24 s,
+  against the runbook's pass line of p95 under 15 s with no timeout.
+- `reasoning_effort: low` reached Vertex as `thinkingLevel: low`, yet each answer still spent 700
+  to 900 thinking tokens, about 70 % of its output.
+- Cost of the four answered calls: USD 0.0926, about USD 0.023 a plan against Z.ai's USD 0.002,
+  roughly 11 times as much. The timed-out calls report no usage.
+
+Verdict: **L2 fails on its stop condition** (a timeout; p95 ≥ 15 s). The runbook says to revert
+the planner patch (#610) before anything else. Neon stays off the planner. The four Neon plans
+that answered are kept for the owner's blind ranking beside the ten Z.ai plans.
+
 ## Appendix: the L2 prompts
 
 1. Add a --json flag to scripts/ops/kb-measures.py that prints the measures as one JSON document instead of the table.

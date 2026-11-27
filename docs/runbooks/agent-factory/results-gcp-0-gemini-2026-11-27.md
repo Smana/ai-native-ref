@@ -80,8 +80,24 @@ that answered are kept for the owner's blind ranking beside the ten Z.ai plans.
 
 | Run | Issue | Harness | State |
 |---|---|---|---|
-| Implementer, then reviewer (pinned together by `model:gemini-standard`) | #622 | OpenHands | filed |
-| Implementer, then reviewer | #623 | OpenCode | filed |
+| Implementer, then reviewer (pinned together by `model:gemini-standard`) | #622 (task `4nsn6vsa`) | OpenHands | implementing on `gemini-standard`, `modelSource: label` |
+| Implementer, then reviewer | #623 (task `e4wlawv6`) | OpenCode | **stop: Escalated `agent_error` at step 0** |
+
+**#623, OpenCode: Vertex refuses OpenCode's tool schemas.** The run (`pmd4lwya`, 09:56 to 09:58
+UTC) installed its toolchain, then the first model call failed (harness log, `kubectl -n agents logs
+run-pmd4lwya -c harness`):
+
+```text
+agent-run error: provider.invalid-request Invalid JSON payload received. Unknown name "exclusiveMinimum"
+at 'tools[0].function_declarations[21].parameters.properties[4].value': Cannot find field. ...
+at 'tools[0].function_declarations[22].parameters.properties[3].value' ...
+```
+
+agentgateway's native `vertexai` translation passes each tool's JSON Schema to `generateContent` as is,
+and Gemini's function declarations refuse the JSON Schema keyword `exclusiveMinimum`, which two of the
+run's tools use. It is a 400 on the request, not a thought signature: 0 steps, no cost. The egress
+install window did not cause it (`agent-checks: toolchain ready`). OpenCode runs cannot use Gemini
+until the schema is accepted: the gateway (or the harness) has to drop or translate the keyword.
 
 Two legs of the runbook cannot run on v0.57.0 and are recorded as gaps, not stops:
 
@@ -109,6 +125,22 @@ Read with `model-comparison-report.py --arm-a '[gemini A]' --arm-b '[gemini B]'`
 the classifier rated at different tiers is dropped (`--drop-mismatched`) and named. A arm merging
 nothing makes the rule indecisive. The owner may override the rule; an override is recorded here.
 
+## L4 · Pairs
+
+Filed 2026-11-27 09:58:36 to 09:58:50 UTC, each pair back to back: `workflow:standard`,
+`harness:openhands` and `factory/ready` on both copies, `model:gemini-standard` on one. The titles
+carry the suffixes `[L4 v]` and `[L4 w]`. Which suffix is which arm is in the key at the end of this
+file. Five pairs today, five after 00:00 UTC (caps: tasksPerDay 20, activeTasks 3, awaitingHumanWIP 5;
+none raised).
+
+| Pair | Task | `[L4 v]` | `[L4 w]` |
+|---|---|---|---|
+| 1 | kb-measures `--json` | #625 | #626 |
+| 2 | runbook 30 links back to the README | #627 | #628 |
+| 3 | gen-prices refuses `cacheRead` above `input` | #629 | #630 |
+| 4 | cost-crosscheck `--json` names its window | #631 | #632 |
+| 5 | runbook 32 says when to run a comparison | #633 | #634 |
+
 ## Appendix: the L2 prompts
 
 1. Add a --json flag to scripts/ops/kb-measures.py that prints the measures as one JSON document instead of the table.
@@ -121,3 +153,10 @@ nothing makes the rule indecisive. The owner may override the rule; an override 
 8. Add a short "When to use" paragraph to runbook 27-workflow-comparison.md.
 9. model-comparison-report.py: add --title-filter REGEX to keep only pairs whose title matches.
 10. gen-prices.py: refuse a meter.prices row whose cacheRead exceeds its input rate.
+
+---
+
+## The arm key (for after the blind review)
+
+`[L4 v]` is arm A (`agent-default`); `[L4 w]` is arm B (`model:gemini-standard`). For each pair, the
+blind packet's X and Y are listed here once its pull requests exist.

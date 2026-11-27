@@ -119,3 +119,10 @@ patches:
       - op: add
         path: /spec/values/runController/model/gateway/vision/public/-
         value: gemini-light
+      # Each Gemini alias's rates for OpenHands' own cost counter (Maku plan A6), its served model's
+      # meter.prices row: otherwise the harness prices every model as GLM. The meter settles the run.
+      - op: add
+        path: /spec/values/runController/model/gateway/prices
+        value:
+          gemini-standard: {input: "3.3", output: "16.5"}
+          gemini-light: {input: "1.65", output: "8.25"}

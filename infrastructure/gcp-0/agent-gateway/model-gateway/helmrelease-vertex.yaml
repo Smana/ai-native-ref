@@ -9,11 +9,10 @@ metadata:
   namespace: agent-gateway
 spec:
   values:
-    # projectId is gcp-0's project spelled out, not ${project_id}: the bundle renders a HelmRelease
-    # before Flux's substitution, and maku-gateway 0.55.0's schema pattern refuses "${project_id}".
-    # Back to the variable once the chart admits it.
+    # projectId is a Flux variable (H3), which maku-gateway admits since 0.56.0; region stays literal,
+    # since the chart derives the Vertex host and the network policy from it.
     providers:
-      vertex: {preset: vertex, projectId: ogenki-435905, region: eu, dataClasses: [public]}
+      vertex: {preset: vertex, projectId: "${project_id}", region: eu, dataClasses: [public]}
     aliases:
       public:
         gemini-standard: {provider: vertex, model: gemini-4-neon}

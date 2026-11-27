@@ -205,3 +205,9 @@ none raised).
 
 `[L4 v]` is arm A (`agent-default`); `[L4 w]` is arm B (`model:gemini-standard`). For each pair, the
 blind packet's X and Y are listed here once its pull requests exist.
+
+| Pair | X | Y | X is | Y is |
+|---|---|---|---|---|
+| 2 | #642 (issue #628) | #641 (issue #627) | B | A |
+| 3 | #639 (issue #629) | #640 (issue #630) | A | B |
+| 5 | #643 (issue #634) | #636 (issue #633) | B | A |

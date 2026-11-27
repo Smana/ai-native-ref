@@ -26,5 +26,9 @@ spec:
     leakScanCheck: "CI Validation Complete"
   # A Go module: its runs and checks fetch modules from proxy.golang.org.
   checks: {egress: [golang]}
+  # Its integration tests need Postgres, and the sandbox has no Docker: the runs get a loopback
+  # postgres sidecar (DATABASE_URL postgres://maku@127.0.0.1:5432/maku), empty at each run's start.
+  runtime:
+    services: [postgres]
   # No binding: the chart's catalog policies (docs-links, docs) are evaluated in shadow, so every
   # merge stays a maintainer's.

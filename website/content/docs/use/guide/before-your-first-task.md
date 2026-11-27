@@ -46,4 +46,7 @@ Two more, for the path you choose in [chapter 3]({{< relref "your-first-task.md"
 - **Your coding agent:** install `maku`, then run `maku setup <client>` and `maku doctor`
   ([chapter 8]({{< relref "terminal-and-coding-agent.md#from-a-terminal-maku" >}})).
 
+Before the agents can test their work on your repository, it needs three small files:
+[Make your repository ready]({{< relref "/docs/use/make-your-repository-ready.md" >}}).
+
 **Next:** [chapter 3]({{< relref "your-first-task.md" >}}) takes your first task from request to merge.

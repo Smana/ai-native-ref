@@ -49,6 +49,14 @@ A class that declares `author.adopt` takes Renovate's pull requests instead of a
 with no run, decided by the same gate. `deps-patch` and `deps-minor` run in shadow on cloud-native-ref.
 What is checked: [adopted classes]({{< relref "/docs/operate/auto-merge-safety.md#adopted-classes" >}}).
 
+## Upkeep routines
+
+Recurring maintenance runs from `Routine` custom resources bound explicitly under a repository's
+`spec.routines[]`. Deterministic probes (`dead-links`, `renovate-red`, `actions-findings`) gate
+token spend, an isolated daily upkeep budget (`budgets.upkeepDailyUSD`) prevents contention with
+human tasks, and a per-routine yield breaker pauses low-yield schedules automatically. See
+[Automate repository upkeep]({{< relref "/docs/use/guide/upkeep-routines.md" >}}).
+
 ## After a merge
 
 A monitored class's merges stay under watch, whoever merged them, and a regression or a follow-up fix

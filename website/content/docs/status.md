@@ -6,7 +6,7 @@ linkTitle: Status
 weight: 60
 description: "What is proven live, what awaits validation, what is in progress, and what is planned next."
 activeCluster: gcp-0
-lastVerified: 2026-11-25
+lastVerified: 2026-11-27
 ---
 
 Use this page to see what the platform can do and what is coming next. **Proven live** means
@@ -51,6 +51,7 @@ These capabilities were demonstrated end to end on a real cluster.
 | Model calls are authenticated, routed, and metered; Claude is available for internal work, and Kimi and Mistral for public work | [agentgateway]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}}), [providers]({{< relref "/docs/how-it-works/providers.md" >}}) |
 | A coding agent hands work off in plain words and a form confirms it; the merge gate chooses a policy from the diff, in shadow | [v4 validation](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/28-v4-aws-validation.md), [results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-aws-0-2026-11-16.md), [screencast](https://blog.ogenki.io/maku/) |
 | Gateway budgets, cache alerts, and cost by role or charged identity make spend visible | [Budgets and cache](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md), [cost cross-check](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-g--the-cost-cross-check) |
+| Upkeep routines catalog, `/routines` UI, preview/ceiling validation, and `/settings` environment and version panel run live with least-privilege RBAC | [Upkeep routines]({{< relref "/docs/use/guide/upkeep-routines.md" >}}), [Maku v0.58.0](https://github.com/Smana/maku/releases/tag/v0.58.0) |
 
 <span id="class-modes"></span>
 
@@ -76,6 +77,8 @@ Built, but either switched off, limited to a small scope, or waiting for live ev
 | Promotion by pull request and the factory's own reverts | The promotion button opens its pull request on one repository's manifest; reverts of an unattended merge merge themselves. Needs live proof. [Merge policies]({{< relref "/docs/use/guide/merge-policies.md#promote-a-policy" >}}) |
 | OpenCode as an opt-in harness | A maintainer's `harness:opencode` label runs one task on OpenCode, and a 50/50 trial runs half of the unlabelled tasks on it with nothing else changed; OpenHands stays the default. Needs live proof. [Harness reference]({{< relref "/docs/reference/harness.md#composition" >}}) |
 | Per-person caps and more auto-merge classes | Daily caps are counted in shadow; additional classes are evaluated before promotion. [Caps](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-c--per-person-caps-the-shadow-week), [classes](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/16-deps-patch.md) |
+| Upkeep routines scheduled runs and yield breaker | All six starter `Routine` objects are accepted and inert on `gcp-0` with `/routines`, catalog, preview validation, and `routines.uiWrite: false` active; binding routines on repositories to measure live merge yield and breaker trips is next. [Upkeep routines]({{< relref "/docs/use/guide/upkeep-routines.md" >}}) |
+| Harness visual verification and service sidecars | Opt-in loopback `maku-browser` Playwright sidecar and loopback Postgres/Redis service sidecars are shipped in Maku v0.58.0 and ready for live repository runs. [Browser verification]({{< maku "docs/browser-verification.md" >}}) |
 
 ## In progress {#v3x}
 
@@ -98,7 +101,7 @@ v4 lets anyone run the factory. v5 proves Maku with one external GitHub and Kube
 | **Pre-pitch readiness** | Private-repository planning, Tier-1 hardened bundled PostgreSQL (PVC, TLS, automatic three-role bootstrap, optional S3 backups) plus a one-step Tier-2 CNPG or external-database bootstrapper, one recorded generic Kubernetes Helm install, outside-user laptop quickstart checks ([Quickstart]({{< maku "docs/quickstart.md" >}})), a standalone `Smana/maku` front door, a two-minute real-run video, and a static room replay. |
 | **External team pilot on private repositories** | One GitHub and Kubernetes team runs a Tier-1 Pilot (one GitHub App, shadow merge gate, bundled PostgreSQL, standard OIDC/Ingress or Slack Socket Mode, mandatory gVisor) and lands at least ten merged pull requests. Hardening (H1–H5), team RBAC (`write` access and GitHub Teams), and per-repository runtime images land alongside the team's stack. [Get in touch](https://blog.ogenki.io/about/) |
 | **Pluggable harnesses, OpenCode default** | Make `AgentRun.spec.harness` a three-tier contract: OpenCode as the slim default once parity passes ([Evaluation](https://github.com/Smana/ai-native-ref/pull/404)), OpenHands as the proven fallback, and best-effort bring-your-own Claude Code. |
-| **Harness visual verification (screenshots)** | Add an opt-in browser sidecar (`maku-browser`) inside gVisor pods for `implementer` and `tester` runs, speaking Playwright MCP over loopback (`127.0.0.1`) only so agents verify local UI and docs builds visually without bloating the base image or widening egress; human-visible pull-request and room screenshots follow in a second phase. |
+| **Upkeep routines in production** | Bind starter and custom routines (`dead-links`, `renovate-red`, `doc-drift`, and repository-specific hygiene) across `propose` → `draft` → `pr`, track rolling merge yield and `$/merged` via the weekly Slack upkeep digest, and prove the yield breaker live ([Upkeep routines]({{< relref "/docs/use/guide/upkeep-routines.md" >}})). |
 | **Slack security model and Socket Mode** | Evolve the Slack app to personal-bound principals over one workspace bot (no personal Slack user tokens): direct-message intake with dynamic per-user repository access and per-person USD budgets, strict author-only thread isolation, Socket Mode as the zero-public-ingress default, and broker-verified `X-Slack-Signature` closing the Slack deputy residual in Events API mode while keeping live steering on the room page. |
 | **Spec-driven development intake** | Ingest open markdown specs (GitHub Spec Kit, OpenSpec, or EARS sections in issues or `specs/`) natively when present, falling back to a minimal compatible Maku spec written by the planner and scoper. |
 | **Outcome analytics and live merge proof** | Join merge rate, revert rate, human wait time, and USD cost per merged pull request into one view by repository, policy, model, and workflow; prove at least one class beyond `docs-links` (`deps-patch` or `docs`) live with a revert drill and a second-family reviewer ([ADR-0058]({{< relref "/docs/decisions/0058-reviewer-on-another-model.md" >}})). |

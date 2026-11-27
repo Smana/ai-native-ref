@@ -29,7 +29,9 @@ def run_images():
     hr = one(render("infrastructure/base/room-broker"), "HelmRelease", "room-broker")
     images = hr["spec"]["values"]["runController"]["images"]
     # The opt-in OpenCode image runs only a labelled task: the headroom pre-pulls the default harness's.
-    return {f"{image['repository']}:{image['tag']}" for name, image in images.items() if name != "opencode"}
+    # A service sidecar (postgres, redis) runs only for its Repository and is pulled on first use.
+    return {f"{image['repository']}:{image['tag']}" for name, image in images.items()
+            if name not in ("opencode", "postgres", "redis")}
 
 
 def headroom_images(objects):

@@ -49,8 +49,9 @@ spec:
       runtimeClassName: gvisor
     # The size of the two ClusterQueues Kueue had before R3 (16 + 8 CPU, 64 + 32Gi, 4 + 4 runs): one
     # run is one pod. Limits leave a small run's 2.15 CPU and 4.1Gi room eight times over.
-    # The browser sidecar (harness screenshots) adds 512Mi requested and 2Gi limit to an opted-in run:
-    # eight runs at 4.1Gi plus 2Gi stay within 64Gi of limits, so the quota is unchanged.
+    # The browser sidecar (harness screenshots) adds 512Mi requested and 2Gi limit to an opted-in run,
+    # the postgres service sidecar 256Mi and 1Gi: eight runs at 4.1Gi plus both stay within 64Gi of
+    # limits (56.8Gi) and 96Gi of requests, so the quota is unchanged.
     runsQuota:
       hard:
         pods: "8"
@@ -93,6 +94,13 @@ spec:
         browser:
           repository: ghcr.io/smana/maku-browser
           tag: "v0.57.2@sha256:9840bdc1e1d2b74a0150127169763c51b9bf3961f4c24fecfb5a6d9144146bab"
+        # The postgres service sidecar (Maku v0.57.x, loopback 127.0.0.1:5432, empty at each run's start):
+        # only a Repository with spec.runtime.services [postgres] gets it, today image-gallery. The
+        # official image at the major version image-gallery's docker-compose.yml and atlas.hcl use (15),
+        # Debian-based for the run's arbitrary uid. Not pre-pulled by the headroom pod.
+        postgres:
+          repository: docker.io/library/postgres
+          tag: "15.20-bookworm@sha256:0cb925629e7eb35c77276f3165440d1670c35c2ddbe92b346c579299b75a520f"
       # Runs call the model gateway (agent-gateway/model-gateway, the maku-gateway release) with their
       # own projected token: no provider key in agents. The aliases are that release's aliases.
       model:

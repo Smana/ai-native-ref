@@ -64,12 +64,15 @@ Fix (Maku): set `LITELLM_LOCAL_MODEL_COST_MAP=True` in the harness images or the
 the SDK never fetches; then re-measure `raw` and drop it from `defaultInstallHosts` if nothing else
 uses it.
 
-## Defect 2: the logs rule did not fire on a matching line
+## Defect 2: the logs rule fires late, not never
 
-The rule's own LogsQL, sent to VictoriaLogs' `stats_query` at the 09:54:07 evaluation time, returns
-`lines = 1`; vmalert-victoria-logs evaluated it at 09:54:07 with `lastSamples: 0`, state `inactive`,
-no error. The window or the evaluation delay vmalert applies to `vlogs` groups needs checking
-(`AgentCacheMarkerMissing` uses the same shape and may share the gap).
+The rule fired, one evaluation later than expected. vmalert aligns a group's evaluation time down to
+its 5-minute interval: its 09:54:07 evaluation read the window ending 09:50:00 (0 lines), and the
+09:59:07 one read the window ending 09:55:00, which holds the 09:51:39 line (1 line); the alert was
+firing at 10:04:07. Three more `install_closed` refusals followed by 10:07 (`vqcajao2`, `akfymtwn`,
+`7zx6iazm`), all LiteLLM's fetch (defect 1). A line can so wait up to about 10 minutes for its
+alert. The fix is ANR config: `eval_alignment: false` on the `agent-platform-logs` group, which
+`AgentCacheMarkerMissing` shares.
 
 ## Not run
 

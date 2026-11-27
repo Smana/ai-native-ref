@@ -105,12 +105,14 @@ def charges_in(root):
 
 
 def refused(name, change, needle):
-    """The changed tree fails the check, names the problem, and --write leaves the rule file alone."""
+    """The changed tree fails the check, names the problem, and --write leaves the rendered files alone."""
     with tree() as t:
         change(t)
         before = rules(t).read_text()
+        before_catalog = (t / gen.CATALOG).read_text()
         code, out = run(t, "--write")
-        check(name, code == 1 and needle in out and rules(t).read_text() == before, out)
+        check(name, code == 1 and needle in out and rules(t).read_text() == before
+              and (t / gen.CATALOG).read_text() == before_catalog, out)
 
 
 def row(old, new):
@@ -277,6 +279,8 @@ for name, change, needle in [
      "output must be a positive number"),
     ("not a finite price", row(FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: .nan, output: 0.50}"),
      "cacheRead must be a positive number"),
+    ("cacheRead exceeding input", row(FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.25, output: 0.50}"),
+     f"{gen.FACTORY}: spec.prices.glm-5.3-flash: cacheRead 0.25 exceeds input 0.15"),
     ("an unknown key", row(FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, cacheWirte: 0.2, output: 0.50}"),
      "unknown key cacheWirte"),
     ("not a model name", row(FLASH, "'glm 5.3 flash': {input: 0.15, cacheRead: 0.03, output: 0.50}"),
@@ -289,6 +293,12 @@ for name, change, needle in [
      f"expected one group `- name: {gen.GROUP}`, found 2"),
 ]:
     refused(name, change, needle)
+with tree() as t:
+    replace(t, gen.FACTORY, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.15, output: 0.50}")
+    code, out = run(t, "--write")
+    check("cacheRead equal to input is accepted and renders a zero cached_input charge",
+          code == 0 and charges_in(t)[0]["glm-5.3-flash"] == ("0.15", "0.50", "0.00", "0.00")
+          and run(t)[0] == 0, out)
 with tree() as t:
     replace(t, gen.FACTORY, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}")
     code, out = run(t)

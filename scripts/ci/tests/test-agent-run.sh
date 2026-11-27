@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # requires: jq
 #
-# scripts/ops/k8s/agent-run.sh against PATH-stubbed roomctl and curl: the body it sends has the
-# fields asked for and never a principal or a branch, the token is roomctl's, and each refusal
+# scripts/ops/k8s/agent-run.sh against PATH-stubbed maku and curl: the body it sends has the
+# fields asked for and never a principal or a branch, the token is maku's, and each refusal
 # of the API reads as a sentence. No test contacts the factory.
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,14 +13,14 @@ fail() { printf 'FAIL  %s\n' "$*" >&2; fails=$((fails + 1)); }
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/bin"
-printf '#!/usr/bin/env bash\necho tok-123\n' >"$tmp/bin/roomctl"
+printf '#!/usr/bin/env bash\necho tok-123\n' >"$tmp/bin/maku"
 cat >"$tmp/bin/curl" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$@" >"$STUB_ARGS"
 while [ $# -gt 0 ]; do [ "$1" = "--data-binary" ] && { cat >"$STUB_BODY"; }; shift; done
 printf '%s\n%s' "${STUB_RESPONSE:-{\"runId\":\"7f3cq2xz\",\"branch\":\"agent/7f3cq2xz\"}}" "${STUB_CODE:-201}"
 STUB
-chmod +x "$tmp/bin/roomctl" "$tmp/bin/curl"
+chmod +x "$tmp/bin/maku" "$tmp/bin/curl"
 touch "$tmp/ca.pem"
 export PATH="$tmp/bin:$PATH" STUB_ARGS="$tmp/args" STUB_BODY="$tmp/body" AGENT_FACTORY_URL=https://factory.example
 
@@ -33,7 +33,7 @@ out="$(bash "$SUBJECT" --role implementer --class public --task 'Fix "the" link'
 jq -e '.role == "implementer" and .dataClass == "public" and .repository == "Smana/cloud-native-ref"' "$tmp/body" >/dev/null || fail "role, class, repository"
 jq -e '.task == {"text":"Fix \"the\" link"} and .egressProfiles == ["pypi","npm"]' "$tmp/body" >/dev/null || fail "task text survives quoting; profiles split"
 jq -e 'has("principal") or has("branch") | not' "$tmp/body" >/dev/null || fail "never sends a principal or a branch (SC-13, C3)"
-grep -qx 'Authorization: Bearer tok-123' "$tmp/args" || fail "the token is roomctl's"
+grep -qx 'Authorization: Bearer tok-123' "$tmp/args" || fail "the token is maku's"
 grep -qx 'https://factory.example/v1/runs' "$tmp/args" || fail "posts to the factory"
 grep -q 'agent/7f3cq2xz' "$tmp/err" || fail "tells the human the branch"
 

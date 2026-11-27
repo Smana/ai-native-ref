@@ -20,6 +20,8 @@ For **Maku product maturity, proven capabilities, and the v5 roadmap**, see [Mak
 - **Active:** `gcp-0` (pinned in `.github/agent-factory.yaml`; `aws-0` stays ready to swap via [Day-2 operations]({{< relref "/docs/maku-deployment/day-2.md#switch-the-active-cluster" >}})).
 - **Pinned Maku release on `main`:** Maku {{< maku-version >}} (`tooling/base/agent-factory/helm-values-configmap.yaml`).
 - **Default harness:** OpenCode since 2026-11-27 (OpenHands via `harness:openhands` or automatic fallback on Gemini/Vertex aliases).
+- **Served repositories:** `Smana/cloud-native-ref`, `Smana/ai-native-ref` (with loopback `maku-browser` screenshots), `Smana/runlore-kb`, `Smana/runlore`, and `Smana/image-gallery` (with loopback Postgres).
+- **Public model providers:** Z.ai (`agent-default`), Moonshot Kimi, Mistral, and keyless Vertex AI Gemini (`gemini-standard`, `gemini-light` on `gcp-0` via Workload Identity).
 - **Live unattended merge policies:** `docs-links` on `Smana/cloud-native-ref` only; all other policies run in `shadow`.
 - **Upkeep routines:** six starter `Routine` objects enabled in catalog (`routines.uiWrite: false`), inert until bound in GitOps.
 
@@ -44,3 +46,4 @@ Every capability marked "Proven live" on [Maku › Status]({{< maku "status/" >}
 - [12 · Live auto-merge & revert breaker drill](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/12-live-auto-merge-drill.md) · [Results (2026-10-30)](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-aws-0-2026-10-30.md)
 - [19 · Coding agents](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/19-factory-from-your-agent.md) · [20 · RunLore agent-to-agent](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/20-runlore-agent-to-agent.md) · [22 · Slack](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/22-slack.md)
 - [28 · v4 validation](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/28-v4-aws-validation.md) · [Results (2026-11-16)](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-aws-0-2026-11-16.md)
+- [Harness paired trial results (2026-11-26)](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-harness-paired-trial-2026-11-26.md) · [30 · Gemini on Vertex](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-gcp-0-gemini-2026-11-27.md) · [31 · GitHub egress install window](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-github-egress-drill-2026-11-27.md)

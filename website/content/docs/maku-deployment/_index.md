@@ -15,10 +15,10 @@ This repository deploys [Maku](https://maku.ogenki.io/) on [Cloud Native Referen
 |---|---|---|
 | **Flux umbrella** | `agent-platform` child Kustomizations, pinned Maku OCI charts and image digests | `tooling/base/agent-factory/helm-values-configmap.yaml`, `infrastructure/base/room-broker/helmrelease.yaml` |
 | **Database** | CloudNativePG `SQLInstance` (`xplane-rooms` in `agent-system`), WAL archived to object storage | `infrastructure/base/room-broker/sqlinstance.yaml` |
-| **Identity & exposure** | ZITADEL OIDC (`rooms-proxy`, `agents-member`, `agents-admin`) behind `oauth2-proxy` on the Tailscale Gateway | `infrastructure/base/room-broker/config.yaml` |
-| **Model gateway** | `maku-gateway` (`agentgateway`) with `public` (Z.ai, Kimi, Mistral) and `internal` (Anthropic) listeners + `agent-ratelimit` | `infrastructure/base/agent-gateway/model-gateway/helmrelease.yaml` |
+| **Identity & exposure** | ZITADEL OIDC (`rooms-proxy`, `agents-member`, `agents-admin`) behind `oauth2-proxy` on the Tailscale Gateway + broker `/link/github` | `infrastructure/base/room-broker/config.yaml` |
+| **Model gateway** | `maku-gateway` (`agentgateway`) with `public` (Z.ai, Kimi, Mistral, and Vertex AI Gemini on Google Cloud via Workload Identity) and `internal` (Anthropic) listeners + `agent-ratelimit` | `infrastructure/base/agent-gateway/model-gateway/helmrelease.yaml` |
 | **Secrets** | Dedicated OpenBao `agents` mount (GitHub Apps, provider API keys, Slack tokens) isolated from `openbao-platform` | `security/base/agent-secrets/` |
-| **Sandbox runtime** | `maku-run-controller` scheduling gVisor pods on dedicated spot `agents-gvisor` pools + default-deny Cilium egress | `infrastructure/base/runtimeclass-gvisor/` |
+| **Sandbox runtime** | `maku-run-controller` scheduling gVisor pods on dedicated spot `agents-gvisor` pools + default-deny Cilium egress + GitHub install window + opt-in loopback sidecars (`maku-browser` on `ai-native-ref`, Postgres on `image-gallery`) | `infrastructure/base/runtimeclass-gvisor/`, `infrastructure/base/room-broker/helmrelease.yaml` |
 | **Observability** | Shared VictoriaMetrics, VictoriaLogs, VictoriaTraces (behind `agent-traces-collector`), and Grafana dashboards | `observability/base/agent-platform/` |
 
 ## Active policies and upkeep routines {#policies}

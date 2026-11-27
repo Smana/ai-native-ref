@@ -5,6 +5,16 @@ precondition for step-up or per-role measurement (the workflows and roles redesi
 ruling, WR-O1). Design:
 [workflows review](../../superpowers/specs/2026-11-14-workflows-review-design.md) (WF8).
 
+## When to run one
+
+Run a comparison of `standard` and `careful` only when you have a concrete question about which
+workflow a class should default to, and cost or merge-rate data can answer it. Half of the
+unlabelled traffic pays `careful`'s extra roles, so the cost is only justified when the outcome
+could change a default. Do not run a comparison for step-up or per-role measurement, which no
+longer depend on one (WR-O1, in the introduction). A run needs the cohort size of
+[section 2](#2-the-cohort) before the decision rule applies, so start one only on a repository with
+enough unlabelled traffic to fill both arms.
+
 ## 1. The overlay
 
 Add a `Factory` strategic-merge patch under the target cluster's overlay (the file does not exist

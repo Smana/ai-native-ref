@@ -6,12 +6,13 @@ linkTitle: Tune a run
 weight: 10
 diataxis: how-to
 description: "How to tune an agent run: which lever moves cost, time and quality, how to measure a change, what goes wrong and how to fix it."
-lastVerified: 2026-11-15
+lastVerified: 2026-11-27
 ---
 
-The harness runs the agent loop inside the sandbox: OpenHands
-[`agent-server`](https://github.com/OpenHands/software-agent-sdk), driven by a small entrypoint,
-`agent-run`. This page is the guide; every setting with its value and bounds is on the
+The harness runs the agent loop inside the sandbox: OpenCode by default, or OpenHands
+[`agent-server`](https://github.com/OpenHands/software-agent-sdk) driven by `agent-run`. The loop
+settings below are OpenHands'; OpenCode's are in Maku's
+[OpenCode guide]({{< maku "docs/opencode-harness.md" >}}). Every value is on the
 [Harness reference]({{< relref "/docs/reference/harness.md" >}}).
 
 {{< callout type="info" >}}
@@ -51,8 +52,7 @@ How `agent-run` drives `agent-server`, the tester's contract ([runbook 21](https
 
 <span id="examples"></span>
 
-Change one lever, run the same kind of task, compare. A run's id is the 8 characters after
-`run-`. Measured in October 2026; sample runs and their step counts and costs are in [the repository's design records](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-14-routing-and-cost-measurements.md#what-real-runs-look-like).
+Change one lever, run the same kind of task, compare. Measured in October 2026; sample runs and their step counts and costs are in [the repository's design records](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-11-14-routing-and-cost-measurements.md#what-real-runs-look-like).
 
 {{< tabs >}}
 {{< tab name="Dashboard" icon="chart-bar" >}}

@@ -4,13 +4,13 @@ aliases:
   - /docs/platform/ai-platform/agents/how-it-works/factory/
 weight: 20
 description: "From a labelled issue to a merged PR: intake, triage, workflows, revise, the merge gate and the kill switch."
-lastVerified: 2026-11-25
+lastVerified: 2026-11-27
 ---
 
 The factory is the controller that turns a labelled issue into runs, narrates progress on the issue,
 meters each run's tokens and owns the kill switch. It is the only component that creates runs, so
 every run has a task and a budget. <span id="one-repository-at-first"></span>It serves every
-repository listed on the [status page]({{< relref "/docs/status.md#class-modes" >}}), with one
+repository listed in [Configure merge policies]({{< relref "/docs/use/guide/merge-policies.md#configuration" >}}), with one
 `Repository` object and per-run GitHub tokens scoped to each repository. This page describes the
 design; what runs today is on the [status page]({{< relref "/docs/status.md#landed" >}}).
 
@@ -26,7 +26,7 @@ design; what runs today is on the [status page]({{< relref "/docs/status.md#land
 | **Sponsored intake** | A second intake kind, `api`, takes a task from a machine principal: a ZITADEL machine user declared under `api.sponsored`, never from a request body. Each principal names a **sponsor** (a maintainer, named in the issue's footer and on the Task, accountable for what it files), a **daily** dollar ceiling and a per-task `maxCostUSD`; every request must carry `max_cost`, and the Task records who asked, the sponsor, the person it acts for and the cap. The runs are charged to the principal. The Slack App ([Slack]({{< relref "/docs/use/slack.md" >}})) and RunLore ([RunLore]({{< relref "/docs/how-it-works/runlore.md" >}})) are its clients; RunLore's link is off by default. Past `caps.tasksPerDay`, `POST /v1/tasks` answers `429 daily_task_cap` |
 | **Triage** | Once per task: which workflow runs it (`Repository.spec.workflow.default`, `standard` here, or `workflow:quick` / `workflow:careful` from an issue label, or `quick` on a schedule) and how big a budget its tier gives it. A refusal is explained in a comment. Which merge policy applies is matched from the pull request's diff and files at merge time |
 | **Workflows** | A workflow is an ordered list of stages, each an `AgentRun` in one room, on one `agent/<task>` branch: `quick` (the implementer alone), `standard` (the implementer with its repository checks, then the reviewer), `careful` (the scoper, the tester where the repository asks for one, the implementer with search and the completion judge, then the reviewer), and `thorough` (a read-only security reviewer before the reviewer). Only the tester and the implementer write. A `standard` task that stalls or runs out of budget runs once more as `careful`; the host asks first |
-| **Revise** | A GitHub review with "Request changes" becomes the input of a new run on the same branch. `/factory retry` tries again after a failure |
+| **Revise** | A GitHub review with "Request changes" becomes the input of a new run on the same branch. A pull request that conflicts with main gets one rebase run, counted as a CI fix run. `/factory retry` tries again after a failure |
 | **Merge gate** | Maku's built-in gate, part of `maku-factory`, posts the `maku/merge-gate` status and decides each head; the merger App merges. A low-risk policy merges with no human (`docs-links` on cloud-native-ref, at most once a day, behind a revert breaker whose reverts the factory merges itself); every other pull request merges on one maintainer's approval of its current head. How it decides and the policies: [the merge gate]({{< relref "/docs/how-it-works/merge-gate.md#when-it-merges" >}}); drills and recovery: [run auto-merge safely]({{< relref "/docs/operate/auto-merge-safety.md" >}}) |
 | **Scope and split** | `careful` starts with the scoper, on the strong model; `standard` and `quick` have none, and a class such as `alert-rules` that requires a plan adds it to any workflow. The scoper turns the issue into a bounded task with acceptance checks, asks the author the one question it could not answer ([user guide]({{< relref "/docs/use/guide/when-the-factory-needs-you.md#scoper-question" >}})), or proposes splitting a hard issue into parts (four at most, bounded by a family budget) that open one at a time after a maintainer's `/factory split`. On a `plan-first` task it stops at the plan until you approve, revise or split it ([split]({{< relref "/docs/use/guide/when-the-factory-needs-you.md#split" >}})) |
 | **Test-first tester** | Per repository, `Repository.spec.workflow.testFirst: true` runs the tester before the implementer on `standard` and `careful`: its tests, failing on the base, become the contract the implementer works against. `merge.contractCheck` names the host's `Test contract 🧪` check, required on a task that has a contract (row 2b) and report-only otherwise; row 2c refuses a head that changed the contract. Reasons: `contract_invalid`, `contract_disputed`, `contract_modified`. `holdoutChecks` on a live or shadow policy names the checks the implementer cannot read. Metrics: `maku_factory_contracts_total` and `maku_factory_class_without_holdout`. `testFirst` is `false` by default ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md) turns it on). The roles: [roles]({{< relref "/docs/how-it-works/roles.md" >}}) |
@@ -78,7 +78,7 @@ the approval: [approve-to-merge]({{< relref "/docs/how-it-works/merge-gate.md#ap
 
 | Boundary | Mechanism |
 |---|---|
-| Spend | Per-run deadline; the factory's run meter revokes a run at its token cap; token budgets at the gateway; at most 20 tasks a day |
+| Spend | Per-run deadline; the factory's run meter revokes a run at its token cap; token budgets at the gateway; a daily task cap (`caps.tasksPerDay`) |
 | Merge | Only low-risk classes (`docs-links`, `revert`) merge themselves, with a revert breaker; everything else merges on one maintainer's approval of the current head ([merge gate]({{< relref "/docs/how-it-works/merge-gate.md#merge-gate" >}})) |
 | Stop | `kubectl -n agent-system create configmap agent-factory-stop` pauses intake and stops every task; one label on a pinned control issue also refuses new runs and revokes every running one |
 

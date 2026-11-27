@@ -5,7 +5,7 @@ aliases:
 weight: 100
 diataxis: explanation
 description: "Work in progress. The alternatives considered for each layer of the agent platform, why the current choices won, the projects evaluated in detail, and what would make us reconsider."
-lastVerified: 2026-11-15
+lastVerified: 2026-11-27
 ---
 
 {{< callout type="warning" >}}
@@ -57,7 +57,7 @@ flowchart TB
   end
   subgraph L2["Harness: the agent loop"]
     direction LR
-    F2["OpenHands<br/>(chosen)"] ~~~ O2C["OpenCode<br/>(evaluated)"] ~~~ A2["ax: Antigravity,<br/>Gemini only"] ~~~ K2["kagent: Claude Code,<br/>Codex, own ADKs"]
+    F2["OpenCode<br/>(default)"] ~~~ O2C["OpenHands<br/>(fallback)"] ~~~ A2["ax: Antigravity,<br/>Gemini only"] ~~~ K2["kagent: Claude Code,<br/>Codex, own ADKs"]
   end
   subgraph L1["Runtime: isolation, lifecycle, identity"]
     direction LR
@@ -71,7 +71,7 @@ flowchart TB
 | Layer | Chosen | Alternatives considered | Why |
 |---|---|---|---|
 | **Runtime** | Maku's run-controller + [gVisor](https://gvisor.dev), one pod per run | Agent Substrate (with google/ax or kagent), Kata/Firecracker, OpenHands Enterprise, Coder, E2B/Daytona | Open source; runs on EKS and GKE, on spot nodes; each run gets its own ServiceAccount and network policy, so the constitution's rules apply per run. Kata/Firecracker needs bare-metal hosts or nested virtualisation: the smallest AWS metal host has 128 vCPU, about $1.5/h spot or $5.4/h on demand ([Vantage](https://instances.vantage.sh/aws/ec2/c6i.metal)), against a few cents an hour for a run's spot node. An agent step mostly waits on the model (about 11 s a reply), so gVisor's system-call overhead does not show |
-| **Harness** | [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server | [OpenCode](#opencode), headless Claude Code, kagent's harnesses, ax's Antigravity agent, [DeepSeek Harness](#dsh-superagent-prototype) | Open source, headless (an HTTP API), works with any OpenAI-compatible model, supports MCP. OpenCode's upstream image is lighter, but it needs a Maku-owned loop guard and room, provider, and recovery adapters. Claude Code is proprietary; Antigravity is Gemini-only; DeepSeek Harness has no HTTP API, no stable release, and uploads session logs unless you opt out |
+| **Harness** | [OpenCode](#opencode) by default, [OpenHands](https://github.com/OpenHands/software-agent-sdk) agent-server as the fallback | Headless Claude Code, kagent's harnesses, ax's Antigravity agent, [DeepSeek Harness](#dsh-superagent-prototype) | Both are open source, headless, work with any OpenAI-compatible model and support MCP. OpenCode's image is lighter; Maku adds its loop guard and its room, provider and recovery adapters. A paired trial on identical tasks and the decision that followed: [results](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/results-harness-paired-trial-2026-11-26.md). Claude Code is proprietary; Antigravity is Gemini-only; DeepSeek Harness has no HTTP API, no stable release, and uploads session logs unless you opt out |
 | **Gateway** | [agentgateway](https://agentgateway.dev) | Agent Router 1.1 on Envoy Gateway, [otari](#otari), [agentmesh](#agentmesh) | See [gateways]({{< relref "/docs/how-it-works/gateways.md" >}}). otari has no MCP federation, token exchange, listener per data class or OpenTelemetry export, and no Kubernetes packaging: watched. agentmesh is a network between agents, not a gateway: its own guide puts agentgateway in front of it |
 | **Gateway guardrails** | The gateways' own guard hooks with open classifiers: agentgateway's `promptGuard` and MCP guardrails, the Semantic Router's jailbreak classifier, LlamaGuard on vLLM | [Google Model Armor](#google-model-armor), NeMo Guardrails, Guardrails AI, LlamaFirewall, ShieldGemma, llm-guard | A filter, not a boundary: a guard earns a block only from the injection drills, and the boundaries stay per-run identity, per-role tool rules, egress policy and the merge gate. Model Armor is a SaaS in the data path, inline on Google infrastructure only. Where this stands: [status]({{< relref "/docs/status.md#v3x" >}}) |
 | **Rooms** | A log we own: maku-broker on PostgreSQL | OpenHands shared conversations, ACP, A2A through a gateway, Valkey Streams, NATS JetStream, ax or Substrate as the session layer, kagent sessions | Two different questions. **Protocols** (OpenHands shared conversations, ACP, A2A, ax or Substrate, kagent sessions): none records who said what among several people and agents, or who may approve. **Brokers** (Valkey Streams, NATS JetStream): an event is written to Postgres first, which fixes its place in the log, then announced with `LISTEN/NOTIFY`. At a few events per second a second stateful system adds nothing, and delivering live before the write would let watchers see events the audit log never records |

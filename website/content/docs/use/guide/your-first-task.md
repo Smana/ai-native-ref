@@ -194,7 +194,7 @@ The implementer took about nine minutes and the reviewer about two; the whole ta
 in a new worktree beside your repository; your own checkout is untouched.
 
 **7. Approve on GitHub.** Open the pull request, read the diff and the reviewer's verdict, and approve.
-The factory comments `is done: the pull request was merged` with the tokens it used.
+The factory comments `is done: the pull request was merged` with what it spent.
 
 {{< /tab >}}
 {{< tab name="GitHub issue" icon="code" >}}
@@ -263,7 +263,7 @@ merge bot merges the commit you approved, and the factory closes the task:
 ```text
 Agent factory task `gmmrmund` is done: the pull request was merged.
 
-Tokens used: 433 k.
+Spent: $0.16 (433 k tokens).
 ```
 
 {{< /tab >}}
@@ -285,7 +285,8 @@ Whichever path you took, the factory did the same five things:
 
 ## You review {#you-review}
 
-Review the pull request on GitHub, as you would a colleague's.
+Review the pull request on GitHub, as you would a colleague's. Its body ends with **Try it**: the
+`maku checkout` line that puts the branch in a new worktree beside yours, and the room's link.
 
 - **Something is off:** submit a review with **Request changes** and say what you want. The factory
   comments that it is revising, and a new implementer run pushes a new commit to the same branch.

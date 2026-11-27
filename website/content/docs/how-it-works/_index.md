@@ -6,7 +6,7 @@ aliases:
   - /docs/get-started/agent-factory/
 weight: 30
 description: "The parts of the platform: the agent roles, the merge gate, the factory, rooms, the runtime, RunLore, the providers, the gateways, routing and cost, serving, and the alternatives considered."
-lastVerified: 2026-11-15
+lastVerified: 2026-11-27
 diataxis: explanation
 ---
 
@@ -20,7 +20,7 @@ on a maintainer's approval.
 
 [Maku](https://github.com/Smana/maku) is the product: the factory controller, the rooms, the
 run-controller, the harness and bridge, the model gateway's chart, the Slack app and the `maku` CLI.
-This platform bundles it with agentgateway, OpenHands, gVisor, RunLore and others.
+This platform bundles it with agentgateway, OpenCode, OpenHands, gVisor, RunLore and others.
 
 <span id="new-here-the-ideas-in-two-minutes"></span>New to rooms, runs, classes and the merge gate?
 Maku's [glossary]({{< maku "docs/concepts.md#glossary" >}}) defines each term. Which alternatives were
@@ -60,7 +60,7 @@ agent pushes an `agent/**` branch and opens a PR; a human review decides the mer
 | [Rooms]({{< relref "/docs/how-it-works/rooms.md" >}}) | The broker's append-only log, the bridge, the web view, steering, room tools and approvals |
 | [Runtime]({{< relref "/docs/how-it-works/runtime.md" >}}) | The run-controller, the gVisor sandbox on each cloud, per-run tokens, rulesets and network policy |
 | [RunLore]({{< relref "/docs/how-it-works/runlore.md" >}}) | Agent to agent: an incident in, a verified fix out |
-| [Providers]({{< relref "/docs/how-it-works/providers.md" >}}) | Why self-host vs hosted APIs, and Kimi and Mistral for public work switched on per class |
+| [Providers]({{< relref "/docs/how-it-works/providers.md" >}}) | Why self-host vs hosted APIs, and Kimi, Mistral and Gemini for public work, picked per workflow or per task |
 | [Gateways]({{< relref "/docs/how-it-works/gateways.md" >}}) | `ai-gateway` for humans and coding clients; the model gateway for agent runs |
 | [Model routing and cost]({{< relref "/docs/how-it-works/routing-and-cost.md" >}}) | Every routing decision, the knobs that tune it, the meter's prices, caching and budgets |
 | [Serving]({{< relref "/docs/how-it-works/serving/_index.md" >}}) | vLLM, one Crossplane `InferenceService` claim per model, on Karpenter L4 GPUs, scaled by KEDA |

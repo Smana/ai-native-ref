@@ -13,12 +13,22 @@ them, the agent still opens a pull request, but nothing tested it first.
 
 | The sandbox has | It does not have |
 |---|---|
-| `git`, `bash`, Python and `mise`, which installs your pinned tools | Docker, a database, a queue or any other service |
+| `git`, `bash`, Python and `mise`, which installs your pinned tools | Docker, or a service your platform team has not added ([below](#services)) |
 | GitHub and the package registries your platform team grants the repository | Any other host, or your CI's secrets |
-| 2 CPU, 4 GiB of memory and 10 GiB of scratch space | More than 15 minutes for its checks |
+| 2 CPU, 4 GiB of memory and 10 GiB of scratch space by default | More than 15 minutes for its checks |
 
 The registries a platform team can grant are PyPI, npm, the Go module proxy, crates.io, Maven Central with Gradle's hosts, and Node's downloads. Your files
-never name a host: ask your platform team for the registry your build needs.
+never name a host: ask your platform team for the registry your build needs. They can also give your
+repository's runs more room: 4 or 8 CPU, with 8 or 16 GiB.
+
+GitHub's release downloads are open only while the sandbox installs your pinned tools, before the
+agent starts. A tool the agent tries to download later is refused: pin it in `mise.toml`.
+
+### Services your tests need {#services}
+
+The platform team can add a Postgres or Redis service to your repository's runs. It listens on
+`127.0.0.1` only, starts empty for each run, and your checks reach it through `DATABASE_URL`
+(`postgres://maku@127.0.0.1:5432/maku`) or `REDIS_URL`. Create your schema in the test setup.
 
 ## 1. Pin your tools in `mise.toml` {#mise}
 
@@ -46,7 +56,7 @@ steps:
   - {name: unit, run: go test -short ./..., ci: test}
   - {name: lint, run: golangci-lint run, ci: lint}
 ciOnly:
-  - {check: test, part: "integration tests", why: "they need Postgres; the sandbox has no Docker"}
+  - {check: test, part: "container image build", why: "it needs Docker"}
 ```
 
 | Key | What you write |
@@ -58,7 +68,8 @@ ciOnly:
 
 ## 3. Say what the sandbox skips, in `ciOnly` {#ci-only}
 
-List everything that needs Docker, a service, a secret or a host the sandbox cannot reach. Listing it
+List everything that needs Docker, a service your runs do not get, a secret or a host the sandbox
+cannot reach. Listing it
 does not weaken anything: your CI still runs it, and CI decides whether the pull request merges.
 
 Make such a test skip, not fail, when its service is missing. For example, skip a database test when

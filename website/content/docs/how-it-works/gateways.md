@@ -5,7 +5,7 @@ aliases:
 weight: 70
 diataxis: explanation
 description: "Two gateways, one per kind of caller: ai-gateway for humans and coding clients, the model gateway for agent runs — identity, routing, and what they share."
-lastVerified: 2026-11-14
+lastVerified: 2026-11-27
 ---
 
 Every model call on this platform crosses one of two gateways, chosen by who is calling. Both speak
@@ -173,6 +173,7 @@ flowchart LR
   R -->|"/m/alias/v1"| LI
   B -->|"/clients/planner/v1"| LC
   LP --> Z["Z.ai GLM-5.3<br/>Moonshot Kimi · Mistral"]
+  LP --> G["Gemini<br/>Vertex AI, Google Cloud only"]
   LI --> A["Claude<br/>Anthropic API"]
   LC --> Z
   mg -.->|"B1, B2, B6 enforced"| RL["agent-ratelimit"] --> V[("Valkey<br/>xplane-agent-ratelimit")]
@@ -182,11 +183,11 @@ flowchart LR
 
 | Listener | Port | Audiences | Serves |
 |---|---|---|---|
-| `public` | 8080 | `maku-gateway.public.<alias>` | `/m/<alias>/v1` for the four tier aliases on Z.ai, and the provider aliases on Moonshot or Mistral ([providers]({{< relref "/docs/how-it-works/providers.md" >}}), public data only) |
+| `public` | 8080 | `maku-gateway.public.<alias>` | `/m/<alias>/v1` for the four tier aliases on Z.ai, and the provider aliases on Moonshot, Mistral or, on Google Cloud, Vertex AI ([providers]({{< relref "/docs/how-it-works/providers.md" >}}), public data only) |
 | `internal` | 8081 | `maku-gateway.internal.<alias>` | `/m/<alias>/v1` for the four tier aliases on Claude, through the Anthropic API (ADR-0054) |
 | `clients` | 8082 | `maku-gateway.client.<name>` | The broker's planner, on `/clients/planner/v1` ([planner settings]({{< relref "/docs/reference/planner.md" >}})) |
 
-Each provider serves only the data classes it is declared for: Z.ai, Moonshot and Mistral `public`,
+Each provider serves only the data classes it is declared for: Z.ai, Moonshot, Mistral and Vertex AI `public`,
 Anthropic `internal`. An alias a listener does not serve does not exist on it.
 
 ### Identity

@@ -3,7 +3,7 @@ title: "11. Configure merge policies"
 linkTitle: "11. Merge policies"
 weight: 11
 description: "Which merge policies are bound on this platform and in which mode, where their manifests live, and how they differ from Maku's defaults."
-lastVerified: 2026-11-25
+lastVerified: 2026-11-27
 diataxis: values
 ---
 
@@ -27,6 +27,7 @@ evaluation, and serves the Settings pages:
 | `Smana/ai-native-ref` | — | `docs-links`, `dead-links`, `docs` (`^website/content/.+\.md$`, 60 lines) | `tooling/base/agent-factory/resources/repository-ai-native-ref.yaml` |
 | `Smana/runlore-kb` | — | `docs-links`, `kb-entries`, `docs` | `tooling/base/agent-factory/resources/repository-runlore-kb.yaml` |
 | `Smana/runlore` | — | `docs-links`, `docs` | `tooling/base/agent-factory/resources/repository-runlore.yaml` |
+| `Smana/image-gallery` | — | `docs-links`, `docs` | `tooling/base/agent-factory/resources/repository-image-gallery.yaml` |
 
 <!-- example -->
 | Platform setting | Value on this platform | Manifest path |
@@ -52,6 +53,5 @@ the policy has enough clean decisions and the repository has passed a rollback d
 
 Example (the reference host): `gitops` names
 `tooling/base/agent-factory/resources/repository-ai-native-ref.yaml` in `Smana/ai-native-ref`, so the
-button opens the pull request for that repository's policies. For another repository, the button
-answers that the manifest names a different repository: open the one-line change by hand. The
-eligibility rules are in Maku's [promotion reference]({{< maku "docs/merge-policies.md#promotion-shadow-to-live" >}}).
+button opens the pull request for that repository's policies. For another repository, open the
+one-line change by hand. The eligibility rules are in Maku's [promotion reference]({{< maku "docs/merge-policies.md#promotion-shadow-to-live" >}}).

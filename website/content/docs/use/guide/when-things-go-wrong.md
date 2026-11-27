@@ -31,7 +31,7 @@ without failing the run.
 | `FAIL dns`, or `no such host` on the rooms address | Off the private network | Connect to the VPN, then run `maku doctor` again |
 | `FAIL tls`, or `x509: certificate signed by unknown authority` | The platform's certificate is not trusted | Add the certificate your platform team gave you to your system ([chapter 2]({{< relref "before-your-first-task.md#five-things" >}})) |
 | `FAIL login`, `not_logged_in` | Your session ended | `maku login` |
-| `FAIL github`; `maku rooms` lists nothing | Your GitHub account is not linked to your sign-in | Link it on the sign-in page |
+| `FAIL github`; `maku rooms` lists nothing | Your GitHub account is not linked to your sign-in | Open `/link/github` on the room pages and press **Link GitHub** |
 | A `403` on the room list | You are not in `agents-member` | Ask an admin to add you |
 | `FAIL skill` | A `maku-handoff` skill from another `maku` release | Run `maku setup <client>` again, or delete the stale copy |
 | Your coding agent has no factory tools | The client was running before `maku setup` | Restart it; for OpenCode, `maku doctor` says whether its background service needs a restart |
@@ -51,7 +51,8 @@ Every other line, with its fix: [Slack › When it says no]({{< relref "/docs/us
 ## A task looks stuck {#stuck}
 
 1. **Open the room and read the status line and NEXT.** A task waiting for you says so, and names the
-   move. Check **Needs you** ([chapter 6]({{< relref "when-the-factory-needs-you.md" >}})).
+   move. Check **Needs you** ([chapter 6]({{< relref "when-the-factory-needs-you.md" >}})). From a
+   terminal, `maku why <task>` says in one line why it stopped, then what to do next.
 2. **Read NOW.** An agent still calling tools is working; long runs are normal up to their deadline.
 3. **Queued, with no run?** Another task may hold the factory's run slots, or you hold the room's driver
    token ([hold]({{< relref "when-the-factory-needs-you.md#hold" >}})).

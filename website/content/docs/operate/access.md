@@ -14,7 +14,7 @@ What an admin sets up so a person can follow and steer factory tasks. The user's
 | Access to the tailnet | The platform team | — |
 | Their OS trusting the platform's root CA | The platform team hands out the CA | [Root CA](#root-ca) |
 | `agents-member` (or `agents-admin`) | An admin, in ZITADEL | [Groups](#groups) |
-| Their GitHub account linked to their ZITADEL user | The person, or an admin | [GitHub link](#github-link) |
+| Their GitHub account linked on the room pages | The person | [GitHub link](#github-link) |
 
 ## Root CA {#root-ca}
 
@@ -37,15 +37,10 @@ scripts/provision/zitadel-oidc-clients.sh --grant agents-member=<their email>   
 
 ## The GitHub link {#github-link}
 
-The person signs in at the platform's identity provider, chooses **GitHub**, and links it to their
-existing user. Example (the reference host): `https://auth.cloud.ogenki.io`.
-
-Someone who signs in with Google only ends on a password reset there. An admin adds the link instead:
-
-```bash
-IDP_URL=https://auth.<your-domain> scripts/provision/zitadel-idp.sh link-github \
-  <zitadel-login> <github-login> --cluster <cluster> --cloud <cloud> --apply
-```
+The person opens `https://rooms.<private-domain>/link/github` once, signs in, and presses
+**Link GitHub**. GitHub's own sign-in proves the account, and the broker keeps its numeric id, never a
+token, so a renamed GitHub account keeps working. How the broker is set up for it: Maku's
+[GitHub account link]({{< maku "docs/github-link.md" >}}).
 
 Until the link exists, `maku rooms` lists nothing and says how to link. The hint goes away within
 5 minutes of the link.
@@ -54,7 +49,7 @@ Until the link exists, `maku rooms` lists nothing and says how to link. The hint
 
 A person sees a room only if GitHub lets them read its repository; `agents-admin` sees every room.
 
-The broker reads the GitHub account linked to the person's ZITADEL user and asks GitHub for its
+The broker reads the GitHub account the person linked and asks GitHub for its
 permission on the room's repository. It keeps the answer for 5 minutes, so a grant or a revocation takes
 effect within that. A room they cannot read answers 404, as if it did not exist. When GitHub cannot be
 asked, the broker refuses once its cached answer expires.

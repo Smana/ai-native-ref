@@ -4,7 +4,7 @@ aliases:
   - /docs/platform/ai-platform/agents/how-it-works/rooms/
 weight: 30
 description: "The shared, append-only log of a task: the broker, the bridge, the web view, steering, room tools, approvals, and maku."
-lastVerified: 2026-10-31
+lastVerified: 2026-11-27
 diataxis: explanation
 ---
 
@@ -42,7 +42,7 @@ From the [rooms design](https://github.com/Smana/ai-native-ref/blob/main/docs/su
 
 Watching a room needs SSO membership in `agents-member`, and a room is only as visible as its
 repository: you read it only if GitHub lets you read the repository, through the GitHub account
-linked to your ZITADEL user; `agents-admin` reads every room
+you linked on the broker's `/link/github` page; `agents-admin` reads every room
 ([ADR-0056]({{< relref "/docs/decisions/0056-local-first-factory-ux.md" >}})). The full transcript
 (prompts and outputs) stays in the room; traces carry metadata only.
 

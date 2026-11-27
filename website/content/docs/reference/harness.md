@@ -4,7 +4,7 @@ aliases:
   - /docs/platform/ai-platform/agents/tune/harness-reference/
 weight: 10
 description: "The tier budgets, workflows, roles, concurrency caps, run-controller mounts and harness values set on this platform."
-lastVerified: 2026-11-25
+lastVerified: 2026-11-27
 diataxis: reference
 ---
 
@@ -55,7 +55,7 @@ stages and a `budget`, the tier its runs take:
 | `roles.security-reviewer` | `{capability: read, brief: roles/security-reviewer.md}` | A custom role reads the diff with the reviewer's read-only token; the built-in reviewer still decides |
 | `outcomes` | `[change, plan-first, review, report]` | The labels `plan-first`, `factory/review` and `report` pick the other three |
 | `scoper.planTier` | `frontier` | The scoper plans on the strong model |
-| `defaults` / `triage.controlPercent` | `{dataClass: public}` / `0` | Triage picks a `workflow:<name>` label, the schedule's workflow, or `Repository.spec.workflow.default` (`standard`) |
+| `defaults` / `triage.controlPercent` | `{dataClass: public, predictedClass: review, harness: opencode}` / `0` | Triage picks a `workflow:<name>` label, the schedule's workflow, or `Repository.spec.workflow.default` (`standard`) |
 
 The reviewer runs on **the other tier** (`frontier` for a `standard` or `light` implementer, `standard`
 for a `frontier` one) with that tier's `runUSD` cap, keeping the implementer's `runTokens` and
@@ -100,20 +100,23 @@ writes `agentruns.maku.ogenki.io` objects in `agents` (CRDs from
 | Surface | Values on this platform |
 |---|---|
 | `task agent:run` flags | `--max-tokens` default `2,000,000` (max `5,000,000`), `--model` default `agent-default`, `--profiles` (`pypi`, `npm`, `golang`, `crates`), fixed at `120` min and `size: small` |
-| `AgentRun.spec` | `size: small` (1–2 CPU, 2–4 GiB), `dataClass: public` or `internal`, `model: agent-default` (or `kimi-frontier` on the `frontier` reviewer), `loop.checks: true` on `standard` and `careful` (`Repository.spec.checks.egress` adds `[pypi]` on `cloud-native-ref` and `[golang, pypi]` on `ai-native-ref`) |
+| `AgentRun.spec` | `size: small` (1–2 CPU, 2–4 GiB), `dataClass: public` or `internal`, `model: agent-default` (or `kimi-frontier` on the `frontier` reviewer, or a `model:<alias>` label's alias), `loop.checks: true` on `standard` and `careful` (`Repository.spec.checks.egress` adds `[pypi]` on `cloud-native-ref`, `[golang, pypi]` on `ai-native-ref` and `[golang]` on `image-gallery`) |
+| `Repository.spec.screenshots` / `runtime.services` | `{enabled: true, roles: [implementer, tester], maxScreenshots: 10}` on `ai-native-ref`: a loopback browser sidecar. `[postgres]` on `image-gallery`: a loopback Postgres, empty at each run's start |
 
 ## Run-controller and harness values {#composition}
 
-<span id="harness"></span>
+<span id="harness"></span><span id="loop"></span><span id="bridge"></span><span id="pod"></span>
 
 Maku's run-controller (`infrastructure/base/room-broker/helmrelease.yaml`, under `runController`) turns
-each `AgentRun` into a gVisor pod running [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}})
-and [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}}):
+each `AgentRun` into a gVisor pod running the task's harness: OpenCode in the `maku-opencode` image, or
+OpenHands through [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}})
+and [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}}) in `maku-harness`:
 
 | Setting | Value on this platform | Manifest / source |
 |---|---|---|
-| RuntimeClass and egress | `gvisor`, isolated via `egressProxy` to GitHub, the model gateway (`:8080` public, `:8081` internal) and allowed package registries | `infrastructure/base/room-broker/helmrelease.yaml` |
+| RuntimeClass and egress | `gvisor`, isolated via `egressProxy` to GitHub, the model gateway (`:8080` public, `:8081` internal) and allowed package registries. GitHub's release-download hosts are open only while the toolchain installs, before the agent starts (Maku's install window, `runController.installEgress` unset) | `infrastructure/base/room-broker/helmrelease.yaml` |
 | Model and git credentials | Per-run projected gateway token (`LLM_API_KEY_FILE`) and per-run `<run>-git` Secret (`GIT_TOKEN_FILE`) | `infrastructure/base/room-broker/helmrelease.yaml`, `tooling/base/agent-factory/helm-values-configmap.yaml` |
-| Loop and call bounds | `reasoning_effort: high` (unset in env), 300 s call timeout (1 retry before first token), 3 retries on 503/reset (never 429), `max_iterations: 500`, stuck detector over last 20 events, condenser at 80 events (keeps first 4), 30,000-char event truncation | [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}}), [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}}) |
+| OpenHands loop and call bounds | `reasoning_effort: high` (unset in env), 300 s call timeout (1 retry before first token), 3 retries on 503/reset (never 429), `max_iterations: 500`, stuck detector over last 20 events, condenser at 80 events (keeps first 4), 30,000-char event truncation | [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}}), [`sitecustomize.py`]({{< maku "images/maku-harness/site/sitecustomize.py" >}}) |
 | Harness | OpenCode by default (`defaults.harness: opencode` in `factory.yaml`). A maintainer's `harness:openhands` label runs one task on OpenHands, and `/factory retry harness=openhands` moves a task back. A task pinned to a Gemini/Vertex alias runs on OpenHands, with one comment on the issue saying so: Vertex refuses OpenCode's tool schemas (Smana/maku#798). The OpenCode image is pinned by digest | `tooling/base/agent-factory/resources/factory.yaml` (`defaults.harness`), `infrastructure/base/room-broker/helmrelease.yaml` (`runController.images.opencode`) |
+| Optional sidecars | `runController.images.browser` (`maku-browser`, for a Repository with `spec.screenshots`) and `runController.images.postgres` (for `runtime.services: [postgres]`), both pinned by digest; `model.gateway.vision` lists the aliases that receive screenshots | `infrastructure/base/room-broker/helmrelease.yaml` |
 | Tools, checks and telemetry | Terminal, file editor, task tracker, room MCP (`:8090`), optional `search` child (40 iterations, 300k tokens, 300 s, max 6/run at `low` effort), `.github/agent-checks.yaml` pre-push and end-of-run check, 15 s step batches, SIGTERM checkpoint commit, OTLP spans without prompt text | [`agent_run.py`]({{< maku "images/maku-harness/agent_run.py" >}}) |

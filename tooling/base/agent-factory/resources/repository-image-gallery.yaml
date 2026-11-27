@@ -24,5 +24,7 @@ spec:
     checkReruns: 0
     # No separate secret-scan job: the CI gate is what escalates a red head.
     leakScanCheck: "CI Validation Complete"
+  # A Go module: its runs and checks fetch modules from proxy.golang.org.
+  checks: {egress: [golang]}
   # No binding: the chart's catalog policies (docs-links, docs) are evaluated in shadow, so every
   # merge stays a maintainer's.

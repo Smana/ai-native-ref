@@ -119,7 +119,8 @@ spec:
     frontier: {model: agent-default, runTokens: 4000000, taskTokens: 8000000, runMinutes: 90, runUSD: 6.80, taskUSD: 13.60}
   # CD22: a revision of another task runs before new intake. One wait reason, no reservation; the review
   # WIP cap and the run slot are still checked first.
-  caps: {activeTasks: 3, concurrentRuns: 4, tasksPerDay: 20, maxTextBytes: 14336, awaitingHumanWIP: 5, preferRevisions: true}
+  # tasksPerDay 25 for 2026-11-27 only (owner), so the image-gallery sidecar drill runs today; back to 20 next.
+  caps: {activeTasks: 3, concurrentRuns: 4, tasksPerDay: 25, maxTextBytes: 14336, awaitingHumanWIP: 5, preferRevisions: true}
   # CD23: one final spend fact after the settle window, so the card's dollars stop moving.
   facts: {finalSpend: true}
   # CD12: the reviewer's comments and the failing check's annotations in a revision brief.

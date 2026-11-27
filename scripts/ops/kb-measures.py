@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Human touches per incident and the knowledge queue, from GitHub alone (the RunLore knowledge-base plan, K6).
 
-  python3 scripts/ops/kb-measures.py --since YYYY-MM-DD [--until YYYY-MM-DD] [--fixtures DIR]
+  python3 scripts/ops/kb-measures.py --since YYYY-MM-DD [--until YYYY-MM-DD] [--fixtures DIR] [--json]
 
 An incident is a RunLore stub: a `factory/proposed` issue of Smana/cloud-native-ref opened by the factory's
 App whose body carries RunLore's origin line. The follow-up the monitor files when a fix did not hold
@@ -12,7 +12,7 @@ base's PRs are Smana/runlore-kb's, labelled `runlore`.
 
 Reads GitHub through `gh api` with the caller's own `gh` authentication: no token is read or printed here.
 With --fixtures DIR, reads DIR/{stubs,events,kb-prs}.json instead (events keyed by stub number).
-Prints one Markdown table.
+Prints one Markdown table, or one JSON document with --json.
 """
 import argparse
 import json
@@ -87,6 +87,18 @@ def render(m):
     return "\n".join(out + [f"| {k} | {'-' if v is None else v} |" for k, v in rows])
 
 
+def render_json(m):
+    return json.dumps({
+        "incidents": m["incidents"],
+        "touches": {"median": m["touches"]["median"], "max": m["touches"]["max"]},
+        "kb_opened": m["kb_opened"],
+        "kb_merged": m["kb_merged"],
+        "kb_closed": m["kb_closed"],
+        "kb_open_end": m["kb_open_end"],
+        "oldest_open_days": m["oldest_open_days"],
+    }, indent=2)
+
+
 def gh(path):
     """Every page of one `gh api` read (--paginate prints one JSON document per page)."""
     res = subprocess.run(["gh", "api", "--paginate", path], capture_output=True, text=True, check=False)
@@ -156,6 +168,7 @@ def main(argv=None):
     ap.add_argument("--since", required=True, type=ymd, help="YYYY-MM-DD")
     ap.add_argument("--until", type=ymd, help="YYYY-MM-DD, default tomorrow")
     ap.add_argument("--fixtures", help="read DIR/{stubs,events,kb-prs}.json instead of GitHub")
+    ap.add_argument("--json", action="store_true", help="print the measures as one JSON document")
     a = ap.parse_args(argv)
     since = a.since
     until = a.until or (datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -167,7 +180,8 @@ def main(argv=None):
         stubs, events, prs = (json.loads((d / f"{n}.json").read_text()) for n in ("stubs", "events", "kb-prs"))
     else:
         stubs, events, prs = from_github(since, until)
-    print(render(measures(stubs, events, prs, since=since, until=until)))
+    m = measures(stubs, events, prs, since=since, until=until)
+    print(render_json(m) if a.json else render(m))
     return 0
 
 

@@ -29,3 +29,15 @@ spec:
             description: "An OpenHands SDK upgrade moved the method the harness patches (images/agent-harness/site/sitecustomize.py in agent-platform). Roll the harness pin back, then fix the patch."
             runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/04-gateway-secrets-budgets.md#part-e--the-cache-read-share"
             dashboard: "https://grafana.${private_domain_name}/d/agent-gateway"
+        # GitHub egress tightening (Maku spec 2026-11-26): a run reached a GitHub release host after its
+        # harness closed the install set, so the agent, not the toolchain install, tried a download. A
+        # LogsQL rule: the egress proxy's metrics are not scraped here, and its log names the run.
+        - alert: MakuEgressInstallClosedRefusal
+          expr: 'kubernetes.pod_namespace:"agent-system" AND kubernetes.container_name:"egress-proxy" AND log.reason:"install_closed" | stats count() as lines | filter lines:>0'
+          labels:
+            severity: warning
+          annotations:
+            summary: "A run tried to download from a GitHub release host after its toolchain install"
+            description: "The egress proxy refused it; nothing was downloaded. Find the run and read its steps for the download it tried: kubectl -n agent-system logs -l app.kubernetes.io/name=egress-proxy --prefix | grep install_closed"
+            runbook_url: "https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/31-github-egress-drill.md"
+            dashboard: "https://grafana.${private_domain_name}/d/agent-fleet"

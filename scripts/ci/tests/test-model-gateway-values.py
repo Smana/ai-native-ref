@@ -124,7 +124,7 @@ def released(path, name):
 gemini = {"gemini-standard": {"provider": "vertex", "model": "gemini-4-neon"},
           "gemini-light": {"provider": "vertex", "model": "gemini-4-hydrogen"}}
 gcp = released("infrastructure/gcp-0/agent-gateway/model-gateway", "model-gateway")
-if gcp["providers"].get("vertex") != {"preset": "vertex", "projectId": "ogenki-435905", "region": "eu",
+if gcp["providers"].get("vertex") != {"preset": "vertex", "projectId": "${project_id}", "region": "eu",
                                       "dataClasses": ["public"]}:
     problems.append(f"M5: gcp-0's providers.vertex is {gcp['providers'].get('vertex')}")
 if {a: t for a, t in gcp["aliases"]["public"].items() if a in gemini} != gemini \
@@ -132,7 +132,13 @@ if {a: t for a, t in gcp["aliases"]["public"].items() if a in gemini} != gemini 
     problems.append("M5: gcp-0 must serve gemini-standard and gemini-light on public, and vertex on no internal alias")
 if {m: r for m, r in gcp["modelCatalog"]["prices"].items() if m in GEMINI} != {m: meter[m] for m in GEMINI}:
     problems.append("M5: gcp-0's catalog does not carry meter.prices' Gemini rows")
-broker = released("infrastructure/gcp-0/room-broker", "room-broker")["runController"]["model"]["gateway"]["aliases"]
+gw = released("infrastructure/gcp-0/room-broker", "room-broker")["runController"]["model"]["gateway"]
+broker = gw["aliases"]
+# The harness's own counter (Maku plan A6): each Gemini alias priced at its served model's meter.prices row.
+want_prices = {a: {"input": f"{meter[t['model']]['input']:.4g}", "output": f"{meter[t['model']]['output']:.4g}"}
+               for a, t in gemini.items()}
+if gw.get("prices") != want_prices:
+    problems.append(f"M5: gcp-0's runController.model.gateway.prices {gw.get('prices')} is not meter.prices' {want_prices}")
 if not set(gemini) <= set(broker["public"]) or set(gemini) & set(broker["internal"]):
     problems.append(f"M5: gcp-0's run-controller aliases {broker} must hold the Gemini aliases on public only")
 # The budgets' cost map prices every meter.prices row on every cluster; the values must name none.

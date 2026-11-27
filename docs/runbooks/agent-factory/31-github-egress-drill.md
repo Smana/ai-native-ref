@@ -48,7 +48,8 @@ Pass:
   (or `objects.githubusercontent.com:443`) with `"reason":"install_closed"` and `"phase":"agent"`.
 - `raw.githubusercontent.com:443` is refused `install_closed` (it is in the install set), and
   `codeload.github.com:443` is refused `not_allowed` (in no set).
-- `MakuEgressInstallClosedRefusal` fires within the rule's 5-minute interval (Grafana, Alerting).
+- `MakuEgressInstallClosedRefusal` fires within about 6 minutes: the rule's 5-minute window, read
+  30 s behind its evaluation (Grafana, Alerting).
 
 ## 2. The pinned toolchain still installs
 

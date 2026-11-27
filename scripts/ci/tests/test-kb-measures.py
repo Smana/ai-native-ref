@@ -80,6 +80,35 @@ valid = io.StringIO()
 with contextlib.redirect_stdout(valid):
     code = kb.main(["--since", "2026-11-10", "--until", "2026-11-20", "--fixtures", str(FIX)])
 check("a valid call still prints its table", code == 0 and valid.getvalue().startswith("| Measure | Value |"))
+
+tbl_out, json_out = io.StringIO(), io.StringIO()
+with contextlib.redirect_stdout(tbl_out):
+    tbl_code = kb.main(["--since", "2026-10-20", "--until", "2026-11-01", "--fixtures", str(FIX)])
+with contextlib.redirect_stdout(json_out):
+    json_code = kb.main(["--since", "2026-10-20", "--until", "2026-11-01", "--fixtures", str(FIX), "--json"])
+doc = json.loads(json_out.getvalue())
+tbl_rows = dict(line.strip("| ").split(" | ") for line in tbl_out.getvalue().splitlines()[2:])
+expected_keys = ("incidents", "touches", "kb_opened", "kb_merged", "kb_closed", "kb_open_end", "oldest_open_days")
+check("--json prints one indented JSON document with the table's keys",
+      tbl_code == 0 and json_code == 0
+      and tuple(doc.keys()) == expected_keys
+      and tuple(doc["touches"].keys()) == ("median", "max")
+      and json_out.getvalue() == json.dumps(doc, indent=2) + "\n")
+check("--json values equal the table's for the same fixtures",
+      [str(v) for v in (doc["incidents"], doc["touches"]["median"], doc["touches"]["max"],
+                        doc["kb_opened"], doc["kb_merged"], doc["kb_closed"],
+                        doc["kb_open_end"], doc["oldest_open_days"])]
+      == [tbl_rows[k] for k in ("Incidents", "Human touches per incident, median",
+                                "Human touches per incident, max", "KB PRs opened",
+                                "KB PRs merged", "KB PRs closed unmerged",
+                                "KB PRs open at the end (any age)", "Oldest open KB PR (days)")])
+empty = kb.measures([], {}, [])
+empty_doc = json.loads(kb.render_json(empty))
+check("--json emits null where the table prints -",
+      empty_doc["touches"] == {"median": None, "max": None}
+      and empty_doc["oldest_open_days"] is None
+      and "| - |" in kb.render(empty))
+check("the module docstring usage line names [--json]", "[--json]" in kb.__doc__.splitlines()[2])
 if failures:
     sys.exit(1)
 print("PASS: kb-measures")

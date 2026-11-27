@@ -1,0 +1,252 @@
+# Runbook 30 results — Gemini on Vertex AI on gcp-0 — 2026-11-27
+
+The ledger of [runbook 30](30-gemini-live-comparison.md): every number below comes from a query
+named beside it. The owner's go on spend for L2 to L5 was given on 2026-11-27 (about 07:40 UTC by
+the lead's record).
+
+| Item | Value |
+|---|---|
+| Cluster | gcp-0 (`gke_ogenki-435905_europe-west4-a_gcp-0`) |
+| Platform | ANR v4.1.9 and Maku v0.55.0 for L1 and the L2 baseline; ANR v4.1.11 and Maku v0.57.0 from L2's Neon run on |
+| L1 | Done by the lead before this ledger: T1 passed, the meter matched the list price exactly |
+
+## Close-out: the comparison is deferred
+
+The owner stopped the Gemini session at the integration test on 2026-11-27. The comparison is
+deferred and will be resumed later.
+
+| Step | Result |
+|---|---|
+| L1 · wire, identity, metering | **Passed.** Both aliases answered 200 through the gateway with the proxy's own Workload Identity and no key. The meter matched the list price exactly |
+| D0 · images | **Passed.** Both `gemini-standard` and `gemini-light` read a test image, so gcp-0's vision list carries them (ANR #618) |
+| L2 · the planner on Neon | **Failed.** 6 of 10 plans timed out at the 20 s deadline; p95 was 20.24 s against Z.ai's 11.96 s. About USD 0.023 a plan against 0.002. The planner patch (#610) was reverted (#621) |
+| L3 · roles | **Two blockers.** (1) OpenHands on `gemini-standard` at effort `high` was ended by the stall detector after 14 minutes. All 14 calls were 200, at 35 to 90 s each, and the room went quiet for 10 minutes (#622). (2) OpenCode cannot start: Vertex refuses `exclusiveMinimum` in three of OpenCode's built-in tool schemas (#623; Smana/maku#798, agentgateway/agentgateway#4242). The standalone-reviewer and tester legs could not run (Smana/maku#797; no `testFirst` repository) |
+| L4 · paired comparison | **Stopped, no verdict.** Three pairs completed (2, 3 and 5; blind packets prepared, key at the end). Pairs 1 and 4 have one pull request each; their queued halves (#625, #632) were closed as not planned. Batch 2 (pairs 6 to 10) was never filed. The open L4 pull requests are ordinary fixes for the owner |
+
+### Follow-ups
+
+| Issue | What |
+|---|---|
+| Smana/maku#797 | A `model:`/`harness:` pin on a review-only task (`factory/review`) |
+| Smana/maku#798 | OpenCode on a `vertex` alias: the `exclusiveMinimum` schemas. Fix upstream (agentgateway#4242, draft comment below); meanwhile refuse the pairing and say why |
+| Smana/maku#801 | Keep a run's harness event log after its pod is gone, so a stall like #622's can be diagnosed |
+
+### To resume later
+
+First, set what L3 showed:
+
+- **Effort.** Run Gemini's implementer at `reasoning_effort` `medium` or `low`, or widen the stall window for it. At `high`, a call takes about a minute.
+- **OpenCode.** Wait for the `exclusiveMinimum` fix (agentgateway#4242, or Maku#798's refusal), or keep both arms on OpenHands as L4 did.
+
+Then rerun L3 on OpenHands and expect no stall. File L4 afresh on the frozen rule below, unchanged:
+
+- B's merged count is at least A's minus one;
+- B's USD per merged task is at most 1.5 times A's;
+- B has zero signature 400s.
+
+Any change to effort applies to both arms, so the arms still differ only in model. Read the result
+with `model-comparison-report.py` and `maku stages --by model`. Report B's per-call latency next to
+its stall count.
+
+## L2 · The planner
+
+### Baseline on Z.ai glm-5.3 (before #610)
+
+Ten fixed prompts on `Smana/ai-native-ref`, each sent through `maku start` and answered `N` at the
+filing prompt, so the broker planned and nothing was filed. The prompts are in
+[the appendix](#appendix-the-l2-prompts). Window: 2026-11-27 07:16:33 to 07:17:36 UTC (the
+workstation's clock).
+
+Queries:
+
+- broker: `kubectl -n agent-system logs <room-broker pod> -c room-broker --since=20m`, the `intake plan` lines' `duration`
+- gateway: `kubectl -n agent-gateway logs <each model-gateway pod> --since=20m`, the lines whose `route` is the clients planner's, `duration`, `gen_ai.usage.*`, `cost.total`
+
+| # | Broker `intake plan` (s) | Outcome | Gateway calls (ms) | Output tokens | Gateway cost (USD) | CLI wall (ms) |
+|---|---|---|---|---|---|---|
+| 1 | 3.69 | planned | 3514 | 232 | 0.00148 | 3888 |
+| 2 | 3.97 | asked | 3963 | 232 | 0.00178 | 4179 |
+| 3 | 11.96 | planned | 11753 | 305 | 0.00209 | 12171 |
+| 4 | 11.19 | planned | 5721 + 5461 | 388 + 277 | 0.00420 | 11409 |
+| 5 | 3.51 | planned | 3314 | 216 | 0.00169 | 3668 |
+| 6 | 6.45 | asked | 6443 | 441 | 0.00268 | 6656 |
+| 7 | 3.23 | planned | 3228 | 226 | 0.00174 | 3492 |
+| 8 | 3.71 | planned | 3710 | 236 | 0.00178 | 3987 |
+| 9 | 6.39 | planned | 6390 | 383 | 0.00243 | 6555 |
+| 10 | 6.47 | asked | 6470 | 423 | 0.00261 | 6647 |
+
+- Every call answered 200 on `glm-5.3`. No plan timed out against the 20 s deadline.
+- p95 of the broker's durations (nearest rank, n=10): 11.96 s. The median is 5.18 s.
+- Plan 4 made two planner calls, in one `intake plan` of 11.19 s.
+- Total cost: USD 0.0225.
+
+The plans' text is kept for the owner's blind ranking, with each plan's arm hidden.
+
+### Neon on Vertex `eu` (#610 live, Maku v0.57.0, ANR v4.1.11) — **stop: planner timeouts**
+
+The planner backend `vertex-planner` maps `tier-frontier` to `gemini-4-neon` (read from the
+AgentgatewayBackend). The same ten prompts, the same way. Window: 2026-11-27 09:49:10 to 09:52:06
+UTC.
+
+| # | Broker `intake plan` (s) | Outcome | Gateway (ms) | Status | Output tokens (of which reasoning) | Gateway cost (USD) |
+|---|---|---|---|---|---|---|
+| 1 | 18.96 | asked | 14219 | 200 | 1412 (889) | 0.02753 |
+| 2 | 12.16 | asked | 12144 | 200 | 1123 (810) | 0.02277 |
+| 3 | 20.19 | refused `planner_timeout` | 20001 | — | — | — |
+| 4 | 10.51 | planned | 10450 | 200 | 1041 (726) | 0.02139 |
+| 5 | 20.24 | refused `planner_timeout` | 20001 | — | — | — |
+| 6 | 12.63 | planned | 12573 | 200 | 1014 (709) | 0.02093 |
+| 7 | 20.00 | refused `planner_timeout` | 20001 | — | — | — |
+| 8 | 20.00 | refused `planner_timeout` | 19948 | — | — | — |
+| 9 | 20.00 | refused `planner_timeout` | 19955 | — | — | — |
+| 10 | 20.00 | refused `planner_timeout` | 19958 | — | — | — |
+
+- **Six of ten plans timed out** at the broker's 20 s deadline. The gateway shows each of these
+  calls cut at about 20 s with no status and no usage.
+- The four plans that answered took 10.5 to 19.0 s. The median is 20.0 s and p95 is 20.24 s,
+  against the runbook's pass line of p95 under 15 s with no timeout.
+- `reasoning_effort: low` reached Vertex as `thinkingLevel: low`, yet each answer still spent 700
+  to 900 thinking tokens, about 70 % of its output.
+- Cost of the four answered calls: USD 0.0926, about USD 0.023 a plan against Z.ai's USD 0.002,
+  roughly 11 times as much. The timed-out calls report no usage.
+
+Verdict: **L2 fails on its stop condition** (a timeout; p95 ≥ 15 s). The runbook says to revert
+the planner patch (#610) before anything else. Neon stays off the planner. The four Neon plans
+that answered are kept for the owner's blind ranking beside the ten Z.ai plans.
+
+## L3 · Roles on both harnesses
+
+| Run | Issue | Harness | State |
+|---|---|---|---|
+| Implementer, then reviewer (pinned together by `model:gemini-standard`) | #622 (task `4nsn6vsa`) | OpenHands | **stop: Escalated `stuck`** after 14 min, USD 0.52, no pull request |
+| Implementer, then reviewer | #623 (task `e4wlawv6`) | OpenCode | **stop: Escalated `agent_error` at step 0** |
+
+**#623, OpenCode: Vertex refuses OpenCode's tool schemas.** The run (`pmd4lwya`, 09:56 to 09:58
+UTC) installed its toolchain, then the first model call failed (harness log, `kubectl -n agents logs
+run-pmd4lwya -c harness`):
+
+```text
+agent-run error: provider.invalid-request Invalid JSON payload received. Unknown name "exclusiveMinimum"
+at 'tools[0].function_declarations[21].parameters.properties[4].value': Cannot find field. ...
+at 'tools[0].function_declarations[22].parameters.properties[3].value' ...
+```
+
+agentgateway's native `vertexai` translation passes each tool's JSON Schema to `generateContent` as is,
+and Gemini's function declarations refuse the JSON Schema keyword `exclusiveMinimum`, which two of the
+run's tools use. It is a 400 on the request, not a thought signature: 0 steps, no cost. The egress
+install window did not cause it (`agent-checks: toolchain ready`). OpenCode runs cannot use Gemini
+until the schema is accepted: the gateway (or the harness) has to drop or translate the keyword.
+
+The three tools, from OpenCode's own request, dumped offline from the `maku-opencode:v0.57.0`
+image: `generate_video.duration`, `glob.limit` and `grep.limit`, each with `exclusiveMinimum: 0`.
+The cause is in agentgateway (`normalize_gemini_schema` keeps both exclusive bounds, which Vertex's
+`Schema` lacks), already reported upstream as agentgateway/agentgateway#4242. Filed in Maku as
+Smana/maku#798, with the interim fix: refuse OpenCode on a `vertex` alias, and say why.
+
+**#622, OpenHands: the stall detector ended the run.** Run `vqcajao2` (09:56 to 10:10 UTC, effort
+`high`, served model `gemini-4-neon` per `provenance.servedModels`). The room shows 8 tool calls
+between 09:57 and 10:00, then no activity until the factory ended it at 10:10 ("the run showed no
+activity for 10 minutes"). Its 14 model calls, read from the gateway's access log by the run's
+subject:
+
+| Measure | Value |
+|---|---|
+| Calls | 14, all 200 on `gcp.vertex_ai`, **no 400** (no signature error) |
+| Latency per call | 19.6 to 89.4 s; most are 35 to 70 s |
+| Input tokens | 13.9 k rising to 49.8 k |
+| Output tokens (thinking) | 56 to 4,691 (11 to 3,745) |
+| Cost | USD 0.5203, equal to the task's `usage.costMicroUSD` (0.520254) |
+
+No call failed, so the stop is not on the wire: no 400 and no signature error. What the run did
+after 10:00 is not known. Ten model calls answered 200 after 10:00, but the room recorded no tool
+call in that time. Either those answers carried tool calls the bridge did not mirror, or they carried
+none. The pod is gone and its event log with it. What is known is the pace: about a minute per call
+at effort `high` (`thinkingLevel: high`), against Z.ai's few seconds. That leaves little room in a
+10-minute activity window. **L4's B arm runs the same way, so it may stall the same way.**
+
+#### Draft upstream text (for the owner to post; a comment on agentgateway/agentgateway#4242)
+
+> Reproduced on v1.6.0 with the native `vertexai` provider (region `eu`), `gemini-4-neon`, from
+> OpenCode 2.4: the first Chat Completions request fails with
+> `Invalid JSON payload received. Unknown name "exclusiveMinimum" at
+> 'tools[0].function_declarations[21].parameters.properties[4].value'`. OpenCode's built-in
+> `generate_video.duration`, `glob.limit` and `grep.limit` each declare `exclusiveMinimum: 0`.
+>
+> The cause is `ALLOWED_SCHEMA_FIELDS` in `crates/llm/src/conversion/vertex_gemini.rs`, still the
+> same on `main`. It lists `exclusiveMinimum` and `exclusiveMaximum`, and
+> `normalize_gemini_schema(params, false)` keeps them for `functionDeclarations[].parameters`.
+> Vertex's `Schema` (google/cloud/aiplatform/v1/openapi.proto) does not define them.
+>
+> Suggested fix: in the function-declaration path, translate the bounds rather than drop them.
+> `exclusiveMinimum: n` becomes `minimum: n` (plus 1 for `type: integer`), and likewise for
+> `exclusiveMaximum`, unless a `minimum`/`maximum` is already set. A test with OpenCode's `glob`
+> schema should show the request accepted. Happy to send a PR.
+
+Two legs of the runbook cannot run on v0.57.0 and are recorded as gaps, not stops:
+
+- **A standalone reviewer** (`factory/review` on a pull request): triage reads no `model:` or
+  `harness:` pin on a review outcome (Maku `Classify.pin` returns none for review), so the run would
+  not be on Gemini. The reviewer leg is the reviewer run of #622 and #623, which the pin moves with
+  the implementer and which must post through `room_verdict`.
+- **The tester**: no Repository on gcp-0 sets `testFirst` (ai-native-ref's says why, TO4), so no
+  workflow runs the tester.
+
+## L4 · The rule, frozen before the first pair is filed
+
+Frozen on 2026-11-27, before any L4 issue exists. B is `model:gemini-standard` on the implementer
+and the reviewer; A is the factory's default (`agent-default`). Everything else is identical: the same
+body, the same `workflow:standard` label, the OpenHands harness, the same efforts, caps and checks.
+
+**B earns a 30+30 `evaluation.treatmentModel` trial only if all three hold:**
+
+1. B's merged count is at least A's minus one.
+2. B's USD per merged task (total USD / merged) is at most 1.5 × A's.
+3. B has zero signature 400s: no run ends on one, and the gateway logs no 400 from `gcp.vertex_ai`
+   in the window.
+
+Read with `model-comparison-report.py --arm-a '[gemini A]' --arm-b '[gemini B]'`. A pair whose arms
+the classifier rated at different tiers is dropped (`--drop-mismatched`) and named. A arm merging
+nothing makes the rule indecisive. The owner may override the rule; an override is recorded here.
+
+## L4 · Pairs
+
+Filed 2026-11-27 09:58:36 to 09:58:50 UTC, each pair back to back: `workflow:standard`,
+`harness:openhands` and `factory/ready` on both copies, `model:gemini-standard` on one. The titles
+carry the suffixes `[L4 v]` and `[L4 w]`. Which suffix is which arm is in the key at the end of this
+file. Caps: tasksPerDay 20, activeTasks 3, awaitingHumanWIP 5; none raised. Queued tasks waited on
+`waiting_active_tasks`, then `waiting_review_wip`, as the session's pull requests filled the review
+WIP. The second batch of five pairs was not filed (close-out above).
+
+| Pair | Task | `[L4 v]` | `[L4 w]` |
+|---|---|---|---|
+| 1 | kb-measures `--json` | #625 (closed, not planned) | #626 → PR #644 |
+| 2 | runbook 30 links back to the README | #627 → PR #641 | #628 → PR #642 |
+| 3 | gen-prices refuses `cacheRead` above `input` | #629 → PR #639 | #630 → PR #640 |
+| 4 | cost-crosscheck `--json` names its window | #631 → PR #638 | #632 (closed, not planned) |
+| 5 | runbook 32 says when to run a comparison | #633 → PR #636 | #634 → PR #643 |
+
+## Appendix: the L2 prompts
+
+1. Add a --json flag to scripts/ops/kb-measures.py that prints the measures as one JSON document instead of the table.
+2. The runbooks README lists runbook 30; add a one-line link back to the README at the top of runbook 30.
+3. scripts/ci/check-price-drift.py: print the catalog key next to each finding in the issue body.
+4. test-model-gateway-values.py: name the failing listener in the M2 message when an alias is missing.
+5. Make scripts/ops/cost-crosscheck.py accept --day today as the current UTC day.
+6. The status page's Gemini row should link runbook 30 by its GitHub URL.
+7. check-sources.sh: exit 2, not 1, when the repository root cannot be found.
+8. Add a short "When to use" paragraph to runbook 27-workflow-comparison.md.
+9. model-comparison-report.py: add --title-filter REGEX to keep only pairs whose title matches.
+10. gen-prices.py: refuse a meter.prices row whose cacheRead exceeds its input rate.
+
+---
+
+## The arm key (for after the blind review)
+
+`[L4 v]` is arm A (`agent-default`); `[L4 w]` is arm B (`model:gemini-standard`). For each pair, the
+blind packet's X and Y are listed here once its pull requests exist.
+
+| Pair | X | Y | X is | Y is |
+|---|---|---|---|---|
+| 2 | #642 (issue #628) | #641 (issue #627) | B | A |
+| 3 | #639 (issue #629) | #640 (issue #630) | A | B |
+| 5 | #643 (issue #634) | #636 (issue #633) | B | A |

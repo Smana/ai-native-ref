@@ -22,7 +22,7 @@ would serve different model IDs with different availability, and gcp-0 had only 
 "Vertex follow-up". The internal listener therefore has no model on either cluster today. aws-0 is
 the live cluster for the migration (2026-10-15).
 
-[ADR-0053]({{< relref "/docs/decisions/0053-agent-router-on-agentgateway.md" >}}) moves the agent
+[ADR-0053](https://maku.ogenki.io/docs/decisions/0053-agent-router-on-agentgateway/) moves the agent
 router to agentgateway, whose `AgentgatewayBackend.spec.ai.provider` offers `anthropic`, `openai`,
 `bedrock`, `vertexai`, `custom` and others as native providers at v1.6.0. Choosing a provider is now a backend
 object, not a platform build. ADR-0046 rejected a native Anthropic key (its Option 2) because keyless

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go (Maku), `sigs.k8s.io/yaml`, the existing `sanitize`, `redact`, `envelope` and `mcp` packages.
 
-**Spec:** [`docs/superpowers/specs/2026-11-07-untrusted-input-hardening-design.md`](../specs/2026-11-07-untrusted-input-hardening-design.md), stage H0 of [Staged rollout](../specs/2026-11-07-untrusted-input-hardening-design.md#rollout) · **Decision record:** [ADR-0061](../../../website/content/docs/decisions/0061-agents-write-through-safe-outputs.md)
+**Spec:** [`docs/superpowers/specs/2026-11-07-untrusted-input-hardening-design.md`](../specs/2026-11-07-untrusted-input-hardening-design.md), stage H0 of [Staged rollout](../specs/2026-11-07-untrusted-input-hardening-design.md#rollout) · **Decision record:** [ADR-0061](https://maku.ogenki.io/docs/decisions/0061-agents-write-through-safe-outputs/)
 
 **Read against:** Maku `origin/main` `c2a07b58`, cited `Maku/<path>:<line>`. Every code block below is the compiled code of [Smana/maku#400](https://github.com/Smana/maku/pull/400), written test first.
 

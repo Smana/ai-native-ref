@@ -225,7 +225,7 @@ These are not features. Each one is a small change of its own:
 
 | Finding | Action |
 |---|---|
-| The [alternatives page](../../../website/content/docs/how-it-works/alternatives.md) is stale on Substrate (per-agent JWT closed 2026-10-22; v1.0.0-rc.1 adds micro-VMs, moves to DCO), kagent (v1.0.0-rc1: owned-resource RBAC) and ax (a Claude Code example; #376 and #363 still open) | Re-check and update the rows |
+| The [alternatives page](https://maku.ogenki.io/docs/concepts/alternatives/) is stale on Substrate (per-agent JWT closed 2026-10-22; v1.0.0-rc.1 adds micro-VMs, moves to DCO), kagent (v1.0.0-rc1: owned-resource RBAC) and ax (a Claude Code example; #376 and #363 still open) | Re-check and update the rows |
 | agent-sandbox is pinned at v1.0.5; v1.0.9 is current, and v1.0.7 adds warm members behind Kueue gates | Bump, with its release notes read |
 | SWE-bench Verified is retired (OpenAI, 2026-02-23) | The [eval bench design](2026-10-22-eval-bench-design.md) names SWE-bench Pro, SWE-rebench or Terminal-Bench 2.0 as its public anchor |
 | Daytona went private (June 2026); Google's Jules closes on 2026-12-31 | Remove them where the docs cite them as options |

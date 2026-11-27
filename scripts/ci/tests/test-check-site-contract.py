@@ -159,6 +159,10 @@ page("use/x.md", "[dir](https://github.com/Smana/maku/tree/main/docs/reference)\
 out = run()
 check("raw maku tree link fails", "use/x.md:1: raw maku link" in out and STATE["code"] == 1, out)
 
+page("use/x.md", "[install](https://maku.ogenki.io/docs/install/)\n")
+out = run()
+check("raw maku.ogenki.io/docs link fails", "use/x.md:1: raw maku link" in out and STATE["code"] == 1, out)
+
 page("status.md", "[guide](https://github.com/Smana/maku/blob/main/docs/merge-policies.md)\n")
 out = run()
 check("raw maku blob link on status.md also fails", "status.md:1: raw maku link" in out and STATE["code"] == 1, out)

@@ -8,7 +8,7 @@ the owner decided the [five open decisions](#owner-decisions) on 2026-11-08 · *
 [multi-repository coordination](2026-11-05-v4-multi-repo-coordination-design.md) ·
 **Research:** [untrusted-input hardening research](2026-11-07-untrusted-input-hardening-research.md),
 [Model Armor and its open-source equivalents](2026-11-04-model-armor-oss-equivalents-research.md) ·
-**Decision record:** [ADR-0061](../../../website/content/docs/decisions/0061-agents-write-through-safe-outputs.md)
+**Decision record:** [ADR-0061](https://maku.ogenki.io/docs/decisions/0061-agents-write-through-safe-outputs/)
 
 Maku source is read at `origin/main` `3e60f820` and cited `Maku/<path>:<line>`; this repository at
 `a5a0a57`; cloud-native-ref at `origin/main`, cited `CNR/<path>`. **Current** describes that source.

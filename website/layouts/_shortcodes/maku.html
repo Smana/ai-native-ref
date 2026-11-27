@@ -1,6 +1,6 @@
-{{- /* Builds a GitHub blob URL into Smana/maku at params.makuVersion. */ -}}
-{{- $ver := site.Params.makuVersion -}}
-{{- if not $ver -}}{{- errorf "maku shortcode: params.makuVersion is not set in hugo.yaml (%s)" .Position -}}{{- end -}}
+{{- /* Builds a canonical documentation URL on https://maku.ogenki.io/docs/.
+     Accepts paths with or without a leading `/` or `docs/` prefix (e.g. `install/gateway/` or `docs/install/gateway/`). */ -}}
 {{- $target := strings.TrimPrefix "/" (.Get 0 | default "") -}}
+{{- $target = strings.TrimPrefix "docs/" $target -}}
 {{- if not $target -}}{{- errorf "maku shortcode: missing path argument (%s)" .Position -}}{{- end -}}
-{{- printf "https://github.com/Smana/maku/blob/%s/%s" $ver $target -}}
+{{- printf "https://maku.ogenki.io/docs/%s" $target -}}

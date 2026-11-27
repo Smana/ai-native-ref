@@ -7,7 +7,7 @@ written spec awaits the owner's review; built in agent-platform v0.23.1; live pr
 server ([factory interfaces](2026-10-21-factory-interfaces-design.md)), amends
 [local-first D1](2026-10-08-agent-factory-local-first-ux-design.md#decisions) and
 [interfaces F3](2026-10-21-factory-interfaces-design.md#decisions), and supersedes
-[ADR-0056](../../../website/content/docs/decisions/0056-local-first-factory-ux.md) D2 ·
+[ADR-0056](https://maku.ogenki.io/docs/decisions/0056-local-first-factory-ux/) D2 ·
 **Research:** [the companion](2026-10-25-factory-from-your-agent-research.md): how the best tools hand
 work to a remote agent (§1), and what an MCP integration can rely on per client (§2)
 
@@ -38,7 +38,7 @@ Copilot CLI and Cursor are documented, best-effort.
 | A drifted copy | cloud-native-ref commits the skill at `roomctl-version: "v0.11.0"`, from before `roomctl mcp` shipped (v0.17.0, [agent-platform#172](https://github.com/Smana/agent-platform/pull/172)) | cloud-native-ref `.agents/skills/factory-handoff/SKILL.md` |
 | The start rule | A `factory/ready` label starts a task only when its labeller is in the repository's maintainers and holds write on GitHub (v2 D5). Any other label is narrated `unauthorised_labeller` | `internal/factory/intake/`, `internal/factory/narrate/narrate.go:217` |
 | Broker config | `human.mcp.enabled`, `human.mcp.sponsored`. Off in this repository's committed configs when this design was written; the adopt PR (6) turns `/mcp` on in base with `sessionStart` empty, and `sponsored` stays empty | `internal/config/config.go:63`; this repository's `infrastructure/base/room-broker/config.yaml` |
-| Decisions in force | [ADR-0049](../../../website/content/docs/decisions/0049-room-client-and-human-auth.md): no approving or steering from a client an agent can drive. Local-first D1 (starting stays the developer's label), D2 (no MCP server; stale since [agent-platform#172](https://github.com/Smana/agent-platform/pull/172)), D3 (a deterministic summary), D6 (GitHub's notifications). Interfaces F3, F7 and F8 | the linked designs |
+| Decisions in force | [ADR-0049](https://maku.ogenki.io/docs/decisions/0049-room-client-and-human-auth/): no approving or steering from a client an agent can drive. Local-first D1 (starting stays the developer's label), D2 (no MCP server; stale since [agent-platform#172](https://github.com/Smana/agent-platform/pull/172)), D3 (a deterministic summary), D6 (GitHub's notifications). Interfaces F3, F7 and F8 | the linked designs |
 
 ## Decisions
 

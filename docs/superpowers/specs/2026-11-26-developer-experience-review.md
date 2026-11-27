@@ -60,14 +60,14 @@ Scores are severity (1 annoys, 2 costs an hour or a colleague, 3 blocks the task
 | Start a task | Only a login listed in `Repository.spec.maintainers` may start one, from any surface. Write access is not enough. | `maku:internal/factory/config/config.go:474`, `maku:internal/factory/intake/issues.go:366-375`, `maku:web/src/newtask.ts:178` | 3×3 = **9** |
 | Build and test | One platform image, no per-repository image or setup hook. Tools come from `mise.toml`; registries are `pypi`, `npm`, `golang`, `crates` only. | `maku:internal/runctl/config.go:340-360`, `maku:api/v1alpha1/agentrun_types.go:181-192` | 3×3 = **9** |
 | Tests that need a service | No Docker under gVisor, no service containers, no way to pass a test secret. Such tests are skipped in the sandbox. | [`.github/agent-checks.yaml`](../../../.github/agent-checks.yaml) line 19, `maku:images/maku-harness/agent_checks.py:47-50`, `maku:internal/runctl/pod.go:145-226` | 3×3 = **9** |
-| Make the repository ready | The file a developer must write, `.github/agent-checks.yaml`, has no how-to on either site. | `maku:docs/onboard-a-repository.md` (no mention), [harness reference](../../../website/content/docs/reference/harness.md) (one table cell) | 3×2 = **6** |
-| Get access | Private network, platform certificate, `agents-member`, GitHub link, maintainer rights: five things, four from other people. | [Before your first task](../../../website/content/docs/use/guide/before-your-first-task.md) | 2×1 = 2, but it is the first hour |
+| Make the repository ready | The file a developer must write, `.github/agent-checks.yaml`, has no how-to on either site. | `maku:docs/onboard-a-repository.md` (no mention), [harness reference](https://maku.ogenki.io/docs/concepts/opencode-harness/) (one table cell) | 3×2 = **6** |
+| Get access | Private network, platform certificate, `agents-member`, GitHub link, maintainer rights: five things, four from other people. | [Before your first task](https://maku.ogenki.io/docs/guide/before-your-first-task/) | 2×1 = 2, but it is the first hour |
 | Get a repository served | `kubectl`, a ruleset admin token and two GitHub Apps. No request path; a label on an unserved repository gets no answer. | `maku:docs/onboard-a-repository.md:15-32`, `maku:internal/factory/reconciler/reconciler.go:305-308` | 3×1 = 3 |
 | Describe the work | Images are stripped from the issue, silently. An issue without an acceptance section bounces with no run. | `maku:internal/factory/sanitize/sanitize.go:65-68`, `maku:docs/factory.md:208` | 2×2 = 4 |
 | Read the pull request | The body has one rule, `Fixes #N`, plus a machine footer. No fixed summary, no test evidence, no "try it". | `maku:internal/factory/reconciler/text.go:93-102`, `maku:internal/hardening/footer.go:46-47` | 2×3 = **6** |
 | Iterate | Only a maintainer's **Request changes** starts a revision. A comment review, an inline thread or an issue comment reaches nobody. A conflict hands off; nothing rebases. | `maku:internal/factory/reconciler/arm.go:429`, `maku:internal/factory/reconciler/merge.go:359-364` | 2×3 = **6** |
 | Unstick a failure | 167 of 188 reasons end in the same next step, "a maintainer reviews the task and chooses the next step". The failure guide is written for kubectl. | `maku:internal/factory/reasons/reasons.go:228-230`, `maku:docs/operations/failures.md` | 2×2 = 4 |
-| Follow cost | Good: dollars spent against the cap in the room, `maku status` and Slack. The closing GitHub comment reports tokens instead. | [Follow and steer](../../../website/content/docs/use/guide/following-and-steering.md), `maku:internal/factory/narrate/narrate.go:1003-1007` | 1×3 = 3 |
+| Follow cost | Good: dollars spent against the cap in the room, `maku status` and Slack. The closing GitHub comment reports tokens instead. | [Follow and steer](https://maku.ogenki.io/docs/guide/following-and-steering/), `maku:internal/factory/narrate/narrate.go:1003-1007` | 1×3 = 3 |
 | Be told | Good: issue comments with mentions, a Slack thread, `maku needs`, the tab title. No per-person settings, which GitHub's own cover. | `maku:docs/reference/narration.md:11-21` | 1×1 = 1 |
 
 What already works for a developer, and should not be touched: a second agent reviews before a person
@@ -120,10 +120,10 @@ not a gap worth closing in v5.
 
 | Stage | Friction | Evidence | Score |
 |---|---|---|---|
-| Permission | Never a listed maintainer, so every start goes through someone else. Slack answers `Not filed: … is not a maintainer of …`. | [When things go wrong](../../../website/content/docs/use/guide/when-things-go-wrong.md) | 3×3 = **9** |
+| Permission | Never a listed maintainer, so every start goes through someone else. Slack answers `Not filed: … is not a maintainer of …`. | [When things go wrong](https://maku.ogenki.io/docs/guide/when-things-go-wrong/) | 3×3 = **9** |
 | Vocabulary | About 60 Maku-specific terms across the four pages before a first task (3,160 words). | Count over `website/content/docs/use/guide/` chapters 1 to 3 and the index | 2×1 = 2 |
 | The CLI | `maku --help` prints one wall: `login` and `status` beside `db bootstrap`, `preflight`, `policy` and `drill`. No per-command help. | `maku:internal/app/maku.go:46-164,248-252` | 1×2 = 2 |
-| A wrong premise | The planner writes the request into the issue without checking it against the repository. The guide warns; the product does not. | [Write a good task](../../../website/content/docs/use/guide/writing-a-good-task.md) | 2×2 = 4 |
+| A wrong premise | The planner writes the request into the issue without checking it against the repository. The guide warns; the product does not. | [Write a good task](https://maku.ogenki.io/docs/guide/writing-a-good-task/) | 2×2 = 4 |
 
 ### Tech lead reviewing the agents' pull requests
 
@@ -131,10 +131,10 @@ not a gap worth closing in v5.
 |---|---|---|---|
 | First read | Each body is shaped by the model. The checks' result and the cost are in the room, not on the pull request. | `maku:internal/factory/reconciler/text.go:93-102` | 2×3 = **6** |
 | Inline comments | A review submitted as **Comment** is ignored, with no reply saying so. | `maku:internal/factory/reconciler/arm.go:429` | 2×3 = **6** |
-| A small fix by hand | The escalation comment suggests "push to the branch yourself". A human commit then blocks the merge bot for good; an admin with ruleset bypass must merge. | `maku:internal/factory/narrate/narrate.go:967`, [Merging](../../../website/content/docs/use/guide/merging.md) | 3×2 = **6** |
+| A small fix by hand | The escalation comment suggests "push to the branch yourself". A human commit then blocks the merge bot for good; an admin with ruleset bypass must merge. | `maku:internal/factory/narrate/narrate.go:967`, [Merging](https://maku.ogenki.io/docs/guide/merging/) | 3×2 = **6** |
 | Required reviewers | `CODEOWNERS` is a protected path only. Nothing reads who must review. | `maku:internal/factory/config/mergepolicy.go:184` | 2×2 = 4 |
-| Why it did not merge | The seven common reasons are explained well. They are still codes: `class_unarmed`, `shadow_would_arm`. | [Merging](../../../website/content/docs/use/guide/merging.md) | 1×3 = 3 |
-| Shared limits | Caps are for the whole factory. Example (the reference host): five pull requests awaiting review anywhere pause intake for everyone. | [Harness reference](../../../website/content/docs/reference/harness.md) `caps` | 2×2 = 4 |
+| Why it did not merge | The seven common reasons are explained well. They are still codes: `class_unarmed`, `shadow_would_arm`. | [Merging](https://maku.ogenki.io/docs/guide/merging/) | 1×3 = 3 |
+| Shared limits | Caps are for the whole factory. Example (the reference host): five pull requests awaiting review anywhere pause intake for everyone. | [Harness reference](https://maku.ogenki.io/docs/concepts/opencode-harness/) `caps` | 2×2 = 4 |
 | Two agents, one file | The only overlap check compares outcomes, not files, and is off by default. The second pull request conflicts and waits as `not_mergeable`. | `maku:docs/factory.md:128`, `maku:internal/factory/reconciler/merge.go:359-364` | 2×2 = 4 |
 
 ### Adopting developer (did not install it)

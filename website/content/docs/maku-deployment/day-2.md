@@ -1,9 +1,11 @@
 ---
 title: Day-2 operations
 linkTitle: Day-2 operations
-weight: 25
+aliases:
+  - /docs/operate/day-2/
+weight: 10
 description: "Operate Maku on this host: stop the factory in an emergency, upgrade the pinned release, restore the room database, and switch the active cluster."
-lastVerified: 2026-11-15
+lastVerified: 2026-11-27
 diataxis: how-to
 ---
 
@@ -32,7 +34,7 @@ factory stops itself on its next poll. If a GitHub App key is suspected compromi
 `ogenki-agents` or `ogenki-agent-merger` App installation in GitHub settings to cut git writes at
 GitHub's edge immediately.
 
-See Maku's [escalated tasks and the kill switch]({{< maku "docs/operations/failures.md#escalated-tasks-and-the-kill-switch" >}})
+See Maku's [escalated tasks and the kill switch]({{< maku "operate/failures/#escalated-tasks-and-the-kill-switch" >}})
 and [runbook 09 (App key compromise)](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/09-app-key-compromise.md).
 
 ## Upgrade Maku {#upgrade-maku}
@@ -60,20 +62,14 @@ Follow this checklist on every Maku upgrade:
 1. Bump the chart and image digests (`tooling/base/agent-factory/helm-values-configmap.yaml`,
    `flux/sources/ocirepo-agent-factory.yaml`, `tooling/base/agent-factory/crds/ocirepository.yaml`, and
    the broker, gateway and Slack pins) together with `params.makuVersion` in `website/hugo.yaml`.
-2. Re-read the three merge-policy values pages —
-   [merge policies]({{< relref "/docs/use/guide/merge-policies.md" >}})
-   (`website/content/docs/use/guide/merge-policies.md`),
-   [the merge gate]({{< relref "/docs/how-it-works/merge-gate.md" >}})
-   (`website/content/docs/how-it-works/merge-gate.md`) and
-   [run auto-merge safely]({{< relref "/docs/operate/auto-merge-safety.md" >}})
-   (`website/content/docs/operate/auto-merge-safety.md`) — against `tooling/base/agent-factory/resources/`
-   so no statement drifts across the release.
+2. Re-check [Maku on Cloud Native Ref]({{< relref "/docs/maku-deployment/_index.md" >}}) against
+   `tooling/base/agent-factory/resources/` if active policy modes or host seams changed.
 3. Run `task check` locally and confirm every pin, schema and site-contract guard exits zero before
    opening the pull request.
 4. Once the new release reconciles and passes its live check on the active cluster, update
    `lastVerified` on `website/content/docs/status.md`.
 
-See Maku's [upgrades]({{< maku "docs/operations/rooms.md#upgrades" >}}) and
+See Maku's [upgrades]({{< maku "operate/rooms/#upgrades" >}}) and
 [runbook 11 (end-to-end validation)](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/11-v1-validation.md).
 
 ## Restore {#restore}
@@ -96,7 +92,7 @@ A rebuild loses three things if they were not captured beforehand:
 - Cloud-local OpenBao secrets when bootstrapping onto a new KMS lineage, until the owner re-seeds the
   GitHub App, model provider and Slack keys.
 
-See Maku's [backups and rebuilds]({{< maku "docs/operations/rooms.md#backups-and-rebuilds" >}}) and
+See Maku's [backups and rebuilds]({{< maku "operate/rooms/#backups-and-rebuilds" >}}) and
 [runbook 13 (rooms database restore)](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/13-rooms-restore.md).
 
 ## Switch the active cluster {#switch-the-active-cluster}
@@ -116,5 +112,5 @@ To hand intake from one cluster to the other:
 3. Flip `.github/agent-factory.yaml` in the other served repositories and switch the Flux umbrella
    `suspend` flags on the host repository so the incoming cluster reconciles `agent-platform`.
 
-See Maku's [factory operations]({{< maku "docs/operations/factory.md" >}}) and
+See Maku's [factory operations]({{< maku "operate/factory/" >}}) and
 [runbook 00 (cluster setup and teardown)](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/README.md#runbook-00-one-time-cluster-setup).

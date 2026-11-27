@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "website/**"
+      - "scripts/ci/build-redirects.py"
       # Renovate bumps hugo-extended here on its own; without this the
       # site is never built against the new version before it reaches main.
       - "mise.toml"
@@ -56,6 +57,9 @@ jobs:
       - name: Build
         working-directory: website
         run: hugo --minify --gc
+
+      - name: Generate cross-domain redirects
+        run: python3 scripts/ci/build-redirects.py --public website/public --map website/data/redirects.yaml
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5

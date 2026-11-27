@@ -71,7 +71,7 @@ sequenceDiagram
 | **B. `SandboxWarmPool` + claim-time binder** | ≤ 5 s + clone | binder mints run tokens | one spot node | Owner's go |
 | C. Warm pool with the run's SA pre-bound | ≤ 5 s | none | one node *per future run* | Rejected: a warm pod would hold a run identity before claim |
 | D. Claim with `env` / `volumeClaimTemplates` | cold | none | — | Rejected: either field forces a cold start (`sandboxclaim_types.go`), the pool is bypassed |
-| E. Substrate (memory snapshots) | — | its own | — | The [comparison spike](../../../website/content/docs/how-it-works/alternatives.md#agent-substrate) at the next gcp-0 rebuild, unchanged |
+| E. Substrate (memory snapshots) | — | its own | — | The [comparison spike](https://maku.ogenki.io/docs/concepts/alternatives/#agent-substrate) at the next gcp-0 rebuild, unchanged |
 
 A pool of one and a headroom pod hold the same node. B buys ~11–15 s more per run on runs that
 last 10–60 min, against a component that can mint any run's tokens. That trade is the owner's.

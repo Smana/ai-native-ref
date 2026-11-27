@@ -2,7 +2,7 @@
 
 **Date**: 2026-10-01, updated 2026-10-15 · **Status**: Accepted · **Owner decisions**: 2026-10-01, after the
 gcp-0 PoC; OD-1 to OD-8 on 2026-10-15, after the aws-0 PoC ·
-**ADRs**: [ADR-0053](../../../website/content/docs/decisions/0053-agent-router-on-agentgateway.md) (gateway), [ADR-0054](../../../website/content/docs/decisions/0054-agent-model-providers-anthropic-direct.md) (providers) ·
+**ADRs**: [ADR-0053](https://maku.ogenki.io/docs/decisions/0053-agent-router-on-agentgateway/) (gateway), [ADR-0054](../../../website/content/docs/decisions/0054-agent-model-providers-anthropic-direct.md) (providers) ·
 **Plan**: [2026-10-15-agent-router-agentgateway-plan.md](https://github.com/Smana/cloud-native-ref/blob/main/docs/superpowers/plans/2026-10-15-agent-router-agentgateway-plan.md) (PR #2369)
 
 ## Update, 2026-10-15

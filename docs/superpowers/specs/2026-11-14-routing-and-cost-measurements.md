@@ -10,7 +10,7 @@ Moved verbatim from `website/content/docs/how-it-works/routing-and-cost.md` (rea
 |---|---|---|
 | Agent model per data class (`public` → Z.ai, `internal` → Anthropic) | Yes, on by default | [ADR-0054](../../../website/content/docs/decisions/0054-agent-model-providers-anthropic-direct.md) |
 | `tier-light`, `tier-standard`, `tier-frontier` served by the model gateway | Yes. No factory tier asks for them: every tier names `agent-default` | `model-gateway/helmrelease.yaml`, factory values |
-| `kimi-frontier`, `mistral-standard`, `mistral-light` on the `public` listener | Yes, public data only, selectable per class with `loops.<class>.models`, which no class sets by default | [Providers](../../../website/content/docs/how-it-works/providers.md) |
+| `kimi-frontier`, `mistral-standard`, `mistral-light` on the `public` listener | Yes, public data only, selectable per class with `loops.<class>.models`, which no class sets by default | [Providers](https://maku.ogenki.io/docs/concepts/providers/) |
 | Triage classifier (`complexity-classifier`) | No. The URL is configured and nothing answers it, so every task falls back to `standard` with `classifier: static` | factory values, `Task` status |
 | 10% control group at `frontier` (`triage.controlPercent`) | Yes | `Task` status |
 | Run meter priced in USD, cache reads at their own rate | Yes | factory values |
@@ -19,7 +19,7 @@ Moved verbatim from `website/content/docs/how-it-works/routing-and-cost.md` (rea
 | Semantic Router `MoM` cascade | Yes, idle while `llm-platform` is suspended: no vLLM model exists to route to | `kubectl get ks llm-platform` |
 | SR `complexity` signal, PII-gated frontier escalation, SR fail-open | No, designed for SR 0.3.0 | [routing design §2](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-09-23-llm-complexity-routing-design.md#2-complexity-signal-for-chat-mom) |
 | LoRA canary on `xplane-qwen-coder` | Yes, serves only while `llm-platform` runs | `apps/base/ai/llm/qwen-coder.yaml` |
-| Endpoint picker (Gateway API Inference Extension) | Yes, enabled on no claim | [serving known gaps](../../../website/content/docs/how-it-works/serving/_index.md#known-gaps) |
+| Endpoint picker (Gateway API Inference Extension) | Yes, enabled on no claim | [serving known gaps](../../../website/content/docs/serving/_index.md#known-gaps) |
 
 ### Every routing decision {#every-routing-decision}
 
@@ -68,9 +68,9 @@ simply exist.
 
 | Mechanism | What it routes | Knob | Interplay |
 |---|---|---|---|
-| LoRA canary | 10% of `xplane-qwen-coder` requests to the `xplane-qwen-coder-sql-dpo` adapter, on the same pod | `gateway.canaries[].weightPercent` | The adapter name is matched verbatim: a typo routes to nothing, with no error ([LoRA canaries](../../../website/content/docs/how-it-works/gateways.md#lora-canaries)) |
+| LoRA canary | 10% of `xplane-qwen-coder` requests to the `xplane-qwen-coder-sql-dpo` adapter, on the same pod | `gateway.canaries[].weightPercent` | The adapter name is matched verbatim: a typo routes to nothing, with no error ([LoRA canaries](../../../website/content/docs/serving/ai-gateway.md#lora-canaries)) |
 | Endpoint picker | Which replica, from KV-cache and queue state | enabled per claim | Mutually exclusive with canaries; worth it from two replicas up ([roadmap](../../../website/content/docs/status.md#serving-roadmap)) |
-| KEDA | How many replicas a model gets | `model.maxNumSeqs`, trigger thresholds 0.7 / 0.6 / 8 | Routing chooses whose queue grows. Every `MoM` default lands on `xplane-qwen3-8b`, so it saturates first. Its `max: 2` and the pool's 4-GPU cap bound it ([autoscaling](../../../website/content/docs/how-it-works/serving/autoscaling-and-gpu.md#three-triggers-or-combined)) |
+| KEDA | How many replicas a model gets | `model.maxNumSeqs`, trigger thresholds 0.7 / 0.6 / 8 | Routing chooses whose queue grows. Every `MoM` default lands on `xplane-qwen3-8b`, so it saturates first. Its `max: 2` and the pool's 4-GPU cap bound it ([autoscaling](../../../website/content/docs/serving/autoscaling-and-gpu.md#three-triggers-or-combined)) |
 
 ### Complexity routing for tasks: kept out of the request path {#complexity-routing-for-tasks}
 
@@ -229,7 +229,7 @@ token cap.
 |---|---|
 | Is self-hosting a cost play? | **No.** Four always-warm L4 models are about **$876 a month** on spot ($0.30 an hour each, the May design's AWS estimate, `docs/superpowers/specs/2026-05-06-oss-llm-foundation-showcase-design.md`). That buys about 2.4B GLM-5.3 tokens a month at a blended $0.357 per million |
 | Can the local fleet serve agents? | **No, by design.** "Local 7–8B models are never agent tiers" (routing design §5): agents need frontier capability with zero GPUs |
-| Why self-host at all | Prompts that never leave the tailnet, a model pinned to a commit, sub-200 ms tab completion on a warm replica ([why self-host](../../../website/content/docs/how-it-works/providers.md#why-self-host-at-all)) |
+| Why self-host at all | Prompts that never leave the tailnet, a model pinned to a commit, sub-200 ms tab completion on a warm replica ([why self-host](https://maku.ogenki.io/docs/concepts/providers/#why-self-host-at-all)) |
 | When does the trade change | The [serving roadmap](../../../website/content/docs/status.md#serving-roadmap) triggers: a bigger coder when the 7B hits its limits, L40S or tensor-parallel when quantized quality loss becomes measurable, cost per tenant when several consumers share the platform |
 
 ### Tuning, measuring and known gaps {#tuning-and-measuring}
@@ -344,7 +344,7 @@ appear in **no** rule above. They hold serving capacity and are reachable only
 by naming them directly. The router's own in-pod `prompt_guard` classifier
 blocks jailbreak attempts, but that is a filter, not a routing decision —
 there is no automatic guardrail dispatch (see
-[known gaps](../../../website/content/docs/how-it-works/serving/_index.md#known-gaps)).
+[known gaps](../../../website/content/docs/serving/_index.md#known-gaps)).
 
 ### Frontier models and token budgets on `ai-gateway`
 
@@ -457,7 +457,7 @@ them red on the base, signs the commit and pushes it, or answers once (`not_test
 nothing. The implementer that follows cannot commit a change to those files, and is told when they
 still fail. The model itself never pushes. `testFirst` is off by default; an operator turns it on
 per class ([runbook 21](https://github.com/Smana/ai-native-ref/blob/main/docs/runbooks/agent-factory/21-test-first-tester.md)),
-and a class without it runs without a tester ([the roles](../../../website/content/docs/how-it-works/roles.md#tester)).
+and a class without it runs without a tester ([the roles](https://maku.ogenki.io/docs/concepts/roles/#tester)).
 
 One line per action, never its output, redacted for tokens. It is what you read most.
 
@@ -599,7 +599,7 @@ sequenceDiagram
 
 The child sees nothing of the conversation, reads the uncommitted tree, never writes and never reaches
 the room. Its calls are metered on the run and bounded by the run's USD cap, and the bridge classes the
-call plain. The switch is `loops.<class>.search: true` ([reference](../../../website/content/docs/reference/harness.md#caps)),
+call plain. The switch is `loops.<class>.search: true` ([reference](https://maku.ogenki.io/docs/concepts/opencode-harness/#caps)),
 which does not switch the loop policy on.
 
 ### Not tunable today {#not-tunable-today}

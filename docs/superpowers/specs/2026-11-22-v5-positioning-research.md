@@ -83,7 +83,7 @@ flowchart TB
 ### Where not to compete
 
 - **Interactive local coding:** do not compete against Cursor, Claude Code, Warp ADE, or Amp on developer laptops. Position Maku as **complementary** — developers keep their preferred local agent and hand off audited, budget-capped async work to Maku in Kubernetes.
-- **Self-hosted GPU serving as part of the factory pitch:** the four-GPU L4 serving floor (~$876/month on spot with no scale-to-zero; [cost snapshot](2026-10-18-cost-snapshot.md), [providers.md](../../../website/content/docs/how-it-works/providers.md)) is an optional showcase layer in `ai-native-ref`, not a prerequisite for running Maku.
+- **Self-hosted GPU serving as part of the factory pitch:** the four-GPU L4 serving floor (~$876/month on spot with no scale-to-zero; [cost snapshot](2026-10-18-cost-snapshot.md), [providers.md](https://maku.ogenki.io/docs/concepts/providers/)) is an optional showcase layer in `ai-native-ref`, not a prerequisite for running Maku.
 
 ### Winning positioning statement
 
@@ -105,12 +105,12 @@ flowchart TB
 | **P0 · Pre-pitch** | Private-repository planner & Slack/MCP handoff | Unblocks v4's core UX on private corporate repositories (using scoped read-only App tokens + `internal` gateway listener) |
 | **P0 · Pre-pitch** | Generic Kubernetes Helm install (V11) + external quickstarts (V20) | Closes the unverified "runs on any Kubernetes" claim and removes blind-spot onboarding bugs |
 | **P0 · In-pilot** | Untrusted-input hardening (H1–H5) + injection red-team drills | Required before exposing Maku to non-maintainer issues, bot comments, or webhook/alert triggers |
-| **P0 · In-pilot** | Team-ready auth & onboarding | Replace Maintain/Admin + Tailscale + custom CA + manual `agents-member` assumptions ([before-your-first-task.md](../../../website/content/docs/use/guide/before-your-first-task.md)) with GitHub `write` role / Teams / `CODEOWNERS`, standard Ingress/HTTPRoute, and standard OIDC / GitHub OAuth |
+| **P0 · In-pilot** | Team-ready auth & onboarding | Replace Maintain/Admin + Tailscale + custom CA + manual `agents-member` assumptions ([before-your-first-task.md](https://maku.ogenki.io/docs/guide/before-your-first-task/)) with GitHub `write` role / Teams / `CODEOWNERS`, standard Ingress/HTTPRoute, and standard OIDC / GitHub OAuth |
 | **P0 · In-pilot** | Per-repository runtime environments | Partner repos span Node, Python, Java, Rust, etc. Minimal `spec.runtime.image` + setup/cache hook per `Repository` CRD gives 80/20 environment parity inside gVisor |
 | **P1 · v5 Core** | Outcome analytics & Day-30 ROI dashboard | Joins already-collected cost, merge, wait, and revert series by repo/class/model/workflow — answers Day-30 leadership ROI questions and powers the "100 Real PRs" proof post |
 | **P1 · v5 Core** | Pluggable harness contract (`OpenCode` default + `OpenHands` fallback + best-effort BYO `Claude Code`) | Slashes the 4.0 GB OpenHands image (~277 MB OpenCode base; [opencode research](2026-11-15-opencode-harness-research.md)) while answering enterprise BYO-agent requests without committing to an upstream-churn SLA |
 | **P1 · v5 Core** | Spec-driven development (SDD) intake | Native ingestion of open specs (GitHub Spec Kit / OpenSpec / EARS) with fallback to a minimal compatible Maku spec; connects planner → scoper → tester → implementer → judge |
-| **P1 · v5 Core** | Live auto-merge beyond `docs-links` | Unblock M8 and prove `deps-patch` (Renovate adoption) or `docs` live with revert drill + second-family reviewer ([ADR-0058](../../../website/content/docs/decisions/0058-reviewer-on-another-model.md)) |
+| **P1 · v5 Core** | Live auto-merge beyond `docs-links` | Unblock M8 and prove `deps-patch` (Renovate adoption) or `docs` live with revert drill + second-family reviewer ([ADR-0058](https://maku.ogenki.io/docs/decisions/0058-reviewer-on-another-model/)) |
 | **P2 · Partner-triggered v5.x** | Full PR continuation loop, `maku takeover`, Review Inbox | Inline comments + merge-conflict rebasing, first-class cloud-to-local handoff (`room_checkout`), and risk-ranked review queue when partner PR volume justifies them |
 | **Deferred · Post-PoC #1** | GitLab, Jira/Linear, fleet campaigns, multi-team chargeback, audit export, reviewed repo memory | High value later, but premature before one GitHub + Kubernetes team proves the core loop |
 

@@ -2,29 +2,29 @@
 title: AI Native Reference
 layout: hextra-home
 images: [media/agent-factory-poster.jpg]
-description: "The AI platform of Cloud Native Reference: self-hosted model serving and the Agent Factory, which turns labelled issues into sandboxed agent runs, deployed on its host as one signed, pinned Flux artifact."
+description: "Self-hosted GPU model serving and the Cloud Native Reference deployment of Maku — shipped as one signed, digest-pinned Flux OCI artifact."
 ---
 
-{{< hero-video clip="agent-factory" alt="The Agent Factory in 32 s: one sentence from a coding agent or Slack, or a labelled issue, becomes an issue the planner drafts and the developer confirms, then a sandboxed agent run, watched and steered in a room; every call goes through agentgateway under the run's own identity and budget, with a per-run GitHub App token; the agent opens a pull request that a human reviews and merges." >}}
+{{< hero-video clip="agent-factory" alt="Overview of the reference AI platform running on Cloud Native Reference: self-hosted GPU model serving behind Envoy AI Gateway alongside the Maku coding-agent factory." >}}
 
-{{< hextra/hero-badge link="https://github.com/Smana/maku" >}}
-  🚀 Maku · Sovereign Kubernetes coding-agent factory · Apache-2.0
+{{< hextra/hero-badge link="https://maku.ogenki.io/" >}}
+  Looking for Maku docs, quickstart, or interactive demo? Visit maku.ogenki.io ↗
 {{< /hextra/hero-badge >}}
 
 {{< hextra/hero-headline >}}
-  Models and coding agents, on your own Kubernetes platform
+  Self-hosted GPU Model Serving &amp; the Maku Reference Deployment
 {{< /hextra/hero-headline >}}
 
 {{< hextra/hero-subtitle >}}
-  The GitOps reference deployment of <strong>Maku</strong> — the standalone, sovereign Kubernetes coding-agent
-  factory — alongside self-hosted open-weights GPU serving behind an OpenAI-compatible gateway.
-  Run Maku on any Kubernetes cluster, or deploy this full reference artifact on Cloud Native Reference.
+  The GitOps AI platform of <strong>Cloud Native Reference</strong>: open-weights <strong>vLLM</strong> serving on
+  spot GPUs behind Envoy AI Gateway, plus the reference Flux deployment of <strong>Maku</strong> — the sovereign,
+  Kubernetes-native coding-agent factory.
 {{< /hextra/hero-subtitle >}}
 
-{{< hextra/hero-button text="Install Maku standalone ↗" link="https://github.com/Smana/maku" >}}
-{{< hextra/hero-button text="Reference deployment & GPU serving" link="docs/get-started/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
-{{< hextra/hero-button text="Watch a real run ↗" link="https://blog.ogenki.io/maku/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
-{{< hextra/hero-button text="The host: Cloud Native Ref ↗" link="https://cnref.ogenki.io/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
+{{< hextra/hero-button text="Model Serving" link="docs/serving/" >}}
+{{< hextra/hero-button text="Maku product & docs ↗" link="https://maku.ogenki.io/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
+{{< hextra/hero-button text="Maku on Cloud Native Ref" link="docs/maku-deployment/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
+{{< hextra/hero-button text="Cloud Native Ref ↗" link="https://cnref.ogenki.io/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
 
 {{< /hero-video >}}
 

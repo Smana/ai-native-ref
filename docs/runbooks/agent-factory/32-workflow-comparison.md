@@ -5,6 +5,14 @@ precondition for step-up or per-role measurement (the workflows and roles redesi
 ruling, WR-O1). Design:
 [workflows review](../../superpowers/specs/2026-11-14-workflows-review-design.md) (WF8).
 
+## When to run one
+
+Run a comparison when the open question is which workflow a class of tasks should default to, and
+cost or merge-rate data can settle it: a decision rule from both arms beats an argument from
+impressions. It is not a tool for step-up or per-role measurement, which WR-O1 in the introduction
+already routes elsewhere. A comparison is only worth its cost when the target cluster can supply
+the cohort of section 2, 30 ended tasks per arm. Anything smaller cannot reach the rule of section 4.
+
 ## 1. The overlay
 
 Add a `Factory` strategic-merge patch under the target cluster's overlay (the file does not exist

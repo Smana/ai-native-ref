@@ -17,7 +17,7 @@ them, the agent still opens a pull request, but nothing tested it first.
 | GitHub and the package registries your platform team grants the repository | Any other host, or your CI's secrets |
 | 2 CPU, 4 GiB of memory and 10 GiB of scratch space | More than 15 minutes for its checks |
 
-The registries a platform team can grant are PyPI, npm, the Go module proxy and crates.io. Your files
+The registries a platform team can grant are PyPI, npm, the Go module proxy, crates.io, Maven Central with Gradle's hosts, and Node's downloads. Your files
 never name a host: ask your platform team for the registry your build needs.
 
 ## 1. Pin your tools in `mise.toml` {#mise}

@@ -62,7 +62,7 @@ DIATAXIS_FM_RE = re.compile(r'^\s*diataxis:\s*["\']?(\S+?)["\']?\s*(?:#.*)?$')
 PRODUCT_NAME_RE = re.compile(r"Agent Factory(?! \[?v[0-4]\b)")
 MAKU_VERSION_TEXT_RE = re.compile(r"Maku v0\.\d+\.\d+")
 MAKU_VERSION_URL_RE = re.compile(r"Smana/maku/(?:blob|tree|releases/tag)/v0\.\d+\.\d+")
-RAW_MAKU_LINK_RE = re.compile(r"github\.com/Smana/maku/(?:blob|tree)/\S+")
+RAW_MAKU_LINK_RE = re.compile(r"(?:github\.com/Smana/maku/(?:blob|tree)/\S+|maku\.ogenki\.io/docs/\S+)")
 
 
 def split_page(text: str) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:

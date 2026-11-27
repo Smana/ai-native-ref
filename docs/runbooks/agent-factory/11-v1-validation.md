@@ -1,7 +1,7 @@
 # 11 — v1 and local-first UX validation
 
 Proves the [local-first UX design](../../superpowers/specs/2026-10-08-agent-factory-local-first-ux-design.md)
-([ADR-0056](../../../website/content/docs/decisions/0056-local-first-factory-ux.md)) on a cluster on Maku release
+([ADR-0056](https://maku.ogenki.io/docs/decisions/0056-local-first-factory-ux/)) on a cluster on Maku release
 pins (`v0.8.0` or later), and one task end to end on those pins (SP3 Task 10.6 Step 2).
 [Runbook 14](14-gcp-0-session.md) step 8 runs it on gcp-0 with `CLOUD=gcp`.
 See [README.md](README.md) for `CLOUD`; run [00](README.md#runbook-00-one-time-cluster-setup) first.

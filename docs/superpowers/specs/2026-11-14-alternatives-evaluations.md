@@ -1,6 +1,6 @@
 # Alternatives considered: detailed project evaluations
 
-Moved verbatim from `website/content/docs/how-it-works/alternatives.md` at `2f71a8c` (November 2026) under rule 6 of [`docs/docs-style.md`](../../docs-style.md). The reasoning and layer decisions stay on [`website/content/docs/how-it-works/alternatives.md`](../../../website/content/docs/how-it-works/alternatives.md).
+Moved verbatim from `website/content/docs/how-it-works/alternatives.md` at `2f71a8c` (November 2026) under rule 6 of [`docs/docs-style.md`](../../docs-style.md). The reasoning and layer decisions stay on [`website/content/docs/how-it-works/alternatives.md`](https://maku.ogenki.io/docs/concepts/alternatives/).
 
 ## What would make us reconsider
 
@@ -10,7 +10,7 @@ Moved verbatim from `website/content/docs/how-it-works/alternatives.md` at `2f71
 | Postgres `LISTEN/NOTIFY` for room fan-out | NATS JetStream, for fan-out only: the log stays in Postgres and is written first | Notification latency or database load shows on the room dashboards, or rooms need many broker replicas |
 | gVisor | Kata or Firecracker microVMs | Concurrency reaches about 20 sandboxes, enough to fill a metal host; a gVisor incompatibility blocks a class of task; or nested virtualisation becomes available on our node types |
 | agentgateway (agents), Envoy AI Gateway (people) | [otari](#otari) | It ships declarative Kubernetes packaging, OpenTelemetry gen_ai export, per-run identity without a key per run and MCP federation (agents); or generic OIDC sign-in and prompt-based model choice (people) |
-| One pod per run | [Agent Substrate](#agent-substrate) | See [Reconsidering Substrate](../../../website/content/docs/how-it-works/alternatives.md#reconsidering-substrate-not-now-deliberately-open) |
+| One pod per run | [Agent Substrate](#agent-substrate) | See [Reconsidering Substrate](https://maku.ogenki.io/docs/concepts/alternatives/#reconsidering-substrate-not-now-deliberately-open) |
 | One cold pod per run, ended when it ends | Pre-warmed pods handed to a run | A run's start time, about 90 s on a fresh node, becomes the bottleneck ([v1 review](https://github.com/Smana/ai-native-ref/blob/main/docs/superpowers/specs/2026-10-12-agent-factory-v1-review.md)) |
 | agentgateway alone, every agent on one cluster | [agentmesh](#agentmesh) behind agentgateway, for calls between agents on different clusters | Runs on one cluster must call agents on another; and agentmesh ships declarative policy, per-tool standing grants and end-to-end revocation of delegations |
 | OpenHands agent-server | [OpenCode](#opencode) | Its Maku adapters preserve rooms, approvals, provider/cache behavior, and recovery, and a measured comparison shows no meaningful quality regression plus at least 15% lower cost per merged PR or median task duration |
@@ -46,7 +46,7 @@ Adopting ax would replace the harness as well as the runtime, and lock the platf
 provider.
 
 **Reconsider if** ax closes #376 and #363 and supports other model providers without putting keys in
-the sandbox, on top of the [Substrate triggers](../../../website/content/docs/how-it-works/alternatives.md#reconsidering-substrate-not-now-deliberately-open).
+the sandbox, on top of the [Substrate triggers](https://maku.ogenki.io/docs/concepts/alternatives/#reconsidering-substrate-not-now-deliberately-open).
 
 ### Agent Substrate
 
@@ -72,8 +72,8 @@ credentialed factory path and current releases still need proof before those ben
 | kagent requires Kubernetes 1.37+ and preview Substrate gates; its version page documents CI on kind/Kubernetes 1.35 | [Installation](https://kagent.dev/docs/kagent/latest/setup/installation/), [version support](https://kagent.dev/docs/kagent/latest/reference/versions/) |
 
 **Decision:** deferred without a proof of concept by
-[ADR-0062](../../../website/content/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md). Reconsider
-under the [measured triggers](../../../website/content/docs/how-it-works/alternatives.md#reconsidering-substrate-not-now-deliberately-open).
+[ADR-0062](https://maku.ogenki.io/docs/decisions/0062-agent-runtime-remains-agent-sandbox/). Reconsider
+under the [measured triggers](https://maku.ogenki.io/docs/concepts/alternatives/#reconsidering-substrate-not-now-deliberately-open).
 
 ### kagent
 
@@ -94,7 +94,7 @@ BYO gRPC agents, Actor JWTs, default-deny egress, checkpoints and automatic turn
 | OpenHands needs the BYO A2A adapter. kagent adds a Session database and coupled Substrate upgrades without removing Maku or rooms | [BYO contract](https://kagent.dev/docs/kagent/latest/agents/bring-your-own-agent/), [versions](https://kagent.dev/docs/kagent/latest/reference/versions/) |
 
 **Decision:** deferred by
-[ADR-0062](../../../website/content/docs/decisions/0062-agent-runtime-remains-agent-sandbox.md). Direct
+[ADR-0062](https://maku.ogenki.io/docs/decisions/0062-agent-runtime-remains-agent-sandbox/). Direct
 Substrate is the cleaner candidate if a measured runtime problem emerges because kagent's main
 runtime benefits already come from Substrate.
 
@@ -125,7 +125,7 @@ engine locally is optional, not a requirement.
 Maku would still own the run-controller, gVisor isolation, rooms, budgets, completion judge, and merge
 controls. OpenCode would replace only the inner agent loop, not those components.
 
-**Reconsider** under the [measured conditions above](../../../website/content/docs/how-it-works/alternatives.md#what-would-make-us-reconsider). The design's
+**Reconsider** under the [measured conditions above](https://maku.ogenki.io/docs/concepts/alternatives/#what-would-make-us-reconsider). The design's
 comparison uses identical models and workflows and records an OpenHands rescue separately from the
 original OpenCode failure. A smaller image or faster start alone does not justify replacement.
 
@@ -150,7 +150,7 @@ claim, not new infrastructure.
 objects and GitHub, and a controller restart loses nothing. Temporal would add its server services
 and workflows that are versioned as code, which is heavy at today's 20 tasks a day.
 
-**Reconsider** under the conditions in [the table above](../../../website/content/docs/how-it-works/alternatives.md#what-would-make-us-reconsider). The first
+**Reconsider** under the conditions in [the table above](https://maku.ogenki.io/docs/concepts/alternatives/#what-would-make-us-reconsider). The first
 candidate is the automatic resume of runs lost to spot reclamation: if resume rules multiply, a
 workflow engine becomes worth its weight.
 
@@ -214,7 +214,7 @@ reached v0.30 four months later with 27 breaking changes.
 **Worth borrowing:** the pre-call reservation, for our gateway budgets, and its re-check of pricing on
 every fallback model.
 
-**Reconsider** under the conditions in [the table above](../../../website/content/docs/how-it-works/alternatives.md#what-would-make-us-reconsider), or once it
+**Reconsider** under the conditions in [the table above](https://maku.ogenki.io/docs/concepts/alternatives/#what-would-make-us-reconsider), or once it
 reaches 1.0 with a deprecation policy.
 
 ### agentmesh
@@ -250,7 +250,7 @@ writes three quarters of it; its alphas fixed three critical or high advisories.
 **Worth borrowing:** sealed, task-scoped narrowing of a run's credential; a header that only
 tightens the data class.
 
-**Reconsider** under the conditions in [the table above](../../../website/content/docs/how-it-works/alternatives.md#what-would-make-us-reconsider).
+**Reconsider** under the conditions in [the table above](https://maku.ogenki.io/docs/concepts/alternatives/#what-would-make-us-reconsider).
 
 ### Google Model Armor
 
@@ -289,7 +289,7 @@ stands is on the [status page](../../../website/content/docs/status.md#v3x).
 **Worth borrowing:** floor settings, as a CI rule that refuses a model route without a guard
 policy; and screening tool results, not only prompts.
 
-**Reconsider** under the conditions in [the table above](../../../website/content/docs/how-it-works/alternatives.md#what-would-make-us-reconsider).
+**Reconsider** under the conditions in [the table above](https://maku.ogenki.io/docs/concepts/alternatives/#what-would-make-us-reconsider).
 
 ### dsh-superagent-prototype
 
@@ -322,7 +322,7 @@ for DeepSeek Harness (dsh), DeepSeek's TypeScript harness in developer preview. 
 **Worth borrowing:** subscriptions for the pull-request continuation loop, observe mode for any
 proactive intake, a mandate on each task, and task stages that name who the task waits for.
 
-**Reconsider** under the conditions in [the table above](../../../website/content/docs/how-it-works/alternatives.md#what-would-make-us-reconsider).
+**Reconsider** under the conditions in [the table above](https://maku.ogenki.io/docs/concepts/alternatives/#what-would-make-us-reconsider).
 
 ## Would rebuilding on kagent + Substrate be simpler?
 

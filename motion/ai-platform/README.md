@@ -69,7 +69,7 @@ Most edits need no engine knowledge:
 | Clip | Scene | Length | Made for |
 |---|---|---|---|
 | `agent-factory` | v1/v2, one task end to end, with a title card | 32 s | the feed and the homepage |
-| `agent-factory-v3` | the v4 workflows (quick, standard, careful), the roles each runs and the merge gate; no title card, 1080×1280, loops from an empty cluster | 34 s | the [roles](../../website/content/docs/how-it-works/roles.md) page |
+| `agent-factory-v3` | the v4 workflows (quick, standard, careful), the roles each runs and the merge gate; no title card, 1080×1280, loops from an empty cluster | 34 s | the [roles](https://maku.ogenki.io/docs/concepts/roles/) page |
 
 The `agent-factory-v3` clip shows Agent Factory v4. Every role is on screen from the start, ghosted;
 each workflow lights its own. `intake` (0–4.5 s): a label reaches GitHub and the workflow picks the

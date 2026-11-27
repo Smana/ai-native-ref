@@ -45,7 +45,7 @@ from the 2026-05 LLM designs, which were scoped "solo experimental".
 > [ecosystem re-check](2026-10-01-agent-ecosystem-recheck-research.md) and the [gap matrix](2026-10-01-agentgateway-gap-matrix-research.md).
 >
 > **2026-10-01 outcome.** PoC GO on gcp-0; the owner selected agentgateway for agent-router:
-> [ADR-0053](../../../website/content/docs/decisions/0053-agent-router-on-agentgateway.md) supersedes ADR-0042 and ADR-0050 Option 1 for it. The note above is kept as the record.
+> [ADR-0053](https://maku.ogenki.io/docs/decisions/0053-agent-router-on-agentgateway/) supersedes ADR-0042 and ADR-0050 Option 1 for it. The note above is kept as the record.
 
 ## Verified during design (supersedes the raw research notes)
 

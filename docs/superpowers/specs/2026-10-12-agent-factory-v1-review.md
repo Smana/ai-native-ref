@@ -273,7 +273,7 @@ runs the children as ordinary tasks. Teams come back to the roadmap on that evid
 
 **Positioning.** The closest open-source statement of the orchestration problem is OpenAI's
 Symphony, evaluated on the
-[alternatives page](../../../website/content/docs/how-it-works/alternatives.md#openai-symphony):
+[alternatives page](https://maku.ogenki.io/docs/concepts/alternatives/#openai-symphony):
 it leaves sandboxing, approval and merge to each implementation. The factory's claim is
 the combination: governed autonomous coding on your own Kubernetes, any OpenAI-compatible model,
 identity, egress, budgets and merge policy enforced outside the agent. No project evaluated here or
@@ -314,5 +314,5 @@ task ends, enforced PR shape from gh-aw `safe-outputs`, and Kueue priority class
 - agent-sandbox releases v0.5.0 to v1.0.6 and `docs/keps/208`; agentgateway v1.6.0 release notes.
 - Context7: `/openhands/software-agent-sdk`, `/kubernetes-sigs/agent-sandbox`,
   `/websites/agentgateway_dev`, `/github/gh-aw`, `/websites/kueue_sigs_k8s_io`.
-- [Alternatives considered](../../../website/content/docs/how-it-works/alternatives.md),
+- [Alternatives considered](https://maku.ogenki.io/docs/concepts/alternatives/),
   which owns the detailed evaluations.

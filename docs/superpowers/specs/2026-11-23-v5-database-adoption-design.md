@@ -1,6 +1,6 @@
 # v5 Database Strategy: Challenging SQLite/Litestream and Removing PostgreSQL Adoption Friction
 
-**Date:** 2026-11-23 · **Status:** approved through owner grill interview 2026-11-23 (decisions [DB1 to DB6](#owner-decisions)) · **Track:** [v5 roadmap](2026-11-22-v5-roadmap-design.md) Phase 0 (Pre-pitch bar) · **Related:** [ADR-0044](../../../website/content/docs/decisions/0044-room-session-protocol.md), [v4 production path](2026-11-12-v4-production-path-design.md)
+**Date:** 2026-11-23 · **Status:** approved through owner grill interview 2026-11-23 (decisions [DB1 to DB6](#owner-decisions)) · **Track:** [v5 roadmap](2026-11-22-v5-roadmap-design.md) Phase 0 (Pre-pitch bar) · **Related:** [ADR-0044](https://maku.ogenki.io/docs/decisions/0044-room-session-protocol/), [v4 production path](2026-11-12-v4-production-path-design.md)
 
 *Paths: `maku/…` refers to the `Smana/maku` repository inspected on 2026-11-23; everything else is this repository.*
 
@@ -44,7 +44,7 @@ Auditing `maku/internal/store` (`*.go` and 18 SQL migrations under `maku/interna
 | **Row-Level Security (RLS)** | `rooms`, `events` (`20260927120000_rooms.sql`) | `rooms_retention` can only `SELECT`/`DELETE` rows where `sealed AND closed_at < now() - retention`; startup refuses `SUPERUSER` or `BYPASSRLS` |
 | **PL/pgSQL & deferred constraint triggers** | `rooms_move_forward`, `rooms_seq_has_event` (`DEFERRABLE INITIALLY DEFERRED`), `events_take_next_seq`, `events_are_immutable`, `approvals_are_their_events`, `queue_is_its_event` | Enforces gapless per-room `seq`, forward-only seals, and 1:1 correspondence between state tables (`approvals`, `queue`) and immutable room-log events |
 | **Row locks + DB clock fencing** | `SELECT … FOR UPDATE`, `now()` inside `store.Decide` (`maku/internal/store/approvals.go`) | Single-decision race fence across concurrent web/Slack clicks and broker replicas, independent of pod clock skew |
-| **`LISTEN` / `NOTIFY`** | `rooms_events` channel (`maku/internal/store/listen.go`, [ADR-0044](../../../website/content/docs/decisions/0044-room-session-protocol.md)) | Transaction-ordered wake-up fan-out across `replicas: 2` broker pods with zero external message broker |
+| **`LISTEN` / `NOTIFY`** | `rooms_events` channel (`maku/internal/store/listen.go`, [ADR-0044](https://maku.ogenki.io/docs/decisions/0044-room-session-protocol/)) | Transaction-ordered wake-up fan-out across `replicas: 2` broker pods with zero external message broker |
 | **Native Postgres types & indexes** | `jsonb`, `text[]`, `timestamptz`, `interval`, regex `CHECK (~)`, partial indexes, 8 MiB `output_bundles` | Compact schema, strict DB-enforced envelope validation, and indexed broker/retention sweeps |
 
 Throughput reality: a team running 10–100 PRs/day generates modest write load (~1–10 writes/sec steady state, ~50 writes/sec burst) and tens to hundreds of megabytes of room history. Throughput is **not** why SQLite falls short — **security invariants (T12), operational topology, and solo-maintainer dialect cost** are.

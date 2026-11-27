@@ -319,7 +319,7 @@ Run [runbook 11](11-v1-validation.md) end to end, with `CLOUD=gcp`: its private 
 
 ## 10. The Substrate spike
 
-The spike runs for two days against agent-sandbox ([alternatives](../../../website/content/docs/how-it-works/alternatives.md#agent-substrate)).
+The spike runs for two days against agent-sandbox ([alternatives](https://maku.ogenki.io/docs/concepts/alternatives/#agent-substrate)).
 It needs step 0.6. Gate: `kubectl api-resources --api-group=certificates.k8s.io` lists
 `podcertificaterequests` and `clustertrustbundles`. If it does not, check whether GKE also leaves a
 feature gate off for the beta.

@@ -1,6 +1,6 @@
 # v5 Slack Security Model: Personal-Bound Principals, Socket Mode, and Deputy Hardening
 
-**Date:** 2026-11-23 · **Status:** approved through owner grill interview 2026-11-23 (decisions [SS1 to SS7](#owner-decisions)) · **Track:** [v5 roadmap](2026-11-22-v5-roadmap-design.md) Phase 2 (v5 Core; Socket Mode eligible for Phase 1 pull-forward if PoC #1 uses Slack) · **Amends:** [Slack push-approval design](2026-11-05-v3x-slack-push-approval-design.md), `maku/docs/security.md` (T12, Slack App), `maku/docs/slack.md` · **Related:** [untrusted-input hardening](2026-11-07-untrusted-input-hardening-design.md), [Slack user guide](../../../website/content/docs/use/slack.md)
+**Date:** 2026-11-23 · **Status:** approved through owner grill interview 2026-11-23 (decisions [SS1 to SS7](#owner-decisions)) · **Track:** [v5 roadmap](2026-11-22-v5-roadmap-design.md) Phase 2 (v5 Core; Socket Mode eligible for Phase 1 pull-forward if PoC #1 uses Slack) · **Amends:** [Slack push-approval design](2026-11-05-v3x-slack-push-approval-design.md), `maku/docs/security.md` (T12, Slack App), `maku/docs/slack.md` · **Related:** [untrusted-input hardening](2026-11-07-untrusted-input-hardening-design.md), [Slack user guide](https://maku.ogenki.io/docs/use/slack/)
 
 ---
 

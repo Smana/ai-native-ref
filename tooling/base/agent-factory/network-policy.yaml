@@ -82,6 +82,10 @@ spec:
         - ports: [{port: "4317", protocol: TCP}]
     - toFQDNs:
         - matchName: api.github.com
+        # An issue's attached images (harness screenshots B3): signed addresses on GitHub's hosts,
+        # fetched without a token when a screenshots run of that issue starts.
+        - matchName: private-user-images.githubusercontent.com
+        - matchName: user-images.githubusercontent.com
       toPorts:
         - ports: [{port: "443", protocol: TCP}]
     - toFQDNs:  # ZITADEL's JWKS: tokens are checked offline

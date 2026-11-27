@@ -25,6 +25,7 @@ import room_broker_chart  # noqa: E402
 checks = {}
 plans = {}
 run_aliases = {}
+values_by_cloud = {}
 for cloud in ("aws-0", "gcp-0"):
     try:
         docs = room_broker_chart.build(ROOT, f"infrastructure/{cloud}/room-broker")
@@ -37,6 +38,7 @@ for cloud in ("aws-0", "gcp-0"):
     runs, broker = values["runs"], values["broker"]
     plans[cloud] = ((config.get("human") or {}).get("intake") or {}).get("plan") or {}
     run_aliases[cloud] = values["runController"]["model"]["gateway"]["aliases"]
+    values_by_cloud[cloud] = values
     pattern = f"^system:serviceaccount:{runs['namespace']}:{runs['namePrefix']}([a-z2-7]{{8}})$"
     issuers = config.get("runIssuers") or []
     checks[f"{cloud}: config runs is the values' runs"] = config.get("runs") == runs
@@ -66,6 +68,12 @@ def gateway_aliases(cloud):
 checks["each cloud's runs name exactly the aliases each listener of its gateway serves"] = all(
     sorted(run_aliases[cloud][c]) == sorted(gateway_aliases(cloud)[c])
     for cloud in run_aliases for c in ("public", "internal"))
+# The vision aliases (harness screenshots, v5 Q16): each one an alias its listener serves, on every
+# cloud, or the run-controller refuses its config at load.
+run_vision = {cloud: values_by_cloud[cloud]["runController"]["model"]["gateway"].get("vision") or {} for cloud in run_aliases}
+checks["each cloud's vision aliases are aliases its runs name"] = all(
+    set(run_vision[cloud].get(c) or []) <= set(run_aliases[cloud][c])
+    for cloud in run_vision for c in ("public", "internal"))
 checks["it admits exactly these runs"] = (
     gw_values["runs"] == {"namespace": runs["namespace"], "namePrefix": runs["namePrefix"]})
 

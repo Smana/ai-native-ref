@@ -25,8 +25,6 @@ For **Maku product maturity, proven capabilities, and the v5 roadmap**, see [Mak
 - **Live unattended merge policies:** `docs-links` on `Smana/cloud-native-ref` only; all other policies run in `shadow`.
 - **Upkeep routines:** six starter `Routine` objects enabled in catalog (`routines.uiWrite: false`), inert until bound in GitOps.
 
-{{< partner-card >}}
-
 ## Self-hosted serving status {#serving-roadmap}
 
 | Area | State | Reference |

@@ -17,7 +17,7 @@ description: "Self-hosted GPU model serving and the Cloud Native Reference deplo
 
 {{< hextra/hero-subtitle >}}
   The GitOps AI platform of <strong>Cloud Native Reference</strong>: open-weights <strong>vLLM</strong> serving on
-  spot GPUs behind Envoy AI Gateway, plus the reference Flux deployment of <strong>Maku</strong> — the sovereign,
+  spot GPUs behind Envoy AI Gateway, plus the reference Flux deployment of <strong>Maku</strong> — the self-hosted,
   Kubernetes-native coding-agent factory.
 {{< /hextra/hero-subtitle >}}
 
@@ -27,5 +27,3 @@ description: "Self-hosted GPU model serving and the Cloud Native Reference deplo
 {{< hextra/hero-button text="Cloud Native Ref ↗" link="https://cnref.ogenki.io/" style="background:transparent;border:1px solid rgba(148,163,184,0.45);color:inherit" >}}
 
 {{< /hero-video >}}
-
-{{< partner-card >}}

@@ -99,6 +99,30 @@ run's tools use. It is a 400 on the request, not a thought signature: 0 steps, n
 install window did not cause it (`agent-checks: toolchain ready`). OpenCode runs cannot use Gemini
 until the schema is accepted: the gateway (or the harness) has to drop or translate the keyword.
 
+The three tools, from OpenCode's own request, dumped offline from the `maku-opencode:v0.57.0`
+image: `generate_video.duration`, `glob.limit` and `grep.limit`, each with `exclusiveMinimum: 0`.
+The cause is in agentgateway (`normalize_gemini_schema` keeps both exclusive bounds, which Vertex's
+`Schema` lacks), already reported upstream as agentgateway/agentgateway#4242. Filed in Maku as
+Smana/maku#798, with the interim fix: refuse OpenCode on a `vertex` alias, and say why.
+
+#### Draft upstream text (for the owner to post; a comment on agentgateway/agentgateway#4242)
+
+> Reproduced on v1.6.0 with the native `vertexai` provider (region `eu`), `gemini-4-neon`, from
+> OpenCode 2.4: the first Chat Completions request fails with
+> `Invalid JSON payload received. Unknown name "exclusiveMinimum" at
+> 'tools[0].function_declarations[21].parameters.properties[4].value'`. OpenCode's built-in
+> `generate_video.duration`, `glob.limit` and `grep.limit` each declare `exclusiveMinimum: 0`.
+>
+> The cause is `ALLOWED_SCHEMA_FIELDS` in `crates/llm/src/conversion/vertex_gemini.rs`, still the
+> same on `main`. It lists `exclusiveMinimum` and `exclusiveMaximum`, and
+> `normalize_gemini_schema(params, false)` keeps them for `functionDeclarations[].parameters`.
+> Vertex's `Schema` (google/cloud/aiplatform/v1/openapi.proto) does not define them.
+>
+> Suggested fix: in the function-declaration path, translate the bounds rather than drop them.
+> `exclusiveMinimum: n` becomes `minimum: n` (plus 1 for `type: integer`), and likewise for
+> `exclusiveMaximum`, unless a `minimum`/`maximum` is already set. A test with OpenCode's `glob`
+> schema should show the request accepted. Happy to send a PR.
+
 Two legs of the runbook cannot run on v0.57.0 and are recorded as gaps, not stops:
 
 - **A standalone reviewer** (`factory/review` on a pull request): triage reads no `model:` or

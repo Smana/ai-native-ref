@@ -152,6 +152,9 @@ def load_prices(root, errors):
                     errors.append(f"{where}: missing {f}")
             elif isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v <= 0:
                 errors.append(f"{where}: {f} must be a positive number of USD per million tokens, got {v!r}")
+        read, plain = row.get("cacheRead"), row.get("input")
+        if all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in (read, plain)) and read > plain:
+            errors.append(f"{where}: cacheRead {read} exceeds input {plain}")
     return prices
 
 

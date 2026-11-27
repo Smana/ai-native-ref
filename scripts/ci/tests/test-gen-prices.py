@@ -269,6 +269,8 @@ print("refused rows and files")
 for name, change, needle in [
     ("a row without cacheRead", row(FLASH, "glm-5.3-flash: {input: 0.15, output: 0.50}"),
      "spec.prices.glm-5.3-flash: missing cacheRead"),
+    ("a cached input dearer than an uncached one", row(FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.30, output: 0.50}"),
+     "spec.prices.glm-5.3-flash: cacheRead 0.3 exceeds input 0.15"),
     ("a price that is not a number", row(FLASH, "glm-5.3-flash: {input: '0.15', cacheRead: 0.03, output: 0.50}"),
      "input must be a positive number of USD per million tokens, got '0.15'"),
     ("a zero price", row(FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0, output: 0.50}"),
@@ -293,6 +295,12 @@ with tree() as t:
     replace(t, gen.FACTORY, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.03, output: 0.50}")
     code, out = run(t)
     check("TC1's source and checkedAt are optional, and never rendered", code == 0, out)
+
+with tree() as t:
+    replace(t, gen.FACTORY, FLASH, "glm-5.3-flash: {input: 0.15, cacheRead: 0.15, output: 0.50}")
+    code, out = run(t, "--write")
+    check("a row with cacheRead equal to input passes: cache hits cost as misses",
+          code == 0 and charges_in(t)[0]["glm-5.3-flash"] == ("0.15", "0.50", "0.00", "0.00"), out)
 
 if FAILURES:
     print(f"\n{len(FAILURES)} failure(s)")

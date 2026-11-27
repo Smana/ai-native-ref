@@ -80,7 +80,7 @@ that answered are kept for the owner's blind ranking beside the ten Z.ai plans.
 
 | Run | Issue | Harness | State |
 |---|---|---|---|
-| Implementer, then reviewer (pinned together by `model:gemini-standard`) | #622 (task `4nsn6vsa`) | OpenHands | implementing on `gemini-standard`, `modelSource: label` |
+| Implementer, then reviewer (pinned together by `model:gemini-standard`) | #622 (task `4nsn6vsa`) | OpenHands | **stop: Escalated `stuck`** after 14 min, USD 0.52, no pull request |
 | Implementer, then reviewer | #623 (task `e4wlawv6`) | OpenCode | **stop: Escalated `agent_error` at step 0** |
 
 **#623, OpenCode: Vertex refuses OpenCode's tool schemas.** The run (`pmd4lwya`, 09:56 to 09:58
@@ -104,6 +104,27 @@ image: `generate_video.duration`, `glob.limit` and `grep.limit`, each with `excl
 The cause is in agentgateway (`normalize_gemini_schema` keeps both exclusive bounds, which Vertex's
 `Schema` lacks), already reported upstream as agentgateway/agentgateway#4242. Filed in Maku as
 Smana/maku#798, with the interim fix: refuse OpenCode on a `vertex` alias, and say why.
+
+**#622, OpenHands: the stall detector ended the run.** Run `vqcajao2` (09:56 to 10:10 UTC, effort
+`high`, served model `gemini-4-neon` per `provenance.servedModels`). The room shows 8 tool calls
+between 09:57 and 10:00, then no activity until the factory ended it at 10:10 ("the run showed no
+activity for 10 minutes"). Its 14 model calls, read from the gateway's access log by the run's
+subject:
+
+| Measure | Value |
+|---|---|
+| Calls | 14, all 200 on `gcp.vertex_ai`, **no 400** (no signature error) |
+| Latency per call | 19.6 to 89.4 s; most are 35 to 70 s |
+| Input tokens | 13.9 k rising to 49.8 k |
+| Output tokens (thinking) | 56 to 4,691 (11 to 3,745) |
+| Cost | USD 0.5203, equal to the task's `usage.costMicroUSD` (0.520254) |
+
+No call failed, so the stop is not on the wire: no 400 and no signature error. What the run did
+after 10:00 is not known. Ten model calls answered 200 after 10:00, but the room recorded no tool
+call in that time. Either those answers carried tool calls the bridge did not mirror, or they carried
+none. The pod is gone and its event log with it. What is known is the pace: about a minute per call
+at effort `high` (`thinkingLevel: high`), against Z.ai's few seconds. That leaves little room in a
+10-minute activity window. **L4's B arm runs the same way, so it may stall the same way.**
 
 #### Draft upstream text (for the owner to post; a comment on agentgateway/agentgateway#4242)
 

@@ -1,8 +1,8 @@
 # 31 — GitHub egress: the install window, live
 
 Maku's [GitHub egress tightening](https://github.com/Smana/maku/blob/main/docs/superpowers/specs/2026-11-26-github-egress-tightening-design.md)
-takes GitHub's release and raw hosts off every run's allow-list. A check-enabled run reaches them
-only in its install phase: the harness installs the pinned tools and pre-commit's hook environments,
+takes GitHub's release, raw and tarball hosts off every run's allow-list. A check-enabled run
+reaches the release hosts only in its install phase: the harness installs the pinned tools and pre-commit's hook environments,
 closes those hosts at the egress proxy, checks that a release download is refused, and only then
 starts the agent. This runbook proves it on the cluster the fences name, with ANR as the repository.
 
@@ -46,8 +46,8 @@ Pass:
 - The download fails in the agent's step. The proxy logs `allow run=<id> github.com:443` (GitHub
   answers the release URL with a 302), then `refuse run=<id> release-assets.githubusercontent.com:443`
   (or `objects.githubusercontent.com:443`) with `"reason":"install_closed"` and `"phase":"agent"`.
-- `raw.githubusercontent.com:443` is refused `install_closed` (it is in the install set), and
-  `codeload.github.com:443` is refused `not_allowed` (in no set).
+- `raw.githubusercontent.com:443` and `codeload.github.com:443` are refused `not_allowed`: since
+  Maku v0.57.1 (#800) neither is in any set, so neither raises the alert.
 - `MakuEgressInstallClosedRefusal` fires within about 6 minutes: the rule's 5-minute window, read
   30 s behind its evaluation (Grafana, Alerting).
 
@@ -79,7 +79,9 @@ kubectl -n agent-system logs -l app.kubernetes.io/name=egress-proxy --prefix --t
 ```
 
 Pass: `allow ... release-assets.githubusercontent.com:443` lines carry `"phase":"install"` only; one
-`close-install run=<id>`; every later release or raw host line is a refusal with `"phase":"agent"`.
+`close-install run=<id>`; every later release host line is a refusal with `"phase":"agent"`. No `raw` line appears before
+the agent's own command: the harness images no longer fetch LiteLLM's price map or OpenCode's
+model catalog at boot (#800).
 Record the time from the first decision to the close: the install phase's length. Compare it with
 the M1 baseline in the Maku spec (p50 15 s); over about 60 s at p50 across the drill's runs is the
 signal for a shared toolchain cache, not for reopening the hosts.

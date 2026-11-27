@@ -15,6 +15,11 @@ spec:
     - name: agent-platform-logs
       type: vlogs
       interval: 5m
+      # vmalert aligns a group's evaluation time down to its interval by default: an evaluation at
+      # hh:54:07 reads the window ending hh:50:00, so a line logged at hh:51 is first seen at hh:59.
+      # Unaligned, each evaluation reads the 5 minutes ending -rule.evalDelay (30 s) before it, and an
+      # alert fires within about 5.5 minutes of its line (GitHub egress drill, 2026-11-27).
+      eval_alignment: false
       rules:
         # The agent router's 401/403 burst is AgentGatewayUnauthorizedBurst, a metric rule (vmrule.yaml).
         # The SDK-shape failure only (cache design C1): the harness could not patch the SDK's model

@@ -90,8 +90,11 @@ params:
     displayPoweredBy: false
   imageZoom:
     enable: true
+    base: "https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist"
+  mermaid:
+    base: "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist"
   theme:
-    default: system
+    default: light
     displayToggle: true
   # The sponsor note (layouts/_partials/custom/sponsor.html): message is the footer line on every
   # page, card the status page's card ({{< sponsor-card >}}). [text][sponsor] links to url.

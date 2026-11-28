@@ -1,0 +1,258 @@
+{{ define "main" }}
+  {{ partial "sidebar.html" (dict "context" . "disableSidebar" true) }}
+  <main id="content" class="anr-home">
+    {{- /* Band 1: Hero — positioning beside the AI Platform overview diagram */ -}}
+    <section class="anr-hero-band" aria-labelledby="anr-hero-title">
+      <div class="anr-wrap anr-hero-inner">
+        <div class="anr-hero-copy">
+          <p class="anr-eyebrow">Signed Flux OCI artifact · Cloud Native Reference</p>
+          <h1 id="anr-hero-title" class="anr-hero-title">
+            Open-source AI platform <span class="anr-hero-accent">on Kubernetes.</span>
+          </h1>
+          <p class="anr-hero-lead">
+            Self-hosted open-weights GPU model serving (<strong>vLLM</strong>, <strong>Envoy AI Gateway</strong>, and <strong>KEDA</strong>) alongside the GitOps reference deployment of <strong>Maku</strong>—shipped as one digest-pinned Flux artifact for <a href="https://cnref.ogenki.io/">Cloud Native Reference</a>.
+          </p>
+          <div class="anr-cta-row">
+            <a class="anr-btn anr-btn-primary" href="{{ "docs/serving/" | relURL }}">
+              Explore Model Serving
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12"/><path d="M11 5l5 5-5 5"/></svg>
+            </a>
+            <a class="anr-btn anr-btn-secondary" href="{{ "docs/maku-deployment/" | relURL }}">
+              Maku on Cloud Native Ref
+            </a>
+            <a class="anr-btn anr-btn-ghost" href="https://maku.ogenki.io/">
+              Standalone Maku docs &amp; demo ↗&#xFE0E;
+            </a>
+          </div>
+        </div>
+
+        <figure class="anr-hero-diagram">
+          <div class="anr-diagram-chrome" aria-hidden="true">
+            <span class="anr-dots"><i></i><i></i><i></i></span>
+            <span class="anr-chrome-title">ai-platform.drawio · AWS EKS &amp; GCP GKE</span>
+            <span class="anr-chrome-meta">click to zoom</span>
+          </div>
+          <div class="anr-diagram-stage">
+            <img src="{{ "images/diagrams/ai-platform-1.svg" | relURL }}"
+                 alt="The AI Platform in one view: on the serving side, developers and coding clients reach ai-gateway over the tailnet to vLLM models on L4 GPUs scaled by KEDA; on the agents side, Maku runs sandboxed gVisor agents through model-gateway and rooms on maku-broker. Both halves export telemetry to the Victoria stack and Grafana."
+                 data-zoomable />
+          </div>
+          <figcaption>Serving (<code>ai-gateway</code> + <code>llm-platform</code>) and Maku (<code>agent-platform</code>) sharing one Cloud Native Reference observability stack.</figcaption>
+        </figure>
+
+        <ul class="anr-fact-strip" aria-label="Platform highlights">
+          <li><span class="anr-live-dot" aria-hidden="true"></span><strong>Apache-2.0</strong><span>signed Flux OCI</span></li>
+          <li><strong>3 umbrellas</strong><span>ai-gateway · llm · agent</span></li>
+          <li><strong>vLLM + Karpenter</strong><span>spot L4 GPUs, opt-in</span></li>
+          <li><strong>Multi-cloud</strong><span>AWS EKS &amp; GCP GKE</span></li>
+        </ul>
+      </div>
+    </section>
+
+    {{- /* Band 2: Two production halves + 3 Flux umbrellas */ -}}
+    <section class="anr-band anr-band-tinted" aria-labelledby="anr-halves-title">
+      <div class="anr-wrap">
+        <div class="anr-band-head">
+          <div>
+            <h2 id="anr-halves-title" class="anr-band-title">Two production halves. One GitOps contract.</h2>
+            <p class="anr-band-lead">
+              Cloud Native Reference pulls each release as a single signed <code>OCIRepository</code> and reconciles three opt-in Flux umbrellas. Nothing GPU-heavy deploys until you release its gates.
+            </p>
+          </div>
+          <a class="anr-btn anr-btn-secondary" href="{{ "docs/reference/host-contract/" | relURL }}">Read host contract →</a>
+        </div>
+
+        <div class="anr-pillars">
+          <article class="anr-pillar">
+            <div class="anr-pillar-head">
+              <span class="anr-pillar-tag anr-tag-serving">ai-gateway + llm-platform</span>
+              <h3>Self-hosted GPU Model Serving</h3>
+            </div>
+            <p>
+              Open-weights <strong>vLLM</strong> deployments on single-GPU L4 spot nodes (Karpenter), backed by POSIX weights storage (Amazon S3 Files or GCS FUSE), KEDA saturation autoscaling, and <strong>Envoy AI Gateway 1.1</strong> with vLLM Semantic Router (<code>model: MoM</code>).
+            </p>
+            <ul class="anr-pillar-list">
+              <li>One Crossplane <code>InferenceService</code> claim per model</li>
+              <li>Prefix cache + pinned HuggingFace commit SHAs</li>
+              <li>OpenAI-compatible tailnet endpoint for coding clients</li>
+            </ul>
+            <div class="anr-pillar-links">
+              <a href="{{ "docs/serving/" | relURL }}">Model serving →</a>
+              <a href="{{ "docs/serving/ai-gateway/" | relURL }}">AI Gateway →</a>
+              <a href="{{ "docs/serving/coding-clients/" | relURL }}">Coding clients →</a>
+            </div>
+          </article>
+
+          <article class="anr-pillar">
+            <div class="anr-pillar-head">
+              <span class="anr-pillar-tag anr-tag-maku">agent-platform · Maku {{ site.Params.makuVersion }}</span>
+              <h3>Maku on Cloud Native Reference</h3>
+            </div>
+            <p>
+              The production GitOps reference wiring of <a href="https://maku.ogenki.io/">Maku</a> on AWS EKS and GCP GKE: digest-pinned Helm charts bound to ZITADEL OIDC, CloudNativePG 3-role RLS, Cilium FQDN egress, OpenBao secrets, gVisor node pools, and Victoria observability.
+            </p>
+            <ul class="anr-pillar-list">
+              <li>Single-owner fence across <code>gcp-0</code> (active) and <code>aws-0</code> (standby)</li>
+              <li>GitOps-managed merge policies, upkeep routines, and kill switch</li>
+              <li>Live validation runbooks &amp; measured spend snapshots</li>
+            </ul>
+            <div class="anr-pillar-links">
+              <a href="{{ "docs/maku-deployment/" | relURL }}">Maku on CNR →</a>
+              <a href="{{ "docs/maku-deployment/day-2/" | relURL }}">Day-2 operations →</a>
+              <a href="https://maku.ogenki.io/">Maku product site ↗&#xFE0E;</a>
+            </div>
+          </article>
+        </div>
+
+        <div class="anr-table-wrap">
+          <table class="anr-table">
+            <thead>
+              <tr>
+                <th scope="col">Flux umbrella</th>
+                <th scope="col">What it reconciles</th>
+                <th scope="col">Default posture</th>
+                <th scope="col">Guide</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row"><code>ai-gateway</code></th>
+                <td>Envoy Gateway + Envoy AI Gateway <code>1.1.0</code>, <code>tier-frontier</code> routes, access logs, and <code>gen_ai</code> metrics</td>
+                <td>Active, CPU-only</td>
+                <td><a href="{{ "docs/serving/ai-gateway/" | relURL }}">AI Gateway →</a></td>
+              </tr>
+              <tr>
+                <th scope="row"><code>llm-platform</code></th>
+                <td>NVIDIA RuntimeClass, Karpenter <code>gpu-l4</code> NodePool, vLLM <code>InferenceService</code> claims, KEDA, Semantic Router</td>
+                <td>Suspended (3 opt-in gates)</td>
+                <td><a href="{{ "docs/serving/" | relURL }}">Model serving →</a></td>
+              </tr>
+              <tr>
+                <th scope="row"><code>agent-platform</code></th>
+                <td>Maku {{ site.Params.makuVersion }} (<code>maku-broker</code>, <code>maku-factory</code>, <code>maku-slack</code>), gVisor, <code>agentgateway</code>, merge policies, alerts</td>
+                <td>Active on <code>gcp-0</code>, standby on <code>aws-0</code></td>
+                <td><a href="{{ "docs/maku-deployment/" | relURL }}">Maku on CNR →</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    {{- /* Band 3: One model, one claim + opt-in gates & live posture */ -}}
+    <section class="anr-band" aria-labelledby="anr-claim-title">
+      <div class="anr-wrap">
+        <div class="anr-band-head">
+          <div>
+            <h2 id="anr-claim-title" class="anr-band-title">One model, one claim. Zero GPU idle tax by default.</h2>
+            <p class="anr-band-lead">
+              Each self-hosted model is declared as a single Crossplane <code>InferenceService</code> claim—expanding into a vLLM Deployment, shared weights PVC, KEDA <code>ScaledObject</code>, <code>CiliumNetworkPolicy</code>, and Envoy route.
+            </p>
+          </div>
+          <a class="anr-btn anr-btn-secondary" href="{{ "docs/reference/inference-service/" | relURL }}">Full claim reference →</a>
+        </div>
+
+        <div class="anr-claim-grid">
+          <div class="anr-code-card">
+            <div class="anr-code-head">
+              <span>apps/base/ai/llm/qwen-coder-fim.yaml</span>
+              <button type="button" class="anr-copy-btn" id="anr-copy-claim" aria-label="Copy InferenceService claim snippet">
+                <span>Copy</span>
+              </button>
+            </div>
+            <pre><code id="anr-claim-yaml">apiVersion: cloud.ogenki.io/v1alpha1
+kind: InferenceService
+metadata:
+  name: xplane-qwen-coder-fim
+  namespace: llm
+spec:
+  model:
+    repository: Qwen/Qwen2.5-Coder-1.5B
+    revision: df3ce67c0e24480f20468b6ef2894622d69eb73b
+    quantization: fp8
+    contextWindow: 8192
+  gpu: { count: 1, minVRAM: 8Gi }
+  routing: { tier: small, specialty: code-fim }
+  scaling: { minReplicas: 1, maxReplicas: 1 }
+  cache: { prefixCache: { enabled: true } }</code></pre>
+          </div>
+
+          <div class="anr-posture-col">
+            <div class="anr-info-card">
+              <h3>Three independent opt-in gates for GPUs</h3>
+              <ol class="anr-gates">
+                <li><strong>Cloud storage gate:</strong> <code>TM_LLM_PLATFORM_ENABLED=true</code> provisions S3 Files / GCS weights storage and IAM.</li>
+                <li><strong>Gateway gate:</strong> <code>ai-gateway</code> runs CPU-only Envoy AI Gateway and frontier routes.</li>
+                <li><strong>GPU gate:</strong> <code>flux resume kustomization llm-platform</code> enables Karpenter L4 nodes and vLLM claims.</li>
+              </ol>
+            </div>
+
+            <div class="anr-info-card">
+              <h3>Live reference posture</h3>
+              <dl class="anr-kv">
+                <div><dt>Active cluster</dt><dd><code>gcp-0</code> (<code>aws-0</code> warm standby)</dd></div>
+                <div><dt>Pinned Maku</dt><dd><code>{{ site.Params.makuVersion }}</code> (digest-pinned)</dd></div>
+                <div><dt>Architecture records</dt><dd><a href="{{ "docs/decisions/" | relURL }}">7 serving &amp; host ADRs →</a></dd></div>
+                <div><dt>Validation evidence</dt><dd><a href="{{ "docs/status/" | relURL }}">Live status &amp; runbooks →</a></dd></div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {{- /* Band 4: Ecosystem triangle — cnref, airef, maku */ -}}
+    <section class="anr-band anr-band-tinted" aria-labelledby="anr-eco-title">
+      <div class="anr-wrap">
+        <div class="anr-band-head">
+          <div>
+            <h2 id="anr-eco-title" class="anr-band-title">Three open-source repos. Clean seams between them.</h2>
+            <p class="anr-band-lead">
+              Adopt the full reference platform, consume this signed AI artifact on your Cloud Native Reference host, or run Maku standalone on any Kubernetes cluster.
+            </p>
+          </div>
+        </div>
+
+        <div class="anr-eco-grid">
+          <article class="anr-eco-card">
+            <span class="anr-eco-domain">cnref.ogenki.io</span>
+            <h3>Cloud Native Reference</h3>
+            <p>The multi-cloud Kubernetes host foundation: EKS/GKE, Cilium, Envoy Gateway, Flux, Crossplane, OpenBao, ZITADEL, CloudNativePG, and the Victoria observability stack.</p>
+            <a href="https://cnref.ogenki.io/">Visit Cloud Native Ref ↗&#xFE0E;</a>
+          </article>
+
+          <article class="anr-eco-card anr-eco-current">
+            <span class="anr-eco-domain">airef.ogenki.io · This site</span>
+            <h3>AI Native Reference</h3>
+            <p>Signed Flux OCI AI layer: self-hosted vLLM GPU model serving behind Envoy AI Gateway plus the production GitOps reference wiring and live validation runbooks for Maku.</p>
+            <a href="{{ "docs/get-started/" | relURL }}">Get started on CNR →</a>
+          </article>
+
+          <article class="anr-eco-card">
+            <span class="anr-eco-domain">maku.ogenki.io</span>
+            <h3>Maku</h3>
+            <p>The standalone open-source software factory for any Kubernetes cluster: 15-minute laptop quickstart, 12-chapter User Guide, interactive Room Replay, and Tier-1 Pilot.</p>
+            <a href="https://maku.ogenki.io/">Visit Maku ↗&#xFE0E;</a>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    var btn = document.getElementById("anr-copy-claim");
+    var code = document.getElementById("anr-claim-yaml");
+    if (btn && code) {
+      var label = btn.querySelector("span");
+      btn.addEventListener("click", function () {
+        if (!navigator.clipboard) return;
+        navigator.clipboard.writeText(code.textContent).then(function () {
+          label.textContent = "Copied";
+          setTimeout(function () { label.textContent = "Copy"; }, 1800);
+        }).catch(function () {});
+      });
+    }
+  })();
+  </script>
+{{ end }}
